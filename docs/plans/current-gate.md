@@ -1,18 +1,19 @@
 # Gate ativo — writer histórico idempotente do Gate 41
 
-Atualizado em: 2026-08-15
+Atualizado em: 2026-08-21
 
 ## Estado
 
-`GATE 41 WRITER: CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE DO RECOVERY`.
+`GATE 41 WRITER: GO TECNICO LOCAL; PRE-APLICACAO OPERACIONAL EM ANDAMENTO`.
 
 ## Objetivo
 
-Materializar na planilha familiar somente os 1.863 itens `ready` do plano RX
-privado fechado, sem gravar existentes, duplicatas prováveis, excluídos ou itens
-fora da janela, com idempotência, recibos, backup e rollback verificáveis.
+Gerar uma nova linha de base privada até 21/08/2026 e materializar na planilha
+familiar somente os itens `ready` que continuarem ausentes no novo plano, sem
+gravar existentes, duplicatas prováveis, excluídos ou itens fora da janela, com
+idempotência, recibos, backup e rollback verificáveis.
 
-## Entrada imutável
+## Linha de base anterior, agora supersedida para escrita
 
 - 2.351 itens totais e cobertura completa;
 - 1.863 `ready`;
@@ -26,6 +27,10 @@ fora da janela, com idempotência, recibos, backup e rollback verificáveis.
   `4b765e1a7c2ebdf3fa21d0b2659effbd1f8e979e884dc6d56c9c8a1f7230de92`.
 - fingerprint integral do artefato:
   `6a88bffd275292e6365538e7f146859d5af12bd2de5af877499d23df5d574bf7`.
+
+Essas cardinalidades e hashes permanecem como evidência histórica, mas não
+autorizam escrita porque Daniel ampliou a janela final até 21/08/2026. O novo
+snapshot deve recalcular todas as classes e reconhecer as linhas já gravadas.
 
 ## Pré-requisitos satisfeitos
 
@@ -43,6 +48,9 @@ fora da janela, com idempotência, recibos, backup e rollback verificáveis.
   também recebeu `ACESSO INSUFICIENTE` porque o Chat não tinha o conector GitHub
   instalado para buscar os arquivos públicos; aguarda conexão do conector e
   novo hash antes de nova tentativa.
+- o hash `9c9c116511c269ca45e88f50ceefce4e89ee1c72` recebeu `GO TECNICO
+  LOCAL` independente com o plugin GitHub conectado, zero achados e nenhuma
+  lacuna indispensável residual no escopo estático.
 
 ## Escopo
 
@@ -81,8 +89,8 @@ fora da janela, com idempotência, recibos, backup e rollback verificáveis.
 4. [concluido] executar suíte ampla final proporcional ao candidato e recovery;
 5. [concluido] provar dry-run estrutural contra o plano fechado anterior;
 6. [concluido] publicar commits sanitizados e obter auditoria independente;
-7. [em andamento] fechar a auditoria independente da reconciliação estrita;
-8. criar backup real, snapshot vigente, novo dry-run e verificar restauração isolada;
+7. [concluido] fechar a auditoria independente da reconciliação estrita;
+8. [em andamento] criar backup real, snapshot vigente até 21/08/2026, novo dry-run e verificar restauração isolada;
 9. aplicar o lote com recibos e parada segura em divergência;
 10. reconciliar novamente e provar zero pendência gravável inesperada;
 11. confirmar que o backlog importado deixou de gerar propostas;
@@ -108,6 +116,6 @@ fora da janela, com idempotência, recibos, backup e rollback verificáveis.
 
 ## Próxima ação
 
-Publicar o recovery curto e obter `GO` independente lendo integralmente os
-patches imutáveis e a prova causal curta. Só depois capturar o snapshot privado
-vigente e retomar a pré-aplicação operacional.
+Capturar o snapshot privado vigente até 21/08/2026, gerar backup e novo
+plano/fingerprint, ensaiar restauração em cópia isolada e conferir o dry-run
+antes de qualquer escrita real.

@@ -1,6 +1,6 @@
 # Estado atual portatil do FinancasBot
 
-Atualizado em: 2026-08-15
+Atualizado em: 2026-08-21
 
 ## Objetivo ativo
 
@@ -138,6 +138,16 @@ apresentacao do gasto livre no WhatsApp.
   públicos; a página do conector mostrou que o plugin GitHub ainda não estava
   instalado nesta sessão. Esse parecer não aponta defeito técnico e não autoriza
   escrita real; a auditoria deve ser retomada após conectar o GitHub.
+- o novo hash imutável `9c9c116511c269ca45e88f50ceefce4e89ee1c72`
+  foi auditado uma única vez no ChatGPT Work com o plugin GitHub conectado e
+  recebeu `GO TECNICO LOCAL`, zero achados e nenhuma lacuna indispensável no
+  escopo estático;
+- por decisão de Daniel, o plano privado anterior até 27/07/2026 é apenas linha
+  de base histórica: a pré-aplicação deve capturar novamente Pluggy e planilha
+  e ampliar a janela gravável até 21/08/2026, sem reutilizar cardinalidades ou
+  fingerprint antigos como autorização de escrita;
+- a escrita real permanece bloqueada até snapshot vigente, backup restaurável,
+  novo plano/fingerprint, ledger novo e dry-run sem divergência.
 - o diretório não rastreado `release-artifacts-g45/` é artefato operacional
   preservado fora do Git; a sincronização portátil permite explicitamente esse
   único estado não rastreado, mas sua cópia privada para o cofre do SSD depende
@@ -151,10 +161,9 @@ apresentacao do gasto livre no WhatsApp.
 
 ## Próxima ação exata
 
-Concluir o handoff portátil no SSD. Na retomada, instalar/conectar o GitHub no
-Chat, produzir um novo hash de recovery de acesso e obter auditoria
-independente; só após `GO`, capturar snapshot privado da planilha, regenerar
-plano/fingerprint e retomar o writer com ledger novo.
+Capturar snapshot privado vigente de Pluggy e planilha até 21/08/2026, gerar
+backup, novo plano/fingerprint e ledger de execução, provar o rollback em cópia
+isolada e somente então avaliar a aplicação real do writer.
 
 ## Capacidade para retomar
 
@@ -182,3 +191,4 @@ plano/fingerprint e retomar o writer com ledger novo.
 - `docs/audit/275-open-finance-historical-import-writer-candidate-2026-08-15.md`.
 - `docs/audit/276-open-finance-historical-import-writer-recovery-candidate-2026-08-15.md`.
 - `docs/audit/277-open-finance-historical-import-writer-independent-close-2026-08-15.md`.
+- `docs/audit/282-open-finance-historical-transfer-connector-independent-close-2026-08-21.md`.
