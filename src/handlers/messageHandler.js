@@ -12192,7 +12192,7 @@ async function processMessage(msg) {
                             const needsTransfers = transferIntents.has(effectiveIntentClassification.intent);
                             const needsBudget = budgetIntents.has(effectiveIntentClassification.intent);
                             const needsGoalMovements = goalIntents.has(effectiveIntentClassification.intent);
-                            const needsAccounts = new Set([
+                            const needsAccounts = needsBudget || new Set([
                                 'resumo_contas_recorrentes',
                                 'contas_vencendo',
                                 'status_conta_recorrente',

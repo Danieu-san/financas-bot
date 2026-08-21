@@ -4859,6 +4859,26 @@ stateMachineTest('financial states: monthly budget alert excludes registered bil
     assert.doesNotMatch(reply, /R\$\s*70,00/);
 });
 
+stateMachineTest('financial states: public free-budget query loads recurring accounts and excludes their payments', async () => {
+    resetState();
+    usesPersonalSpreadsheet = true;
+    sheets.UserSettings[1][13] = 'SIM';
+    sheets.UserSettings[1][14] = '1000';
+    sheets.UserSettings[1][17] = 'personal';
+    sheets.UserSettings[1][18] = '1';
+    sheets.Contas.push(['Dhalyn', '10', '', USER_ID, 'Aula recorrente', 'Educação', 'Curso', '150', 'SIM']);
+    sheets.Saídas.push(
+        [todayBr(), 'Dhalyn', 'Compras', 'Outros', 150, 'Daniel', 'PIX', 'Não', '', USER_ID, 'Daniel - Nubank'],
+        [todayBr(), 'Lanche avulso', 'Alimentação', 'LANCHE', 20, 'Daniel', 'PIX', 'Não', '', USER_ID, 'Daniel - Nubank']
+    );
+
+    const reply = await send('quanto resta do meu gasto livre?');
+
+    assert.match(reply, /Gasto livre no ciclo: R\$\s*20,00/i);
+    assert.doesNotMatch(reply, /R\$\s*170,00/);
+    assert.ok(sheetReadCalls.some(call => call.sheetName === 'Contas' && call.options.userId === USER_ID));
+});
+
 stateMachineTest('financial states: saved credit card expense is not reported as failed when budget alert send fails', async () => {
     resetState();
     sheets.UserSettings[1][13] = 'SIM';
