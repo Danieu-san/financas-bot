@@ -4,7 +4,7 @@ Atualizado em: 2026-08-22
 
 ## Estado
 
-`ARQ-01, ARQ-02 E ARQ-03 EM GO TÉCNICO LOCAL — ARQ-04 RECOVERY AGUARDANDO REAUDITORIA`.
+`ARQ-01 A ARQ-04 EM GO TÉCNICO LOCAL — PREPARAÇÃO DO ARQ-05 AUTORIZADA`.
 
 ## Objetivo
 
@@ -55,10 +55,10 @@ matemática e toda escrita continuam determinísticos.
 
 ## Próxima ação exata
 
-Publicar o novo hash imutável do recovery ARQ-04 e submetê-lo à reauditoria
-independente do Chat. Somente um GO técnico local sem lacuna causal autoriza a
-preparação do ARQ-05. Continuam proibidos deploy, canário de resposta, writer e
-retirada do legado.
+Definir o contrato causal do ARQ-05 antes de qualquer ativação: canário
+read-only por domínio, allowlist explícita, rollback independente, comparação
+com o pipeline vigente e métricas sanitizadas. Canário, deploy, writer e
+retirada do legado continuam proibidos até novo GO independente.
 
 ## Implementação ARQ-02
 
@@ -125,3 +125,7 @@ retirada do legado.
 - suíte ampla final do recovery `1.788/1.798`, zero falha e dez ignorados;
 - recovery:
   `docs/audit/307-financial-evidence-adequacy-multiread-recovery-2026-08-22.md`.
+- reauditoria do hash `d1f0bd3b...`: GO técnico local, achados alto e médio
+  fechados e nenhuma lacuna causal indispensável;
+- fechamento independente:
+  `docs/audit/308-financial-evidence-adequacy-independent-close-2026-08-22.md`.
