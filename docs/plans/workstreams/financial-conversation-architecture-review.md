@@ -25,7 +25,8 @@ sem novo ciclo de correção por frase.
 16. [concluído] publicar, corrigir o NO-GO e reauditar o ARQ-04 por novo hash;
 17. [concluído] implementar localmente o contrato do ARQ-05 sem ativar canário ou produção;
 18. [concluído] publicar e auditar independentemente o ARQ-05 por hash imutável;
-19. [em andamento] ensaiar promoção e rollback do ARQ-05 em ambiente local isolado, sem rede nem escrita.
+19. [concluído] ensaiar promoção e rollback do ARQ-05 em ambiente local isolado, sem rede nem escrita;
+20. [em andamento] preparar ARQ-06 com integração do HEAD vigente e promoção real mínima de um domínio read-only, mantendo legado e rollback.
 
 ## Critério de conclusão
 

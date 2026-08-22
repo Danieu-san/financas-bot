@@ -4,7 +4,7 @@ Atualizado em: 2026-08-22
 
 ## Estado
 
-`ARQ-01 A ARQ-04 EM GO TÉCNICO LOCAL — ARQ-05 CANDIDATO AGUARDANDO AUDITORIA`.
+`ARQ-01 A ARQ-05 EM GO TÉCNICO LOCAL — ENSAIO ARQ-05 VERDE`.
 
 ## Objetivo
 
@@ -55,10 +55,10 @@ matemática e toda escrita continuam determinísticos.
 
 ## Próxima ação exata
 
-Ensaiar localmente a promoção e o rollback do ARQ-05 com configuração isolada,
-sem OpenRouter, Google, WhatsApp, produção ou escrita financeira. Canário real,
-deploy, writer e retirada do legado continuam proibidos até evidência e decisão
-separadas.
+Preparar o ARQ-06 como canário real mínimo de um único domínio read-only para o
+casal autorizado, mantendo legado e rollback imediato. Antes de ativar, integrar
+o HEAD vigente, confirmar o contrato de release OCI e produzir artefato e
+evidência próprios. Writer e retirada do legado continuam proibidos.
 
 ## Implementação ARQ-02
 
@@ -151,4 +151,6 @@ separadas.
   lacuna indispensável residual dentro do escopo estático;
 - fechamento independente:
   `docs/audit/310-financial-iterative-domain-canary-independent-close-2026-08-22.md`;
+- ensaio local focal de promoção/rollback `5/5`, sem rede nem escrita:
+  `docs/audit/311-financial-iterative-domain-canary-local-rehearsal-2026-08-22.md`;
 - modo real, OpenRouter, Google, WhatsApp, deploy e writer continuam inativos.
