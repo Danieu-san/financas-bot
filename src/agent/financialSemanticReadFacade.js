@@ -216,6 +216,7 @@ function listFinancialSemanticCapabilities() {
 module.exports = {
     executeFinancialSemanticRead,
     listFinancialSemanticCapabilities,
+    sanitizeFinancialEvidenceValue: sanitizeEvidenceValue,
     __test__: {
         buildTrustedAdapterInput,
         buildEvidenceEnvelope,

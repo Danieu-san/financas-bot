@@ -3710,3 +3710,49 @@ test('dashboard metric tool exposes a human period label to deterministic and co
         label: 'Junho de 2026'
     });
 });
+
+test('LangGraph runs an injected iterative agent only as a non-authoritative shadow comparison', async () => {
+    syncAgentSnapshot();
+    let injectedAdapterCalls = 0;
+    const plan = {
+        kind: 'financial_query',
+        domain: 'expenses',
+        operation: 'sum',
+        filters: { period: { type: 'month', month: 5, year: 2026 } },
+        timeBasis: 'billing_month'
+    };
+    const decisions = [
+        { action: 'tool', tool: 'query_financial_plan', args: { plan } },
+        { action: 'answer', answer: 'candidato shadow' }
+    ];
+    const result = await invokeFinancialAgent({
+        message: 'quanto gastei no mês?',
+        userIds: ['agent-daniel', 'agent-thais'],
+        ownerUserId: 'agent-daniel',
+        personByUserId: { 'agent-daniel': 'Daniel', 'agent-thais': 'Thais' },
+        currentDate: '20/06/2026',
+        financialQueryPlan: plan,
+        mode: 'answer',
+        iterativeShadowReasoner: async () => decisions.shift(),
+        iterativeShadowAdapters: {
+            query_financial_plan: async () => {
+                injectedAdapterCalls += 1;
+                return { ok: true, result: { value: 999999 } };
+            }
+        }
+    });
+
+    assert.strictEqual(result.action, 'answer');
+    assert.strictEqual(result.verified.ok, true);
+    assert.match(result.answer, /R\$/);
+    assert.strictEqual(result.iterativeShadow.mode, 'shadow');
+    assert.strictEqual(result.iterativeShadow.readCount, 1);
+    assert.strictEqual(result.iterativeShadow.stopReason, 'candidate_answer');
+    assert.strictEqual(result.iterativeShadow.visibleResponse, null);
+    assert.deepStrictEqual(result.iterativeShadow.sideEffects, { messagesSent: 0, financialWrites: 0 });
+    assert.strictEqual(result.iterativeShadow.comparison.comparable, true);
+    assert.strictEqual(result.iterativeShadow.comparison.sameCapability, true);
+    assert.strictEqual(result.iterativeShadow.comparison.samePayload, true);
+    assert.strictEqual(injectedAdapterCalls, 0);
+    assert.doesNotMatch(result.answer, /candidato shadow/i);
+});

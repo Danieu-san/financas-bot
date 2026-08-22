@@ -4,7 +4,7 @@ Atualizado em: 2026-08-22
 
 ## Estado
 
-`ARQ-01 E ARQ-02 EM GO TÉCNICO LOCAL — ARQ-03 AUTORIZADO`.
+`ARQ-01 E ARQ-02 EM GO TÉCNICO LOCAL — ARQ-03 CANDIDATO AGUARDANDO AUDITORIA`.
 
 ## Objetivo
 
@@ -55,10 +55,10 @@ matemática e toda escrita continuam determinísticos.
 
 ## Próxima ação exata
 
-Definir o contrato causal do ARQ-03 antes da edição de produto: agente
-iterativo executado somente em shadow, no máximo três consultas semânticas,
-sem responder ao usuário e sem writer. Continuam proibidos deploy, canário de
-resposta, writer e retirada do legado.
+Publicar o hash imutável do ARQ-03 e submetê-lo uma única vez à auditoria
+independente do Chat. Somente um GO técnico local sem lacuna causal autoriza o
+ARQ-04. Continuam proibidos deploy, canário de resposta, writer e retirada do
+legado.
 
 ## Implementação ARQ-02
 
@@ -80,3 +80,21 @@ resposta, writer e retirada do legado.
 - fechamento independente: `docs/audit/303-financial-semantic-read-facade-independent-close-2026-08-22.md`;
 - reauditoria do hash `06bf6b4b...`: GO técnico local, zero achados e nenhuma
   lacuna causal indispensável.
+
+## Implementação ARQ-03
+
+- agente iterativo somente leitura executado depois do pipeline vigente;
+- limite absoluto de três consultas pela fachada semântica do ARQ-02;
+- trajetória reconstruída por allowlist e envelopes sanitizados são o único
+  contexto fornecido ao reasoner;
+- função pública descarta adapters do chamador e adapters sintéticos existem
+  somente no export de teste;
+- resposta candidata não é exibida e o pipeline vigente permanece a única
+  autoridade;
+- comparação interna por capacidade, fonte, cobertura e fingerprint;
+- falhas e rejeições são contidas com zero mensagem e zero escrita financeira;
+- ativação somente por callback explícito de teste, sem flag ou handler de
+  produção;
+- evidência focal final `7/7`, integração `1/1` e suíte hermética ampla
+  `1.772/1.782`, zero falha e dez ignorados;
+- candidato: `docs/audit/304-financial-iterative-shadow-agent-candidate-2026-08-22.md`.

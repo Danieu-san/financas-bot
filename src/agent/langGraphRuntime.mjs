@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { normalizeText, parseSheetDate } = require('../utils/helpers');
 const { executeFinancialSemanticRead } = require('./financialSemanticReadFacade');
+const { runFinancialIterativeShadow } = require('./financialIterativeShadowAgent');
 const { verifyAgentResult } = require('./resultVerifier');
 const { planWithGemini } = require('./financialAgentPlanner');
 const {
@@ -1317,6 +1318,33 @@ export async function invokeFinancialAgentRuntime(input = {}) {
         telemetry,
         migrationGap
     });
+    let iterativeShadow = null;
+    if (typeof input.iterativeShadowReasoner === 'function') {
+        try {
+            iterativeShadow = await runFinancialIterativeShadow({
+                message: input.message || '',
+                trajectory,
+                trustedContext: {
+                    userIds: input.userIds || [],
+                    ownerUserId: input.ownerUserId || input.userIds?.[0] || '',
+                    personByUserId: input.personByUserId || {},
+                    currentDate: input.currentDate || '',
+                    canonicalLedgerDbPath: input.canonicalLedgerDbPath || undefined
+                },
+                baselineToolResult: result.toolResult || null,
+                reasoner: input.iterativeShadowReasoner,
+                maxReads: input.iterativeShadowMaxReads
+            });
+        } catch (_) {
+            iterativeShadow = {
+                mode: 'shadow',
+                readCount: 0,
+                stopReason: 'shadow_failed',
+                visibleResponse: null,
+                sideEffects: { messagesSent: 0, financialWrites: 0 }
+            };
+        }
+    }
     return {
         action: result.action || 'error',
         plan: result.plan || null,
@@ -1325,7 +1353,8 @@ export async function invokeFinancialAgentRuntime(input = {}) {
         verified: result.verified || { ok: false, reason: 'missing_verification' },
         telemetry,
         migrationGap,
-        trajectory
+        trajectory,
+        iterativeShadow
     };
 }
 

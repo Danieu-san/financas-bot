@@ -19,7 +19,9 @@ sem novo ciclo de correção por frase.
 10. [concluído] segundo recovery, suíte ampla, hash imutável e GO independente;
 11. [concluído] definir e implementar localmente a fachada semântica read-only do ARQ-02;
 12. [concluído] publicar, auditar, corrigir e reauditar o ARQ-02 por hash;
-13. [em andamento] desenhar e implementar localmente o ARQ-03 apenas em shadow.
+13. [concluído] desenhar e implementar localmente o ARQ-03 apenas em shadow;
+14. [em andamento] publicar e auditar independentemente o ARQ-03 por hash;
+15. [pendente] implementar o ARQ-04 somente após GO independente do ARQ-03.
 
 ## Critério de conclusão
 
