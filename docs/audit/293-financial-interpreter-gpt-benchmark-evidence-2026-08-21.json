@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "referenceDate": "2026-08-21",
+  "provider": "openrouter",
+  "model": "openai/gpt-5.6-terra",
+  "cases": 11,
+  "repetitions": 3,
+  "totalCalls": 33,
+  "validStructuredOutputs": 33,
+  "passedCalls": 18,
+  "stableCorrectCases": 6,
+  "externalWrites": 0,
+  "failures": [
+    { "id": "FIN-INT-03", "repetitions": [1, 2, 3], "paths": ["operation"] },
+    { "id": "FIN-INT-06", "repetitions": [1, 2, 3], "paths": ["operation"] },
+    { "id": "FIN-INT-07", "repetitions": [1, 2, 3], "paths": ["filters.scope", "filters.account"] },
+    { "id": "FIN-INT-08", "repetitions": [1, 2, 3], "paths": ["output:clarify"] },
+    { "id": "FIN-INT-10", "repetitions": [1, 2, 3], "paths": ["filters.period.type", "filters.status"] }
+  ],
+  "scope": "sanitized read-only interpreter experiment; no WhatsApp, Sheets, OCI or production access"
+}
