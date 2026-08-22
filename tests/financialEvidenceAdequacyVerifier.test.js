@@ -82,6 +82,40 @@ test('adequacy verifier preserves the existing numerical verifier', () => {
     assert.strictEqual(result.checks.numerical.reason, 'invented_amount');
 });
 
+test('adequacy verifier rejects a value supplied only by an earlier incompatible read', () => {
+    const incompatiblePlan = plan({
+        filters: { ...plan().filters, member: 'Daniel', category: 'Mercado' }
+    });
+    const result = verifyFinancialEvidenceAdequacy({
+        expectedPlan: plan(),
+        executions: [
+            execution({ actualPlan: incompatiblePlan, value: 99 }),
+            execution({ actualPlan: plan(), value: 25 })
+        ],
+        answer: 'O total foi R$ 99,00.'
+    });
+
+    assert.strictEqual(result.ok, false);
+    assert.strictEqual(result.checks.numerical.reason, 'invented_amount');
+});
+
+test('adequacy verifier accepts a value from the same final read whose structure is adequate', () => {
+    const incompatiblePlan = plan({
+        filters: { ...plan().filters, member: 'Daniel', category: 'Mercado' }
+    });
+    const result = verifyFinancialEvidenceAdequacy({
+        expectedPlan: plan(),
+        executions: [
+            execution({ actualPlan: incompatiblePlan, value: 99 }),
+            execution({ actualPlan: plan(), value: 25 })
+        ],
+        answer: 'O total foi R$ 25,00.'
+    });
+
+    assert.strictEqual(result.ok, true);
+    assert.strictEqual(result.status, 'adequate');
+});
+
 test('adequacy verifier rejects a different person even when the amount is valid', () => {
     const actualPlan = plan({ filters: { ...plan().filters, member: 'Daniel' } });
     const result = verifyFinancialEvidenceAdequacy({

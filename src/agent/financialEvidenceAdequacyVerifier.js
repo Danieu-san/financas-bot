@@ -100,12 +100,7 @@ function deriveReadPlan(execution = null) {
 }
 
 function numericalCheck(answer, executions = []) {
-    const toolResult = executions.length === 1
-        ? executions[0]?.result || {}
-        : {
-            tool: 'shadow_evidence_bundle',
-            evidenceResults: executions.map(execution => execution?.result || {})
-        };
+    const toolResult = executions[executions.length - 1]?.result || {};
     const verified = verifyAgentAnswer(answer, { toolResult });
     return resultCheck(verified.ok, verified.ok ? null : verified.reason || 'numerical_verification_failed');
 }

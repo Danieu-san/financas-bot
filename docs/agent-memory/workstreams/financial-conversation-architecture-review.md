@@ -4,7 +4,7 @@ Atualizado em: 2026-08-22
 
 ## Estado
 
-`ARQ-01, ARQ-02 E ARQ-03 EM GO TÉCNICO LOCAL — ARQ-04 CANDIDATO AGUARDANDO AUDITORIA`.
+`ARQ-01, ARQ-02 E ARQ-03 EM GO TÉCNICO LOCAL — ARQ-04 RECOVERY AGUARDANDO REAUDITORIA`.
 
 ## Objetivo
 
@@ -55,7 +55,7 @@ matemática e toda escrita continuam determinísticos.
 
 ## Próxima ação exata
 
-Publicar o hash imutável do ARQ-04 e submetê-lo uma única vez à auditoria
+Publicar o novo hash imutável do recovery ARQ-04 e submetê-lo à reauditoria
 independente do Chat. Somente um GO técnico local sem lacuna causal autoriza a
 preparação do ARQ-05. Continuam proibidos deploy, canário de resposta, writer e
 retirada do legado.
@@ -118,3 +118,10 @@ retirada do legado.
 - suíte hermética ampla `1.786/1.796`, zero falha e dez ignorados;
 - candidato:
   `docs/audit/306-financial-evidence-adequacy-verifier-candidate-2026-08-22.md`.
+- auditoria do hash `accb4060...`: NO-GO por bundle numérico multileitura não
+  vinculado à última execução estruturalmente adequada;
+- recovery remove o bundle e vincula todos os fatos à última leitura;
+- controles multileitura negativo/positivo, focais `23/23` e integração `1/1`;
+- suíte ampla final do recovery `1.788/1.798`, zero falha e dez ignorados;
+- recovery:
+  `docs/audit/307-financial-evidence-adequacy-multiread-recovery-2026-08-22.md`.
