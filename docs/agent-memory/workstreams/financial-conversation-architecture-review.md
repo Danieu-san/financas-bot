@@ -4,7 +4,7 @@ Atualizado em: 2026-08-22
 
 ## Estado
 
-`ARQ-01 E ARQ-02 EM GO TÉCNICO LOCAL — ARQ-03 CANDIDATO AGUARDANDO AUDITORIA`.
+`ARQ-01, ARQ-02 E ARQ-03 EM GO TÉCNICO LOCAL — ARQ-04 AUTORIZADO`.
 
 ## Objetivo
 
@@ -55,10 +55,10 @@ matemática e toda escrita continuam determinísticos.
 
 ## Próxima ação exata
 
-Publicar o hash imutável do ARQ-03 e submetê-lo uma única vez à auditoria
-independente do Chat. Somente um GO técnico local sem lacuna causal autoriza o
-ARQ-04. Continuam proibidos deploy, canário de resposta, writer e retirada do
-legado.
+Definir o contrato causal do ARQ-04 antes de editar produto: preservar as
+verificações numéricas e acrescentar adequação de pessoa, período, base
+temporal, dimensão, fonte e ausência de dados. Continuam proibidos deploy,
+canário de resposta, writer e retirada do legado.
 
 ## Implementação ARQ-02
 
@@ -98,3 +98,7 @@ legado.
 - evidência focal final `7/7`, integração `1/1` e suíte hermética ampla
   `1.772/1.782`, zero falha e dez ignorados;
 - candidato: `docs/audit/304-financial-iterative-shadow-agent-candidate-2026-08-22.md`.
+- auditoria do hash `5523b6a3...`: GO técnico local, zero achados e nenhuma
+  lacuna causal indispensável;
+- fechamento independente:
+  `docs/audit/305-financial-iterative-shadow-agent-independent-close-2026-08-22.md`.

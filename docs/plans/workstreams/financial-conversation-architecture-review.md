@@ -20,8 +20,8 @@ sem novo ciclo de correção por frase.
 11. [concluído] definir e implementar localmente a fachada semântica read-only do ARQ-02;
 12. [concluído] publicar, auditar, corrigir e reauditar o ARQ-02 por hash;
 13. [concluído] desenhar e implementar localmente o ARQ-03 apenas em shadow;
-14. [em andamento] publicar e auditar independentemente o ARQ-03 por hash;
-15. [pendente] implementar o ARQ-04 somente após GO independente do ARQ-03.
+14. [concluído] publicar e auditar independentemente o ARQ-03 por hash;
+15. [em andamento] definir e implementar o ARQ-04, verificador de adequação.
 
 ## Critério de conclusão
 
