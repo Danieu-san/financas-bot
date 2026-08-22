@@ -5,6 +5,7 @@ const {
     sanitizeFinancialEvidenceValue
 } = require('./financialSemanticReadFacade');
 const { sanitizeExecutedPlan } = require('./financialAgentTrajectory');
+const { verifyFinancialEvidenceAdequacy } = require('./financialEvidenceAdequacyVerifier');
 
 const MAX_SHADOW_READS = 3;
 const BLOCKING_TOOL_REASONS = new Set([
@@ -106,7 +107,7 @@ function normalizeCandidate(decision = {}) {
     return null;
 }
 
-function shadowResult({ steps, candidate = null, stopReason, baselineEvidence = null } = {}) {
+function shadowResult({ steps, candidate = null, stopReason, baselineEvidence = null, adequacy = null } = {}) {
     const candidateEvidence = steps.length > 0 ? steps[steps.length - 1].evidence : null;
     return {
         mode: 'shadow',
@@ -114,6 +115,7 @@ function shadowResult({ steps, candidate = null, stopReason, baselineEvidence = 
         stopReason,
         steps,
         candidate,
+        adequacy,
         comparison: compareShadowEvidence({ baselineEvidence, candidateEvidence }),
         visibleResponse: null,
         sideEffects: { messagesSent: 0, financialWrites: 0 }
@@ -132,6 +134,7 @@ async function runFinancialIterativeShadowCore({
 } = {}) {
     const readLimit = Math.max(1, Math.min(MAX_SHADOW_READS, Number.parseInt(maxReads, 10) || MAX_SHADOW_READS));
     const steps = [];
+    const executions = [];
     if (typeof reasoner !== 'function') {
         return shadowResult({ steps, stopReason: 'reasoner_unavailable', baselineEvidence });
     }
@@ -157,9 +160,19 @@ async function runFinancialIterativeShadowCore({
 
         const candidate = normalizeCandidate(decision);
         if (candidate) {
+            const adequacy = candidate.action === 'answer'
+                ? verifyFinancialEvidenceAdequacy({
+                    expectedPlan: trajectory?.executedPlan,
+                    expectedScope: trajectory?.context?.scope,
+                    knownPeople: Object.values(trustedContext?.personByUserId || {}),
+                    executions,
+                    answer: candidate.text
+                })
+                : { schemaVersion: 1, ok: null, status: 'not_applicable', checks: {}, reasons: [] };
             return shadowResult({
                 steps,
                 candidate,
+                adequacy,
                 stopReason: candidate.action === 'answer' ? 'candidate_answer' : 'candidate_clarification',
                 baselineEvidence
             });
@@ -182,6 +195,10 @@ async function runFinancialIterativeShadowCore({
             adapters
         });
         const reason = String(execution?.reason || '');
+        executions.push({
+            request: { tool: String(decision.tool || ''), args: decision.args || {} },
+            result: execution
+        });
         const executed = !BLOCKING_TOOL_REASONS.has(reason);
         steps.push({
             index: steps.length + 1,

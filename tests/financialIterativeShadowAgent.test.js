@@ -93,6 +93,7 @@ test('iterative shadow agent exposes only envelopes to the reasoner and no trust
 
     assert.strictEqual(output.stopReason, 'candidate_answer');
     assert.strictEqual(output.candidate.action, 'answer');
+    assert.strictEqual(output.adequacy.status, 'inadequate');
     assert.strictEqual(output.visibleResponse, null);
     assert.strictEqual(observed[1].evidenceHistory.length, 1);
     assert.strictEqual(observed[1].evidenceHistory[0].payload.rows[0].description, 'lanche');

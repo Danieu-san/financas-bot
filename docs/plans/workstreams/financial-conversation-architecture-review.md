@@ -21,7 +21,9 @@ sem novo ciclo de correção por frase.
 12. [concluído] publicar, auditar, corrigir e reauditar o ARQ-02 por hash;
 13. [concluído] desenhar e implementar localmente o ARQ-03 apenas em shadow;
 14. [concluído] publicar e auditar independentemente o ARQ-03 por hash;
-15. [em andamento] definir e implementar o ARQ-04, verificador de adequação.
+15. [concluído] definir e implementar o ARQ-04, verificador de adequação;
+16. [em andamento] publicar e auditar independentemente o ARQ-04 por hash;
+17. [pendente] preparar o contrato do ARQ-05 somente após GO independente.
 
 ## Critério de conclusão
 

@@ -4,7 +4,7 @@ Atualizado em: 2026-08-22
 
 ## Estado
 
-`ARQ-01, ARQ-02 E ARQ-03 EM GO TÉCNICO LOCAL — ARQ-04 AUTORIZADO`.
+`ARQ-01, ARQ-02 E ARQ-03 EM GO TÉCNICO LOCAL — ARQ-04 CANDIDATO AGUARDANDO AUDITORIA`.
 
 ## Objetivo
 
@@ -55,10 +55,10 @@ matemática e toda escrita continuam determinísticos.
 
 ## Próxima ação exata
 
-Definir o contrato causal do ARQ-04 antes de editar produto: preservar as
-verificações numéricas e acrescentar adequação de pessoa, período, base
-temporal, dimensão, fonte e ausência de dados. Continuam proibidos deploy,
-canário de resposta, writer e retirada do legado.
+Publicar o hash imutável do ARQ-04 e submetê-lo uma única vez à auditoria
+independente do Chat. Somente um GO técnico local sem lacuna causal autoriza a
+preparação do ARQ-05. Continuam proibidos deploy, canário de resposta, writer e
+retirada do legado.
 
 ## Implementação ARQ-02
 
@@ -102,3 +102,19 @@ canário de resposta, writer e retirada do legado.
   lacuna causal indispensável;
 - fechamento independente:
   `docs/audit/305-financial-iterative-shadow-agent-independent-close-2026-08-22.md`.
+
+## Implementação ARQ-04
+
+- verificador determinístico de adequação composto ao verificador numérico
+  anterior;
+- pessoa, período, base temporal, dimensões, fonte e ausência validados contra
+  a leitura efetivamente executada;
+- fonte indisponível, coleção vazia e agregado zero permanecem distintos;
+- alegação “não houve” sobre evidência disponível não zero falha fechado;
+- resultado inserido somente no relatório shadow, sem alterar a resposta
+  vigente;
+- evidência focal `21/21`, integração `1/1`, agente `88/88`, aceitação e
+  baseline `265/265`, críticos `15/15`;
+- suíte hermética ampla `1.786/1.796`, zero falha e dez ignorados;
+- candidato:
+  `docs/audit/306-financial-evidence-adequacy-verifier-candidate-2026-08-22.md`.

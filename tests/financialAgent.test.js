@@ -3748,6 +3748,8 @@ test('LangGraph runs an injected iterative agent only as a non-authoritative sha
     assert.strictEqual(result.iterativeShadow.mode, 'shadow');
     assert.strictEqual(result.iterativeShadow.readCount, 1);
     assert.strictEqual(result.iterativeShadow.stopReason, 'candidate_answer');
+    assert.strictEqual(result.iterativeShadow.adequacy.ok, true);
+    assert.strictEqual(result.iterativeShadow.adequacy.status, 'adequate');
     assert.strictEqual(result.iterativeShadow.visibleResponse, null);
     assert.deepStrictEqual(result.iterativeShadow.sideEffects, { messagesSent: 0, financialWrites: 0 });
     assert.strictEqual(result.iterativeShadow.comparison.comparable, true);
