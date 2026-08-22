@@ -4,7 +4,7 @@ Data: 2026-08-22
 
 ## Estado
 
-`RECOVERY LOCAL VALIDADO — AGUARDA NOVO COMMIT IMUTÁVEL E REAUDITORIA INDEPENDENTE`.
+`SEGUNDO RECOVERY LOCAL VALIDADO — AGUARDA NOVO COMMIT IMUTÁVEL E REAUDITORIA INDEPENDENTE`.
 
 ## Objetivo
 
@@ -61,6 +61,8 @@ A bateria oficial foi regenerada após o primeiro parecer independente por
 - casos críticos: `15/15`;
 - tools fora da allowlist read-only observadas: `0`;
 - fingerprint SHA-256 da projeção-fonte: presente e validado;
+- projeção-fonte sanitizada dos `265` casos: versionada e usada para recalcular
+  os invariantes e o fingerprint;
 - validação do artefato: `ok=true`;
 - artefato sanitizado: documento JSON 297 do mesmo gate.
 
@@ -69,13 +71,13 @@ bateria operacional completa permanece artefato local ignorado pelo Git.
 
 ## Evidência causal local
 
-- teste focal do contrato, privacidade e artefato: `7/7`;
+- teste focal do contrato, privacidade e artefato: `9/9`;
 - suíte causal do agente e full-debug sanitizado: `87/87`;
 - bateria afetada, incluindo agente e máquina de estados: `231/231`;
 - bateria oficial/baseline: `265/265`, críticos `15/15`;
-- suíte hermética ampla final após o recovery: `1.754` aprovados, `0` falhas e
-  `10` ignorados, em `1.764` testes;
-- cobertura ampla: linhas `91,64%`, branches `74,53%` e funções `91,18%`;
+- suíte hermética ampla final após o segundo recovery: `1.756` aprovados, `0`
+  falhas e `10` ignorados, em `1.766` testes;
+- cobertura ampla: linhas `91,65%`, branches `74,55%` e funções `91,18%`;
 - nenhuma chamada de modelo foi necessária para o baseline fornecido pelo
   corpus;
 - nenhuma tool de escrita foi selecionada e nenhum acesso a produção ocorreu.
@@ -100,6 +102,21 @@ O parecer do hash `544078e2fce30758c8744d907eb0d161b1aa7910` devolveu
    críticos e zero tool fora da allowlist read-only.
 
 As contagens continuam sendo execução local relatada, não execução do auditor.
+
+## Recovery do segundo parecer independente
+
+O parecer do hash `3d4ab01beaecbb5e3767361a45a88fb4a6e7a5f4` manteve
+`NO-GO`: os logs foram aprovados, mas ferramentas read-only com plano derivado
+ainda podiam reconstruir `executedPlan` após falha, e o fingerprint não podia
+ser recalculado sem a projeção-fonte. O segundo recovery:
+
+1. retorna `executedPlan=null` imediatamente para qualquer `toolResult.ok` que
+   não seja verdadeiro, antes de todos os fallbacks;
+2. cobre por teste as falhas de `query_financial_plan`,
+   `list_recent_transactions`, `get_dashboard_snapshot` e `explain_metric`;
+3. versiona a projeção sanitizada dos `265` resultados e faz o validador
+   recomputar dela total, aceitação, ausência de trajetória, read-only, tools,
+   críticos e o SHA-256; adulterações causam falha explícita.
 
 ## Invariantes e rollback
 

@@ -95,6 +95,37 @@ test('trajectory distinguishes empty evidence from an unavailable source', () =>
     assert.strictEqual(unavailable.executedPlan, null);
 });
 
+test('every failed read-only tool leaves the executed plan absent', () => {
+    const failedPlans = [
+        {
+            tool: 'list_recent_transactions',
+            args: { eventTypes: ['expense'], limit: 3 }
+        },
+        {
+            tool: 'get_dashboard_snapshot',
+            args: { month: 8, year: 2026 }
+        },
+        {
+            tool: 'explain_metric',
+            args: { month: 8, year: 2026 }
+        }
+    ];
+
+    for (const plan of failedPlans) {
+        const trajectory = buildFinancialAgentTrajectory({
+            message: 'consulta sintética',
+            authorizedUserCount: 2,
+            plan: { action: 'tool', ...plan },
+            toolResult: { ok: false, tool: plan.tool, reason: 'read_model_unavailable' },
+            action: 'error',
+            verified: { ok: false, reason: 'tool_unavailable:read_model_unavailable' },
+            answer: ''
+        });
+        assert.strictEqual(trajectory.executedPlan, null, plan.tool);
+        assert.strictEqual(buildAnalyticalCheckpointFromTrajectory(trajectory), null, plan.tool);
+    }
+});
+
 test('derived recent-transaction checkpoint preserves an authorized family scope', () => {
     const trajectory = buildFinancialAgentTrajectory({
         message: 'qual foi o último gasto da família?',
@@ -211,9 +242,13 @@ test('baseline projection keeps only aggregate trajectory evidence and fixed cas
     assert.strictEqual(baseline.summary.missingTrajectory, 0);
     assert.strictEqual(baseline.summary.readOnly, results.length);
     assert.strictEqual(baseline.summary.writeCapableToolExecutions, 0);
+    assert.strictEqual(baseline.sourceProjection.length, results.length);
     assert.match(baseline.sourceEvidenceFingerprint, /^[a-f0-9]{64}$/);
     assert.deepStrictEqual(validateSanitizedBaseline(baseline, results.length), { ok: true, errors: [] });
-    assert.deepStrictEqual(validateSanitizedBaseline(baseline), { ok: false, errors: ['unexpected_total'] });
+    assert.deepStrictEqual(validateSanitizedBaseline(baseline), {
+        ok: false,
+        errors: ['unexpected_total', 'invalid_source_projection']
+    });
     assert.doesNotMatch(serialized, /texto privado|resposta privada|"question":|"answer":/);
 });
 
@@ -231,6 +266,30 @@ test('versioned baseline evidence is the validated generated schema', () => {
     assert.strictEqual(evidence.summary.total, 265);
     assert.strictEqual(evidence.summary.readOnly, evidence.summary.total);
     assert.strictEqual(evidence.summary.writeCapableToolExecutions, 0);
+    assert.strictEqual(evidence.sourceProjection.length, 265);
     assert.match(evidence.sourceEvidenceFingerprint, /^[a-f0-9]{64}$/);
     assert.doesNotMatch(JSON.stringify(evidence), /"question":|"answer":|user_id|sheet_id|spreadsheet|token/i);
+});
+
+test('baseline validation recomputes invariants and fingerprint from versioned projection', () => {
+    const evidence = JSON.parse(fs.readFileSync(path.join(
+        __dirname, '..', 'docs', 'audit',
+        '297-financial-agent-trajectory-baseline-evidence-2026-08-22.json'
+    ), 'utf8'));
+    const tamperedTool = structuredClone(evidence);
+    tamperedTool.sourceProjection[0].tool = 'write_financial_event';
+    assert.deepStrictEqual(validateSanitizedBaseline(tamperedTool), {
+        ok: false,
+        errors: [
+            'summary_projection_mismatch:writeCapableToolExecutions',
+            'source_fingerprint_mismatch'
+        ]
+    });
+
+    const tamperedFingerprint = structuredClone(evidence);
+    tamperedFingerprint.sourceEvidenceFingerprint = '0'.repeat(64);
+    assert.deepStrictEqual(validateSanitizedBaseline(tamperedFingerprint), {
+        ok: false,
+        errors: ['source_fingerprint_mismatch']
+    });
 });

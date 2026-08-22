@@ -59,10 +59,11 @@ function summarizeTrajectories(results = []) {
     return summary;
 }
 
-function sourceEvidenceFingerprint(results = []) {
-    const projection = results.map(item => ({
+function buildSourceProjection(results = []) {
+    return results.map(item => ({
         id: String(item.id || ''),
         accepted: Boolean(item.accepted),
+        trajectoryPresent: Boolean(item.trajectory),
         action: item.trajectory?.decision?.action || item.action || 'none',
         domain: item.trajectory?.executedPlan?.domain || item.stage || 'none',
         operation: item.trajectory?.executedPlan?.operation || 'none',
@@ -72,11 +73,15 @@ function sourceEvidenceFingerprint(results = []) {
         readOnly: item.trajectory?.readOnly === true,
         verified: item.trajectory?.verification?.ok === true
     }));
+}
+
+function sourceEvidenceFingerprint(projection = []) {
     return crypto.createHash('sha256').update(JSON.stringify(projection)).digest('hex');
 }
 
 function buildSanitizedBaseline(report = {}) {
     const results = Array.isArray(report.results) ? report.results : [];
+    const sourceProjection = buildSourceProjection(results);
     const byId = new Map(results.map(item => [item.id, item]));
     const critical = CRITICAL_CASE_IDS.map(id => ({
         id,
@@ -93,7 +98,8 @@ function buildSanitizedBaseline(report = {}) {
         startedAt: String(report.started_at || ''),
         finishedAt: String(report.finished_at || ''),
         syntheticOnly: report.synthetic_user_only === true,
-        sourceEvidenceFingerprint: sourceEvidenceFingerprint(results),
+        sourceEvidenceFingerprint: sourceEvidenceFingerprint(sourceProjection),
+        sourceProjection,
         rawQuestionsIncluded: false,
         rawAnswersIncluded: false,
         summary: summarizeTrajectories(results),
@@ -108,14 +114,41 @@ function buildSanitizedBaseline(report = {}) {
 function validateSanitizedBaseline(baseline = {}, expectedTotal = 265) {
     const errors = [];
     const summary = baseline.summary || {};
+    const projection = Array.isArray(baseline.sourceProjection) ? baseline.sourceProjection : null;
     if (summary.total !== expectedTotal) errors.push('unexpected_total');
     if (summary.accepted !== summary.total || summary.gaps !== 0) errors.push('acceptance_gap');
     if (summary.missingTrajectory !== 0) errors.push('missing_trajectory');
     if (summary.readOnly !== summary.total) errors.push('non_readonly_trajectory');
     if (summary.writeCapableToolExecutions !== 0) errors.push('write_capable_tool_executed');
     if (baseline.critical?.accepted !== baseline.critical?.required) errors.push('critical_gap');
+    if (!projection || projection.length !== expectedTotal) {
+        errors.push('invalid_source_projection');
+    } else {
+        const derived = {
+            total: projection.length,
+            accepted: projection.filter(item => item.accepted === true).length,
+            gaps: projection.filter(item => item.accepted !== true).length,
+            missingTrajectory: projection.filter(item => item.trajectoryPresent !== true).length,
+            readOnly: projection.filter(item => item.readOnly === true).length,
+            writeCapableToolExecutions: projection.filter(item => !READ_ONLY_AGENT_TOOLS.has(String(item.tool || 'none'))).length
+        };
+        for (const key of Object.keys(derived)) {
+            if (summary[key] !== derived[key]) errors.push(`summary_projection_mismatch:${key}`);
+        }
+        const criticalAccepted = CRITICAL_CASE_IDS.filter(id => {
+            const item = projection.find(candidate => candidate.id === id);
+            return item?.accepted === true;
+        }).length;
+        if (baseline.critical?.required !== CRITICAL_CASE_IDS.length
+            || baseline.critical?.accepted !== criticalAccepted) {
+            errors.push('critical_projection_mismatch');
+        }
+    }
     if (!/^[a-f0-9]{64}$/.test(String(baseline.sourceEvidenceFingerprint || ''))) {
         errors.push('invalid_source_fingerprint');
+    } else if (projection
+        && sourceEvidenceFingerprint(projection) !== baseline.sourceEvidenceFingerprint) {
+        errors.push('source_fingerprint_mismatch');
     }
     return { ok: errors.length === 0, errors };
 }
@@ -150,6 +183,7 @@ if (require.main === module) {
 module.exports = {
     CRITICAL_CASE_IDS,
     summarizeTrajectories,
+    buildSourceProjection,
     sourceEvidenceFingerprint,
     buildSanitizedBaseline,
     validateSanitizedBaseline,

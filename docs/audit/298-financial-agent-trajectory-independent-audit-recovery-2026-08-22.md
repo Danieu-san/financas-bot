@@ -55,7 +55,7 @@ código do ARQ-01 não adiciona writer, flag ou acesso a produção.
 
 ## Estado
 
-`RECOVERY LOCAL VALIDADO — AGUARDA HASH IMUTÁVEL E REAUDITORIA INDEPENDENTE`.
+`SUPERADO PELO SEGUNDO PARECER INDEPENDENTE NO HASH 3d4ab01beaecbb5e3767361a45a88fb4a6e7a5f4`.
 
-Somente um GO independente no novo hash pode encerrar ARQ-01 e autorizar o
-início de ARQ-02. Não há autorização de deploy, canário ou retirada de legado.
+O segundo parecer e seu recovery estão documentados no arquivo 299. Não há
+autorização de deploy, canário ou retirada de legado.

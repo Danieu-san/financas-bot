@@ -102,7 +102,9 @@ function sanitizeExecutedPlan(plan = null) {
 }
 
 function derivePlanFromTool(plan = {}, toolResult = {}, context = {}) {
-    const direct = toolResult?.ok === true ? (toolResult.plan || plan?.args?.plan) : null;
+    if (toolResult?.ok !== true) return null;
+
+    const direct = toolResult.plan || plan?.args?.plan;
     const sanitized = sanitizeExecutedPlan(direct);
     if (sanitized) return sanitized;
 
