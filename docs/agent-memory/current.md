@@ -37,6 +37,11 @@ pré-cutover pendentes depois da aplicação e reconciliação do RX.
 - o recovery 289 usa o gate operacional existente de backup SQLite, restauração
   isolada, integridade, checksum e paridade antes de atualizar os cutoffs;
   bateria focal adicional `9/9`.
+- a reauditoria confirmou o fechamento WAL, mas emitiu NO-GO porque restaurar
+  cutoff antigo e snapshot pré-cutover reabriria o backlog;
+- o recovery 290 torna o bloqueio monotônico: rollback ordinário nunca restaura
+  `pending`; recuperação de desastre reaplica cutoff/quarantine com o processo
+  parado antes de expor o estado.
 
 ## Git e workspace
 
@@ -47,7 +52,7 @@ pré-cutover pendentes depois da aplicação e reconciliação do RX.
 
 ## Próxima ação exata
 
-Reauditar o recovery 289 por hash imutável. Com GO, executar o backup/restauração
+Reauditar o recovery 290 por hash imutável. Com GO, executar o backup/restauração
 isolada, atualizar os quatro cutoffs, reiniciar o PM2 uma vez e provar que os
 110 pendentes pré-cutover foram bloqueados sem transporte ou escrita.
 
@@ -65,3 +70,4 @@ isolada, atualizar os quatro cutoffs, reiniciar o PM2 uma vez e provar que os
 - `docs/audit/287-gate41-production-close-2026-08-21.md`.
 - `docs/audit/288-gate41-post-rx-alert-cutover-candidate-2026-08-21.md`.
 - `docs/audit/289-gate41-post-rx-alert-cutover-backup-recovery-candidate-2026-08-21.md`.
+- `docs/audit/290-gate41-post-rx-alert-cutover-monotonic-rollback-candidate-2026-08-21.md`.
