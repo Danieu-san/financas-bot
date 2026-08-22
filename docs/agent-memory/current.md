@@ -32,8 +32,11 @@ pré-cutover pendentes depois da aplicação e reconciliação do RX.
   o cutoff dos quatro aliases permaneceu na ativação original de julho;
 - o outbox possui 110 alertas `pending` criados antes do encerramento do RX;
   terminais já aceitos permanecem não reenviáveis;
-- o candidato 288 propõe apenas atualizar atomicamente os cutoffs existentes,
-  reiniciar o processo e provar o bloqueio do backlog com zero escrita.
+- o candidato 288 recebeu NO-GO apenas porque cópia direta do outbox não
+  provava consistência sob WAL;
+- o recovery 289 usa o gate operacional existente de backup SQLite, restauração
+  isolada, integridade, checksum e paridade antes de atualizar os cutoffs;
+  bateria focal adicional `9/9`.
 
 ## Git e workspace
 
@@ -44,8 +47,8 @@ pré-cutover pendentes depois da aplicação e reconciliação do RX.
 
 ## Próxima ação exata
 
-Auditar o candidato operacional 288 por hash imutável. Com GO, fazer backup
-privado, atualizar os quatro cutoffs, reiniciar o PM2 uma vez e provar que os
+Reauditar o recovery 289 por hash imutável. Com GO, executar o backup/restauração
+isolada, atualizar os quatro cutoffs, reiniciar o PM2 uma vez e provar que os
 110 pendentes pré-cutover foram bloqueados sem transporte ou escrita.
 
 ## Capacidade para retomar
@@ -61,3 +64,4 @@ privado, atualizar os quatro cutoffs, reiniciar o PM2 uma vez e provar que os
 - `docs/audit/286-gate41-free-budget-recurring-source-independent-close-2026-08-21.md`;
 - `docs/audit/287-gate41-production-close-2026-08-21.md`.
 - `docs/audit/288-gate41-post-rx-alert-cutover-candidate-2026-08-21.md`.
+- `docs/audit/289-gate41-post-rx-alert-cutover-backup-recovery-candidate-2026-08-21.md`.

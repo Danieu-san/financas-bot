@@ -4,7 +4,7 @@ Atualizado em: 2026-08-21
 
 ## Estado
 
-`REABERTO — CANDIDATO OPERACIONAL AGUARDANDO AUDITORIA`.
+`REABERTO — RECOVERY OPERACIONAL AGUARDANDO REAUDITORIA`.
 
 ## Objetivo alcançado
 
@@ -79,6 +79,7 @@ histórico.
 
 ## Próxima ação
 
-Auditar o candidato 288. Com GO, preservar `.env` e outbox, mover os cutoffs
-dos quatro aliases para o encerramento do RX, reiniciar uma vez e comprovar que
-o backlog pré-cutover foi bloqueado com zero transporte e zero escrita.
+Reauditar o recovery 289. Com GO, executar o gate de backup SQLite/restauração
+isolada, preservar `.env`, mover os cutoffs dos quatro aliases para o
+encerramento do RX, reiniciar uma vez e comprovar que o backlog pré-cutover foi
+bloqueado com zero transporte e zero escrita.
