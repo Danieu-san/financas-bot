@@ -17,11 +17,17 @@ disponíveis.
 
 1. `AGENTS.md`;
 2. este arquivo;
-3. `docs/agent-memory/README.md`;
-4. `docs/agent-memory/current.md`;
-5. `docs/plans/current-gate.md`;
-6. o checkpoint específico apontado por `current.md`;
+3. executar `scripts/agent/resumePortableWork.ps1`;
+4. conferir `resume_target` em `last-resume-check.json`;
+5. somente quando `matches_current_worktree=true`, ler
+   `docs/agent-memory/README.md`, `docs/agent-memory/current.md` e
+   `docs/plans/current-gate.md`;
+6. o checkpoint específico apontado pelo `current.md` do hash-alvo;
 7. somente os workstreams, runbooks, código e testes citados por essas fontes.
+
+Se o último handoff apontar outra branch ou outro hash, o checkpoint da
+worktree aberta não é fonte válida. Materializar primeiro uma worktree isolada
+no `resume_target`; não mesclar, fazer checkout forçado ou sobrescrever `main`.
 
 Antes de editar, confirmar raiz, branch, HEAD completo e `git status`. Preservar
 todos os arquivos alheios ou não rastreados. O GitHub serve para commits
@@ -83,15 +89,16 @@ Executar, a partir da raiz do repositório:
 
 `powershell -ExecutionPolicy Bypass -File scripts\agent\resumePortableWork.ps1`
 
-Se `git` não estiver no `PATH`, informar `-GitBin` com o executável local. A
-rotina produz `Trabalho Codex no outro PC\last-resume-check.json`, valida o
-workflow, instala ou confirma automaticamente a política global versionada do
-Codex com backup da versão divergente, confirma Git e verifica apenas a
-existência das chaves referenciadas.
+ Se `git` não estiver no `PATH`, informar `-GitBin` com o executável local. A
+ rotina produz `Trabalho Codex no outro PC\last-resume-check.json`, valida o
+workflow, compara o `resume_target` do último handoff com a worktree aberta,
+instala ou confirma automaticamente a política global versionada do Codex com
+backup da versão divergente, confirma Git e verifica apenas a existência das
+chaves referenciadas.
 
-Antes de aceitar o checkpoint como vigente, ela também executa `git fetch` na
-branch registrada. Se o remoto avançou, cria uma worktree isolada no novo HEAD
-e informa `Raiz efetiva`; o Codex deve continuar somente nessa raiz.
+ Antes de aceitar o checkpoint como vigente, ela também executa `git fetch` na
+ branch registrada. Se o remoto avançou, cria uma worktree isolada no novo HEAD
+ e informa `Raiz efetiva`; o Codex deve continuar somente nessa raiz.
 
 Depois, retomar a próxima ação exata de `current.md`/`current-gate.md`, usando a
 capacidade ali recomendada. Não acessar produção ou fazer deploy sem a

@@ -64,7 +64,9 @@ Ao chegar de outro computador ou conversa, ler primeiro
 `docs/agent-memory/START-HERE.md` e executar
 `scripts/agent/resumePortableWork.ps1`. A frase do usuário informando que
 continuou em outro Codex é autorização para essa validação de retomada, sem
-pedir que ele reconstrua manualmente o contexto.
+pedir que ele reconstrua manualmente o contexto. Se o `resume_target` divergir
+da worktree aberta, não usar o `current.md` local; materializar primeiro uma
+worktree isolada na branch e no hash registrados.
 
 O handoff para SSD deve partir da raiz canônica atual e de um HEAD já publicado,
 usando `scripts/agent/syncPortableRepository.ps1`. Nunca atualizar por cima de
