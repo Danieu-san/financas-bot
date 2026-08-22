@@ -17,6 +17,7 @@ const {
     selectVerifiedContextualAnswer
 } = require('./contextualFinancialAnalyst');
 const { createFinancialAgentCostGuard } = require('./financialAgentCostPolicy');
+const { buildFinancialAgentTrajectory } = require('./financialAgentTrajectory');
 const metrics = require('../utils/metrics');
 const stringSimilarity = require('string-similarity');
 const { isSmallTypo } = require('../utils/textMatcher');
@@ -1319,6 +1320,19 @@ export async function invokeFinancialAgentRuntime(input = {}) {
     metrics.increment('financial_agent.run.input_tokens_approx', telemetry.inputTokens);
     metrics.increment('financial_agent.run.output_tokens_approx', telemetry.outputTokens);
     metrics.observeDuration('financial_agent.run.ms', telemetry.latencyMs);
+    const migrationGap = buildMigrationGap({ plan: result.plan || null, toolResult: result.toolResult || null });
+    const trajectory = buildFinancialAgentTrajectory({
+        message: input.message || '',
+        authorizedUserCount: Array.isArray(input.userIds) ? input.userIds.length : 0,
+        suppliedPlan: input.financialQueryPlan || null,
+        plan: result.plan || null,
+        toolResult: result.toolResult || null,
+        action: result.action || 'error',
+        verified: result.verified || { ok: false, reason: 'missing_verification' },
+        answer: result.answer || '',
+        telemetry,
+        migrationGap
+    });
     return {
         action: result.action || 'error',
         plan: result.plan || null,
@@ -1326,7 +1340,8 @@ export async function invokeFinancialAgentRuntime(input = {}) {
         answer: result.answer || '',
         verified: result.verified || { ok: false, reason: 'missing_verification' },
         telemetry,
-        migrationGap: buildMigrationGap({ plan: result.plan || null, toolResult: result.toolResult || null })
+        migrationGap,
+        trajectory
     };
 }
 

@@ -74,6 +74,10 @@ const { buildDashboardAccessLink } = require('../utils/dashboardAuth');
 const { buildGoogleConnectLink } = require('../services/googleOAuthService');
 const { sendWhatsAppMessage } = require('../services/whatsapp');
 const { invokeFinancialAgent } = require('../agent/financialAgent');
+const {
+    buildAnalyticalCheckpointFromTrajectory,
+    buildFinancialAgentTrajectoryLog
+} = require('../agent/financialAgentTrajectory');
 const { planFinancialCommandWithGemini } = require('../planning/financialCommandPlanner');
 const { matchRecurringBill, matchDebt, matchCardInvoice, resolveCategory } = require('../planning/financialCommandContextTools');
 const { runFinancialCommandPlannerShadow, shouldRouteFinancialCommandPlanner } = require('../planning/financialCommandPlannerShadow');
@@ -469,6 +473,11 @@ function logFinancialAgentResult({ mode = 'off', result = null, senderId = '' } 
     if (migrationGapTelemetry) {
         metrics.increment(`message.financial_agent.migration_gap.${normalizeMetricLabel(migrationGapTelemetry.tag)}`);
         logger.warn(`[financial-agent] migration_gap tag=${migrationGapTelemetry.tag} reason=${migrationGapTelemetry.reason} tool=${migrationGapTelemetry.tool || 'none'} domain=${migrationGapTelemetry.domain || 'none'} action=${migrationGapTelemetry.action}`);
+    }
+    const trajectoryLog = buildFinancialAgentTrajectoryLog(result.trajectory);
+    if (trajectoryLog) {
+        metrics.increment(`message.financial_agent.trajectory.${normalizeMetricLabel(trajectoryLog.domain)}.${normalizeMetricLabel(trajectoryLog.coverage)}`);
+        logger.info(`[financial-agent-trajectory] ${JSON.stringify(trajectoryLog)}`);
     }
     if (isFinancialAgentFullLogEnabled()) {
         logger.info(`[financial-agent-debug] sender=${logger.redactIdentifier(senderId)} full=${buildFinancialAgentFullLogPayload(result)}`);
@@ -3792,8 +3801,21 @@ function sanitizeAnalyticalMetric(metric) {
 
 function storeAnalyticalContext(senderId, intentClassification = {}, meta = {}) {
     const key = analyticalContextStateKey(senderId);
+    if (!key) return;
+    const trajectoryCheckpoint = buildAnalyticalCheckpointFromTrajectory(meta.trajectory, {
+        metric: meta.metric || intentClassification.metric
+    });
+    if (trajectoryCheckpoint) {
+        const requestedTtlSeconds = Number(meta.ttlSeconds);
+        const ttlSeconds = Number.isFinite(requestedTtlSeconds) && requestedTtlSeconds > 0
+            ? Math.min(requestedTtlSeconds, ANALYTICAL_CONTEXT_TTL_SECONDS)
+            : ANALYTICAL_CONTEXT_TTL_SECONDS;
+        userStateManager.setState(key, trajectoryCheckpoint, ttlSeconds);
+        analyticalContextKeysForTests.add(key);
+        return;
+    }
     const intent = String(intentClassification.intent || '').trim();
-    if (!key || !intent || intent === 'pergunta_geral') return;
+    if (!intent || intent === 'pergunta_geral') return;
 
     const requestedTtlSeconds = Number(meta.ttlSeconds);
     const ttlSeconds = Number.isFinite(requestedTtlSeconds) && requestedTtlSeconds > 0
@@ -3812,7 +3834,7 @@ function getAnalyticalContext(senderId) {
     const key = analyticalContextStateKey(senderId);
     if (!key) return null;
     const context = userStateManager.getState(key);
-    return context?.checkpointType === 'analytical_followup_v1' ? context : null;
+    return ['analytical_followup_v1', 'analytical_followup_v2'].includes(context?.checkpointType) ? context : null;
 }
 
 function clearAnalyticalContextForTests() {
@@ -12056,7 +12078,10 @@ async function processMessage(msg) {
                                 if (shouldUseFinancialAgentAnswerInMode(financialAgentMode, agentResult)) {
                                     cache.set(cacheKey, agentResult.answer);
                                     await msg.reply(agentResult.answer);
-                                    storeAnalyticalContext(senderId, effectiveIntentClassification);
+                                    storeAnalyticalContext(senderId, effectiveIntentClassification, {
+                                        trajectory: agentResult.trajectory,
+                                        metric: effectiveIntentClassification.metric
+                                    });
                                     return;
                                 }
                             } catch (agentError) {

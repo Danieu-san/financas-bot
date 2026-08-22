@@ -13,7 +13,11 @@ sem novo ciclo de correção por frase.
 4. [concluído] obter parecer independente integral do Chat;
 5. [concluído] obter parecer independente parcial do Claude pela API;
 6. [concluído] consolidar opções e recomendar caminho finito;
-7. [pendente] obter decisão de Daniel antes de iniciar ARQ-01.
+7. [concluído] obter decisão de Daniel antes de iniciar ARQ-01;
+8. [concluído] implementar contrato de trajetória e checkpoint executado;
+9. [concluído] gerar baseline sanitizado `265/265`, críticos `15/15`;
+10. [em andamento] suíte ampla verde; faltam commit imutável e auditoria independente;
+11. [pendente] iniciar ARQ-02 somente depois do GO de ARQ-01.
 
 ## Critério de conclusão
 

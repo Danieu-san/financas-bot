@@ -6,6 +6,7 @@ const {
     evaluateAcceptanceCase
 } = require('./runFinancialQueryAcceptanceBattery');
 const { invokeFinancialAgent } = require('../src/agent/financialAgent');
+const { buildFinancialAgentTrajectory } = require('../src/agent/financialAgentTrajectory');
 const { ensureSqliteReady } = require('../src/services/sqliteReadModelService');
 
 const INTERNAL_PATTERN = /\b(user_id|sheet_id|spreadsheet|token|secret|oauth|prompt|owner_hash|agentic-battery-user)\b/i;
@@ -33,10 +34,16 @@ function publicTelemetry(telemetry = {}) {
     };
 }
 
+function publicTrajectory(trajectory = null) {
+    if (!trajectory || typeof trajectory !== 'object') return null;
+    return trajectory;
+}
+
 async function evaluateAgenticCase(testCase, options = {}) {
     if (!ensureSqliteReady()) throw new Error('SQLite read-model indisponivel para caso agentic');
     const routed = options.routed || evaluateAcceptanceCase(testCase);
     if (routed.blockedBeforePlan) {
+        const reason = routed.securityCategory || 'blocked_before_agent';
         return {
             id: testCase.id,
             question: testCase.question,
@@ -45,7 +52,15 @@ async function evaluateAgenticCase(testCase, options = {}) {
             action: 'block',
             tool: '',
             verified: true,
-            reason: routed.securityCategory || 'blocked_before_agent'
+            reason,
+            trajectory: buildFinancialAgentTrajectory({
+                message: testCase.question,
+                authorizedUserCount: 1,
+                plan: { action: 'block', reason, source: 'security_gate' },
+                action: 'block',
+                verified: { ok: true },
+                answer: ''
+            })
         };
     }
 
@@ -83,7 +98,8 @@ async function evaluateAgenticCase(testCase, options = {}) {
         expectedTool,
         routedDomain: routed.actual.domain,
         routedOperation: routed.actual.operation,
-        telemetry: publicTelemetry(result.telemetry)
+        telemetry: publicTelemetry(result.telemetry),
+        trajectory: publicTrajectory(result.trajectory)
     };
 }
 
@@ -113,6 +129,16 @@ function summarize(results = []) {
         telemetry,
         byTool: results.reduce((acc, item) => {
             const key = item.tool || item.stage || 'none';
+            acc[key] = (acc[key] || 0) + 1;
+            return acc;
+        }, {}),
+        byTrajectoryDomain: results.reduce((acc, item) => {
+            const key = item.trajectory?.executedPlan?.domain || item.stage || 'none';
+            acc[key] = (acc[key] || 0) + 1;
+            return acc;
+        }, {}),
+        byCoverage: results.reduce((acc, item) => {
+            const key = item.trajectory?.coverage?.status || item.stage || 'none';
             acc[key] = (acc[key] || 0) + 1;
             return acc;
         }, {}),
@@ -164,6 +190,7 @@ if (require.main === module) {
 
 module.exports = {
     expectedAgentTool,
+    publicTrajectory,
     evaluateAgenticCase,
     summarize,
     runFinancialAgentAcceptanceBattery

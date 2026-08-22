@@ -4,7 +4,7 @@ Atualizado em: 2026-08-22
 
 ## Estado
 
-`REVISÃO CONCLUÍDA — DECISÃO ARQUITETURAL RECOMENDADA; IMPLEMENTAÇÃO NÃO INICIADA`.
+`ARQ-01 CANDIDATO LOCAL VALIDADO — AGUARDA COMMIT E AUDITORIA INDEPENDENTE`.
 
 ## Objetivo
 
@@ -39,7 +39,21 @@ Reaproveitar LangGraph e o kernel financeiro, mas substituir o pipeline linear
 por agente read-only limitado a duas ou três tools semânticas. Escopo, fonte,
 matemática e toda escrita continuam determinísticos.
 
+## Implementação ARQ-01
+
+- worktree: `.codex-worktrees/financial-agent-arq01-20260822`;
+- branch: `codex/financial-agent-arq01-20260822`;
+- base: `ade123e921837a683ec5989d7cb768e5f1dcbf87`;
+- contrato e evidência: documentos 297;
+- checkpoint v2 passa a representar o plano realmente executado;
+- evidência até aqui: focal `6/6`, causal `231/231`, baseline `265/265` e
+  críticos `15/15`;
+- suíte ampla final: `1.753/1.763` aprovados, `0` falhas e `10` ignorados;
+- a instabilidade temporal preexistente de Open Finance foi isolada no commit
+  test-only `5108ace`, validado focalmente em `15/15` antes da suíte ampla;
+- zero flag, deploy, produção ou escrita financeira.
+
 ## Próxima ação exata
 
-Daniel decide se autoriza ARQ-01: contrato de trajetória, baseline sanitizado e
-checkpoint da trajetória realmente executada, em worktree própria e sem deploy.
+Validar o diff final e o workflow, publicar commit sanitizado imutável e obter
+auditoria independente do ARQ-01.

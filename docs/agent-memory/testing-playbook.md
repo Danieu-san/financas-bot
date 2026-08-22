@@ -224,6 +224,21 @@ Validar:
 - Pedidos como "explique meu disponivel sem abrir o dashboard" devem usar `explain_metric`; apenas pedidos positivos de abrir/gerar/enviar link devem ser tratados como navegacao.
 - Nao ativar `answer` antes de uma bateria live curta do planner Gemini, auditoria dos gaps e revisao humana dos casos livres.
 
+## Financial agent — trajetória arquitetural ARQ
+
+- `node --test tests/financialAgentTrajectory.test.js` prova sanitização,
+  preferência pelo plano realmente executado, distinção entre vazio e fonte
+  indisponível, escopo familiar e checkpoint v2.
+- `npm run test:financial-agent:trajectory-baseline` executa os 265 casos
+  oficiais e gera uma projeção agregada sem pergunta, resposta, IDs ou valores.
+- O baseline exige `265/265`, os 15 casos críticos, zero trajetória ausente,
+  `readOnly=265` e `financialWrites=0`.
+- Logs recebem somente a projeção mínima; filtros privados podem existir no
+  checkpoint local com TTL, mas nunca no log ou no artefato sanitizado.
+- Checkpoints v1 permanecem legíveis durante a migração. Uma resposta verificada
+  pelo agente deve criar v2 a partir do plano confirmado pela ferramenta, não
+  da classificação legada anterior.
+
 ## Unified financial command planner
 
 Validar:
