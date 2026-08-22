@@ -106,13 +106,22 @@ function buildTrustedAdapterInput({ trustedContext = {}, args = {}, allowedArgs 
     };
 }
 
-function inferItemCount(result = {}) {
-    if (Array.isArray(result.rows)) return result.rows.length;
-    if (Array.isArray(result.result?.value)) return result.result.value.length;
-    if (Array.isArray(result.result?.details)) return result.result.details.length;
-    if (Array.isArray(result.snapshot?.recentTransactions)) return result.snapshot.recentTransactions.length;
-    if (Array.isArray(result.components)) return result.components.length;
-    if (Number.isFinite(Number(result.rowCount))) return Number(result.rowCount);
+function inferItemCount(result = {}, capability = '') {
+    if (capability === 'recent_transactions' || capability === 'readonly_aggregate') {
+        if (Array.isArray(result.rows)) return result.rows.length;
+        if (Number.isFinite(Number(result.rowCount))) return Number(result.rowCount);
+        return null;
+    }
+    if (capability === 'financial_query') {
+        if (Array.isArray(result.result?.value)) return result.result.value.length;
+        if (Array.isArray(result.result?.value?.items)) return result.result.value.items.length;
+        if (Array.isArray(result.result?.details)) return result.result.details.length;
+        if (Array.isArray(result.result?.details?.items)) return result.result.details.items.length;
+        return null;
+    }
+    if (capability === 'metric_explanation' && Array.isArray(result.components)) {
+        return result.components.length;
+    }
     return null;
 }
 
@@ -128,7 +137,7 @@ function evidencePayload(result = {}) {
 }
 
 function buildEvidenceEnvelope({ definition, result, scope } = {}) {
-    const itemCount = inferItemCount(result);
+    const itemCount = inferItemCount(result, definition.capability);
     const source = String(result?.source || definition.defaultSource);
     const fallbackReason = String(result?.fallbackReason || '').trim();
     const envelope = {

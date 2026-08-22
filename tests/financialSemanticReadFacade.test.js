@@ -140,6 +140,44 @@ test('semantic read facade distinguishes empty and unavailable evidence', async 
     assert.strictEqual(unavailable.evidence.failure.reason, 'dashboard_snapshot_unavailable');
 });
 
+test('semantic read facade keeps a valid dashboard with no recent rows available', async () => {
+    const output = await executeFinancialSemanticRead({
+        request: { tool: 'get_dashboard_snapshot', args: { month: 8, year: 2026 } },
+        trustedContext: trustedContext(),
+        adapters: {
+            get_dashboard_snapshot: async () => ({
+                ok: true,
+                tool: 'get_dashboard_snapshot',
+                snapshot: {
+                    kpis: { balance: 125 },
+                    recentTransactions: []
+                }
+            })
+        }
+    });
+
+    assert.strictEqual(output.evidence.coverage.status, 'available');
+    assert.strictEqual(output.evidence.coverage.itemCount, null);
+    assert.strictEqual(output.evidence.payload.snapshot.kpis.balance, 125);
+});
+
+test('semantic read facade recognizes an empty financial query items collection', async () => {
+    const output = await executeFinancialSemanticRead({
+        request: { tool: 'query_financial_plan', args: { plan: { domain: 'expenses', operation: 'list' } } },
+        trustedContext: trustedContext(),
+        adapters: {
+            query_financial_plan: async () => ({
+                ok: true,
+                tool: 'query_financial_plan',
+                result: { value: { items: [] } }
+            })
+        }
+    });
+
+    assert.strictEqual(output.evidence.coverage.status, 'empty');
+    assert.strictEqual(output.evidence.coverage.itemCount, 0);
+});
+
 test('semantic read facade exposes only the existing read-only capability set', async () => {
     const capabilities = listFinancialSemanticCapabilities();
     assert.deepStrictEqual(capabilities.map(item => item.tool).sort(), [

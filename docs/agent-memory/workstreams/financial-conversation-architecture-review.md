@@ -4,7 +4,7 @@ Atualizado em: 2026-08-22
 
 ## Estado
 
-`ARQ-01 GO TÉCNICO LOCAL — ARQ-02 CANDIDATO AGUARDANDO AUDITORIA`.
+`ARQ-01 GO TÉCNICO LOCAL — ARQ-02 RECOVERY AGUARDANDO REAUDITORIA`.
 
 ## Objetivo
 
@@ -55,9 +55,9 @@ matemática e toda escrita continuam determinísticos.
 
 ## Próxima ação exata
 
-Publicar o hash imutável do candidato ARQ-02 e submetê-lo uma única vez à
-auditoria independente no Chat. Sem GO, não iniciar ARQ-03. Continuam proibidos
-flag, canário, writer, deploy e retirada do legado.
+Publicar o novo hash imutável do recovery ARQ-02 e submetê-lo uma única vez à
+reauditoria independente no Chat. Sem GO, não iniciar ARQ-03. Continuam
+proibidos flag, canário, writer, deploy e retirada do legado.
 
 ## Implementação ARQ-02
 
@@ -67,6 +67,12 @@ flag, canário, writer, deploy e retirada do legado.
 - envelope padronizado com provenance, fallback, cobertura, critérios, payload
   sanitizado e falha;
 - compositor contextual usa o envelope sem duplicar o resultado bruto;
-- evidência local: focal `6/6`, agente `87/87`, aceitação e baseline `265/265`,
-  críticos `15/15`, suíte ampla `1.762/1.772`, zero falha e dez ignorados;
+- o primeiro parecer confirmou escopo, adapters, sanitização e ausência de
+  writer, mas emitiu NO-GO por cobertura inconsistente de dashboard vazio;
+- recovery interpreta coleção por capability, mantendo dashboard material
+  disponível mesmo sem transações recentes;
+- evidência local final: focal `8/8`, recorte afetado `13/13`, agente `87/87`,
+  aceitação e baseline `265/265`, críticos `15/15`, suíte ampla
+  `1.764/1.774`, zero falha e dez ignorados;
 - candidato: `docs/audit/301-financial-semantic-read-facade-candidate-2026-08-22.md`.
+- recovery: `docs/audit/302-financial-semantic-read-facade-coverage-recovery-2026-08-22.md`.

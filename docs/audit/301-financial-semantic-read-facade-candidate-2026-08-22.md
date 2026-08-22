@@ -50,6 +50,9 @@ possui writer e rejeita ferramenta fora do catálogo.
 - o modelo não expande o escopo autorizado;
 - nenhuma topologia física ou identificador interno entra no envelope;
 - `available`, `empty` e `unavailable` são estados distintos;
+- cobertura é interpretada por capacidade: ausência de transações recentes não
+  torna vazio um dashboard válido com KPIs; coleções financeiras vazias
+  permanecem `empty`;
 - fallback registra uso e motivo;
 - nenhuma soma, saldo, orçamento, parcela ou métrica financeira é recalculada
   pela fachada;
@@ -60,14 +63,14 @@ possui writer e rejeita ferramenta fora do catálogo.
 ## Evidência local
 
 - RED confirmado pela ausência inicial do módulo;
-- teste focal da fachada: `6/6`;
+- teste focal da fachada após o recovery: `8/8`;
 - bateria causal do agente: `87/87`;
 - bateria de aceitação: `265/265`, zero gap, 23 bloqueios de segurança e 238
   respostas verificadas, sem chamada Gemini;
 - baseline de trajetória: `265/265`, críticos `15/15`;
-- suíte hermética ampla única: `1.762/1.772` aprovados, zero falha e dez
-  ignorados;
-- cobertura ampla: linhas `91,66%`, branches `74,57%`, funções `91,20%`;
+- suíte hermética ampla final após o recovery: `1.764/1.774` aprovados, zero
+  falha e dez ignorados;
+- cobertura ampla final: linhas `91,64%`, branches `74,53%`, funções `91,20%`;
 - teste real de WhatsApp, rede, produção, planilha e writer permaneceram fora.
 
 As contagens acima são execução local relatada pelo candidato. A auditoria
