@@ -87,6 +87,7 @@
     "ledger:account-movements-gate": "node scripts/runCanonicalLedgerAccountMovementsGate.js",
     "ledger:refunds-gate": "node scripts/runCanonicalLedgerRefundsGate.js",
     "test:financial-agent": "node scripts/runFinancialAgentAcceptanceBattery.js",
+    "test:financial-semantic-facade": "node --test tests/financialSemanticReadFacade.test.js",
     "test:financial-agent:trajectory-baseline": "node scripts/runFinancialAgentTrajectoryBaseline.js",
     "test:financial-agent:golden-baseline": "node scripts/runFinancialAgentGoldenBaseline.js",
     "test:financial-agent:migration-gaps": "node scripts/runFinancialAgentMigrationGapBattery.js",

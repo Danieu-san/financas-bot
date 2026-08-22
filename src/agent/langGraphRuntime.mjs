@@ -3,13 +3,7 @@ import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const { normalizeText, parseSheetDate } = require('../utils/helpers');
-const {
-    listRecentTransactions,
-    runSafeReadonlySqlTool,
-    queryFinancialPlanTool,
-    getDashboardSnapshotTool,
-    explainMetricTool
-} = require('./financialAgentTools');
+const { executeFinancialSemanticRead } = require('./financialSemanticReadFacade');
 const { verifyAgentResult } = require('./resultVerifier');
 const { planWithGemini } = require('./financialAgentPlanner');
 const {
@@ -538,29 +532,19 @@ async function planTurn(state) {
 async function runTool(state) {
     const plan = state.plan || {};
     if (plan.action !== 'tool') return { toolResult: null };
-    const common = {
+    const trustedContext = {
         userIds: state.userIds || [],
         ownerUserId: state.ownerUserId || state.userIds?.[0] || '',
         personByUserId: state.personByUserId || {},
         currentDate: state.currentDate || '',
         canonicalLedgerDbPath: state.canonicalLedgerDbPath
     };
-    if (plan.tool === 'list_recent_transactions') {
-        return { toolResult: await listRecentTransactions({ ...common, ...(plan.args || {}) }) };
-    }
-    if (plan.tool === 'run_safe_readonly_sql') {
-        return { toolResult: await runSafeReadonlySqlTool({ ...common, ...(plan.args || {}) }) };
-    }
-    if (plan.tool === 'query_financial_plan') {
-        return { toolResult: await queryFinancialPlanTool({ ...common, ...(plan.args || {}) }) };
-    }
-    if (plan.tool === 'get_dashboard_snapshot') {
-        return { toolResult: await getDashboardSnapshotTool({ ...common, ...(plan.args || {}) }) };
-    }
-    if (plan.tool === 'explain_metric') {
-        return { toolResult: await explainMetricTool({ ...common, ...(plan.args || {}) }) };
-    }
-    return { toolResult: { ok: false, reason: 'tool_not_allowed', rows: [] } };
+    return {
+        toolResult: await executeFinancialSemanticRead({
+            request: { tool: plan.tool, args: plan.args || {} },
+            trustedContext
+        })
+    };
 }
 
 function valueFromItem(item = {}) {

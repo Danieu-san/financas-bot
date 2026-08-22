@@ -17,7 +17,9 @@ sem novo ciclo de correção por frase.
 8. [concluído] implementar contrato de trajetória e checkpoint executado;
 9. [concluído] gerar baseline sanitizado `265/265`, críticos `15/15`;
 10. [concluído] segundo recovery, suíte ampla, hash imutável e GO independente;
-11. [em andamento] iniciar ARQ-02 sem ativação, deploy, writer ou retirada do legado.
+11. [concluído] definir e implementar localmente a fachada semântica read-only do ARQ-02;
+12. [em andamento] publicar o candidato ARQ-02 e obter auditoria independente por hash;
+13. [pendente] com GO, fechar ARQ-02 e iniciar apenas o desenho shadow do ARQ-03.
 
 ## Critério de conclusão
 

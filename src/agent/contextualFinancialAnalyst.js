@@ -56,11 +56,12 @@ function buildContextPacket({
     toolResult,
     deterministicAnswer
 } = {}) {
+    const normalizedEvidence = toolResult?.evidence || toolResult || {};
     return {
         question: sanitizeString(message, 700),
         tool: sanitizeString(plan?.tool || toolResult?.tool || '', 80),
         plan: sanitizePublicValue(plan || {}),
-        result: sanitizePublicValue(toolResult || {}),
+        result: sanitizePublicValue(normalizedEvidence),
         verifiedFallback: sanitizeString(deterministicAnswer, 3000)
     };
 }

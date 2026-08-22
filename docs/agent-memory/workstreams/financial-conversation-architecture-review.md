@@ -4,7 +4,7 @@ Atualizado em: 2026-08-22
 
 ## Estado
 
-`ARQ-01 GO TÉCNICO LOCAL — ARQ-02 AUTORIZADO`.
+`ARQ-01 GO TÉCNICO LOCAL — ARQ-02 CANDIDATO AGUARDANDO AUDITORIA`.
 
 ## Objetivo
 
@@ -55,5 +55,18 @@ matemática e toda escrita continuam determinísticos.
 
 ## Próxima ação exata
 
-Iniciar ARQ-02 sem habilitar flag, canário, writer, deploy ou retirada do
-legado; definir o contrato causal exato antes de editar produto.
+Publicar o hash imutável do candidato ARQ-02 e submetê-lo uma única vez à
+auditoria independente no Chat. Sem GO, não iniciar ARQ-03. Continuam proibidos
+flag, canário, writer, deploy e retirada do legado.
+
+## Implementação ARQ-02
+
+- fachada única para as cinco consultas read-only já existentes;
+- identidade, escopo, proprietário, mapa familiar, banco e ambiente injetados
+  exclusivamente pelo servidor após a filtragem dos argumentos do plano;
+- envelope padronizado com provenance, fallback, cobertura, critérios, payload
+  sanitizado e falha;
+- compositor contextual usa o envelope sem duplicar o resultado bruto;
+- evidência local: focal `6/6`, agente `87/87`, aceitação e baseline `265/265`,
+  críticos `15/15`, suíte ampla `1.762/1.772`, zero falha e dez ignorados;
+- candidato: `docs/audit/301-financial-semantic-read-facade-candidate-2026-08-22.md`.
