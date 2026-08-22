@@ -313,6 +313,7 @@ test('Gate 41 cancels a reconciled proposal when only the provider date changed'
     const databasePath = path.join(directory, 'preview.sqlite');
     const journalPath = path.join(directory, 'journal.sqlite');
     const input = fixture();
+    const observedAt = new Date().toISOString();
     const journal = new OpenFinanceRevocationJournal({ databasePath: journalPath, secret });
     const store = new OpenFinanceShadowPreviewStore({
         databasePath,
@@ -322,7 +323,7 @@ test('Gate 41 cancels a reconciled proposal when only the provider date changed'
         confirmationActors: [{ principal: 'daniel', whatsappId: actorWhatsappId }]
     });
     try {
-        store.ingestSaveProposals(proposalInput(input));
+        store.ingestSaveProposals(proposalInput(input, observedAt));
         const [pending] = store.listPendingSaveProposals({ actorWhatsappId });
         const reconciled = structuredClone(input);
         reconciled.item.transactions[0].date = '2026-07-24T10:00:00.000Z';
@@ -331,10 +332,10 @@ test('Gate 41 cancels a reconciled proposal when only the provider date changed'
 
         const tampered = structuredClone(reconciled);
         tampered.item.transactions[0].amount_cents += 1;
-        assert.throws(() => store.ingestSaveProposals(proposalInput(tampered)),
+        assert.throws(() => store.ingestSaveProposals(proposalInput(tampered, observedAt)),
             /save_proposal_replay_conflict/);
 
-        assert.deepEqual(store.ingestSaveProposals(proposalInput(reconciled)), {
+        assert.deepEqual(store.ingestSaveProposals(proposalInput(reconciled, observedAt)), {
             inserted: 0,
             replayed: 0,
             blocked: 4,
@@ -358,6 +359,7 @@ test('OF-ALERT-BIND-01 eligibility loss durably invalidates a stale prompt witho
         const databasePath = path.join(directory, 'preview.sqlite');
         const journalPath = path.join(directory, 'journal.sqlite');
         const input = fixture();
+        const observedAt = new Date().toISOString();
         const journal = new OpenFinanceRevocationJournal({ databasePath: journalPath, secret });
         let store = new OpenFinanceShadowPreviewStore({
             databasePath,
@@ -368,7 +370,7 @@ test('OF-ALERT-BIND-01 eligibility loss durably invalidates a stale prompt witho
         });
         let proposalRef;
         try {
-            store.ingestSaveProposals(proposalInput(input));
+            store.ingestSaveProposals(proposalInput(input, observedAt));
             proposalRef = store.listPendingSaveProposals({ actorWhatsappId })[0].proposal_ref;
             store.prepareSaveProposalConfirmation(proposalRef, { actorWhatsappId });
             const changed = structuredClone(input);
@@ -380,13 +382,13 @@ test('OF-ALERT-BIND-01 eligibility loss durably invalidates a stale prompt witho
             }
             const tampered = structuredClone(changed);
             tampered.item.transactions[0].amount_cents += 1;
-            assert.throws(() => store.ingestSaveProposals(proposalInput(tampered)),
+            assert.throws(() => store.ingestSaveProposals(proposalInput(tampered, observedAt)),
                 /save_proposal_replay_conflict/);
             assert.equal(
                 store.readSaveProposalDecisionState(proposalRef, { actorWhatsappId }).proposal_state,
                 'pending'
             );
-            assert.deepEqual(store.ingestSaveProposals(proposalInput(changed)), {
+            assert.deepEqual(store.ingestSaveProposals(proposalInput(changed, observedAt)), {
                 inserted: 0,
                 replayed: 0,
                 blocked: 4,
@@ -401,7 +403,7 @@ test('OF-ALERT-BIND-01 eligibility loss durably invalidates a stale prompt witho
             const terminal = journal.getSaveProposalTerminal(proposalRef);
             assert.equal(terminal.terminal_state, 'cancelled');
             assert.match(terminal.resolved_by_ref, /^[a-f0-9]{32}$/);
-            assert.equal(store.ingestSaveProposals(proposalInput(changed)).invalidated, undefined);
+            assert.equal(store.ingestSaveProposals(proposalInput(changed, observedAt)).invalidated, undefined);
         } finally {
             store.close();
         }
@@ -413,7 +415,7 @@ test('OF-ALERT-BIND-01 eligibility loss durably invalidates a stale prompt witho
             confirmationActors: [{ principal: 'daniel', whatsappId: actorWhatsappId }]
         });
         try {
-            const replay = store.ingestSaveProposals(proposalInput(input));
+            const replay = store.ingestSaveProposals(proposalInput(input, observedAt));
             assert.equal(replay.inserted, 0);
             assert.equal(replay.pending, 0);
             assert.equal(store.listPendingSaveProposals({ actorWhatsappId }).length, 0);
@@ -441,7 +443,8 @@ test('OF-ALERT-BIND-01 source identity displacement closes the old prompt and bl
     });
     try {
         const input = fixture();
-        store.ingestSaveProposals(proposalInput(input));
+        const observedAt = new Date().toISOString();
+        store.ingestSaveProposals(proposalInput(input, observedAt));
         const oldProposalRef = store.listPendingSaveProposals({ actorWhatsappId })[0].proposal_ref;
         store.prepareSaveProposalConfirmation(oldProposalRef, { actorWhatsappId });
 
@@ -469,7 +472,7 @@ test('OF-ALERT-BIND-01 source identity displacement closes the old prompt and bl
         };
         changed.policies[0].write_confirmation_principal = 'thais';
 
-        assert.deepEqual(store.ingestSaveProposals(proposalInput(changed)), {
+        assert.deepEqual(store.ingestSaveProposals(proposalInput(changed, observedAt)), {
             inserted: 0,
             replayed: 0,
             blocked: 4,
@@ -494,6 +497,7 @@ test('OF-ALERT-BIND-01 journal terminal recovers a preview rollback after restar
     const databasePath = path.join(directory, 'preview.sqlite');
     const journalPath = path.join(directory, 'journal.sqlite');
     const input = fixture();
+    const observedAt = new Date().toISOString();
     const changed = structuredClone(input);
     changed.lifecycleDecisions[0].classification = 'bill_balance';
     let journal = new OpenFinanceRevocationJournal({ databasePath: journalPath, secret });
@@ -506,14 +510,14 @@ test('OF-ALERT-BIND-01 journal terminal recovers a preview rollback after restar
     });
     let proposalRef;
     try {
-        store.ingestSaveProposals(proposalInput(input));
+        store.ingestSaveProposals(proposalInput(input, observedAt));
         proposalRef = store.listPendingSaveProposals({ actorWhatsappId })[0].proposal_ref;
         store.prepareSaveProposalConfirmation(proposalRef, { actorWhatsappId });
         store.db.exec(`CREATE TRIGGER fail_terminal_preview_update
             BEFORE UPDATE OF proposal_state ON open_finance_save_proposals
             WHEN NEW.proposal_state='cancelled'
             BEGIN SELECT RAISE(ABORT, 'injected_preview_update_failure'); END`);
-        assert.throws(() => store.ingestSaveProposals(proposalInput(changed)),
+        assert.throws(() => store.ingestSaveProposals(proposalInput(changed, observedAt)),
             /injected_preview_update_failure/);
         assert.equal(journal.getSaveProposalTerminal(proposalRef).terminal_state, 'cancelled');
     } finally {
@@ -540,7 +544,7 @@ test('OF-ALERT-BIND-01 journal terminal recovers a preview rollback after restar
         confirmationActors: [{ principal: 'daniel', whatsappId: actorWhatsappId }]
     });
     try {
-        const replay = store.ingestSaveProposals(proposalInput(changed));
+        const replay = store.ingestSaveProposals(proposalInput(changed, observedAt));
         assert.equal(replay.pending, 0);
         assert.equal(replay.financial_writes, 0);
         const decision = store.readSaveProposalDecisionState(proposalRef, { actorWhatsappId });
@@ -763,18 +767,20 @@ test('9P.0 runtime creates shadow proposals without changing WhatsApp or financi
         investments: [],
         transactions: [transaction('old')]
     };
+    const runtimeObservedAt = Date.now();
+    const activationObservedAt = new Date(runtimeObservedAt - 5400000).toISOString();
     const initial = {
         provider: 'pluggy',
         mode: 'live_readonly_staging',
         event_id: 'initial',
-        observed_at: '2026-07-23T10:00:00.000Z',
+        observed_at: new Date(runtimeObservedAt - 10800000).toISOString(),
         collection_health: { complete: true, warning_count: 0 },
         items: [baseItem]
     };
     const changed = {
         ...initial,
         event_id: 'changed',
-        observed_at: '2026-07-23T11:00:00.000Z',
+        observed_at: new Date(runtimeObservedAt - 7200000).toISOString(),
         items: [{ ...baseItem, transactions: [transaction('old'), transaction('purchase-posted')] }]
     };
     const vault = new OpenFinanceLiveStagingVault({ databasePath: files.vault, secret });
@@ -865,7 +871,7 @@ test('9P.0 runtime creates shadow proposals without changing WhatsApp or financi
     currentSnapshot = {
         ...changed,
         event_id: 'prompt-changed',
-        observed_at: '2026-07-23T12:00:00.000Z',
+        observed_at: new Date(runtimeObservedAt - 3600000).toISOString(),
         items: [{
             ...baseItem,
             transactions: [
@@ -890,7 +896,7 @@ test('9P.0 runtime creates shadow proposals without changing WhatsApp or financi
             OPEN_FINANCE_ALERT_MODE: 'canary',
             OPEN_FINANCE_ALERT_CANARY_ALIAS: 'daniel_nubank',
             OPEN_FINANCE_ALERT_CANARY_ACTIVATIONS_JSON: JSON.stringify({
-                daniel_nubank: '2026-07-23T11:30:00.000Z'
+                daniel_nubank: activationObservedAt
             }),
             OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt',
             OPEN_FINANCE_WRITE_MODE: 'confirm',
@@ -957,7 +963,7 @@ test('9P.0 runtime creates shadow proposals without changing WhatsApp or financi
     currentSnapshot = {
         ...deliveredPromptSnapshot,
         event_id: 'prompt-review-active',
-        observed_at: '2026-07-23T13:00:00.000Z',
+        observed_at: new Date(runtimeObservedAt).toISOString(),
         items: [{
             ...baseItem,
             transactions: [
@@ -973,7 +979,7 @@ test('9P.0 runtime creates shadow proposals without changing WhatsApp or financi
             OPEN_FINANCE_ALERT_MODE: 'canary',
             OPEN_FINANCE_ALERT_CANARY_ALIAS: 'daniel_nubank',
             OPEN_FINANCE_ALERT_CANARY_ACTIVATIONS_JSON: JSON.stringify({
-                daniel_nubank: '2026-07-23T11:30:00.000Z'
+                daniel_nubank: activationObservedAt
             }),
             OPEN_FINANCE_SAVE_PROPOSAL_MODE: 'prompt'
         },
