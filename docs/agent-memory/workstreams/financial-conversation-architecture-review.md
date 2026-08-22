@@ -55,9 +55,10 @@ matemática e toda escrita continuam determinísticos.
 
 ## Próxima ação exata
 
-Publicar o candidato ARQ-05 por hash imutável e obter auditoria independente.
-Canário real, deploy, writer e retirada do legado continuam proibidos até novo
-GO independente e ensaio separado de promoção/rollback.
+Ensaiar localmente a promoção e o rollback do ARQ-05 com configuração isolada,
+sem OpenRouter, Google, WhatsApp, produção ou escrita financeira. Canário real,
+deploy, writer e retirada do legado continuam proibidos até evidência e decisão
+separadas.
 
 ## Implementação ARQ-02
 
@@ -128,3 +129,26 @@ GO independente e ensaio separado de promoção/rollback.
   fechados e nenhuma lacuna causal indispensável;
 - fechamento independente:
   `docs/audit/308-financial-evidence-adequacy-independent-close-2026-08-22.md`.
+
+## Implementação ARQ-05
+
+- canário iterativo read-only atrás de modo, allowlist exata do casal, domínio
+  e fonte, todos fail-closed;
+- identidade, família, owner, domínio e fonte resolvidos server-side;
+- fonte central pela fachada semântica e fonte pessoal por leitura real do
+  dashboard da planilha autorizada;
+- timeout, orçamento persistente, falha externa e evidência inadequada
+  preservam integralmente o baseline;
+- promoção exige answer adequado e zero mensagens/escritas; telemetria não
+  contém identidade, valores, texto financeiro ou payload;
+- `SIGHUP` aplica somente configuração completamente válida e permite rollback
+  independente por domínio;
+- evidência focal `12/12`, causal `119/119`, regressões `70/70`, aceitação
+  `265/265` e suíte hermética ampla `1.800/1.810`, zero falha e dez ignorados;
+- candidato:
+  `docs/audit/309-financial-iterative-domain-canary-candidate-2026-08-22.md`;
+- auditoria do hash `e74441d6...`: GO técnico local, zero achados e nenhuma
+  lacuna indispensável residual dentro do escopo estático;
+- fechamento independente:
+  `docs/audit/310-financial-iterative-domain-canary-independent-close-2026-08-22.md`;
+- modo real, OpenRouter, Google, WhatsApp, deploy e writer continuam inativos.
