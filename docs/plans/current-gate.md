@@ -1,120 +1,78 @@
-# Gate ativo — writer histórico idempotente do Gate 41
+# Gate 41 — RX histórico e verdade financeira
 
 Atualizado em: 2026-08-21
 
 ## Estado
 
-`GATE 41 RX: APLICADO E RECONCILIADO; RECOVERY PROATIVO POS-RX COM GO TECNICO LOCAL`.
+`GO DE PRODUÇÃO — ENCERRADO`.
 
-## Objetivo
+## Objetivo alcançado
 
-Gerar uma nova linha de base privada até 21/08/2026 e materializar na planilha
-familiar somente os itens `ready` que continuarem ausentes no novo plano, sem
-gravar existentes, duplicatas prováveis, excluídos ou itens fora da janela, com
-idempotência, recibos, backup e rollback verificáveis.
-
-## Linha de base anterior, agora supersedida para escrita
-
-- 2.351 itens totais e cobertura completa;
-- 1.863 `ready`;
-- 2 `existing`;
-- 34 `probable_duplicate`;
-- 291 `excluded`;
-- zero `review`;
-- 161 `outside_window`;
-- oito bindings de conta/cartão;
-- hash privado do plano:
-  `4b765e1a7c2ebdf3fa21d0b2659effbd1f8e979e884dc6d56c9c8a1f7230de92`.
-- fingerprint integral do artefato:
-  `6a88bffd275292e6365538e7f146859d5af12bd2de5af877499d23df5d574bf7`.
-
-Essas cardinalidades e hashes permanecem como evidência histórica, mas não
-autorizam escrita porque Daniel ampliou a janela final até 21/08/2026. O novo
-snapshot deve recalcular todas as classes e reconhecer as linhas já gravadas.
-
-## Pré-requisitos satisfeitos
-
-- planejador RX read-only recebeu GO independente;
-- resíduos bancários e de cartão receberam GO independente;
-- mensagem proativa numerada, pré-preenchimento e escrita unitária receberam
-  GO funcional de produção;
-- despesas reais do smoke foram preservadas na planilha e devem ser detectadas
-  como já existentes pelo dry-run atualizado.
-- writer e primeiro recovery receberam `GO TECNICO LOCAL` independente no hash
-  `ba4b2f9fff2ad3e199bd6d8d2a0850a62c90009d`;
-- a reconciliação posterior do primeiro lote real exigiu igualdade textual
-  estrita em transferências; o primeiro hash corretivo recebeu `NO-GO` somente
-  por leitura incompleta dos arquivos longos, e o recovery de acesso curto
-  também recebeu `ACESSO INSUFICIENTE` porque o Chat não tinha o conector GitHub
-  instalado para buscar os arquivos públicos; aguarda conexão do conector e
-  novo hash antes de nova tentativa.
-- o hash `9c9c116511c269ca45e88f50ceefce4e89ee1c72` recebeu `GO TECNICO
-  LOCAL` independente com o plugin GitHub conectado, zero achados e nenhuma
-  lacuna indispensável residual no escopo estático.
+Materializar na planilha familiar o RX histórico saneado, reconciliar a base
+sem duplicação, impedir que o histórico volte como proposta proativa e validar
+o gasto livre sobre a verdade financeira completa.
 
 ## Escopo
 
-- localizar e validar o artefato privado pelo hash, sem publicar seu conteúdo;
-- definir contrato do writer e dos recibos por item/lote;
-- usar as mesmas fronteiras canônicas de escrita de conta e cartão já provadas;
-- produzir dry-run sem efeitos e conferir cardinalidade por estado e destino;
-- criar backup verificável das abas afetadas e plano de rollback;
-- provar replay, falha parcial, restart, itens já existentes e lote misto;
-- publicar somente código, testes, contagens e hashes sanitizados;
-- obter auditoria independente antes da aplicação real.
+- aplicação e reconciliação do RX histórico familiar;
+- recuperação do fluxo proativo pós-RX;
+- verdade e apresentação do gasto livre pela entrada pública;
+- auditoria independente, deploy OCI, health e smoke real.
 
 ## Não escopo
 
-- reclassificar o RX ou reabrir ambiguidades já decididas;
-- gravar os 34 duplicados prováveis;
-- tratar ausência como zero;
-- misturar conta, cartão, transferência, estorno, reserva ou investimento;
-- alterar gasto livre ou sua apresentação antes da reconciliação pós-escrita.
+- memória automática de lojas ou classificação silenciosa no uso normal;
+- novas regras de categorização;
+- qualquer evolução posterior ao Gate 41.
 
-## Invariantes
+## Critérios fechados
 
-1. Cada item recebe no máximo uma operação durável e idempotente.
-2. Uma falha parcial não transforma item sem recibo em sucesso.
-3. Replay reconcilia antes de escrever e não duplica linha existente.
-4. Conta e cartão preservam identidade, titular, destino e esquema próprios.
-5. O conjunto gravável é exatamente o `ready` ainda ausente no momento do
-   dry-run; itens já escritos pelos smokes migram para `existing`.
-6. Nenhum dado privado entra no Git, prompt de auditoria ou logs públicos.
+1. [concluído] plano privado, backup, rollback e ledger idempotente;
+2. [concluído] 1.942 escritas históricas confirmadas;
+3. [concluído] replay final com zero escrita e zero item gravável residual;
+4. [concluído] duplicatas prováveis, excluídos e ambiguidades fora da escrita;
+5. [concluído] recovery proativo pós-RX auditado e promovido;
+6. [concluído] ciclo controlado com 73 históricas canceladas, três atuais
+   preservadas e zero escrita financeira;
+7. [concluído] política positiva do gasto livre aplicada à planilha completa;
+8. [concluído] fonte `Contas` carregada pela pergunta pública para excluir
+   recorrentes cadastrados;
+9. [concluído] auditoria independente sem achados ou lacuna indispensável;
+10. [concluído] deploy OCI imutável, health verde e smoke real no WhatsApp.
 
-## Etapas
+## Critérios de GO
 
-1. [concluido] localizar e validar o plano privado vigente pelo hash;
-2. [concluido] implementar o writer e o ledger de recibos sem habilitar aplicação real;
-3. [concluido] criar RED e executar bateria causal afetada;
-4. [concluido] executar suíte ampla final proporcional ao candidato e recovery;
-5. [concluido] provar dry-run estrutural contra o plano fechado anterior;
-6. [concluido] publicar commits sanitizados e obter auditoria independente;
-7. [concluido] fechar a auditoria independente da reconciliação estrita;
-8. [concluido] criar backup real, snapshot vigente até 21/08/2026, novo dry-run e verificar restauração isolada;
-9. [concluido] aplicar o lote com recibos e parada segura em divergência;
-10. [concluido] reconciliar novamente e provar zero pendência gravável inesperada;
-11. [auditado] cancelar o backlog já importado sem bloquear propostas novas;
-12. [concluido] recalcular e validar gasto livre sobre a planilha completa;
-13. [auditado] destacar os valores principais da resposta no WhatsApp.
+- zero item histórico gravável residual;
+- nenhum replay histórico no fluxo proativo;
+- política do gasto livre aplicada à planilha completa;
+- auditoria independente sem lacuna indispensável;
+- release imutável, health verde e resposta real correta no WhatsApp.
 
-## Critérios de GO para aplicação
-
-- plano privado e dry-run possuem hash e cardinalidade coerentes;
-- testes de idempotência, falha parcial, restart e mistura estão verdes;
-- backup e rollback foram ensaiados sem tocar na planilha ativa;
-- auditoria independente não possui lacuna bloqueante;
-- diferença entre dry-run aprovado e aplicação é zero.
+Todos os critérios foram satisfeitos.
 
 ## Condições de parada
 
-- hash ou cardinalidade do plano divergir;
-- qualquer item não `ready` entrar no conjunto gravável;
-- destino, titular, conta/cartão ou categoria ficarem ambíguos;
-- backup ou restauração isolada falhar;
-- auditoria independente emitir NO-GO;
-- dry-run mudar antes da aplicação.
+Durante a execução: divergência de plano, item ambíguo no lote, falha de
+backup/rollback, NO-GO independente, health degradado ou resposta real
+incorreta. Nenhuma condição permaneceu ativa no fechamento.
+
+## Evidência final
+
+- release de produção:
+  `982c2463ec0ac1c42fbbc4007b9708e8e75ee0e7`;
+- checksum do artefato:
+  `dab51fe9a3e1afeb8a27e08f71d5adcf3c445106bbbf06bdd73b129f83136696`;
+- realizado do gasto livre antes da correção de fonte: R$ 1.256,81;
+- realizado correto após o smoke público: R$ 1.106,81;
+- processo único, zero reinícios, SQLite verde e WhatsApp `ready/healthy`.
+
+## Limite do fechamento
+
+O Gate 41 não cria memória automática de lojas nem autoriza classificação
+silenciosa no uso cotidiano. O bot continua propondo e Daniel confirma compras
+individuais ou lotes pequenos. Conhecimento do RX permanece no importador
+histórico.
 
 ## Próxima ação
 
-Promover o hash auditado `ec2219f131ed29933dd093967eacb093dc661ea0` por
-artefato OCI e executar ciclo/smokes controlados.
+Nenhuma. Uma evolução futura exige novo objetivo e novo gate delimitado.
