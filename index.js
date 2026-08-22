@@ -11,6 +11,7 @@ const { startDashboardServer } = require('./src/services/dashboardServer');
 const logger = require('./src/utils/logger');
 const { registerFinancialCommandPlannerRuntimeReload } = require('./src/config/financialCommandPlannerRuntimeConfig');
 const { registerFinancialAgentRuntimeReload } = require('./src/config/financialAgentRuntimeConfig');
+const { registerFinancialIterativeCanaryRuntimeReload } = require('./src/config/financialIterativeCanaryRuntimeConfig');
 const {
     initializeWhatsappReadyServices
 } = require('./src/services/whatsappReadyBootstrap');
@@ -18,6 +19,7 @@ const { assertStateStoreConfiguration } = require('./src/state/userStateManager'
 
 registerFinancialCommandPlannerRuntimeReload({ logger });
 registerFinancialAgentRuntimeReload({ logger });
+registerFinancialIterativeCanaryRuntimeReload({ logger });
 
 async function startBot() {
     const startupUnixSeconds = Math.floor(Date.now() / 1000);

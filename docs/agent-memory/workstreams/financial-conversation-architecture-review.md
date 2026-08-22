@@ -4,7 +4,7 @@ Atualizado em: 2026-08-22
 
 ## Estado
 
-`ARQ-01 A ARQ-04 EM GO TÉCNICO LOCAL — PREPARAÇÃO DO ARQ-05 AUTORIZADA`.
+`ARQ-01 A ARQ-04 EM GO TÉCNICO LOCAL — ARQ-05 CANDIDATO AGUARDANDO AUDITORIA`.
 
 ## Objetivo
 
@@ -55,10 +55,9 @@ matemática e toda escrita continuam determinísticos.
 
 ## Próxima ação exata
 
-Definir o contrato causal do ARQ-05 antes de qualquer ativação: canário
-read-only por domínio, allowlist explícita, rollback independente, comparação
-com o pipeline vigente e métricas sanitizadas. Canário, deploy, writer e
-retirada do legado continuam proibidos até novo GO independente.
+Publicar o candidato ARQ-05 por hash imutável e obter auditoria independente.
+Canário real, deploy, writer e retirada do legado continuam proibidos até novo
+GO independente e ensaio separado de promoção/rollback.
 
 ## Implementação ARQ-02
 

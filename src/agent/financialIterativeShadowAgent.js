@@ -6,6 +6,7 @@ const {
 } = require('./financialSemanticReadFacade');
 const { sanitizeExecutedPlan } = require('./financialAgentTrajectory');
 const { verifyFinancialEvidenceAdequacy } = require('./financialEvidenceAdequacyVerifier');
+const { createPersonalSheetSemanticAdapters } = require('./financialPersonalSheetSemanticAdapters');
 
 const MAX_SHADOW_READS = 3;
 const BLOCKING_TOOL_REASONS = new Set([
@@ -218,9 +219,21 @@ async function runFinancialIterativeShadow(input = {}) {
     return await runFinancialIterativeShadowCore(safeInput);
 }
 
+async function runFinancialIterativeShadowForSource(input = {}) {
+    const safeInput = input && typeof input === 'object' ? { ...input } : {};
+    delete safeInput.adapters;
+    const source = String(safeInput.source || 'central_read_model').trim().toLowerCase();
+    delete safeInput.source;
+    const adapters = source === 'personal_sheet'
+        ? createPersonalSheetSemanticAdapters()
+        : undefined;
+    return await runFinancialIterativeShadowCore({ ...safeInput, adapters });
+}
+
 module.exports = {
     MAX_SHADOW_READS,
     runFinancialIterativeShadow,
+    runFinancialIterativeShadowForSource,
     compareShadowEvidence,
     __test__: {
         sanitizeTrajectoryForReasoner,

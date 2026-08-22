@@ -23,7 +23,8 @@ sem novo ciclo de correção por frase.
 14. [concluído] publicar e auditar independentemente o ARQ-03 por hash;
 15. [concluído] definir e implementar o ARQ-04, verificador de adequação;
 16. [concluído] publicar, corrigir o NO-GO e reauditar o ARQ-04 por novo hash;
-17. [em andamento] preparar o contrato do ARQ-05 sem ativar canário ou produção.
+17. [concluído] implementar localmente o contrato do ARQ-05 sem ativar canário ou produção;
+18. [em andamento] publicar e auditar independentemente o ARQ-05 por hash imutável.
 
 ## Critério de conclusão
 

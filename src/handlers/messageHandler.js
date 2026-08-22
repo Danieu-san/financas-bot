@@ -75,6 +75,11 @@ const { buildGoogleConnectLink } = require('../services/googleOAuthService');
 const { sendWhatsAppMessage } = require('../services/whatsapp');
 const { invokeFinancialAgent } = require('../agent/financialAgent');
 const {
+    runFinancialIterativeCanary,
+    selectFinancialIterativeCanaryResponse
+} = require('../agent/financialIterativeCanary');
+const { createFinancialIterativeReasoner } = require('../agent/financialIterativeReasoner');
+const {
     buildAnalyticalCheckpointFromTrajectory,
     buildFinancialAgentTrajectoryLog
 } = require('../agent/financialAgentTrajectory');
@@ -483,6 +488,63 @@ function logFinancialAgentResult({ mode = 'off', result = null, senderId = '' } 
     if (isFinancialAgentFullLogEnabled()) {
         logger.info(`[financial-agent-debug] sender=${logger.redactIdentifier(senderId)} full=${buildFinancialAgentFullLogPayload(result)}`);
     }
+}
+
+async function maybeRunFinancialIterativeCanary({
+    baselineAnswer = '',
+    message = '',
+    userId = '',
+    domain = '',
+    source = '',
+    trajectory = null,
+    trustedContext = {},
+    baselineEvidence = null,
+    env = process.env,
+    reasoner = createFinancialIterativeReasoner({ env }),
+    runCanary = runFinancialIterativeCanary
+} = {}) {
+    let canary;
+    try {
+        canary = await runCanary({
+            message,
+            domain,
+            source,
+            userId,
+            trajectory,
+            trustedContext,
+            baselineEvidence,
+            reasoner,
+            env
+        });
+    } catch (_) {
+        metrics.increment('message.financial_iterative_canary.contained_error');
+        logger.warn('[financial-iterative-canary] erro contido; resposta vigente preservada.');
+        return { answer: String(baselineAnswer || ''), canary: null, promoted: false };
+    }
+    const telemetry = canary.telemetry || {};
+    if (telemetry.status === 'observed') {
+        const metricDomain = normalizeMetricLabel(telemetry.domain || 'unknown');
+        const metricResult = canary.shadow?.adequacy?.ok === true ? 'adequate' : 'fallback';
+        metrics.increment(`message.financial_iterative_canary.${metricDomain}.${metricResult}`);
+        logger.info(
+            `[financial-iterative-canary] status=observed domain=${metricDomain} ` +
+            `source=${normalizeMetricLabel(telemetry.source || 'unknown')} ` +
+            `reason=${normalizeMetricLabel(telemetry.reason || 'unknown')} ` +
+            `reads=${Number(telemetry.readCount || 0)} adequacy=${normalizeMetricLabel(telemetry.adequacyStatus || 'unknown')}`
+        );
+    }
+    const promoted = Boolean(
+        canary.status === 'observed' &&
+        canary.shadow?.candidate?.action === 'answer' &&
+        canary.shadow?.adequacy?.ok === true &&
+        Number(canary.shadow?.sideEffects?.messagesSent || 0) === 0 &&
+        Number(canary.shadow?.sideEffects?.financialWrites || 0) === 0
+    );
+    return {
+        answer: selectFinancialIterativeCanaryResponse({ baselineAnswer, canary }),
+        canary,
+        promoted
+    };
 }
 
 function sanitizeLogText(value, maxLength = 220) {
@@ -12045,6 +12107,7 @@ async function processMessage(msg) {
                         );
                         logger.info(`[routing] financial_scope_resolved scope=${resolvedScope.scope} selected=${analyticalUserIds.length}`);
                         let financialAgentResultForFallback = null;
+                        let financialIterativeCanaryAttempted = false;
                         const financialAgentMode = getFinancialAgentMode();
                         const financialAgentCanaryAllowed = financialAgentMode !== 'canary' ||
                             isFinancialAgentCanaryUserAllowed(activeUser?.user_id);
@@ -12076,6 +12139,31 @@ async function processMessage(msg) {
                                 );
                                 financialAgentResultForFallback = agentResult;
                                 logFinancialAgentResult({ mode: financialAgentMode, result: agentResult, senderId });
+                                const iterativeCanarySelection = await maybeRunFinancialIterativeCanary({
+                                    baselineAnswer: agentResult.answer || '',
+                                    message: userQuestion,
+                                    userId,
+                                    domain: effectiveIntentClassification.financialQueryPlan?.domain || '',
+                                    source: 'central_read_model',
+                                    trajectory: agentResult.trajectory,
+                                    trustedContext: {
+                                        userIds: analyticalUserIds,
+                                        ownerUserId: userId,
+                                        personByUserId: buildFinancialAgentPersonByUserId(analyticalUserIds, usersForScope, activeUser),
+                                        currentDate: getFormattedDateOnly()
+                                    },
+                                    baselineEvidence: agentResult.toolResult?.evidence || null
+                                });
+                                financialIterativeCanaryAttempted = true;
+                                if (iterativeCanarySelection.promoted) {
+                                    cache.set(cacheKey, iterativeCanarySelection.answer);
+                                    await msg.reply(iterativeCanarySelection.answer);
+                                    storeAnalyticalContext(senderId, effectiveIntentClassification, {
+                                        trajectory: agentResult.trajectory,
+                                        metric: effectiveIntentClassification.metric
+                                    });
+                                    return;
+                                }
                                 if (shouldUseFinancialAgentAnswerInMode(financialAgentMode, agentResult)) {
                                     cache.set(cacheKey, agentResult.answer);
                                     await msg.reply(agentResult.answer);
@@ -12338,6 +12426,64 @@ async function processMessage(msg) {
                             metrics.increment('message.pergunta.response.local');
                             logger.info(`[routing] local_response intent=${effectiveIntentClassification.intent} sender=${senderId}`);
                         }
+
+                        if (!financialIterativeCanaryAttempted) {
+                            const canaryPlan = effectiveIntentClassification.financialQueryPlan || null;
+                            const canarySource = usePersonalSpreadsheet
+                                ? 'personal_sheet'
+                                : usedReadModel
+                                    ? 'central_read_model'
+                                    : 'central_sheet';
+                            const canarySelection = await maybeRunFinancialIterativeCanary({
+                                baselineAnswer: respostaFinal,
+                                message: userQuestion,
+                                userId,
+                                domain: canaryPlan?.domain || '',
+                                source: canarySource,
+                                trajectory: {
+                                    schemaVersion: 1,
+                                    context: {
+                                        scope: resolvedScope.scope,
+                                        timeBasis: canaryPlan?.timeBasis || null,
+                                        referencePeriod: canaryPlan?.filters?.period || null,
+                                        followUp: Boolean(previousAnalyticalContext),
+                                        authorizedUserCount: analyticalUserIds.length
+                                    },
+                                    decision: {
+                                        action: 'legacy_answer',
+                                        plannerSource: 'existing_pipeline',
+                                        reason: effectiveIntentClassification.intent || null
+                                    },
+                                    executedPlan: canaryPlan,
+                                    tool: {
+                                        name: canaryPlan ? 'financial_query_plan' : 'legacy_analysis',
+                                        source: canarySource,
+                                        fallbackReason: null
+                                    },
+                                    coverage: {
+                                        status: analyzedData ? 'available' : 'unavailable',
+                                        evidenceKind: 'existing_pipeline',
+                                        itemCount: null,
+                                        criteriaKeys: []
+                                    },
+                                    verification: {
+                                        ok: Boolean(respostaFinal),
+                                        reason: respostaFinal ? 'baseline_answer_available' : 'baseline_answer_unavailable'
+                                    },
+                                    response: {
+                                        status: respostaFinal ? 'available' : 'unavailable',
+                                        lengthBucket: respostaFinal ? 'non_empty' : 'empty'
+                                    }
+                                },
+                                trustedContext: {
+                                    userIds: analyticalUserIds,
+                                    ownerUserId: userId,
+                                    personByUserId: buildFinancialAgentPersonByUserId(analyticalUserIds, usersForScope, activeUser),
+                                    currentDate: getFormattedDateOnly()
+                                }
+                            });
+                            respostaFinal = canarySelection.answer;
+                        }
                     
                         cache.set(cacheKey, respostaFinal);
                         await msg.reply(respostaFinal);
@@ -12547,6 +12693,7 @@ module.exports = {
         buildFinancialAgentFullLogPayload,
         buildFinancialAgentMigrationGapTelemetry,
         buildFinancialAgentLegacyUsageEvent,
+        maybeRunFinancialIterativeCanary,
         buildFinancialAgentPersonByUserId,
         resolveExplicitExpenseActorUserId,
         hasExplicitExpenseActorMention,
