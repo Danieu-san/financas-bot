@@ -1,12 +1,13 @@
 const fs = require('node:fs');
 const path = require('node:path');
+const { randomUUID } = require('node:crypto');
 
 const DEFAULT_TELEMETRY_PATH = path.resolve(
     process.cwd(),
     'data',
     'financial-iterative-canary.jsonl'
 );
-const VALID_OUTCOMES = new Set(['promoted', 'fallback']);
+const VALID_OUTCOMES = new Set(['selected', 'promoted', 'fallback']);
 const VALID_SOURCES = new Set(['central_read_model', 'personal_sheet']);
 
 function sanitizeLabel(value, fallback = 'unknown') {
@@ -29,10 +30,19 @@ function boundedReadCount(value) {
     return Math.max(0, Math.min(3, parsed));
 }
 
+function sanitizeAttemptId(value, { createIfMissing = false } = {}) {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(normalized)) {
+        return normalized;
+    }
+    return createIfMissing ? randomUUID() : '';
+}
+
 function sanitizeFinancialIterativeCanaryAttempt(input = {}, { now = () => new Date() } = {}) {
     return {
         ts: now().toISOString(),
         schemaVersion: 'financial-iterative-canary-v1',
+        attemptId: sanitizeAttemptId(input.attemptId, { createIfMissing: true }),
         domain: sanitizeLabel(input.domain),
         source: sanitizeEnum(input.source, VALID_SOURCES, 'unknown'),
         outcome: sanitizeEnum(input.outcome, VALID_OUTCOMES, 'fallback'),
@@ -75,13 +85,21 @@ function summarizeFinancialIterativeCanaryTelemetry({
         byDomain: {},
         bySource: {},
         byOutcome: {},
-        byReason: {}
+        byReason: {},
+        attempts: {
+            total: 0,
+            promoted: 0,
+            fallback: 0,
+            pending: 0,
+            conflicting: 0
+        }
     };
     const sinceMs = since ? Date.parse(since) : null;
     if (since && !Number.isFinite(sinceMs)) {
         throw new Error('financial_iterative_canary_invalid_since');
     }
     if (!fs.existsSync(telemetryPath)) return summary;
+    const attemptStates = new Map();
     for (const line of fs.readFileSync(telemetryPath, 'utf8').split(/\r?\n/)) {
         if (!line.trim()) continue;
         let entry;
@@ -92,7 +110,15 @@ function summarizeFinancialIterativeCanaryTelemetry({
             continue;
         }
         const ts = String(entry.ts || '');
-        if (sinceMs && (!ts || !Number.isFinite(Date.parse(ts)) || Date.parse(ts) < sinceMs)) {
+        const tsMs = Date.parse(ts);
+        const attemptId = sanitizeAttemptId(entry.attemptId);
+        const outcome = sanitizeLabel(entry.outcome);
+        if (entry.schemaVersion !== 'financial-iterative-canary-v1' ||
+            !attemptId || !Number.isFinite(tsMs) || !VALID_OUTCOMES.has(outcome)) {
+            summary.invalid += 1;
+            continue;
+        }
+        if (sinceMs && tsMs < sinceMs) {
             continue;
         }
         summary.total += 1;
@@ -100,8 +126,19 @@ function summarizeFinancialIterativeCanaryTelemetry({
         if (ts && (!summary.last || ts > summary.last)) summary.last = ts;
         increment(summary.byDomain, sanitizeLabel(entry.domain));
         increment(summary.bySource, sanitizeEnum(entry.source, VALID_SOURCES, 'unknown'));
-        increment(summary.byOutcome, sanitizeEnum(entry.outcome, VALID_OUTCOMES, 'fallback'));
+        increment(summary.byOutcome, outcome);
         increment(summary.byReason, sanitizeLabel(entry.reason));
+        const state = attemptStates.get(attemptId) || { selected: false, terminals: new Set() };
+        if (outcome === 'selected') state.selected = true;
+        else state.terminals.add(outcome);
+        attemptStates.set(attemptId, state);
+    }
+    summary.attempts.total = attemptStates.size;
+    for (const state of attemptStates.values()) {
+        if (state.terminals.size > 1) summary.attempts.conflicting += 1;
+        else if (state.terminals.has('promoted')) summary.attempts.promoted += 1;
+        else if (state.terminals.has('fallback')) summary.attempts.fallback += 1;
+        else if (state.selected) summary.attempts.pending += 1;
     }
     return summary;
 }
@@ -111,5 +148,5 @@ module.exports = {
     recordFinancialIterativeCanaryAttempt,
     sanitizeFinancialIterativeCanaryAttempt,
     summarizeFinancialIterativeCanaryTelemetry,
-    __test__: { boundedReadCount, sanitizeLabel }
+    __test__: { boundedReadCount, sanitizeAttemptId, sanitizeLabel }
 };

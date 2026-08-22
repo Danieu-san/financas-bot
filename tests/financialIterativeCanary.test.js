@@ -352,7 +352,7 @@ test('message-handler boundary contains canary failure and preserves the baselin
     assert.strictEqual(recorded.reason, 'contained_error');
 });
 
-test('message-handler records every eligible promotion before exposing it', async () => {
+test('message-handler records every eligible selection before exposing it', async () => {
     let recorded = null;
     const canary = {
         status: 'observed',
@@ -376,14 +376,76 @@ test('message-handler records every eligible promotion before exposing it', asyn
         source: 'central_read_model',
         env: activeEnv(),
         runCanary: async () => canary,
-        recordAttempt: (input, options) => { recorded = { input, options }; }
+        recordAttempt: (input, options) => {
+            recorded = { input, options };
+            return {
+                recorded: true,
+                record: { attemptId: '11111111-1111-4111-8111-111111111111' }
+            };
+        }
     });
     assert.strictEqual(output.promoted, true);
     assert.strictEqual(output.answer, 'Resposta nova comprovada.');
-    assert.strictEqual(recorded.input.outcome, 'promoted');
+    assert.strictEqual(recorded.input.outcome, 'selected');
     assert.strictEqual(recorded.input.baselineAvailable, true);
     assert.strictEqual(recorded.input.sideEffectsZero, true);
     assert.strictEqual(recorded.options.env.FINANCIAL_ITERATIVE_CANARY_MODE, 'canary');
+    assert.strictEqual(output.delivery.attemptId, '11111111-1111-4111-8111-111111111111');
+});
+
+test('message-handler records terminal delivery only after the caller resolves reply', () => {
+    let terminal = null;
+    const delivery = {
+        attemptId: '11111111-1111-4111-8111-111111111111',
+        domain: 'expenses',
+        source: 'central_read_model',
+        readCount: 1,
+        candidateAction: 'answer',
+        adequacyStatus: 'adequate',
+        baselineAvailable: true,
+        sideEffectsZero: true
+    };
+    const finalized = messageHandlerTest.finalizeFinancialIterativeCanaryDelivery({
+        delivery,
+        outcome: 'promoted',
+        reason: 'reply_succeeded',
+        env: activeEnv(),
+        recordAttempt: (input, options) => { terminal = { input, options }; }
+    });
+    assert.strictEqual(finalized, true);
+    assert.strictEqual(terminal.input.attemptId, delivery.attemptId);
+    assert.strictEqual(terminal.input.outcome, 'promoted');
+    assert.strictEqual(terminal.input.reason, 'reply_succeeded');
+    assert.strictEqual(terminal.options.env.FINANCIAL_ITERATIVE_CANARY_MODE, 'canary');
+});
+
+test('message-handler delivery boundary records promoted only after reply success and fallback after rejection', async () => {
+    const selection = {
+        promoted: true,
+        answer: 'Resposta nova comprovada.',
+        delivery: { attemptId: '11111111-1111-4111-8111-111111111111' }
+    };
+    const successEvents = [];
+    assert.strictEqual(await messageHandlerTest.deliverFinancialIterativeCanarySelection({
+        selection,
+        reply: async answer => { successEvents.push(`reply:${answer}`); },
+        finalizeDelivery: terminal => { successEvents.push(terminal.outcome); }
+    }), true);
+    assert.deepStrictEqual(successEvents, ['reply:Resposta nova comprovada.', 'promoted']);
+
+    const failureEvents = [];
+    await assert.rejects(
+        () => messageHandlerTest.deliverFinancialIterativeCanarySelection({
+            selection,
+            reply: async () => {
+                failureEvents.push('reply_failed');
+                throw new Error('delivery unavailable');
+            },
+            finalizeDelivery: terminal => { failureEvents.push(terminal.outcome); }
+        }),
+        /delivery unavailable/
+    );
+    assert.deepStrictEqual(failureEvents, ['reply_failed', 'fallback']);
 });
 
 test('message-handler refuses a candidate without explicit numeric side-effect counters', async () => {
@@ -458,5 +520,32 @@ test('message-handler does not persist telemetry for an ineligible canary', asyn
     });
     assert.strictEqual(output.answer, 'Resposta vigente.');
     assert.strictEqual(output.promoted, false);
+    assert.strictEqual(records, 0);
+});
+
+test('message-handler rejects an observed candidate when server-side eligibility is false', async () => {
+    let records = 0;
+    const output = await messageHandlerTest.maybeRunFinancialIterativeCanary({
+        baselineAnswer: 'Resposta vigente.',
+        message: 'quanto gastei?',
+        userId: 'member-a',
+        domain: 'expenses',
+        source: 'central_read_model',
+        env: activeEnv({ FINANCIAL_ITERATIVE_CANARY_MODE: 'off' }),
+        runCanary: async () => ({
+            status: 'observed',
+            eligibility: { eligible: true, reason: 'incoherent_runner_result' },
+            telemetry: { status: 'observed', reason: 'candidate_answer' },
+            shadow: {
+                candidate: { action: 'answer', text: 'Não pode aparecer.' },
+                adequacy: { ok: true, status: 'adequate' },
+                sideEffects: { messagesSent: 0, financialWrites: 0 }
+            }
+        }),
+        recordAttempt: () => { records += 1; }
+    });
+    assert.strictEqual(output.promoted, false);
+    assert.strictEqual(output.answer, 'Resposta vigente.');
+    assert.strictEqual(output.delivery, null);
     assert.strictEqual(records, 0);
 });

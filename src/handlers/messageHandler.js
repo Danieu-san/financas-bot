@@ -520,19 +520,18 @@ async function maybeRunFinancialIterativeCanary({
     });
     const baseline = String(baselineAnswer || '');
     const recordEligibleAttempt = input => {
-        if (!runtimeEligibility.eligible) return true;
+        if (!runtimeEligibility.eligible) return null;
         try {
-            recordAttempt({
+            return recordAttempt({
                 ...input,
                 domain: runtimeEligibility.domain,
                 source: runtimeEligibility.source,
                 baselineAvailable: Boolean(baseline.trim())
             }, { env });
-            return true;
         } catch (_) {
             metrics.increment('message.financial_iterative_canary.telemetry_error');
             logger.warn('[financial-iterative-canary] telemetria indisponivel; promocao bloqueada.');
-            return false;
+            return null;
         }
     };
     let canary;
@@ -562,23 +561,24 @@ async function maybeRunFinancialIterativeCanary({
         return { answer: baseline, canary: null, promoted: false };
     }
     const telemetry = canary.telemetry || {};
-    let promoted = canary.status === 'observed' &&
+    let promoted = runtimeEligibility.eligible &&
+        canary.status === 'observed' &&
         canPromoteFinancialIterativeShadow(canary.shadow);
     const sideEffectsZero = canary.status === 'observed'
         ? hasExplicitZeroSideEffects(canary.shadow)
         : null;
     const recorded = recordEligibleAttempt({
-        outcome: promoted ? 'promoted' : 'fallback',
+        outcome: promoted ? 'selected' : 'fallback',
         reason: telemetry.reason || canary.eligibility?.reason || 'unknown',
         readCount: telemetry.readCount || 0,
         candidateAction: telemetry.candidateAction || canary.shadow?.candidate?.action || 'none',
         adequacyStatus: telemetry.adequacyStatus || canary.shadow?.adequacy?.status || 'unknown',
         sideEffectsZero
     });
-    if (!recorded) promoted = false;
+    if (runtimeEligibility.eligible && !recorded?.recorded) promoted = false;
     if (runtimeEligibility.eligible) {
         const metricDomain = normalizeMetricLabel(runtimeEligibility.domain || 'unknown');
-        const metricOutcome = promoted ? 'promoted' : 'fallback';
+        const metricOutcome = promoted ? 'selected' : 'fallback';
         metrics.increment(`message.financial_iterative_canary.${metricDomain}.${metricOutcome}`);
         logger.info(
             `[financial-iterative-canary] status=${normalizeMetricLabel(canary.status || 'unknown')} ` +
@@ -592,8 +592,61 @@ async function maybeRunFinancialIterativeCanary({
             ? selectFinancialIterativeCanaryResponse({ baselineAnswer: baseline, canary })
             : baseline,
         canary,
-        promoted
+        promoted,
+        delivery: promoted ? {
+            attemptId: recorded.record.attemptId,
+            domain: runtimeEligibility.domain,
+            source: runtimeEligibility.source,
+            readCount: telemetry.readCount || 0,
+            candidateAction: telemetry.candidateAction || canary.shadow?.candidate?.action || 'none',
+            adequacyStatus: telemetry.adequacyStatus || canary.shadow?.adequacy?.status || 'unknown',
+            baselineAvailable: Boolean(baseline.trim()),
+            sideEffectsZero
+        } : null
     };
+}
+
+function finalizeFinancialIterativeCanaryDelivery({
+    delivery = null,
+    outcome,
+    reason,
+    env = process.env,
+    recordAttempt = recordFinancialIterativeCanaryAttempt
+} = {}) {
+    if (!delivery?.attemptId || !['promoted', 'fallback'].includes(outcome)) return false;
+    try {
+        recordAttempt({ ...delivery, outcome, reason }, { env });
+        metrics.increment(`message.financial_iterative_canary.delivery.${outcome}`);
+        return true;
+    } catch (_) {
+        metrics.increment('message.financial_iterative_canary.delivery.telemetry_error');
+        logger.warn('[financial-iterative-canary] terminal de entrega indisponivel; selecao permanece pendente.');
+        return false;
+    }
+}
+
+async function deliverFinancialIterativeCanarySelection({
+    selection = null,
+    reply,
+    finalizeDelivery = finalizeFinancialIterativeCanaryDelivery
+} = {}) {
+    if (!selection?.promoted || !selection.delivery || typeof reply !== 'function') return false;
+    try {
+        await reply(selection.answer);
+    } catch (deliveryError) {
+        finalizeDelivery({
+            delivery: selection.delivery,
+            outcome: 'fallback',
+            reason: 'reply_failed'
+        });
+        throw deliveryError;
+    }
+    finalizeDelivery({
+        delivery: selection.delivery,
+        outcome: 'promoted',
+        reason: 'reply_succeeded'
+    });
+    return true;
 }
 
 function sanitizeLogText(value, maxLength = 220) {
@@ -12205,8 +12258,11 @@ async function processMessage(msg) {
                                 });
                                 financialIterativeCanaryAttempted = true;
                                 if (iterativeCanarySelection.promoted) {
+                                    await deliverFinancialIterativeCanarySelection({
+                                        selection: iterativeCanarySelection,
+                                        reply: answer => msg.reply(answer)
+                                    });
                                     cache.set(cacheKey, iterativeCanarySelection.answer);
-                                    await msg.reply(iterativeCanarySelection.answer);
                                     storeAnalyticalContext(senderId, effectiveIntentClassification, {
                                         trajectory: agentResult.trajectory,
                                         metric: effectiveIntentClassification.metric
@@ -12532,10 +12588,19 @@ async function processMessage(msg) {
                                 }
                             });
                             respostaFinal = canarySelection.answer;
+                            if (canarySelection.promoted) {
+                                await deliverFinancialIterativeCanarySelection({
+                                    selection: canarySelection,
+                                    reply: answer => msg.reply(answer)
+                                });
+                                cache.set(cacheKey, canarySelection.answer);
+                                storeAnalyticalContext(senderId, effectiveIntentClassification);
+                                return;
+                            }
                         }
-                    
-                        cache.set(cacheKey, respostaFinal);
+
                         await msg.reply(respostaFinal);
+                        cache.set(cacheKey, respostaFinal);
                         storeAnalyticalContext(senderId, effectiveIntentClassification);
 
                     } catch (err) {
@@ -12743,6 +12808,8 @@ module.exports = {
         buildFinancialAgentMigrationGapTelemetry,
         buildFinancialAgentLegacyUsageEvent,
         maybeRunFinancialIterativeCanary,
+        finalizeFinancialIterativeCanaryDelivery,
+        deliverFinancialIterativeCanarySelection,
         buildFinancialAgentPersonByUserId,
         resolveExplicitExpenseActorUserId,
         hasExplicitExpenseActorMention,

@@ -4,7 +4,7 @@ Atualizado em: 2026-08-22
 
 ## Estado
 
-`ARQ-01 A ARQ-05 EM GO TÉCNICO LOCAL — ARQ-06 CANDIDATO`.
+`ARQ-01 A ARQ-05 EM GO TÉCNICO LOCAL — ARQ-06 RECOVERY`.
 
 ## Objetivo
 
@@ -55,7 +55,7 @@ matemática e toda escrita continuam determinísticos.
 
 ## Próxima ação exata
 
-Publicar e auditar independentemente o candidato ARQ-06. Com GO, preparar um
+Publicar e reauditar independentemente o recovery ARQ-06. Com GO, preparar um
 artefato OCI imutável com o canário ainda desligado, validar saúde e rollback e
 somente então avaliar a ativação mínima de um domínio read-only. Writer e
 retirada do legado continuam proibidos.
@@ -170,4 +170,16 @@ retirada do legado continuam proibidos.
   previstos;
 - candidato:
   `docs/audit/312-financial-iterative-canary-observability-candidate-2026-08-22.md`;
+- auditoria do hash `5ac43f9f...`: `NO-GO` porque `promoted` antecedia a
+  confirmação de `msg.reply`, permitindo falso sucesso em falha de entrega;
+- recovery separa `selected` durável de `promoted` terminal, registra
+  `fallback` na rejeição e deixa interrupções entre fases como `pending`;
+- os dois pontos reais do handler usam a mesma fronteira de entrega; o cache só
+  é atualizado depois do envio concluído;
+- o predicado final também exige a elegibilidade recalculada pelo handler;
+  resultado incoerente do runner não promove;
+- evidência do recovery: focal `22/22`, causal `119/119`, aceitação `265/265` e
+  suíte ampla `1.810/1.820`, zero falha e dez skips previstos;
+- recovery:
+  `docs/audit/313-financial-iterative-canary-delivery-recovery-2026-08-22.md`;
 - nenhum segredo, flag real, chamada externa, deploy ou writer foi ativado.
