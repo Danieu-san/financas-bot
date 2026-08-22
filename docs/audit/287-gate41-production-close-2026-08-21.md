@@ -4,7 +4,12 @@ Data: 2026-08-21
 
 ## Estado
 
-`GO DE PRODUÇÃO`.
+`SUPERSEDIDO PELO FECHAMENTO CORRETIVO 292`.
+
+Depois deste documento, duas entregas históricas revelaram que o cutoff do
+outbox não havia sido movido para o encerramento do RX. A cadeia 288–292
+documenta o diagnóstico, dois NO-GO independentes, o recovery monotônico e o
+cutover de produção que bloqueou todo o backlog residual.
 
 ## Linha de base financeira
 

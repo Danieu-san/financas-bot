@@ -4,13 +4,12 @@ Atualizado em: 2026-08-21
 
 ## Objetivo ativo
 
-Fechar a lacuna operacional do Gate 41 que deixou 110 alertas informativos
-pré-cutover pendentes depois da aplicação e reconciliação do RX.
+Nenhum. O Gate 41 foi encerrado depois do cutover monotônico que bloqueou o
+backlog informativo pré-RX sem transporte ou escrita.
 
 ## Estado vigente
 
-- Gate 41 reaberto em `CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE` somente para
-  o corte operacional do outbox;
+- Gate 41 em `GO DE PRODUÇÃO` pelo fechamento corretivo 292;
 - 1.942 escritas históricas confirmadas e replay final com zero escrita e zero
   item gravável residual;
 - recovery pós-RX em produção: 73 propostas históricas canceladas, três atuais
@@ -42,6 +41,11 @@ pré-cutover pendentes depois da aplicação e reconciliação do RX.
 - o recovery 290 torna o bloqueio monotônico: rollback ordinário nunca restaura
   `pending`; recuperação de desastre reaplica cutoff/quarantine com o processo
   parado antes de expor o estado.
+- o recovery 290 recebeu GO independente, zero achados e nenhuma lacuna;
+- backup/restauração isolada passou em GO e o cutover produziu `pending=0`,
+  `blocked=111`, terminais invariantes, zero transporte e zero escrita;
+- produção permaneceu no release de produto `982c2463...`, com processo único,
+  um restart controlado e WhatsApp `ready/healthy`.
 
 ## Git e workspace
 
@@ -52,13 +56,12 @@ pré-cutover pendentes depois da aplicação e reconciliação do RX.
 
 ## Próxima ação exata
 
-Reauditar o recovery 290 por hash imutável. Com GO, executar o backup/restauração
-isolada, atualizar os quatro cutoffs, reiniciar o PM2 uma vez e provar que os
-110 pendentes pré-cutover foram bloqueados sem transporte ou escrita.
+Nenhuma ação material permanece no Gate 41. Usar o bot normalmente e abrir uma
+nova evolução somente em objetivo separado.
 
 ## Capacidade para retomar
 
-`Codex -> Sol -> Alto -> auditar e executar o corte do outbox pós-RX.`
+`Codex -> Sol -> Médio -> selecionar e delimitar a próxima evolução do roadmap.`
 
 ## Referências
 
@@ -71,3 +74,5 @@ isolada, atualizar os quatro cutoffs, reiniciar o PM2 uma vez e provar que os
 - `docs/audit/288-gate41-post-rx-alert-cutover-candidate-2026-08-21.md`.
 - `docs/audit/289-gate41-post-rx-alert-cutover-backup-recovery-candidate-2026-08-21.md`.
 - `docs/audit/290-gate41-post-rx-alert-cutover-monotonic-rollback-candidate-2026-08-21.md`.
+- `docs/audit/291-gate41-post-rx-alert-cutover-independent-close-2026-08-21.md`.
+- `docs/audit/292-gate41-post-rx-alert-cutover-production-close-2026-08-21.md`.

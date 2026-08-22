@@ -4,7 +4,7 @@ Atualizado em: 2026-08-21
 
 ## Estado
 
-`REABERTO — RECOVERY MONOTÔNICO AGUARDANDO REAUDITORIA`.
+`GO DE PRODUÇÃO — ENCERRADO PELO FECHAMENTO CORRETIVO 292`.
 
 ## Objetivo alcançado
 
@@ -54,6 +54,10 @@ O critério “nenhum replay histórico no fluxo proativo” foi reaberto depois
 duas entregas informativas pós-RX e da descoberta de 110 alertas pendentes
 pré-cutover. Os demais critérios permanecem fechados.
 
+O recovery monotônico recebeu GO independente. O cutover bloqueou os 110
+pendentes, preservou todos os terminais e realizou zero transporte e zero
+escrita; o critério reaberto está novamente satisfeito.
+
 ## Condições de parada
 
 Durante a execução: divergência de plano, item ambíguo no lote, falha de
@@ -79,7 +83,4 @@ histórico.
 
 ## Próxima ação
 
-Reauditar o recovery 290. Com GO, executar o gate de backup SQLite/restauração
-isolada, preservar `.env`, mover os cutoffs dos quatro aliases para o
-encerramento do RX, reiniciar uma vez e comprovar que o backlog pré-cutover foi
-bloqueado com zero transporte e zero escrita.
+Nenhuma. Uma evolução futura exige novo objetivo e novo gate delimitado.
