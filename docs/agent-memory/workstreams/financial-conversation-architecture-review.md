@@ -4,7 +4,7 @@ Atualizado em: 2026-08-22
 
 ## Estado
 
-`ARQ-01 SEGUNDO RECOVERY LOCAL VALIDADO — AGUARDA COMMIT E REAUDITORIA`.
+`ARQ-01 GO TÉCNICO LOCAL — ARQ-02 AUTORIZADO`.
 
 ## Objetivo
 
@@ -44,7 +44,7 @@ matemática e toda escrita continuam determinísticos.
 - worktree: `.codex-worktrees/financial-agent-arq01-20260822`;
 - branch: `codex/financial-agent-arq01-20260822`;
 - base: `ade123e921837a683ec5989d7cb768e5f1dcbf87`;
-- contrato, evidência e recoveries: documentos 297, 298 e 299;
+- contrato, evidência, recoveries e fechamento: documentos 297 a 300;
 - checkpoint v2 passa a representar o plano realmente executado;
 - evidência do segundo recovery: focal `9/9`, agente `87/87`, baseline `265/265` e
   críticos `15/15`;
@@ -55,5 +55,5 @@ matemática e toda escrita continuam determinísticos.
 
 ## Próxima ação exata
 
-Executar a suíte ampla final uma vez, validar o workflow, publicar novo commit
-sanitizado imutável e obter reauditoria independente do ARQ-01.
+Iniciar ARQ-02 sem habilitar flag, canário, writer, deploy ou retirada do
+legado; definir o contrato causal exato antes de editar produto.

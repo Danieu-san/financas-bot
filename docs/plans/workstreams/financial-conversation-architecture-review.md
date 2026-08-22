@@ -16,8 +16,8 @@ sem novo ciclo de correção por frase.
 7. [concluído] obter decisão de Daniel antes de iniciar ARQ-01;
 8. [concluído] implementar contrato de trajetória e checkpoint executado;
 9. [concluído] gerar baseline sanitizado `265/265`, críticos `15/15`;
-10. [em andamento] segundo recovery do NO-GO validado focalmente; faltam suíte ampla, commit e reauditoria;
-11. [pendente] iniciar ARQ-02 somente depois do GO de ARQ-01.
+10. [concluído] segundo recovery, suíte ampla, hash imutável e GO independente;
+11. [em andamento] iniciar ARQ-02 sem ativação, deploy, writer ou retirada do legado.
 
 ## Critério de conclusão
 

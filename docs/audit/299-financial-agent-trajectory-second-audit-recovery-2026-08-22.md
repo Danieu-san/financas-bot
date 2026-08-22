@@ -35,7 +35,7 @@ adulteram separadamente a tool e o SHA-256 e exigem falha.
 
 ## Estado
 
-`SEGUNDO RECOVERY LOCAL VALIDADO — AGUARDA HASH IMUTÁVEL E REAUDITORIA`.
+`SUPERADO PELO GO TÉCNICO LOCAL NO HASH 446612b51f141da41273e4f65921b82a88a0d0f6`.
 
-Somente um GO independente no próximo hash pode encerrar ARQ-01 e autorizar
-ARQ-02. O gate não autoriza deploy, canário, writer ou retirada de legado.
+O fechamento independente está registrado no arquivo 300. O gate não autoriza
+deploy, canário, writer ou retirada de legado.
