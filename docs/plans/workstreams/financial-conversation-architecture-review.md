@@ -18,8 +18,8 @@ sem novo ciclo de correção por frase.
 9. [concluído] gerar baseline sanitizado `265/265`, críticos `15/15`;
 10. [concluído] segundo recovery, suíte ampla, hash imutável e GO independente;
 11. [concluído] definir e implementar localmente a fachada semântica read-only do ARQ-02;
-12. [em andamento] publicar o candidato ARQ-02 e obter auditoria independente por hash;
-13. [pendente] com GO, fechar ARQ-02 e iniciar apenas o desenho shadow do ARQ-03.
+12. [concluído] publicar, auditar, corrigir e reauditar o ARQ-02 por hash;
+13. [em andamento] desenhar e implementar localmente o ARQ-03 apenas em shadow.
 
 ## Critério de conclusão
 

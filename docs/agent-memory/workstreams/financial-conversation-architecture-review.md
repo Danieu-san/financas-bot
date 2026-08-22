@@ -4,7 +4,7 @@ Atualizado em: 2026-08-22
 
 ## Estado
 
-`ARQ-01 GO TÉCNICO LOCAL — ARQ-02 RECOVERY AGUARDANDO REAUDITORIA`.
+`ARQ-01 E ARQ-02 EM GO TÉCNICO LOCAL — ARQ-03 AUTORIZADO`.
 
 ## Objetivo
 
@@ -55,9 +55,10 @@ matemática e toda escrita continuam determinísticos.
 
 ## Próxima ação exata
 
-Publicar o novo hash imutável do recovery ARQ-02 e submetê-lo uma única vez à
-reauditoria independente no Chat. Sem GO, não iniciar ARQ-03. Continuam
-proibidos flag, canário, writer, deploy e retirada do legado.
+Definir o contrato causal do ARQ-03 antes da edição de produto: agente
+iterativo executado somente em shadow, no máximo três consultas semânticas,
+sem responder ao usuário e sem writer. Continuam proibidos deploy, canário de
+resposta, writer e retirada do legado.
 
 ## Implementação ARQ-02
 
@@ -76,3 +77,6 @@ proibidos flag, canário, writer, deploy e retirada do legado.
   `1.764/1.774`, zero falha e dez ignorados;
 - candidato: `docs/audit/301-financial-semantic-read-facade-candidate-2026-08-22.md`.
 - recovery: `docs/audit/302-financial-semantic-read-facade-coverage-recovery-2026-08-22.md`.
+- fechamento independente: `docs/audit/303-financial-semantic-read-facade-independent-close-2026-08-22.md`;
+- reauditoria do hash `06bf6b4b...`: GO técnico local, zero achados e nenhuma
+  lacuna causal indispensável.
