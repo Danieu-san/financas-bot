@@ -4,7 +4,7 @@ Atualizado em: 2026-08-21
 
 ## Estado
 
-`GO DE PRODUÇÃO — ENCERRADO`.
+`REABERTO — CANDIDATO OPERACIONAL AGUARDANDO AUDITORIA`.
 
 ## Objetivo alcançado
 
@@ -50,6 +50,10 @@ o gasto livre sobre a verdade financeira completa.
 
 Todos os critérios foram satisfeitos.
 
+O critério “nenhum replay histórico no fluxo proativo” foi reaberto depois de
+duas entregas informativas pós-RX e da descoberta de 110 alertas pendentes
+pré-cutover. Os demais critérios permanecem fechados.
+
 ## Condições de parada
 
 Durante a execução: divergência de plano, item ambíguo no lote, falha de
@@ -75,4 +79,6 @@ histórico.
 
 ## Próxima ação
 
-Nenhuma. Uma evolução futura exige novo objetivo e novo gate delimitado.
+Auditar o candidato 288. Com GO, preservar `.env` e outbox, mover os cutoffs
+dos quatro aliases para o encerramento do RX, reiniciar uma vez e comprovar que
+o backlog pré-cutover foi bloqueado com zero transporte e zero escrita.

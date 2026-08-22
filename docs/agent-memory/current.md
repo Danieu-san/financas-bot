@@ -4,13 +4,13 @@ Atualizado em: 2026-08-21
 
 ## Objetivo ativo
 
-Nenhum. O Gate 41 foi encerrado depois de materializar e reconciliar o RX
-histórico, impedir replay proativo do histórico já importado e validar o gasto
-livre sobre a planilha completa pela entrada pública do WhatsApp.
+Fechar a lacuna operacional do Gate 41 que deixou 110 alertas informativos
+pré-cutover pendentes depois da aplicação e reconciliação do RX.
 
 ## Estado vigente
 
-- Gate 41 em `GO DE PRODUÇÃO`;
+- Gate 41 reaberto em `CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE` somente para
+  o corte operacional do outbox;
 - 1.942 escritas históricas confirmadas e replay final com zero escrita e zero
   item gravável residual;
 - recovery pós-RX em produção: 73 propostas históricas canceladas, três atuais
@@ -28,6 +28,12 @@ livre sobre a planilha completa pela entrada pública do WhatsApp.
   SQLite verde e WhatsApp `ready/healthy`;
 - não existe memória automática de estabelecimentos no uso normal; decisões do
   RX ficam restritas ao importador histórico.
+- dois pagamentos de fatura históricos foram enviados após os deploys porque
+  o cutoff dos quatro aliases permaneceu na ativação original de julho;
+- o outbox possui 110 alertas `pending` criados antes do encerramento do RX;
+  terminais já aceitos permanecem não reenviáveis;
+- o candidato 288 propõe apenas atualizar atomicamente os cutoffs existentes,
+  reiniciar o processo e provar o bloqueio do backlog com zero escrita.
 
 ## Git e workspace
 
@@ -38,12 +44,13 @@ livre sobre a planilha completa pela entrada pública do WhatsApp.
 
 ## Próxima ação exata
 
-Nenhuma ação material permanece no Gate 41. Usar o bot normalmente e escolher
-uma nova evolução somente em tarefa separada, sem reabrir este gate.
+Auditar o candidato operacional 288 por hash imutável. Com GO, fazer backup
+privado, atualizar os quatro cutoffs, reiniciar o PM2 uma vez e provar que os
+110 pendentes pré-cutover foram bloqueados sem transporte ou escrita.
 
 ## Capacidade para retomar
 
-`Codex -> Sol -> Médio -> selecionar e delimitar a próxima evolução do roadmap.`
+`Codex -> Sol -> Alto -> auditar e executar o corte do outbox pós-RX.`
 
 ## Referências
 
@@ -53,3 +60,4 @@ uma nova evolução somente em tarefa separada, sem reabrir este gate.
 - `docs/audit/285-gate41-free-budget-recurring-source-candidate-2026-08-21.md`;
 - `docs/audit/286-gate41-free-budget-recurring-source-independent-close-2026-08-21.md`;
 - `docs/audit/287-gate41-production-close-2026-08-21.md`.
+- `docs/audit/288-gate41-post-rx-alert-cutover-candidate-2026-08-21.md`.
