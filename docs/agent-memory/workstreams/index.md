@@ -13,7 +13,7 @@ Cada conversa/worktree trabalha em um objetivo e preserva seu próprio estado.
 | `open-finance-historical-rx` | gates 36-38.4 GO local; gate 38.5 ativo | `open-finance-historical-rx.md` | `../../plans/workstreams/open-finance-historical-rx.md` | Gate 38.5 somente aplicacao/resgate de reserva; gates 34-35 preservados; escrita off |
 | `open-finance-historical-import` | Gate 41.7 GO tecnico local; RX read-only sem revisoes | `open-finance-historical-import.md` | `../../plans/workstreams/open-finance-historical-import.md` | decisoes exatas; dados privados fora do Git; writer historico desligado |
 | `open-finance-proactive-alert-recovery` | Gate 42 candidato; ciclo clonado GO | `open-finance-proactive-alert-recovery.md` | `../../plans/workstreams/open-finance-proactive-alert-recovery.md` | auditoria por hash; deploy somente apos GO |
-| `financial-conversation-architecture-review` | ARQ-01 GO técnico local; ARQ-02 autorizado | `financial-conversation-architecture-review.md` | `../../plans/workstreams/financial-conversation-architecture-review.md` | trajetória/checkpoint fechados; zero deploy e writer; próximo contrato ARQ-02 |
+| `financial-conversation-architecture-review` | ARQ-01..05 GO técnico local; ARQ-06 candidato | `financial-conversation-architecture-review.md` | `../../plans/workstreams/financial-conversation-architecture-review.md` | observabilidade fail-closed validada localmente; próximo passo é auditoria imutável; zero writer |
 
 Se dois workstreams puderem escrever simultaneamente, usar branches/worktrees
 distintas. Atualizar somente a própria linha e seus arquivos.

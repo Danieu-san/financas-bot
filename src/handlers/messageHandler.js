@@ -76,9 +76,17 @@ const { sendWhatsAppMessage } = require('../services/whatsapp');
 const { invokeFinancialAgent } = require('../agent/financialAgent');
 const {
     runFinancialIterativeCanary,
-    selectFinancialIterativeCanaryResponse
+    selectFinancialIterativeCanaryResponse,
+    canPromoteFinancialIterativeShadow,
+    hasExplicitZeroSideEffects
 } = require('../agent/financialIterativeCanary');
 const { createFinancialIterativeReasoner } = require('../agent/financialIterativeReasoner');
+const {
+    recordFinancialIterativeCanaryAttempt
+} = require('../agent/financialIterativeCanaryTelemetry');
+const {
+    evaluateFinancialIterativeCanaryEligibility
+} = require('../config/financialIterativeCanaryRuntimeConfig');
 const {
     buildAnalyticalCheckpointFromTrajectory,
     buildFinancialAgentTrajectoryLog
@@ -501,8 +509,32 @@ async function maybeRunFinancialIterativeCanary({
     baselineEvidence = null,
     env = process.env,
     reasoner = createFinancialIterativeReasoner({ env }),
-    runCanary = runFinancialIterativeCanary
+    runCanary = runFinancialIterativeCanary,
+    recordAttempt = recordFinancialIterativeCanaryAttempt
 } = {}) {
+    const runtimeEligibility = evaluateFinancialIterativeCanaryEligibility({
+        userId,
+        domain,
+        source,
+        env
+    });
+    const baseline = String(baselineAnswer || '');
+    const recordEligibleAttempt = input => {
+        if (!runtimeEligibility.eligible) return true;
+        try {
+            recordAttempt({
+                ...input,
+                domain: runtimeEligibility.domain,
+                source: runtimeEligibility.source,
+                baselineAvailable: Boolean(baseline.trim())
+            }, { env });
+            return true;
+        } catch (_) {
+            metrics.increment('message.financial_iterative_canary.telemetry_error');
+            logger.warn('[financial-iterative-canary] telemetria indisponivel; promocao bloqueada.');
+            return false;
+        }
+    };
     let canary;
     try {
         canary = await runCanary({
@@ -519,29 +551,46 @@ async function maybeRunFinancialIterativeCanary({
     } catch (_) {
         metrics.increment('message.financial_iterative_canary.contained_error');
         logger.warn('[financial-iterative-canary] erro contido; resposta vigente preservada.');
-        return { answer: String(baselineAnswer || ''), canary: null, promoted: false };
+        recordEligibleAttempt({
+            outcome: 'fallback',
+            reason: 'contained_error',
+            readCount: 0,
+            candidateAction: 'none',
+            adequacyStatus: 'unavailable',
+            sideEffectsZero: null
+        });
+        return { answer: baseline, canary: null, promoted: false };
     }
     const telemetry = canary.telemetry || {};
-    if (telemetry.status === 'observed') {
-        const metricDomain = normalizeMetricLabel(telemetry.domain || 'unknown');
-        const metricResult = canary.shadow?.adequacy?.ok === true ? 'adequate' : 'fallback';
-        metrics.increment(`message.financial_iterative_canary.${metricDomain}.${metricResult}`);
+    let promoted = canary.status === 'observed' &&
+        canPromoteFinancialIterativeShadow(canary.shadow);
+    const sideEffectsZero = canary.status === 'observed'
+        ? hasExplicitZeroSideEffects(canary.shadow)
+        : null;
+    const recorded = recordEligibleAttempt({
+        outcome: promoted ? 'promoted' : 'fallback',
+        reason: telemetry.reason || canary.eligibility?.reason || 'unknown',
+        readCount: telemetry.readCount || 0,
+        candidateAction: telemetry.candidateAction || canary.shadow?.candidate?.action || 'none',
+        adequacyStatus: telemetry.adequacyStatus || canary.shadow?.adequacy?.status || 'unknown',
+        sideEffectsZero
+    });
+    if (!recorded) promoted = false;
+    if (runtimeEligibility.eligible) {
+        const metricDomain = normalizeMetricLabel(runtimeEligibility.domain || 'unknown');
+        const metricOutcome = promoted ? 'promoted' : 'fallback';
+        metrics.increment(`message.financial_iterative_canary.${metricDomain}.${metricOutcome}`);
         logger.info(
-            `[financial-iterative-canary] status=observed domain=${metricDomain} ` +
-            `source=${normalizeMetricLabel(telemetry.source || 'unknown')} ` +
-            `reason=${normalizeMetricLabel(telemetry.reason || 'unknown')} ` +
+            `[financial-iterative-canary] status=${normalizeMetricLabel(canary.status || 'unknown')} ` +
+            `domain=${metricDomain} source=${normalizeMetricLabel(runtimeEligibility.source || 'unknown')} ` +
+            `outcome=${metricOutcome} reason=${normalizeMetricLabel(telemetry.reason || canary.eligibility?.reason || 'unknown')} ` +
             `reads=${Number(telemetry.readCount || 0)} adequacy=${normalizeMetricLabel(telemetry.adequacyStatus || 'unknown')}`
         );
     }
-    const promoted = Boolean(
-        canary.status === 'observed' &&
-        canary.shadow?.candidate?.action === 'answer' &&
-        canary.shadow?.adequacy?.ok === true &&
-        Number(canary.shadow?.sideEffects?.messagesSent || 0) === 0 &&
-        Number(canary.shadow?.sideEffects?.financialWrites || 0) === 0
-    );
     return {
-        answer: selectFinancialIterativeCanaryResponse({ baselineAnswer, canary }),
+        answer: promoted
+            ? selectFinancialIterativeCanaryResponse({ baselineAnswer: baseline, canary })
+            : baseline,
         canary,
         promoted
     };

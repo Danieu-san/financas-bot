@@ -90,6 +90,7 @@
     "test:financial-semantic-facade": "node --test tests/financialSemanticReadFacade.test.js",
     "test:financial-iterative-shadow": "node --test tests/financialIterativeShadowAgent.test.js",
     "test:financial-evidence-adequacy": "node --test tests/financialEvidenceAdequacyVerifier.test.js",
+    "report:financial-iterative-canary": "node scripts/reportFinancialIterativeCanary.js",
     "test:financial-agent:trajectory-baseline": "node scripts/runFinancialAgentTrajectoryBaseline.js",
     "test:financial-agent:golden-baseline": "node scripts/runFinancialAgentGoldenBaseline.js",
     "test:financial-agent:migration-gaps": "node scripts/runFinancialAgentMigrationGapBattery.js",

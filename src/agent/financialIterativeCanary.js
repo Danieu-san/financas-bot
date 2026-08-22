@@ -30,14 +30,25 @@ function buildFinancialIterativeCanaryTelemetry({ eligibility = {}, shadow = nul
     };
 }
 
+function hasExplicitZeroSideEffects(shadow = null) {
+    return Boolean(
+        shadow &&
+        typeof shadow.sideEffects?.messagesSent === 'number' &&
+        Number.isFinite(shadow.sideEffects.messagesSent) &&
+        shadow.sideEffects.messagesSent === 0 &&
+        typeof shadow.sideEffects?.financialWrites === 'number' &&
+        Number.isFinite(shadow.sideEffects.financialWrites) &&
+        shadow.sideEffects.financialWrites === 0
+    );
+}
+
 function canPromoteShadow(shadow = null) {
     return Boolean(
         shadow &&
         shadow.candidate?.action === 'answer' &&
         String(shadow.candidate?.text || '').trim() &&
         shadow.adequacy?.ok === true &&
-        Number(shadow.sideEffects?.messagesSent || 0) === 0 &&
-        Number(shadow.sideEffects?.financialWrites || 0) === 0
+        hasExplicitZeroSideEffects(shadow)
     );
 }
 
@@ -97,5 +108,7 @@ module.exports = {
     runFinancialIterativeCanary,
     selectFinancialIterativeCanaryResponse,
     buildFinancialIterativeCanaryTelemetry,
+    canPromoteFinancialIterativeShadow: canPromoteShadow,
+    hasExplicitZeroSideEffects,
     __test__: { canPromoteShadow }
 };

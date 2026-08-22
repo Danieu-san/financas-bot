@@ -131,6 +131,13 @@ test('iterative canary promotes only adequate read-only candidate and otherwise 
     assert.strictEqual(selectFinancialIterativeCanaryResponse({ baselineAnswer: 'Resposta vigente.', canary: unsafe }), 'Resposta vigente.');
     const inadequate = { ...output, shadow: { ...sideEffectFree, adequacy: { ok: false, status: 'inadequate' } } };
     assert.strictEqual(selectFinancialIterativeCanaryResponse({ baselineAnswer: 'Resposta vigente.', canary: inadequate }), 'Resposta vigente.');
+    const missingCounters = { ...output, shadow: { ...sideEffectFree, sideEffects: {} } };
+    assert.strictEqual(selectFinancialIterativeCanaryResponse({ baselineAnswer: 'Resposta vigente.', canary: missingCounters }), 'Resposta vigente.');
+    const textualCounters = {
+        ...output,
+        shadow: { ...sideEffectFree, sideEffects: { messagesSent: '0', financialWrites: '0' } }
+    };
+    assert.strictEqual(selectFinancialIterativeCanaryResponse({ baselineAnswer: 'Resposta vigente.', canary: textualCounters }), 'Resposta vigente.');
 });
 
 test('iterative canary preserves server family scope, follow-up trajectory and selected source', async () => {
@@ -324,6 +331,7 @@ test('runtime reload logs only counts and preserves prior config on a rejected d
 });
 
 test('message-handler boundary contains canary failure and preserves the baseline answer', async () => {
+    let recorded = null;
     const output = await messageHandlerTest.maybeRunFinancialIterativeCanary({
         baselineAnswer: 'Resposta vigente intacta.',
         message: 'quanto gastei?',
@@ -332,11 +340,123 @@ test('message-handler boundary contains canary failure and preserves the baselin
         source: 'central_read_model',
         env: activeEnv(),
         reasoner: async () => ({ action: 'answer', answer: 'não deve aparecer' }),
-        runCanary: async () => { throw new Error('falha simulada'); }
+        runCanary: async () => { throw new Error('falha simulada'); },
+        recordAttempt: input => { recorded = input; }
     });
     assert.deepStrictEqual(output, {
         answer: 'Resposta vigente intacta.',
         canary: null,
         promoted: false
     });
+    assert.strictEqual(recorded.outcome, 'fallback');
+    assert.strictEqual(recorded.reason, 'contained_error');
+});
+
+test('message-handler records every eligible promotion before exposing it', async () => {
+    let recorded = null;
+    const canary = {
+        status: 'observed',
+        eligibility: { eligible: true, reason: 'eligible', domain: 'expenses', source: 'central_read_model' },
+        telemetry: {
+            status: 'observed', reason: 'candidate_answer', domain: 'expenses',
+            source: 'central_read_model', readCount: 1, candidateAction: 'answer',
+            adequacyStatus: 'adequate'
+        },
+        shadow: {
+            candidate: { action: 'answer', text: 'Resposta nova comprovada.' },
+            adequacy: { ok: true, status: 'adequate' },
+            sideEffects: { messagesSent: 0, financialWrites: 0 }
+        }
+    };
+    const output = await messageHandlerTest.maybeRunFinancialIterativeCanary({
+        baselineAnswer: 'Resposta vigente.',
+        message: 'quanto gastei?',
+        userId: 'member-a',
+        domain: 'expenses',
+        source: 'central_read_model',
+        env: activeEnv(),
+        runCanary: async () => canary,
+        recordAttempt: (input, options) => { recorded = { input, options }; }
+    });
+    assert.strictEqual(output.promoted, true);
+    assert.strictEqual(output.answer, 'Resposta nova comprovada.');
+    assert.strictEqual(recorded.input.outcome, 'promoted');
+    assert.strictEqual(recorded.input.baselineAvailable, true);
+    assert.strictEqual(recorded.input.sideEffectsZero, true);
+    assert.strictEqual(recorded.options.env.FINANCIAL_ITERATIVE_CANARY_MODE, 'canary');
+});
+
+test('message-handler refuses a candidate without explicit numeric side-effect counters', async () => {
+    const output = await messageHandlerTest.maybeRunFinancialIterativeCanary({
+        baselineAnswer: 'Resposta vigente.',
+        message: 'quanto gastei?',
+        userId: 'member-a',
+        domain: 'expenses',
+        source: 'central_read_model',
+        env: activeEnv(),
+        runCanary: async () => ({
+            status: 'observed',
+            eligibility: { eligible: true, reason: 'eligible' },
+            telemetry: { status: 'observed', reason: 'candidate_answer' },
+            shadow: {
+                candidate: { action: 'answer', text: 'Não pode aparecer.' },
+                adequacy: { ok: true, status: 'adequate' },
+                sideEffects: {}
+            }
+        }),
+        recordAttempt: () => ({ recorded: true })
+    });
+    assert.strictEqual(output.promoted, false);
+    assert.strictEqual(output.answer, 'Resposta vigente.');
+});
+
+test('message-handler blocks promotion when eligible-attempt telemetry cannot be persisted', async () => {
+    const canary = {
+        status: 'observed',
+        eligibility: { eligible: true, reason: 'eligible', domain: 'expenses', source: 'central_read_model' },
+        telemetry: {
+            status: 'observed', reason: 'candidate_answer', domain: 'expenses',
+            source: 'central_read_model', readCount: 1, candidateAction: 'answer',
+            adequacyStatus: 'adequate'
+        },
+        shadow: {
+            candidate: { action: 'answer', text: 'Não pode aparecer.' },
+            adequacy: { ok: true, status: 'adequate' },
+            sideEffects: { messagesSent: 0, financialWrites: 0 }
+        }
+    };
+    const output = await messageHandlerTest.maybeRunFinancialIterativeCanary({
+        baselineAnswer: 'Resposta vigente preservada.',
+        message: 'quanto gastei?',
+        userId: 'member-a',
+        domain: 'expenses',
+        source: 'central_read_model',
+        env: activeEnv(),
+        runCanary: async () => canary,
+        recordAttempt: () => { throw new Error('disk unavailable'); }
+    });
+    assert.strictEqual(output.promoted, false);
+    assert.strictEqual(output.answer, 'Resposta vigente preservada.');
+});
+
+test('message-handler does not persist telemetry for an ineligible canary', async () => {
+    let records = 0;
+    const output = await messageHandlerTest.maybeRunFinancialIterativeCanary({
+        baselineAnswer: 'Resposta vigente.',
+        message: 'quanto gastei?',
+        userId: 'member-a',
+        domain: 'expenses',
+        source: 'central_read_model',
+        env: activeEnv({ FINANCIAL_ITERATIVE_CANARY_MODE: 'off' }),
+        runCanary: async () => ({
+            status: 'skipped',
+            eligibility: { eligible: false, reason: 'canary_disabled' },
+            telemetry: { status: 'skipped', reason: 'canary_disabled' },
+            shadow: null
+        }),
+        recordAttempt: () => { records += 1; }
+    });
+    assert.strictEqual(output.answer, 'Resposta vigente.');
+    assert.strictEqual(output.promoted, false);
+    assert.strictEqual(records, 0);
 });

@@ -4,7 +4,7 @@ Atualizado em: 2026-08-22
 
 ## Estado
 
-`ARQ-01 A ARQ-05 EM GO TÉCNICO LOCAL — ENSAIO ARQ-05 VERDE`.
+`ARQ-01 A ARQ-05 EM GO TÉCNICO LOCAL — ARQ-06 CANDIDATO`.
 
 ## Objetivo
 
@@ -55,10 +55,10 @@ matemática e toda escrita continuam determinísticos.
 
 ## Próxima ação exata
 
-Preparar o ARQ-06 como canário real mínimo de um único domínio read-only para o
-casal autorizado, mantendo legado e rollback imediato. Antes de ativar, integrar
-o HEAD vigente, confirmar o contrato de release OCI e produzir artefato e
-evidência próprios. Writer e retirada do legado continuam proibidos.
+Publicar e auditar independentemente o candidato ARQ-06. Com GO, preparar um
+artefato OCI imutável com o canário ainda desligado, validar saúde e rollback e
+somente então avaliar a ativação mínima de um domínio read-only. Writer e
+retirada do legado continuam proibidos.
 
 ## Implementação ARQ-02
 
@@ -154,3 +154,20 @@ evidência próprios. Writer e retirada do legado continuam proibidos.
 - ensaio local focal de promoção/rollback `5/5`, sem rede nem escrita:
   `docs/audit/311-financial-iterative-domain-canary-local-rehearsal-2026-08-22.md`;
 - modo real, OpenRouter, Google, WhatsApp, deploy e writer continuam inativos.
+
+## Implementação ARQ-06
+
+- `origin/main` foi integrado sem alterar o contrato financeiro;
+- toda tentativa realmente elegível passa a registrar `promoted` ou `fallback`
+  antes de uma possível exposição da resposta candidata;
+- falha da telemetria bloqueia promoção e preserva o baseline;
+- promoção exige contadores numéricos explícitos de mensagens e escritas em
+  zero; ausência, texto ou valor desconhecido falham fechado;
+- JSONL sanitizado não contém identidade, mensagem, resposta, valores ou
+  payload e possui relatório agregado por domínio, fonte, resultado e motivo;
+- evidência final: canário `16/16`, telemetria `3/3`, causal `119/119`, aceitação
+  `265/265` e suíte hermética ampla `1.807/1.817`, zero falha e dez skips
+  previstos;
+- candidato:
+  `docs/audit/312-financial-iterative-canary-observability-candidate-2026-08-22.md`;
+- nenhum segredo, flag real, chamada externa, deploy ou writer foi ativado.
