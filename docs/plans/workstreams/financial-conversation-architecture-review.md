@@ -29,8 +29,8 @@ sem novo ciclo de correção por frase.
 20. [concluído] integrar o HEAD vigente e implementar observabilidade fail-closed para o canário ARQ-06;
 21. [concluído] publicar o candidato ARQ-06 e registrar o NO-GO causal da entrega;
 22. [concluído] publicar e reauditar o recovery bifásico do ARQ-06;
-23. [em andamento] com GO, preparar artefato OCI com canário desligado, validar saúde e rollback;
-24. [pendente] ativar um domínio read-only somente com segredo válido e monitorar a janela finita.
+23. [parcial] artefato OCI com canário desligado gerado e verificado; promoção aguarda acesso SSH normal, preflight remoto e health;
+24. [pendente] ativar um domínio read-only somente com segredo novo e válido e monitorar a janela finita.
 
 ## Critério de conclusão
 

@@ -4,7 +4,7 @@ Atualizado em: 2026-08-22
 
 ## Estado
 
-`ARQ-01 A ARQ-06 EM GO TÉCNICO LOCAL — RELEASE OFF EM PREPARAÇÃO`.
+`ARQ-01 A ARQ-06 EM GO TÉCNICO LOCAL — ARTEFATO OFF VERIFICADO; OCI BLOQUEADA POR ACESSO`.
 
 ## Objetivo
 
@@ -55,9 +55,10 @@ matemática e toda escrita continuam determinísticos.
 
 ## Próxima ação exata
 
-Preparar um artefato OCI imutável com o canário ainda desligado, validar o
-procedimento de instalação, saúde e rollback e somente então avaliar a ativação
-mínima de um domínio read-only. Writer e retirada do legado continuam
+Restabelecer o acesso administrativo normal à OCI, validar o preflight remoto
+e promover o artefato imutável `ccafb858...` com o canário ainda desligado.
+Somente depois avaliar a ativação mínima de um domínio read-only com segredo
+novo e armazenado com segurança. Writer e retirada do legado continuam
 proibidos.
 
 ## Implementação ARQ-02
@@ -186,4 +187,14 @@ proibidos.
   fechado e nenhuma lacuna indispensável residual;
 - fechamento independente:
   `docs/audit/314-financial-iterative-canary-observability-independent-close-2026-08-22.md`;
-- nenhum segredo, flag real, chamada externa, deploy ou writer foi ativado.
+- nenhum segredo, flag real, chamada externa, deploy ou writer foi ativado;
+- artefato OCI `ccafb858...` verificado localmente com SHA-256
+  `aee853f611c47893ea98bad14bfe04a67601354dce9cc2b327a1511a7e4c38b9`;
+- preparação operacional registrada em
+  `docs/audit/315-financial-iterative-canary-oci-release-preparation-2026-08-22.md`;
+- host OCI confirmado pelo fingerprint esperado, mas a chave cliente portátil
+  não foi aceita e a sessão administrativa preservada expirou; nenhum acesso
+  alternativo foi procurado e a promoção permaneceu bloqueada;
+- `npm audit --omit=dev` passou a relatar o advisory alto sem correção
+  `GHSA-jmr9-qjv8-65gv`; o instalador desliga download do navegador, e a
+  disposição final deve ser confirmada no preflight remoto.
