@@ -28,8 +28,8 @@ sem novo ciclo de correção por frase.
 19. [concluído] ensaiar promoção e rollback do ARQ-05 em ambiente local isolado, sem rede nem escrita;
 20. [concluído] integrar o HEAD vigente e implementar observabilidade fail-closed para o canário ARQ-06;
 21. [concluído] publicar o candidato ARQ-06 e registrar o NO-GO causal da entrega;
-22. [em andamento] publicar e reauditar o recovery bifásico do ARQ-06;
-23. [pendente] com GO, preparar artefato OCI com canário desligado, validar saúde e rollback;
+22. [concluído] publicar e reauditar o recovery bifásico do ARQ-06;
+23. [em andamento] com GO, preparar artefato OCI com canário desligado, validar saúde e rollback;
 24. [pendente] ativar um domínio read-only somente com segredo válido e monitorar a janela finita.
 
 ## Critério de conclusão

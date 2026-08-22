@@ -4,7 +4,7 @@ Atualizado em: 2026-08-22
 
 ## Estado
 
-`ARQ-01 A ARQ-05 EM GO TÉCNICO LOCAL — ARQ-06 RECOVERY`.
+`ARQ-01 A ARQ-06 EM GO TÉCNICO LOCAL — RELEASE OFF EM PREPARAÇÃO`.
 
 ## Objetivo
 
@@ -55,10 +55,10 @@ matemática e toda escrita continuam determinísticos.
 
 ## Próxima ação exata
 
-Publicar e reauditar independentemente o recovery ARQ-06. Com GO, preparar um
-artefato OCI imutável com o canário ainda desligado, validar saúde e rollback e
-somente então avaliar a ativação mínima de um domínio read-only. Writer e
-retirada do legado continuam proibidos.
+Preparar um artefato OCI imutável com o canário ainda desligado, validar o
+procedimento de instalação, saúde e rollback e somente então avaliar a ativação
+mínima de um domínio read-only. Writer e retirada do legado continuam
+proibidos.
 
 ## Implementação ARQ-02
 
@@ -182,4 +182,8 @@ retirada do legado continuam proibidos.
   suíte ampla `1.810/1.820`, zero falha e dez skips previstos;
 - recovery:
   `docs/audit/313-financial-iterative-canary-delivery-recovery-2026-08-22.md`;
+- reauditoria do hash `889d6b97...`: `GO TÉCNICO LOCAL`, achado crítico
+  fechado e nenhuma lacuna indispensável residual;
+- fechamento independente:
+  `docs/audit/314-financial-iterative-canary-observability-independent-close-2026-08-22.md`;
 - nenhum segredo, flag real, chamada externa, deploy ou writer foi ativado.
