@@ -1,5 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
+const crypto = require('node:crypto');
 
 const { runFinancialAgentAcceptanceBattery } = require('./runFinancialAgentAcceptanceBattery');
 
@@ -7,6 +8,10 @@ const CRITICAL_CASE_IDS = Object.freeze([
     'GAST-001', 'GAST-012', 'CARD-001', 'CARD-019', 'INCOME-001',
     'TRANS-001', 'BUDG-001', 'GOAL-001', 'DEBT-001', 'BILL-001',
     'BILL-015', 'FAM-001', 'DASH-001', 'ADV-001', 'FUP-001'
+]);
+const READ_ONLY_AGENT_TOOLS = new Set([
+    'query_financial_plan', 'list_recent_transactions',
+    'get_dashboard_snapshot', 'explain_metric', 'none'
 ]);
 
 function increment(counter, key) {
@@ -28,7 +33,8 @@ function summarizeTrajectories(results = []) {
         byPlanner: {},
         verified: 0,
         readOnly: 0,
-        missingTrajectory: 0
+        missingTrajectory: 0,
+        writeCapableToolExecutions: 0
     };
     for (const item of results) {
         const trajectory = item.trajectory;
@@ -44,10 +50,29 @@ function summarizeTrajectories(results = []) {
         increment(summary.byCoverage, trajectory.coverage?.status || 'none');
         increment(summary.byFallback, trajectory.tool?.fallbackReason || 'none');
         increment(summary.byPlanner, trajectory.decision?.plannerSource || 'none');
+        if (!READ_ONLY_AGENT_TOOLS.has(String(trajectory.tool?.name || 'none'))) {
+            summary.writeCapableToolExecutions += 1;
+        }
         if (trajectory.verification?.ok) summary.verified += 1;
         if (trajectory.readOnly === true) summary.readOnly += 1;
     }
     return summary;
+}
+
+function sourceEvidenceFingerprint(results = []) {
+    const projection = results.map(item => ({
+        id: String(item.id || ''),
+        accepted: Boolean(item.accepted),
+        action: item.trajectory?.decision?.action || item.action || 'none',
+        domain: item.trajectory?.executedPlan?.domain || item.stage || 'none',
+        operation: item.trajectory?.executedPlan?.operation || 'none',
+        tool: item.trajectory?.tool?.name || 'none',
+        source: item.trajectory?.tool?.source || 'none',
+        coverage: item.trajectory?.coverage?.status || 'none',
+        readOnly: item.trajectory?.readOnly === true,
+        verified: item.trajectory?.verification?.ok === true
+    }));
+    return crypto.createHash('sha256').update(JSON.stringify(projection)).digest('hex');
 }
 
 function buildSanitizedBaseline(report = {}) {
@@ -68,7 +93,7 @@ function buildSanitizedBaseline(report = {}) {
         startedAt: String(report.started_at || ''),
         finishedAt: String(report.finished_at || ''),
         syntheticOnly: report.synthetic_user_only === true,
-        financialWrites: 0,
+        sourceEvidenceFingerprint: sourceEvidenceFingerprint(results),
         rawQuestionsIncluded: false,
         rawAnswersIncluded: false,
         summary: summarizeTrajectories(results),
@@ -80,10 +105,27 @@ function buildSanitizedBaseline(report = {}) {
     };
 }
 
+function validateSanitizedBaseline(baseline = {}, expectedTotal = 265) {
+    const errors = [];
+    const summary = baseline.summary || {};
+    if (summary.total !== expectedTotal) errors.push('unexpected_total');
+    if (summary.accepted !== summary.total || summary.gaps !== 0) errors.push('acceptance_gap');
+    if (summary.missingTrajectory !== 0) errors.push('missing_trajectory');
+    if (summary.readOnly !== summary.total) errors.push('non_readonly_trajectory');
+    if (summary.writeCapableToolExecutions !== 0) errors.push('write_capable_tool_executed');
+    if (baseline.critical?.accepted !== baseline.critical?.required) errors.push('critical_gap');
+    if (!/^[a-f0-9]{64}$/.test(String(baseline.sourceEvidenceFingerprint || ''))) {
+        errors.push('invalid_source_fingerprint');
+    }
+    return { ok: errors.length === 0, errors };
+}
+
 async function runTrajectoryBaseline(options = {}) {
     const runId = options.runId || `ARQ01_${new Date().toISOString().replace(/\D/g, '').slice(0, 14)}`;
     const { report, reportDir } = await runFinancialAgentAcceptanceBattery({ runId });
     const baseline = buildSanitizedBaseline(report);
+    const validation = validateSanitizedBaseline(baseline);
+    baseline.validation = validation;
     const outputPath = path.join(reportDir, 'financial-agent-trajectory-baseline-sanitized.json');
     fs.writeFileSync(outputPath, JSON.stringify(baseline, null, 2), 'utf8');
     return { baseline, outputPath, reportDir };
@@ -93,7 +135,7 @@ async function main() {
     const { baseline, outputPath } = await runTrajectoryBaseline();
     console.log(`[financial-agent-trajectory-baseline] report=${outputPath}`);
     console.log(`[financial-agent-trajectory-baseline] total=${baseline.summary.total} accepted=${baseline.summary.accepted} gaps=${baseline.summary.gaps} critical=${baseline.critical.accepted}/${baseline.critical.required}`);
-    if (baseline.summary.gaps > 0 || baseline.critical.accepted !== baseline.critical.required || baseline.summary.missingTrajectory > 0) {
+    if (!baseline.validation.ok) {
         process.exitCode = 1;
     }
 }
@@ -108,6 +150,8 @@ if (require.main === module) {
 module.exports = {
     CRITICAL_CASE_IDS,
     summarizeTrajectories,
+    sourceEvidenceFingerprint,
     buildSanitizedBaseline,
+    validateSanitizedBaseline,
     runTrajectoryBaseline
 };

@@ -1,5 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const {
     buildFinancialAgentTrajectory,
@@ -9,7 +11,11 @@ const {
 const { invokeFinancialAgent } = require('../src/agent/financialAgent');
 const { ensureSqliteReady, syncSnapshotToSqlite } = require('../src/services/sqliteReadModelService');
 const { __test__: messageHandlerTest } = require('../src/handlers/messageHandler');
-const { buildSanitizedBaseline, CRITICAL_CASE_IDS } = require('../scripts/runFinancialAgentTrajectoryBaseline');
+const {
+    buildSanitizedBaseline,
+    validateSanitizedBaseline,
+    CRITICAL_CASE_IDS
+} = require('../scripts/runFinancialAgentTrajectoryBaseline');
 
 function expensePlan(overrides = {}) {
     return {
@@ -86,6 +92,7 @@ test('trajectory distinguishes empty evidence from an unavailable source', () =>
 
     assert.strictEqual(empty.coverage.status, 'empty');
     assert.strictEqual(unavailable.coverage.status, 'unavailable');
+    assert.strictEqual(unavailable.executedPlan, null);
 });
 
 test('derived recent-transaction checkpoint preserves an authorized family scope', () => {
@@ -202,6 +209,28 @@ test('baseline projection keeps only aggregate trajectory evidence and fixed cas
 
     assert.strictEqual(baseline.critical.accepted, 15);
     assert.strictEqual(baseline.summary.missingTrajectory, 0);
-    assert.strictEqual(baseline.financialWrites, 0);
+    assert.strictEqual(baseline.summary.readOnly, results.length);
+    assert.strictEqual(baseline.summary.writeCapableToolExecutions, 0);
+    assert.match(baseline.sourceEvidenceFingerprint, /^[a-f0-9]{64}$/);
+    assert.deepStrictEqual(validateSanitizedBaseline(baseline, results.length), { ok: true, errors: [] });
+    assert.deepStrictEqual(validateSanitizedBaseline(baseline), { ok: false, errors: ['unexpected_total'] });
     assert.doesNotMatch(serialized, /texto privado|resposta privada|"question":|"answer":/);
+});
+
+test('versioned baseline evidence is the validated generated schema', () => {
+    const evidence = JSON.parse(fs.readFileSync(path.join(
+        __dirname,
+        '..',
+        'docs',
+        'audit',
+        '297-financial-agent-trajectory-baseline-evidence-2026-08-22.json'
+    ), 'utf8'));
+
+    assert.deepStrictEqual(evidence.validation, { ok: true, errors: [] });
+    assert.deepStrictEqual(validateSanitizedBaseline(evidence), { ok: true, errors: [] });
+    assert.strictEqual(evidence.summary.total, 265);
+    assert.strictEqual(evidence.summary.readOnly, evidence.summary.total);
+    assert.strictEqual(evidence.summary.writeCapableToolExecutions, 0);
+    assert.match(evidence.sourceEvidenceFingerprint, /^[a-f0-9]{64}$/);
+    assert.doesNotMatch(JSON.stringify(evidence), /"question":|"answer":|user_id|sheet_id|spreadsheet|token/i);
 });

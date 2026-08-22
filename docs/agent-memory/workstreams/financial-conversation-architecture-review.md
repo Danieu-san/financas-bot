@@ -4,7 +4,7 @@ Atualizado em: 2026-08-22
 
 ## Estado
 
-`ARQ-01 CANDIDATO LOCAL VALIDADO — AGUARDA COMMIT E AUDITORIA INDEPENDENTE`.
+`ARQ-01 RECOVERY LOCAL VALIDADO — AGUARDA COMMIT E REAUDITORIA INDEPENDENTE`.
 
 ## Objetivo
 
@@ -44,16 +44,16 @@ matemática e toda escrita continuam determinísticos.
 - worktree: `.codex-worktrees/financial-agent-arq01-20260822`;
 - branch: `codex/financial-agent-arq01-20260822`;
 - base: `ade123e921837a683ec5989d7cb768e5f1dcbf87`;
-- contrato e evidência: documentos 297;
+- contrato, evidência e recovery: documentos 297 e 298;
 - checkpoint v2 passa a representar o plano realmente executado;
-- evidência até aqui: focal `6/6`, causal `231/231`, baseline `265/265` e
+- evidência do recovery: focal `7/7`, agente `87/87`, baseline `265/265` e
   críticos `15/15`;
-- suíte ampla final: `1.753/1.763` aprovados, `0` falhas e `10` ignorados;
+- suíte ampla final: `1.754/1.764` aprovados, `0` falhas e `10` ignorados;
 - a instabilidade temporal preexistente de Open Finance foi isolada no commit
   test-only `5108ace`, validado focalmente em `15/15` antes da suíte ampla;
 - zero flag, deploy, produção ou escrita financeira.
 
 ## Próxima ação exata
 
-Validar o diff final e o workflow, publicar commit sanitizado imutável e obter
-auditoria independente do ARQ-01.
+Validar o diff final e o workflow, publicar novo commit sanitizado imutável e
+obter reauditoria independente do ARQ-01.

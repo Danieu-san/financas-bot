@@ -2187,7 +2187,7 @@ test('financial agent shadow mode can answer only verified recent-transaction to
     }, {}), true);
 });
 
-test('financial agent full debug log is controlled by a simple env flag', () => {
+test('financial agent full debug log is controlled by a simple env flag and excludes raw evidence', () => {
     assert.strictEqual(messageHandlerTest.isFinancialAgentFullLogEnabled({}), false);
     assert.strictEqual(messageHandlerTest.isFinancialAgentFullLogEnabled({ FINANCIAL_AGENT_LOG_FULL: 'false' }), false);
     assert.strictEqual(messageHandlerTest.isFinancialAgentFullLogEnabled({ FINANCIAL_AGENT_LOG_FULL: 'true' }), true);
@@ -2200,12 +2200,23 @@ test('financial agent full debug log is controlled by a simple env flag', () => 
             ok: true,
             rows: [{ date: '2026-06-20', description: 'mercado', amount: 10 }]
         },
-        verified: { ok: true }
+        verified: { ok: true },
+        trajectory: {
+            schemaVersion: 1,
+            decision: { action: 'answer', plannerSource: 'deterministic' },
+            context: { scope: 'personal' },
+            executedPlan: { domain: 'expenses', operation: 'list', timeBasis: 'transaction_date' },
+            tool: { name: 'list_recent_transactions', source: 'read_model', fallbackReason: 'none' },
+            coverage: { status: 'available', evidenceKind: 'rows' },
+            verification: { ok: true },
+            response: { status: 'verified_answer' }
+        }
     });
 
-    assert.match(payload, /Seu último gasto foi mercado/);
+    assert.doesNotMatch(payload, /Seu último gasto foi mercado|mercado|2026-06-20|"rows"\s*:/);
     assert.match(payload, /list_recent_transactions/);
-    assert.match(payload, /2026-06-20/);
+    assert.match(payload, /expenses/);
+    assert.match(payload, /"verified":true/);
 });
 
 test('financial agent person map exposes display names instead of internal ids', () => {

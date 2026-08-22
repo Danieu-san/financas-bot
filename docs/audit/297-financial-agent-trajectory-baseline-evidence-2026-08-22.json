@@ -1,20 +1,17 @@
 {
   "schemaVersion": 1,
   "gate": "ARQ-01",
-  "sourceRunId": "ARQ01_20260822133228",
-  "startedAt": "2026-08-22T13:32:28.365Z",
-  "finishedAt": "2026-08-22T13:32:31.919Z",
+  "sourceRunId": "ARQ01_20260822142504",
+  "startedAt": "2026-08-22T14:25:04.885Z",
+  "finishedAt": "2026-08-22T14:25:08.858Z",
   "syntheticOnly": true,
-  "financialWrites": 0,
+  "sourceEvidenceFingerprint": "2c4e55ae3f126d201111969886024e76e6cc51e6922cdc3d52cb081bb7ea22f8",
   "rawQuestionsIncluded": false,
   "rawAnswersIncluded": false,
   "summary": {
     "total": 265,
     "accepted": 265,
     "gaps": 0,
-    "verified": 265,
-    "readOnly": 265,
-    "missingTrajectory": 0,
     "byDomain": {
       "expenses": 59,
       "cards": 39,
@@ -28,40 +25,184 @@
       "bills": 17,
       "security_gate": 23
     },
-    "byCoverage": {
-      "empty": 216,
-      "available": 22,
-      "not_applicable": 27
+    "byOperation": {
+      "sum": 55,
+      "detail": 23,
+      "explain": 36,
+      "rank": 23,
+      "extreme": 9,
+      "count": 7,
+      "percentage": 4,
+      "average": 2,
+      "compare": 11,
+      "list": 33,
+      "detect": 11,
+      "recommend": 3,
+      "group": 5,
+      "forecast": 12,
+      "trend": 4,
+      "clarify": 4,
+      "block": 23
+    },
+    "byTool": {
+      "query_financial_plan": 214,
+      "list_recent_transactions": 2,
+      "explain_metric": 14,
+      "none": 27,
+      "get_dashboard_snapshot": 8
     },
     "bySource": {
       "read_model": 236,
       "legacy": 2,
       "none": 27
     },
+    "byCoverage": {
+      "empty": 216,
+      "available": 22,
+      "not_applicable": 27
+    },
     "byFallback": {
       "none": 263,
       "canary_domain_disabled": 2
-    }
+    },
+    "byPlanner": {
+      "supplied_plan": 238,
+      "deterministic": 4,
+      "security_gate": 23
+    },
+    "verified": 265,
+    "readOnly": 265,
+    "missingTrajectory": 0,
+    "writeCapableToolExecutions": 0
   },
   "critical": {
     "required": 15,
     "accepted": 15,
-    "ids": [
-      "GAST-001",
-      "GAST-012",
-      "CARD-001",
-      "CARD-019",
-      "INCOME-001",
-      "TRANS-001",
-      "BUDG-001",
-      "GOAL-001",
-      "DEBT-001",
-      "BILL-001",
-      "BILL-015",
-      "FAM-001",
-      "DASH-001",
-      "ADV-001",
-      "FUP-001"
+    "cases": [
+      {
+        "id": "GAST-001",
+        "present": true,
+        "accepted": true,
+        "action": "answer",
+        "domain": "expenses",
+        "coverage": "empty"
+      },
+      {
+        "id": "GAST-012",
+        "present": true,
+        "accepted": true,
+        "action": "answer",
+        "domain": "expenses",
+        "coverage": "empty"
+      },
+      {
+        "id": "CARD-001",
+        "present": true,
+        "accepted": true,
+        "action": "answer",
+        "domain": "cards",
+        "coverage": "empty"
+      },
+      {
+        "id": "CARD-019",
+        "present": true,
+        "accepted": true,
+        "action": "answer",
+        "domain": "cards",
+        "coverage": "empty"
+      },
+      {
+        "id": "INCOME-001",
+        "present": true,
+        "accepted": true,
+        "action": "answer",
+        "domain": "income",
+        "coverage": "empty"
+      },
+      {
+        "id": "TRANS-001",
+        "present": true,
+        "accepted": true,
+        "action": "answer",
+        "domain": "transfers",
+        "coverage": "empty"
+      },
+      {
+        "id": "BUDG-001",
+        "present": true,
+        "accepted": true,
+        "action": "answer",
+        "domain": "budget",
+        "coverage": "empty"
+      },
+      {
+        "id": "GOAL-001",
+        "present": true,
+        "accepted": true,
+        "action": "answer",
+        "domain": "goals",
+        "coverage": "empty"
+      },
+      {
+        "id": "DEBT-001",
+        "present": true,
+        "accepted": true,
+        "action": "answer",
+        "domain": "debts",
+        "coverage": "empty"
+      },
+      {
+        "id": "BILL-001",
+        "present": true,
+        "accepted": true,
+        "action": "answer",
+        "domain": "bills",
+        "coverage": "empty"
+      },
+      {
+        "id": "BILL-015",
+        "present": true,
+        "accepted": true,
+        "action": "answer",
+        "domain": "bills",
+        "coverage": "empty"
+      },
+      {
+        "id": "FAM-001",
+        "present": true,
+        "accepted": true,
+        "action": "answer",
+        "domain": "expenses",
+        "coverage": "empty"
+      },
+      {
+        "id": "DASH-001",
+        "present": true,
+        "accepted": true,
+        "action": "answer",
+        "domain": "dashboard",
+        "coverage": "available"
+      },
+      {
+        "id": "ADV-001",
+        "present": true,
+        "accepted": true,
+        "action": "block",
+        "domain": "security_gate",
+        "coverage": "not_applicable"
+      },
+      {
+        "id": "FUP-001",
+        "present": true,
+        "accepted": true,
+        "action": "answer",
+        "domain": "cards",
+        "coverage": "empty"
+      }
     ]
+  },
+  "validation": {
+    "ok": true,
+    "errors": []
   }
 }

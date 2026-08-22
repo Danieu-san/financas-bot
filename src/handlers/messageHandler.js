@@ -373,11 +373,12 @@ function isFinancialAgentFullLogEnabled(env = process.env) {
 }
 
 function buildFinancialAgentFullLogPayload(result = {}) {
+    const trajectory = buildFinancialAgentTrajectoryLog(result.trajectory);
     return JSON.stringify({
-        answer: result.answer || '',
-        plan: result.plan || null,
-        toolResult: result.toolResult || null,
-        verified: result.verified || null
+        action: normalizeMetricLabel(result.action || 'unknown'),
+        tool: normalizeMetricLabel(result.plan?.tool || result.toolResult?.tool || 'none'),
+        verified: Boolean(result.verified?.ok),
+        trajectory
     });
 }
 const FINANCIAL_AGENT_MIGRATION_GAP_TAGS = new Set([
