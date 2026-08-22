@@ -9,10 +9,11 @@ sem novo ciclo de correção por frase.
 
 1. [concluído] isolar worktree no HEAD publicado mais recente;
 2. [concluído] reconstruir erros, causas, arquitetura e proposta;
-3. [em andamento] validar e publicar commit sanitizado imutável;
-4. [pendente] obter parecer independente do Chat;
-5. [pendente] obter parecer independente do Claude pela API;
-6. [pendente] consolidar opções e pedir decisão de Daniel.
+3. [concluído] validar e publicar commit sanitizado imutável;
+4. [concluído] obter parecer independente integral do Chat;
+5. [concluído] obter parecer independente parcial do Claude pela API;
+6. [concluído] consolidar opções e recomendar caminho finito;
+7. [pendente] obter decisão de Daniel antes de iniciar ARQ-01.
 
 ## Critério de conclusão
 
@@ -22,3 +23,8 @@ sem novo ciclo de correção por frase.
 - recomendação contém escopo finito, invariantes, condição de parada e rollback;
 - nenhuma implementação é iniciada automaticamente.
 
+## Resultado
+
+O critério documental foi satisfeito. A direção recomendada é um agente
+iterativo read-only com duas ou três tools semânticas, mantendo kernel e escrita
+determinísticos. Ver documento 296 para gates, critérios de parada e rollback.

@@ -1,10 +1,10 @@
 # Revisão da arquitetura conversacional financeira
 
-Atualizado em: 2026-08-21
+Atualizado em: 2026-08-22
 
 ## Estado
 
-`DOSSIÊ LOCAL — AGUARDANDO COMMIT IMUTÁVEL E PARECERES CHAT/CLAUDE`.
+`REVISÃO CONCLUÍDA — DECISÃO ARQUITETURAL RECOMENDADA; IMPLEMENTAÇÃO NÃO INICIADA`.
 
 ## Objetivo
 
@@ -28,11 +28,18 @@ arquitetura.
 ## Evidência principal
 
 - dossiê: `docs/audit/293-financial-conversation-architecture-multi-review-candidate-2026-08-21.md`;
-- benchmark sanitizado: `docs/audit/293-financial-interpreter-gpt-benchmark-evidence-2026-08-21.json`.
+- benchmark sanitizado: `docs/audit/293-financial-interpreter-gpt-benchmark-evidence-2026-08-21.json`;
+- parecer Claude parcial: `docs/audit/294-claude-opus-5-financial-conversation-architecture-review-2026-08-22.md`;
+- parecer Chat integral: `docs/audit/295-chatgpt-financial-conversation-architecture-review-2026-08-22.md`;
+- consolidação: `docs/audit/296-financial-conversation-architecture-multi-review-consolidation-2026-08-22.md`.
+
+## Decisão recomendada
+
+Reaproveitar LangGraph e o kernel financeiro, mas substituir o pipeline linear
+por agente read-only limitado a duas ou três tools semânticas. Escopo, fonte,
+matemática e toda escrita continuam determinísticos.
 
 ## Próxima ação exata
 
-Validar o workflow e a sanitização, commitar/publicar o candidato, submeter uma
-vez ao Chat e uma vez ao Claude via API e consolidar os pareceres sem alterar o
-produto.
-
+Daniel decide se autoriza ARQ-01: contrato de trajetória, baseline sanitizado e
+checkpoint da trajetória realmente executada, em worktree própria e sem deploy.
