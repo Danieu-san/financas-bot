@@ -46,10 +46,27 @@ function parseJsonContent(content = '') {
     }
 }
 
+function resolvedPlanFromContext(context = {}) {
+    const executedPlan = context.trajectory?.executedPlan;
+    if (!executedPlan || typeof executedPlan !== 'object' || Array.isArray(executedPlan)) return null;
+    if (executedPlan.needsContext !== false) return null;
+    return sanitizeFinancialEvidenceValue(executedPlan);
+}
+
+function enforceResolvedPlanDecision({ decision = null, resolvedPlan = null, hasEvidence = false } = {}) {
+    if (!resolvedPlan) return decision;
+    if (!hasEvidence) {
+        return {
+            action: 'tool',
+            tool: 'query_financial_plan',
+            args: { plan: resolvedPlan }
+        };
+    }
+    return decision?.action === 'answer' ? decision : null;
+}
+
 function buildReasonerPrompt(context = {}) {
-    const resolvedPlan = context.trajectory?.executedPlan?.needsContext === false
-        ? context.trajectory.executedPlan
-        : null;
+    const resolvedPlan = resolvedPlanFromContext(context);
     const safeContext = sanitizeFinancialEvidenceValue({
         message: boundedText(context.message, 700),
         trajectory: context.trajectory || null,
@@ -104,6 +121,11 @@ function createFinancialIterativeReasoner({
     const guard = costGuard || createIterativeCostGuard(env);
 
     return async (context = {}) => {
+        const resolvedPlan = resolvedPlanFromContext(context);
+        const hasEvidence = Array.isArray(context.evidenceHistory) && context.evidenceHistory.length > 0;
+        const deterministicDecision = enforceResolvedPlanDecision({ resolvedPlan, hasEvidence });
+        if (deterministicDecision) return deterministicDecision;
+
         const reservation = guard.reserveModelCall('iterative_reasoner');
         if (!reservation?.allowed) throw new Error(`reasoner_budget_${reservation?.reason || 'unavailable'}`);
         const controller = new AbortController();
@@ -127,7 +149,11 @@ function createFinancialIterativeReasoner({
             if (!response?.ok) throw new Error('reasoner_http_failure');
             const payload = await response.json();
             const parsed = parseJsonContent(payload?.choices?.[0]?.message?.content);
-            const decision = normalizeReasonerDecision(parsed);
+            const decision = enforceResolvedPlanDecision({
+                decision: normalizeReasonerDecision(parsed),
+                resolvedPlan,
+                hasEvidence
+            });
             if (!decision) throw new Error('reasoner_invalid_decision');
             return decision;
         } finally {
@@ -142,6 +168,8 @@ module.exports = {
         normalizeReasonerDecision,
         parseJsonContent,
         buildReasonerPrompt,
+        resolvedPlanFromContext,
+        enforceResolvedPlanDecision,
         containsBlockedArgumentKey,
         createIterativeCostGuard
     }

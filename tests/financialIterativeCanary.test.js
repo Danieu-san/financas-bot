@@ -428,6 +428,7 @@ test('personal sheet ranking remains adequate after later auxiliary reads', asyn
 
 test('iterative reasoner sends only sanitized context and fails closed on invalid output', async () => {
     const requests = [];
+    let modelContent = '{"action":"clarify","question":"Qual periodo?"}';
     const reasoner = createFinancialIterativeReasoner({
         env: { OPENROUTER_API_KEY: 'secret-key', FINANCIAL_ITERATIVE_REASONER_MODEL: 'openai/test-model' },
         costGuard: { reserveModelCall: () => ({ allowed: true }) },
@@ -435,29 +436,42 @@ test('iterative reasoner sends only sanitized context and fails closed on invali
             requests.push(JSON.parse(options.body));
             return {
                 ok: true,
-                json: async () => ({ choices: [{ message: { content: '{"action":"clarify","question":"Qual periodo?"}' } }] })
+                json: async () => ({ choices: [{ message: { content: modelContent } }] })
             };
         }
     });
-    const decision = await reasoner({
+    const resolvedPlan = {
+        kind: 'financial_query',
+        domain: 'expenses',
+        operation: 'rank',
+        filters: { period: { type: 'month', month: 7, year: 2026 }, scope: 'personal' },
+        groupBy: ['merchant'],
+        timeBasis: 'billing_month',
+        needsContext: false
+    };
+    const baseContext = {
         message: 'quanto gastei?',
         allowedCapabilities: [{ tool: 'query_financial_plan', capability: 'financial_query' }],
         remainingReads: 2,
-        evidenceHistory: [{ payload: { value: 10, user_id: 'private-user' } }],
         trajectory: {
             context: { scope: 'personal' },
-            executedPlan: {
-                kind: 'financial_query',
-                domain: 'expenses',
-                operation: 'rank',
-                filters: { period: { type: 'month', month: 7, year: 2026 }, scope: 'personal' },
-                groupBy: ['merchant'],
-                timeBasis: 'billing_month',
-                needsContext: false
-            }
+            executedPlan: { ...resolvedPlan, user_id: 'private-user' }
         }
+    };
+    assert.deepStrictEqual(await reasoner({ ...baseContext, evidenceHistory: [] }), {
+        action: 'tool',
+        tool: 'query_financial_plan',
+        args: { plan: resolvedPlan }
     });
-    assert.deepStrictEqual(decision, { action: 'clarify', question: 'Qual periodo?' });
+    assert.strictEqual(requests.length, 0);
+
+    await assert.rejects(
+        () => reasoner({
+            ...baseContext,
+            evidenceHistory: [{ payload: { value: 10, user_id: 'private-user' } }]
+        }),
+        /reasoner_invalid_decision/
+    );
     assert.strictEqual(requests[0].model, 'openai/test-model');
     assert.doesNotMatch(JSON.stringify(requests), /secret-key|private-user|user_id/);
     assert.match(requests[0].messages[0].content, /Plano resolvido server-side/);
@@ -465,16 +479,30 @@ test('iterative reasoner sends only sanitized context and fails closed on invali
     assert.match(requests[0].messages[0].content, /responda assim que a evidência for suficiente/i);
     assert.deepStrictEqual(
         JSON.parse(requests[0].messages[0].content.match(/Contexto sanitizado: (.+)$/s)[1]).resolvedPlan,
-        {
-            kind: 'financial_query',
-            domain: 'expenses',
-            operation: 'rank',
-            filters: { period: { type: 'month', month: 7, year: 2026 }, scope: 'personal' },
-            groupBy: ['merchant'],
-            timeBasis: 'billing_month',
-            needsContext: false
-        }
+        resolvedPlan
     );
+
+    modelContent = JSON.stringify({
+        action: 'tool',
+        tool: 'query_financial_plan',
+        args: { plan: { ...resolvedPlan, filters: { ...resolvedPlan.filters, scope: 'family' } } }
+    });
+    await assert.rejects(
+        () => reasoner({ ...baseContext, evidenceHistory: [{ payload: { value: 10 } }] }),
+        /reasoner_invalid_decision/
+    );
+    assert.strictEqual(requests.length, 2);
+
+    modelContent = '{"action":"clarify","question":"Qual periodo?"}';
+    assert.deepStrictEqual(await reasoner({
+        ...baseContext,
+        evidenceHistory: [],
+        trajectory: {
+            ...baseContext.trajectory,
+            executedPlan: { ...resolvedPlan, needsContext: true }
+        }
+    }), { action: 'clarify', question: 'Qual periodo?' });
+    assert.strictEqual(requests.length, 3);
 
     assert.strictEqual(reasonerTest.normalizeReasonerDecision({ action: 'write', amount: 10 }), null);
     assert.strictEqual(createFinancialIterativeReasoner({ env: {}, fetchImpl: async () => {} }), null);

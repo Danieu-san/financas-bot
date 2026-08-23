@@ -261,5 +261,17 @@ proibidos.
   `1.815/1.825`, zero falha e dez skips previstos;
 - candidato:
   `docs/audit/320-financial-iterative-resolved-plan-reasoner-recovery-candidate-2026-08-23.md`;
-- próximo passo: publicar e auditar o novo hash imutável; somente com GO será
-  permitido novo artefato/deploy e nova tentativa única do smoke real.
+- auditoria do hash `84f58b38...`: `NO-GO`; achado alto porque o plano exato e
+  a proibição de esclarecimento redundante ainda eram instruções ao modelo, não
+  invariantes determinísticos;
+- o recovery emite localmente a primeira leitura com o plano sanitizado exato,
+  sem chamar o modelo; depois da evidência aceita somente `answer`, rejeitando
+  `clarify`, nova ferramenta e plano divergente;
+- o ramo sem plano resolvido preserva `clarify` quando falta contexto; identidade,
+  fonte, limite de leituras, adequação, efeitos e writers não mudaram;
+- evidência do recovery: causal `134/134` e suíte hermética ampla
+  `1.815/1.825`, zero falha e dez skips previstos;
+- recovery:
+  `docs/audit/321-financial-iterative-resolved-plan-enforcement-recovery-2026-08-23.md`;
+- próximo passo: suíte ampla final, novo hash imutável e reauditoria; somente
+  com GO será permitido novo artefato/deploy e nova tentativa única do smoke.

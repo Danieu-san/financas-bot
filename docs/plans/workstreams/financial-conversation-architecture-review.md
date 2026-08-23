@@ -44,10 +44,12 @@ sem novo ciclo de correção por frase.
 28. [concluído com rollback seguro] o smoke real preservou família e fonte, mas
     pediu esclarecimento redundante apesar do plano resolvido; baseline
     preservado e canário revertido imediatamente para `off`.
-29. [aguardando auditoria] recovery do reasoner recebe o plano sanitizado somente
-    quando `needsContext === false`, exige sua primeira leitura exata e mantém o
-    esclarecimento apenas para contexto indispensável realmente ausente.
-30. [pendente de GO] publicar novo artefato imutável com `off`, reativar somente
+29. [NO-GO fechado por novo recovery] a auditoria confirmou que a regra ainda
+    estava apenas no prompt: `clarify` e plano divergente continuavam aceitos.
+30. [aguardando reauditoria] a primeira leitura agora é determinística e usa o
+    plano sanitizado exato; após evidência somente resposta é aceita, enquanto
+    o ramo sem plano resolvido preserva esclarecimento legítimo.
+31. [pendente de GO] publicar novo artefato imutável com `off`, reativar somente
     `expenses`/`personal_sheet` e repetir pergunta base, follow-up, telemetria
     terminal e health, com rollback imediato se qualquer invariante falhar.
 
