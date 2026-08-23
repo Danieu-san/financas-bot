@@ -7214,3 +7214,34 @@ test('expense follow-up changes only the month while preserving family category 
 
     clearAnalyticalContextForTests();
 });
+
+test('expense ranking follow-up narrows the family ranking to one category', () => {
+    const {
+        classifyPerguntaLocally,
+        storeAnalyticalContext,
+        getAnalyticalContext,
+        clearAnalyticalContextForTests
+    } = messageHandler.__test__;
+
+    clearAnalyticalContextForTests();
+    const initial = classifyPerguntaLocally('Quais foram os maiores gastos da família neste mês?');
+    assert.strictEqual(initial.intent, 'ranking_maiores_gastos');
+    assert.strictEqual(initial.parameters.scope, 'family');
+
+    storeAnalyticalContext('family-ranking-category-follow-up', initial);
+    const followUp = classifyPerguntaLocally(
+        'E só com alimentação?',
+        getAnalyticalContext('family-ranking-category-follow-up')
+    );
+
+    assert.strictEqual(followUp.intent, 'ranking_maiores_gastos');
+    assert.strictEqual(followUp.parameters.categoria, 'alimentacao');
+    assert.strictEqual(followUp.parameters.scope, 'family');
+    assert.strictEqual(followUp.financialQueryPlan.domain, 'expenses');
+    assert.strictEqual(followUp.financialQueryPlan.operation, 'rank');
+    assert.deepStrictEqual(followUp.financialQueryPlan.groupBy, ['merchant']);
+    assert.strictEqual(followUp.financialQueryPlan.filters.category, 'alimentacao');
+    assert.strictEqual(followUp.financialQueryPlan.filters.scope, 'family');
+
+    clearAnalyticalContextForTests();
+});

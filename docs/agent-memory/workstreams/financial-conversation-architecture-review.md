@@ -1,10 +1,10 @@
 # Revisão da arquitetura conversacional financeira
 
-Atualizado em: 2026-08-22
+Atualizado em: 2026-08-23
 
 ## Estado
 
-`ARQ-01 A ARQ-06 EM GO — RELEASE OCI OFF EM PRODUÇÃO; ATIVAÇÃO READ-ONLY AGUARDA SEGREDO SEGURO`.
+`ARQ-01 A ARQ-06 EM GO — CANÁRIO OCI REVERTIDO PARA OFF; RECOVERY DE RANKING AGUARDA AUDITORIA INDEPENDENTE`.
 
 ## Objetivo
 
@@ -218,4 +218,17 @@ proibidos.
   e o reasoner passou no smoke sintético sem dados financeiros;
 - ativação controlada:
   `docs/audit/317-financial-iterative-expenses-canary-production-activation-2026-08-23.md`;
-- smoke real de WhatsApp e telemetria terminal ainda pendentes.
+- o smoke real familiar confirmou seleção server-side de dois membros e fonte
+  `personal_sheet`, mas caiu no baseline porque a fonte não oferecia ranking
+  mensal completo por estabelecimento;
+- o canário foi revertido imediatamente para `off` por `SIGHUP`; PM2, SQLite,
+  WhatsApp e health permaneceram saudáveis e nenhuma escrita foi habilitada;
+- recovery local agrega ranking mensal determinístico por estabelecimento,
+  preserva o recorte familiar, permite filtro por categoria e cobre o
+  follow-up exato `E só com alimentação?`;
+- evidência local do recovery: focal `20/20`, causal `68/68` e suíte hermética
+  ampla `1.812/1.822`, zero falha e dez skips previstos;
+- candidato:
+  `docs/audit/318-financial-iterative-personal-sheet-ranking-recovery-candidate-2026-08-23.md`;
+- próximo passo: auditoria independente por hash imutável; somente com GO será
+  permitido novo artefato/deploy e repetição do smoke real.

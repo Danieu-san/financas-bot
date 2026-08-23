@@ -4,7 +4,7 @@ Data: 2026-08-23
 
 ## Estado
 
-`CANÁRIO ATIVO — SMOKE SINTÉTICO GO; SMOKE WHATSAPP PENDENTE`.
+`CANÁRIO REVERTIDO PARA OFF — SMOKE REAL ISOLOU LACUNA SEM EFEITO FINANCEIRO`.
 
 Este registro não autoriza writer, não remove o pipeline vigente e não amplia
 o recorte para outros domínios ou fontes.
@@ -51,3 +51,22 @@ Executar uma pergunta real de despesas e um follow-up pelo WhatsApp de Daniel,
 confirmar resposta adequada, telemetria terminal sanitizada e saúde estável.
 Se houver erro, registro inválido, pendência causal ou perda de saúde, reverter
 o modo para `off` pelo backup/configuração e preservar o pipeline vigente.
+
+## Resultado do smoke real e rollback
+
+- a fonte foi ajustada para `personal_sheet`, porque o read-model central não
+  representava a planilha familiar vigente;
+- a pergunta real `Quais foram os maiores gastos da família neste mês?`
+  resolveu `scope=family` com dois membros autorizados e executou duas leituras
+  read-only da fonte correta;
+- a tentativa terminou em `fallback`, motivo `candidate_clarification`, porque
+  o adaptador pessoal tinha totais e transações recentes, mas não um ranking
+  mensal completo por estabelecimento;
+- a resposta vigente foi preservada e nenhuma escrita financeira ocorreu;
+- antes de qualquer edição, o canário foi revertido atomicamente para `off`,
+  com allowlists vazias; o runtime confirmou a mudança por `SIGHUP`;
+- health permaneceu `ok`, SQLite verde e WhatsApp `ready/healthy`.
+
+O resultado não invalida ARQ-06: comprova que contenção, fallback, telemetria e
+rollback funcionaram. A ativação permanece fechada até o recovery descrito no
+documento 318 receber GO independente e ser publicado por novo artefato.

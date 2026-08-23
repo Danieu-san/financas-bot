@@ -4229,6 +4229,22 @@ function deriveFollowUpAnalyticalQueryPlan(text, context) {
         };
     }
     const isExpenseContext = /gasto|gastos|expense/.test(normalizeText(context.intent));
+    const followUpCategory = cleanAnalyticalCategory(extractCategoryFromQuestion(text));
+    const preservesMerchantRanking = [
+        'ranking_maiores_gastos',
+        'ranking_estabelecimentos_gastos'
+    ].includes(context.intent);
+    if (isExpenseContext && preservesMerchantRanking && followUpCategory) {
+        return {
+            metric: context.metric || 'expense_ranking_category_followup',
+            intent: context.intent,
+            parameters: {
+                ...inheritedParams,
+                categoria: followUpCategory,
+                timeBasis: previousParams.timeBasis || 'billing_month'
+            }
+        };
+    }
     const changesOnlyPeriod = (hasExplicitMonthSignal(text) || /\b20\d{2}\b/.test(text)) &&
         /^(e|mas|agora|tambem|também)?\s*(em|no|na)?\s*(janeiro|fevereiro|marco|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|20\d{2})/.test(text);
     if (isExpenseContext && changesOnlyPeriod) {

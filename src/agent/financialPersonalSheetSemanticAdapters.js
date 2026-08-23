@@ -1,5 +1,6 @@
 const { getUserSheetDashboardData: defaultGetUserSheetDashboardData } = require('../services/userSheetAnalyticsService');
 const { sanitizeFinancialEvidenceValue } = require('./financialSemanticReadFacade');
+const { normalizeText } = require('../utils/helpers');
 
 function normalizePeriod(plan = {}, currentDate = '') {
     const period = plan?.filters?.period || {};
@@ -25,6 +26,10 @@ function publicSnapshot(snapshot = {}) {
         scope: snapshot.scope ? { mode: snapshot.scope.mode, label: snapshot.scope.label } : null,
         kpis: snapshot.kpis || {},
         topCategories: Array.isArray(snapshot.topCategories) ? snapshot.topCategories : [],
+        topMerchants: Array.isArray(snapshot.topMerchants) ? snapshot.topMerchants : [],
+        merchantRankingsByCategory: Array.isArray(snapshot.merchantRankingsByCategory)
+            ? snapshot.merchantRankingsByCategory
+            : [],
         recentTransactions: Array.isArray(snapshot.recentTransactions) ? snapshot.recentTransactions : [],
         financialAccounts: snapshot.financialAccounts || { totalBalance: 0, items: [] },
         dailyGoal: snapshot.dailyGoal || null,
@@ -56,6 +61,22 @@ function selectPlanResult(plan = {}, snapshot = {}) {
     });
     if (['expenses', 'cards', 'income'].includes(domain) && operation === 'sum') {
         return { ok: true, value: totals[domain], details };
+    }
+    if (
+        domain === 'expenses' &&
+        operation === 'rank' &&
+        Array.isArray(plan.groupBy) &&
+        plan.groupBy.includes('merchant')
+    ) {
+        const category = normalizeText(plan.filters?.category || '');
+        const categoryRanking = category
+            ? (snapshot.merchantRankingsByCategory || []).find(item => normalizeText(item.category || item.label || '') === category)
+            : null;
+        return {
+            ok: true,
+            value: category ? (categoryRanking?.items || []) : (snapshot.topMerchants || []),
+            details
+        };
     }
     if (domain === 'accounts' && ['sum', 'list', 'detail'].includes(operation)) {
         const items = domain === 'expenses'

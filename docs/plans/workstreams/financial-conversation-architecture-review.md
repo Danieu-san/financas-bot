@@ -30,10 +30,16 @@ sem novo ciclo de correção por frase.
 21. [concluído] publicar o candidato ARQ-06 e registrar o NO-GO causal da entrega;
 22. [concluído] publicar e reauditar o recovery bifásico do ARQ-06;
 23. [concluído] artefato OCI promovido com canário desligado; PM2, health local/público, WhatsApp, SQLite e rollback validados;
-24. [em validação] consentimento específico obtido; chave armazenada e
-    validada; `expenses`/`central_read_model` ativo para dois usuários
-    derivados server-side; smoke sintético GO; smoke real de WhatsApp,
-    telemetria terminal e observação de saúde pendentes.
+24. [concluído com rollback seguro] consentimento específico obtido; o smoke
+    real confirmou escopo familiar e fonte pessoal, mas revelou ausência de
+    ranking mensal completo por estabelecimento; canário revertido para `off`
+    sem perda de saúde ou escrita financeira.
+25. [aguardando auditoria] recovery local fornece ranking determinístico da
+    planilha pessoal/familiar, filtro por categoria e follow-up contextual;
+    testes focais, causais e suíte ampla estão verdes.
+26. [pendente de GO] publicar artefato imutável, manter `off` no deploy,
+    reativar somente `expenses`/`personal_sheet` e repetir pergunta base,
+    follow-up, telemetria terminal e health.
 
 ## Critério de conclusão
 

@@ -19,6 +19,13 @@ const {
 const {
     createPersonalSheetSemanticAdapters
 } = require('../src/agent/financialPersonalSheetSemanticAdapters');
+const {
+    buildTopMerchants,
+    buildMerchantRankingsByCategory
+} = require('../src/services/userSheetAnalyticsService').__test__;
+const {
+    runFinancialIterativeShadowWithAdapters
+} = require('../src/agent/financialIterativeShadowAgent').__test__;
 const { __test__: messageHandlerTest } = require('../src/handlers/messageHandler');
 
 function activeEnv(overrides = {}) {
@@ -209,6 +216,30 @@ test('iterative canary telemetry is value-free, identity-free and comparison-onl
 });
 
 test('personal sheet adapters keep server owner authority and expose only personal-sheet results', async () => {
+    assert.deepStrictEqual(buildTopMerchants([
+        { description: 'Mercado', value: 40 },
+        { description: 'mercado', value: 30 },
+        { description: 'Restaurante', value: 50 }
+    ]), [
+        { label: 'Mercado', total: 70, count: 2 },
+        { label: 'Restaurante', total: 50, count: 1 }
+    ]);
+    assert.deepStrictEqual(buildMerchantRankingsByCategory([
+        { description: 'Mercado', category: 'Supermercado', value: 70 },
+        { description: 'Restaurante', category: 'Alimentação', value: 30 }
+    ]), [
+        {
+            category: 'alimentacao',
+            label: 'Alimentação',
+            items: [{ label: 'Restaurante', total: 30, count: 1 }]
+        },
+        {
+            category: 'supermercado',
+            label: 'Supermercado',
+            items: [{ label: 'Mercado', total: 70, count: 1 }]
+        }
+    ]);
+
     const calls = [];
     const adapters = createPersonalSheetSemanticAdapters({
         getUserSheetDashboardData: async (ownerUserId, period) => {
@@ -216,6 +247,17 @@ test('personal sheet adapters keep server owner authority and expose only person
             return {
                 source: 'personal_sheet',
                 kpis: { entradas: 300, saidas: 70, cartoes: 30, saldo: 200 },
+                topMerchants: [
+                    { label: 'Mercado', total: 70, count: 1 },
+                    { label: 'Restaurante', total: 30, count: 1 }
+                ],
+                merchantRankingsByCategory: [
+                    {
+                        category: 'alimentacao',
+                        label: 'Alimentação',
+                        items: [{ label: 'Restaurante', total: 30, count: 1 }]
+                    }
+                ],
                 recentTransactions: [{ type: 'saida', value: 70, description: 'mercado' }],
                 financialAccounts: { totalBalance: 200, items: [] },
                 dailyGoal: { spent: 100, remaining: 50 }
@@ -238,6 +280,44 @@ test('personal sheet adapters keep server owner authority and expose only person
     assert.strictEqual(result.result.value, 100);
     assert.doesNotMatch(JSON.stringify(result), /attacker|trusted-owner/);
 
+    const ranking = await adapters.query_financial_plan({
+        ownerUserId: 'trusted-owner',
+        userIds: ['trusted-owner'],
+        plan: {
+            kind: 'financial_query',
+            domain: 'expenses',
+            operation: 'rank',
+            filters: { period: { type: 'month', month: 7, year: 2026 } },
+            groupBy: ['merchant'],
+            timeBasis: 'billing_month'
+        }
+    });
+    assert.strictEqual(ranking.ok, true);
+    assert.deepStrictEqual(ranking.result.value, [
+        { label: 'Mercado', total: 70, count: 1 },
+        { label: 'Restaurante', total: 30, count: 1 }
+    ]);
+
+    const categoryRanking = await adapters.query_financial_plan({
+        ownerUserId: 'trusted-owner',
+        userIds: ['trusted-owner'],
+        plan: {
+            kind: 'financial_query',
+            domain: 'expenses',
+            operation: 'rank',
+            filters: {
+                period: { type: 'month', month: 7, year: 2026 },
+                category: 'alimentacao'
+            },
+            groupBy: ['merchant'],
+            timeBasis: 'billing_month'
+        }
+    });
+    assert.strictEqual(categoryRanking.ok, true);
+    assert.deepStrictEqual(categoryRanking.result.value, [
+        { label: 'Restaurante', total: 30, count: 1 }
+    ]);
+
     const incompleteList = await adapters.query_financial_plan({
         ownerUserId: 'trusted-owner',
         userIds: ['trusted-owner'],
@@ -245,6 +325,56 @@ test('personal sheet adapters keep server owner authority and expose only person
     });
     assert.strictEqual(incompleteList.ok, false);
     assert.strictEqual(incompleteList.reason, 'personal_sheet_domain_operation_unsupported');
+});
+
+test('personal sheet ranking gives the iterative agent sufficient family evidence to answer', async () => {
+    const plan = {
+        kind: 'financial_query',
+        domain: 'expenses',
+        operation: 'rank',
+        filters: { period: { type: 'month', month: 7, year: 2026 }, scope: 'family' },
+        groupBy: ['merchant'],
+        timeBasis: 'billing_month'
+    };
+    const adapters = createPersonalSheetSemanticAdapters({
+        getUserSheetDashboardData: async () => ({
+            period: { month: 7, year: 2026 },
+            scope: { mode: 'family', label: 'Família' },
+            kpis: { saidas: 70, cartoes: 30 },
+            topMerchants: [
+                { label: 'Mercado', total: 70, count: 1 },
+                { label: 'Restaurante', total: 30, count: 1 }
+            ]
+        })
+    });
+    let reasonerCalls = 0;
+    const shadow = await runFinancialIterativeShadowWithAdapters({
+        message: 'Quais foram os maiores gastos da família neste mês?',
+        trajectory: {
+            context: { scope: 'family', timeBasis: 'billing_month', followUp: false, authorizedUserCount: 2 },
+            executedPlan: plan
+        },
+        trustedContext: {
+            ownerUserId: 'member-a',
+            userIds: ['member-a', 'member-b'],
+            personByUserId: { 'member-a': 'Daniel', 'member-b': 'Thais' },
+            currentDate: '2026-08-23'
+        },
+        adapters,
+        reasoner: async context => {
+            reasonerCalls += 1;
+            if (context.evidenceHistory.length === 0) {
+                return { action: 'tool', tool: 'query_financial_plan', args: { plan } };
+            }
+            return { action: 'answer', answer: '1. Mercado: R$ 70,00\n2. Restaurante: R$ 30,00' };
+        }
+    });
+
+    assert.strictEqual(reasonerCalls, 2);
+    assert.strictEqual(shadow.stopReason, 'candidate_answer');
+    assert.strictEqual(shadow.readCount, 1);
+    assert.strictEqual(shadow.adequacy.ok, true);
+    assert.deepStrictEqual(shadow.sideEffects, { messagesSent: 0, financialWrites: 0 });
 });
 
 test('iterative reasoner sends only sanitized context and fails closed on invalid output', async () => {

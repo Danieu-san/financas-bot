@@ -318,6 +318,40 @@ function buildTopCategories(transactions) {
         .slice(0, 8);
 }
 
+function buildTopMerchants(transactions) {
+    const totals = new Map();
+    transactions.forEach((item) => {
+        const label = String(item.description || '').trim() || 'Sem descrição';
+        const key = normalizeText(label) || 'sem descricao';
+        const current = totals.get(key) || { label, total: 0, count: 0 };
+        current.total += Number(item.value || 0);
+        current.count += 1;
+        totals.set(key, current);
+    });
+    return Array.from(totals.values())
+        .map(item => ({ ...item, total: roundMoney(item.total) }))
+        .sort((a, b) => b.total - a.total || b.count - a.count || a.label.localeCompare(b.label, 'pt-BR'))
+        .slice(0, 12);
+}
+
+function buildMerchantRankingsByCategory(transactions) {
+    const categories = new Map();
+    transactions.forEach((item) => {
+        const label = String(item.category || '').trim() || 'Outros';
+        const category = normalizeText(label) || 'outros';
+        const current = categories.get(category) || { category, label, transactions: [] };
+        current.transactions.push(item);
+        categories.set(category, current);
+    });
+    return Array.from(categories.values())
+        .map(item => ({
+            category: item.category,
+            label: item.label,
+            items: buildTopMerchants(item.transactions)
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'));
+}
+
 function parseInstallmentLabel(value) {
     const match = String(value || '').trim().match(/^(\d+)\s*\/\s*(\d+)$/);
     if (!match) return { current: null, total: null };
@@ -654,6 +688,8 @@ async function getUserSheetDashboardData(userId, { month, year, telemetryConsume
                 saldoDisponivelEstimado
             },
             topCategories: buildTopCategories(expenses),
+            topMerchants: buildTopMerchants(expenses),
+            merchantRankingsByCategory: buildMerchantRankingsByCategory(expenses),
             dailyFlow: buildDailyFlow({ entradas, saidas, cartoes }),
             dailyGoal: buildDailyGoalSummary({
                 settings: dailyGoalConfig.settings,
@@ -683,6 +719,8 @@ module.exports = {
         parseBillingMonth,
         formatDashboardDate,
         buildTopCategories,
+        buildTopMerchants,
+        buildMerchantRankingsByCategory,
         buildRecentTransactions,
         rowBelongsToAnyUser,
         buildReserveSummary,
