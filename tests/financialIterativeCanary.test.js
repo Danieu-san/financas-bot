@@ -377,6 +377,55 @@ test('personal sheet ranking gives the iterative agent sufficient family evidenc
     assert.deepStrictEqual(shadow.sideEffects, { messagesSent: 0, financialWrites: 0 });
 });
 
+test('personal sheet ranking remains adequate after later auxiliary reads', async () => {
+    const plan = {
+        kind: 'financial_query',
+        domain: 'expenses',
+        operation: 'rank',
+        filters: { period: { type: 'month', month: 7, year: 2026 }, scope: 'family' },
+        groupBy: ['merchant'],
+        timeBasis: 'billing_month'
+    };
+    const adapters = createPersonalSheetSemanticAdapters({
+        getUserSheetDashboardData: async () => ({
+            period: { month: 7, year: 2026 },
+            scope: { mode: 'family', label: 'Família' },
+            kpis: { saidas: 70, cartoes: 30 },
+            topMerchants: [
+                { label: 'Mercado', total: 70, count: 1 },
+                { label: 'Restaurante', total: 30, count: 1 }
+            ],
+            recentTransactions: [{ type: 'saida', value: 5, description: 'Auxiliar' }]
+        })
+    });
+    const decisions = [
+        { action: 'tool', tool: 'query_financial_plan', args: { plan } },
+        { action: 'tool', tool: 'get_dashboard_snapshot', args: { month: 7, year: 2026 } },
+        { action: 'tool', tool: 'list_recent_transactions', args: { limit: 1 } },
+        { action: 'answer', answer: '1. Mercado: R$ 70,00\n2. Restaurante: R$ 30,00' }
+    ];
+    const shadow = await runFinancialIterativeShadowWithAdapters({
+        message: 'Quais foram os maiores gastos da família neste mês?',
+        trajectory: {
+            context: { scope: 'family', timeBasis: 'billing_month', followUp: false, authorizedUserCount: 2 },
+            executedPlan: plan
+        },
+        trustedContext: {
+            ownerUserId: 'member-a',
+            userIds: ['member-a', 'member-b'],
+            personByUserId: { 'member-a': 'Daniel', 'member-b': 'Thais' },
+            currentDate: '2026-08-23'
+        },
+        adapters,
+        reasoner: async () => decisions.shift()
+    });
+
+    assert.strictEqual(shadow.stopReason, 'candidate_answer');
+    assert.strictEqual(shadow.readCount, 3);
+    assert.strictEqual(shadow.adequacy.ok, true);
+    assert.deepStrictEqual(shadow.sideEffects, { messagesSent: 0, financialWrites: 0 });
+});
+
 test('iterative reasoner sends only sanitized context and fails closed on invalid output', async () => {
     const requests = [];
     const reasoner = createFinancialIterativeReasoner({

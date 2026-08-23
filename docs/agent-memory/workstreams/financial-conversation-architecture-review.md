@@ -230,5 +230,20 @@ proibidos.
   ampla `1.812/1.822`, zero falha e dez skips previstos;
 - candidato:
   `docs/audit/318-financial-iterative-personal-sheet-ranking-recovery-candidate-2026-08-23.md`;
+- auditoria do hash `c6325f29...`: `GO TÉCNICO LOCAL`, sem achado indispensável;
+- artefato imutável `c6325f29...` promovido na OCI com canário `off`; processo
+  único, WhatsApp, SQLite e health local/público permaneceram saudáveis;
+- no novo smoke familiar, o adaptador produziu `candidate_answer`, mas o
+  verificador rejeitou a promoção após três leituras com
+  `adequacy=inadequate`; o baseline foi preservado e o canário voltou a `off`;
+- a causa foi isolada no vínculo exclusivo à última leitura: uma prova anterior
+  integralmente compatível era descartada por leituras auxiliares posteriores;
+- recovery local avalia cada leitura isoladamente e só aceita uma que, sozinha,
+  prove todos os critérios; não combina resultados nem aceita valor disponível
+  apenas em leitura incompatível;
+- evidência do recovery: focal `18/18`, causal `134/134` e suíte hermética ampla
+  `1.815/1.825`, zero falha e dez skips previstos;
+- candidato:
+  `docs/audit/319-financial-evidence-compatible-read-recovery-candidate-2026-08-23.md`;
 - próximo passo: auditoria independente por hash imutável; somente com GO será
-  permitido novo artefato/deploy e repetição do smoke real.
+  permitido novo artefato/deploy e nova tentativa do smoke real.

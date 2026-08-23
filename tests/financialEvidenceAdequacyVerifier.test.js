@@ -116,6 +116,40 @@ test('adequacy verifier accepts a value from the same final read whose structure
     assert.strictEqual(result.status, 'adequate');
 });
 
+test('adequacy verifier accepts an earlier compatible read when a later auxiliary read is unrelated', () => {
+    const auxiliaryPlan = plan({
+        filters: { ...plan().filters, member: 'Daniel', category: 'Mercado' }
+    });
+    const result = verifyFinancialEvidenceAdequacy({
+        expectedPlan: plan(),
+        executions: [
+            execution({ actualPlan: plan(), value: 25 }),
+            execution({ actualPlan: auxiliaryPlan, value: 99 })
+        ],
+        answer: 'O total foi R$ 25,00.'
+    });
+
+    assert.strictEqual(result.ok, true);
+    assert.strictEqual(result.status, 'adequate');
+});
+
+test('adequacy verifier rejects a value available only in a later incompatible auxiliary read', () => {
+    const auxiliaryPlan = plan({
+        filters: { ...plan().filters, member: 'Daniel', category: 'Mercado' }
+    });
+    const result = verifyFinancialEvidenceAdequacy({
+        expectedPlan: plan(),
+        executions: [
+            execution({ actualPlan: plan(), value: 25 }),
+            execution({ actualPlan: auxiliaryPlan, value: 99 })
+        ],
+        answer: 'O total foi R$ 99,00.'
+    });
+
+    assert.strictEqual(result.ok, false);
+    assert.strictEqual(result.status, 'inadequate');
+});
+
 test('adequacy verifier rejects a different person even when the amount is valid', () => {
     const actualPlan = plan({ filters: { ...plan().filters, member: 'Daniel' } });
     const result = verifyFinancialEvidenceAdequacy({

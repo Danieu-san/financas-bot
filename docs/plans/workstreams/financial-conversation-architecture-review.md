@@ -34,12 +34,17 @@ sem novo ciclo de correção por frase.
     real confirmou escopo familiar e fonte pessoal, mas revelou ausência de
     ranking mensal completo por estabelecimento; canário revertido para `off`
     sem perda de saúde ou escrita financeira.
-25. [aguardando auditoria] recovery local fornece ranking determinístico da
-    planilha pessoal/familiar, filtro por categoria e follow-up contextual;
-    testes focais, causais e suíte ampla estão verdes.
-26. [pendente de GO] publicar artefato imutável, manter `off` no deploy,
-    reativar somente `expenses`/`personal_sheet` e repetir pergunta base,
-    follow-up, telemetria terminal e health.
+25. [concluído] recovery do ranking pessoal/familiar recebeu GO independente e
+    foi promovido por artefato imutável com o canário desligado.
+26. [concluído com rollback seguro] smoke real produziu candidato, mas a
+    adequação rejeitou três leituras; baseline preservado e canário revertido
+    para `off` sem restart, escrita ou perda de saúde.
+27. [aguardando auditoria] recovery do verificador aceita uma prova anterior
+    somente quando uma única leitura sustenta integralmente a resposta; focal,
+    integração, causal e suíte ampla estão verdes.
+28. [pendente de GO] publicar novo artefato imutável com `off`, reativar somente
+    `expenses`/`personal_sheet` e repetir pergunta base, follow-up, telemetria
+    terminal e health, com rollback imediato se qualquer invariante falhar.
 
 ## Critério de conclusão
 

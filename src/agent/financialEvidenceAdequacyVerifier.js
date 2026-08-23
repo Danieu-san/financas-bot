@@ -223,6 +223,32 @@ function absenceCheck(evidence = null, toolResult = null, answer = '') {
     return resultCheck(false, 'coverage_unproven', { status: coverage || 'unknown' });
 }
 
+function verifyExecutionAdequacy({
+    expectedPlan = null,
+    expectedScope = '',
+    knownPeople = [],
+    execution = null,
+    answer = ''
+} = {}) {
+    const evidence = execution?.result?.evidence || null;
+    const actualPlan = deriveReadPlan(execution);
+    const checks = {
+        numerical: numericalCheck(answer, execution ? [execution] : []),
+        person: personCheck(expectedPlan, actualPlan, evidence, expectedScope, answer, knownPeople),
+        period: periodCheck(expectedPlan, actualPlan),
+        timeBasis: timeBasisCheck(expectedPlan, actualPlan),
+        dimensions: dimensionsCheck(expectedPlan, actualPlan),
+        source: sourceCheck(evidence),
+        absence: absenceCheck(evidence, execution?.result, answer)
+    };
+    const ok = Object.values(checks).every(check => check.ok === true);
+    return {
+        ok,
+        checks,
+        reasons: Object.values(checks).filter(check => !check.ok).map(check => check.reason)
+    };
+}
+
 function verifyFinancialEvidenceAdequacy({
     expectedPlan = null,
     expectedScope = '',
@@ -231,26 +257,23 @@ function verifyFinancialEvidenceAdequacy({
     answer = ''
 } = {}) {
     const safeExecutions = Array.isArray(executions) ? executions.filter(Boolean).slice(0, 3) : [];
-    const finalExecution = safeExecutions[safeExecutions.length - 1] || null;
-    const evidence = finalExecution?.result?.evidence || null;
     const expected = normalizePlan(expectedPlan);
-    const actual = deriveReadPlan(finalExecution);
-    const checks = {
-        numerical: numericalCheck(answer, safeExecutions),
-        person: personCheck(expected, actual, evidence, expectedScope, answer, knownPeople),
-        period: periodCheck(expected, actual),
-        timeBasis: timeBasisCheck(expected, actual),
-        dimensions: dimensionsCheck(expected, actual),
-        source: sourceCheck(evidence),
-        absence: absenceCheck(evidence, finalExecution?.result, answer)
-    };
-    const ok = Object.values(checks).every(check => check.ok === true);
+    const attempts = safeExecutions.map(execution => verifyExecutionAdequacy({
+        expectedPlan: expected,
+        expectedScope,
+        knownPeople,
+        execution,
+        answer
+    }));
+    const selected = attempts.slice().reverse().find(attempt => attempt.ok === true) ||
+        attempts[attempts.length - 1] ||
+        verifyExecutionAdequacy({ expectedPlan: expected, expectedScope, knownPeople, answer });
     return {
         schemaVersion: 1,
-        ok,
-        status: ok ? 'adequate' : 'inadequate',
-        checks,
-        reasons: Object.values(checks).filter(check => !check.ok).map(check => check.reason)
+        ok: selected.ok,
+        status: selected.ok ? 'adequate' : 'inadequate',
+        checks: selected.checks,
+        reasons: selected.reasons
     };
 }
 
@@ -268,6 +291,7 @@ module.exports = {
         dimensionsCheck,
         sourceCheck,
         absenceCheck,
+        verifyExecutionAdequacy,
         answerClaimsAbsence,
         resultProvesZero
     }
