@@ -67,10 +67,9 @@ sem novo ciclo de correção por frase.
 38. [concluído com rollback seguro] a única pergunta base caiu no baseline com
     `reasoner_http_failure`; canário voltou imediatamente para `off`, zero
     efeitos e health verde.
-39. [candidato aguardando auditoria] substituir somente o slug inexistente do
-    OpenRouter pelo `openai/gpt-4o-mini`, já confirmado por sonda sintética com
-    o mesmo schema estrito.
-40. [pendente de GO] promover novo artefato com `off` e repetir uma única vez a
+39. [concluído] o recovery do slug público recebeu GO independente, com zero
+    achados e nenhuma lacuna indispensável residual.
+40. [em execução] promover novo artefato com `off` e repetir uma única vez a
     pergunta base; somente se promover, executar follow-up e fechar o gate.
 
 ## Critério de conclusão

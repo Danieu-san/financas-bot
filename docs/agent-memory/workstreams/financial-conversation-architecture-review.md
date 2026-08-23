@@ -354,3 +354,15 @@ proibidos.
 - próximo passo: concluir a suíte já ativa, publicar e auditar o hash imutável;
   somente com GO será permitido alterar o modelo privado e promover artefato
   com canário `off` antes de uma única pergunta base.
+- suíte hermética ampla concluída: `1.820/1.830`, zero falha e dez skips;
+  cobertura de linhas `91,76%`, branches `74,74%` e funções `91,22%`;
+- candidato publicado no hash imutável
+  `551f6832ec0d802631101e0980ca8daf5059f70d`;
+- auditoria independente leu os cinco arquivos integralmente, confirmou o
+  catálogo oficial e retornou `GO TÉCNICO LOCAL`, zero achados e nenhuma lacuna
+  indispensável residual;
+- fechamento independente:
+  `docs/audit/328-financial-reasoner-openrouter-model-independent-close-2026-08-23.md`;
+- próximo passo: atualizar somente o modelo privado, gerar/promover artefato
+  com canário `off` e executar uma única pergunta base; follow-up apenas se a
+  resposta base for promovida.
