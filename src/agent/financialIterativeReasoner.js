@@ -83,6 +83,8 @@ function buildReasonerPrompt(context = {}) {
         'Plano resolvido server-side: quando resolvedPlan estiver presente, execute primeiro query_financial_plan com esse plan exatamente, sem trocar filtros, periodo, escopo, agrupamento ou base temporal.',
         'Com resolvedPlan, nao peca novamente pessoa, escopo, periodo, categoria ou dimensao; esses campos ja foram resolvidos pelo servidor.',
         'Depois de uma leitura compatível com cobertura available ou empty, responda assim que a evidência for suficiente e nao faca leituras auxiliares redundantes.',
+        'Em ranking, responda com um prefixo continuo iniciado no primeiro colocado, preserve a ordem exata da evidencia e nao pule itens para citar colocados posteriores.',
+        'Copie somente valores presentes na evidencia; nao invente totais, percentuais ou contagens.',
         'Use clarify somente quando resolvedPlan estiver ausente ou marcado com needsContext=true e faltar contexto indispensavel.',
         'Retorne somente JSON válido em um destes formatos:',
         '{"action":"tool","tool":"nome_permitido","args":{}}',

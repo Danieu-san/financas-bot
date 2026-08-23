@@ -192,7 +192,7 @@ test('iterative canary telemetry is value-free, identity-free and comparison-onl
             readCount: 2,
             stopReason: 'candidate_answer',
             candidate: { action: 'answer', text: 'R$ 999,99 de Pessoa Privada' },
-            adequacy: { ok: true, status: 'adequate', reasons: [{ secret: 'x' }] },
+            adequacy: { ok: false, status: 'inadequate', reasons: ['wrong_result_order', { secret: 'x' }] },
             comparison: { comparable: true, sameCapability: true, sameSource: false, sameCoverage: true, samePayload: false },
             sideEffects: { messagesSent: 0, financialWrites: 0 },
             steps: [{ evidence: { payload: { value: 999.99, user_id: 'private' } } }]
@@ -205,7 +205,8 @@ test('iterative canary telemetry is value-free, identity-free and comparison-onl
         source: 'personal_sheet',
         readCount: 2,
         candidateAction: 'answer',
-        adequacyStatus: 'adequate',
+        adequacyStatus: 'inadequate',
+        adequacyReason: 'wrong_result_order',
         comparable: true,
         sameCapability: true,
         sameSource: false,
@@ -477,6 +478,8 @@ test('iterative reasoner sends only sanitized context and fails closed on invali
     assert.match(requests[0].messages[0].content, /Plano resolvido server-side/);
     assert.match(requests[0].messages[0].content, /nao peca novamente pessoa, escopo, periodo, categoria ou dimensao/);
     assert.match(requests[0].messages[0].content, /responda assim que a evidência for suficiente/i);
+    assert.match(requests[0].messages[0].content, /ranking.*prefixo.*primeiro colocado/i);
+    assert.match(requests[0].messages[0].content, /nao invente totais, percentuais ou contagens/i);
     assert.deepStrictEqual(
         JSON.parse(requests[0].messages[0].content.match(/Contexto sanitizado: (.+)$/s)[1]).resolvedPlan,
         resolvedPlan

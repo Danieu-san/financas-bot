@@ -46,12 +46,18 @@ sem novo ciclo de correção por frase.
     preservado e canário revertido imediatamente para `off`.
 29. [NO-GO fechado por novo recovery] a auditoria confirmou que a regra ainda
     estava apenas no prompt: `clarify` e plano divergente continuavam aceitos.
-30. [aguardando reauditoria] a primeira leitura agora é determinística e usa o
-    plano sanitizado exato; após evidência somente resposta é aceita, enquanto
-    o ramo sem plano resolvido preserva esclarecimento legítimo.
-31. [pendente de GO] publicar novo artefato imutável com `off`, reativar somente
-    `expenses`/`personal_sheet` e repetir pergunta base, follow-up, telemetria
-    terminal e health, com rollback imediato se qualquer invariante falhar.
+30. [concluído] a primeira leitura determinística recebeu GO independente e o
+    artefato `132d56a3...` foi promovido com o canário desligado.
+31. [concluído com rollback seguro] o smoke real executou a leitura familiar e
+    gerou candidato, mas o contrato exaustivo de ranking rejeitou a resposta;
+    baseline preservado e canário revertido imediatamente para `off`.
+32. [aguardando auditoria] aceitar somente prefixo contínuo iniciado no primeiro
+    colocado, preservar controles de ordem e registrar código sanitizado da
+    inadequação.
+33. [pendente de GO] publicar novo artefato imutável com `off`, reativar somente
+    `expenses`/`personal_sheet` e repetir uma vez pergunta base, follow-up,
+    telemetria terminal e health, com rollback imediato se qualquer invariante
+    falhar.
 
 ## Critério de conclusão
 

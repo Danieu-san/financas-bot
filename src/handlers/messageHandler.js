@@ -556,6 +556,7 @@ async function maybeRunFinancialIterativeCanary({
             readCount: 0,
             candidateAction: 'none',
             adequacyStatus: 'unavailable',
+            adequacyReason: 'contained_error',
             sideEffectsZero: null
         });
         return { answer: baseline, canary: null, promoted: false };
@@ -573,6 +574,7 @@ async function maybeRunFinancialIterativeCanary({
         readCount: telemetry.readCount || 0,
         candidateAction: telemetry.candidateAction || canary.shadow?.candidate?.action || 'none',
         adequacyStatus: telemetry.adequacyStatus || canary.shadow?.adequacy?.status || 'unknown',
+        adequacyReason: telemetry.adequacyReason || canary.shadow?.adequacy?.reasons?.[0] || 'none',
         sideEffectsZero
     });
     if (runtimeEligibility.eligible && !recorded?.recorded) promoted = false;
@@ -584,7 +586,8 @@ async function maybeRunFinancialIterativeCanary({
             `[financial-iterative-canary] status=${normalizeMetricLabel(canary.status || 'unknown')} ` +
             `domain=${metricDomain} source=${normalizeMetricLabel(runtimeEligibility.source || 'unknown')} ` +
             `outcome=${metricOutcome} reason=${normalizeMetricLabel(telemetry.reason || canary.eligibility?.reason || 'unknown')} ` +
-            `reads=${Number(telemetry.readCount || 0)} adequacy=${normalizeMetricLabel(telemetry.adequacyStatus || 'unknown')}`
+            `reads=${Number(telemetry.readCount || 0)} adequacy=${normalizeMetricLabel(telemetry.adequacyStatus || 'unknown')} ` +
+            `adequacy_reason=${normalizeMetricLabel(telemetry.adequacyReason || canary.shadow?.adequacy?.reasons?.[0] || 'none')}`
         );
     }
     return {
@@ -600,6 +603,7 @@ async function maybeRunFinancialIterativeCanary({
             readCount: telemetry.readCount || 0,
             candidateAction: telemetry.candidateAction || canary.shadow?.candidate?.action || 'none',
             adequacyStatus: telemetry.adequacyStatus || canary.shadow?.adequacy?.status || 'unknown',
+            adequacyReason: telemetry.adequacyReason || canary.shadow?.adequacy?.reasons?.[0] || 'none',
             baselineAvailable: Boolean(baseline.trim()),
             sideEffectsZero
         } : null

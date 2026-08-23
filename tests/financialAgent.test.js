@@ -2219,6 +2219,39 @@ test('financial agent full debug log is controlled by a simple env flag and excl
     assert.match(payload, /"verified":true/);
 });
 
+test('result verifier accepts only a contiguous ranking prefix starting at first place', () => {
+    const toolResult = {
+        ok: true,
+        tool: 'query_financial_plan',
+        plan: { domain: 'expenses', operation: 'rank' },
+        result: {
+            value: [
+                { label: 'Mercado Alfa', total: 100 },
+                { label: 'Restaurante Beta', total: 80 },
+                { label: 'Loja Gama', total: 60 },
+                { label: 'Cinema Delta', total: 40 }
+            ]
+        }
+    };
+
+    assert.strictEqual(
+        verifyAgentAnswer('1. Mercado Alfa\n2. Restaurante Beta', { toolResult }).ok,
+        true
+    );
+    assert.strictEqual(
+        verifyAgentAnswer('1. Mercado Alfa\n2. Loja Gama', { toolResult }).reason,
+        'wrong_result_order'
+    );
+    assert.strictEqual(
+        verifyAgentAnswer('1. Restaurante Beta\n2. Loja Gama', { toolResult }).reason,
+        'wrong_result_order'
+    );
+    assert.strictEqual(
+        verifyAgentAnswer('1. Restaurante Beta\n2. Mercado Alfa', { toolResult }).reason,
+        'wrong_result_order'
+    );
+});
+
 test('financial agent person map exposes display names instead of internal ids', () => {
     const map = messageHandlerTest.buildFinancialAgentPersonByUserId(
         ['agent-daniel', 'agent-thais'],

@@ -273,5 +273,22 @@ proibidos.
   `1.815/1.825`, zero falha e dez skips previstos;
 - recovery:
   `docs/audit/321-financial-iterative-resolved-plan-enforcement-recovery-2026-08-23.md`;
-- próximo passo: suíte ampla final, novo hash imutável e reauditoria; somente
-  com GO será permitido novo artefato/deploy e nova tentativa única do smoke.
+- a reauditoria do recovery 321 retornou `GO TÉCNICO LOCAL`, zero achados e
+  nenhuma lacuna indispensável residual;
+- o artefato imutável `132d56a3...` foi promovido na OCI com canário `off`;
+  processo, WhatsApp, SQLite e health local/público permaneceram saudáveis;
+- a ativação estrita familiar executou a primeira leitura exata e produziu
+  candidato, mas a adequação rejeitou a resposta; baseline preservado e
+  canário revertido imediatamente para `off`;
+- inspeção segura confirmou 12 itens no ranking real, enquanto o verificador
+  exigia repetir os dez primeiros mesmo para uma resposta natural resumida;
+- o recovery aceita somente prefixo contínuo iniciado no primeiro colocado,
+  bloqueia salto/reordenação, preserva listas completas de tendência/grupo e
+  registra apenas código técnico estritamente sanitizado da inadequação;
+- evidência do recovery: causal `146/146` e suíte hermética ampla
+  `1.816/1.826`, zero falha e dez skips previstos;
+- candidato:
+  `docs/audit/322-financial-ranking-prefix-and-adequacy-telemetry-recovery-candidate-2026-08-23.md`;
+- próximo passo: publicar hash imutável e auditar o recovery 322; somente com
+  GO será permitido novo artefato, deploy com `off` e uma nova tentativa única
+  da pergunta base e do follow-up.

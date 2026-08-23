@@ -24,6 +24,11 @@ function sanitizeEnum(value, allowed, fallback) {
     return allowed.has(normalized) ? normalized : fallback;
 }
 
+function sanitizeReasonCode(value, fallback = 'unknown') {
+    const normalized = String(value || '').trim().toLowerCase();
+    return /^[a-z][a-z0-9_]{0,79}$/.test(normalized) ? normalized : fallback;
+}
+
 function boundedReadCount(value) {
     const parsed = Number.parseInt(value, 10);
     if (!Number.isFinite(parsed)) return 0;
@@ -50,6 +55,7 @@ function sanitizeFinancialIterativeCanaryAttempt(input = {}, { now = () => new D
         readCount: boundedReadCount(input.readCount),
         candidateAction: sanitizeLabel(input.candidateAction || 'none', 'none'),
         adequacyStatus: sanitizeLabel(input.adequacyStatus),
+        adequacyReason: sanitizeReasonCode(input.adequacyReason || 'none'),
         baselineAvailable: Boolean(input.baselineAvailable),
         sideEffectsZero: typeof input.sideEffectsZero === 'boolean'
             ? input.sideEffectsZero
@@ -148,5 +154,5 @@ module.exports = {
     recordFinancialIterativeCanaryAttempt,
     sanitizeFinancialIterativeCanaryAttempt,
     summarizeFinancialIterativeCanaryTelemetry,
-    __test__: { boundedReadCount, sanitizeAttemptId, sanitizeLabel }
+    __test__: { boundedReadCount, sanitizeAttemptId, sanitizeLabel, sanitizeReasonCode }
 };

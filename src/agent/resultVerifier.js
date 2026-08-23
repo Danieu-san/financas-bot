@@ -235,8 +235,29 @@ function expectedOrderedLabels(toolResult = {}) {
 
 function validateOrderedLabels(answer, toolResult = {}) {
     const labels = expectedOrderedLabels(toolResult);
-    if (labels.length < 2) return { ok: true };
+    if (labels.length === 0) return { ok: true };
     const normalizedAnswer = normalizeText(String(answer || ''));
+
+    if (toolResult?.plan?.operation === 'rank') {
+        const positions = labels.map(label => normalizedAnswer.indexOf(normalizeText(label)));
+        if (positions[0] < 0) return { ok: false, reason: 'wrong_result_order' };
+        let cursor = positions[0];
+        let missingStarted = false;
+        for (let index = 1; index < positions.length; index += 1) {
+            const position = positions[index];
+            if (position < 0) {
+                missingStarted = true;
+                continue;
+            }
+            if (missingStarted || position <= cursor) {
+                return { ok: false, reason: 'wrong_result_order' };
+            }
+            cursor = position;
+        }
+        return { ok: true };
+    }
+
+    if (labels.length < 2) return { ok: true };
     let cursor = -1;
     for (const label of labels) {
         const index = normalizedAnswer.indexOf(normalizeText(label), cursor + 1);
