@@ -58,11 +58,14 @@ sem novo ciclo de correção por frase.
 34. [concluído com rollback seguro] a ativação estrita preservou o escopo
     familiar, executou uma leitura e caiu no baseline com `reasoner_failed`;
     canário revertido imediatamente para `off`.
-35. [candidato aguardando auditoria] janela finita ampliada para 30 segundos e
-    falhas classificadas somente por códigos fechados, sem exceção bruta.
-36. [pendente de GO] promover novo artefato com `off`, ajustar atomicamente o
-    timeout privado e repetir uma única vez a pergunta base; somente se ela
-    promover, executar o follow-up e fechar a telemetria/health.
+35. [concluído] janela finita e códigos fechados receberam GO independente; o
+    artefato foi promovido e o timeout privado foi fixado em 30 segundos.
+36. [concluído com rollback seguro] o smoke não expirou, mas produziu
+    `reasoner_invalid_decision` após uma leitura; canário revertido para `off`.
+37. [candidato aguardando auditoria] Structured Outputs restringe o caminho
+    pós-leitura a `answer` e exige provider compatível, sem alterar o kernel.
+38. [pendente de GO] promover novo artefato com `off` e repetir uma única vez a
+    pergunta base; somente se promover, executar follow-up e fechar o gate.
 
 ## Critério de conclusão
 

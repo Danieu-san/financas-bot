@@ -316,6 +316,22 @@ proibidos.
   `1.820/1.830`, zero falha e dez skips previstos;
 - candidato:
   `docs/audit/324-financial-iterative-reasoner-timeout-recovery-candidate-2026-08-23.md`;
-- próximo passo: publicar hash imutável e auditar o recovery 324; somente com
-  GO será permitido novo artefato com canário `off`, ajuste privado atômico do
-  timeout e uma nova tentativa operacional única.
+- a auditoria integral do hash `1cd2f7b...` retornou `GO TÉCNICO LOCAL`, zero
+  achados e nenhuma lacuna indispensável residual;
+- o artefato auditado foi promovido na OCI, timeout privado fixado em 30
+  segundos, processo único, zero reinícios e health local/público verde;
+- a ativação estrita executou uma leitura, mas caiu no baseline com
+  `reasoner_invalid_decision`; zero efeitos, nenhum follow-up e rollback
+  imediato do canário para `off`;
+- fechamento do timeout:
+  `docs/audit/325-financial-reasoner-timeout-independent-production-close-2026-08-23.md`;
+- o recovery 326 exige Structured Outputs no caminho pós-leitura, restringindo
+  o schema a `answer` e exigindo provider compatível; contexto ainda ambíguo
+  preserva `json_object` e a autoridade determinística local;
+- evidência do recovery: focal `34/34`, causal `142/142`, suíte ampla
+  `1.820/1.830`, zero falha e dez skips previstos;
+- candidato:
+  `docs/audit/326-financial-reasoner-structured-output-recovery-candidate-2026-08-23.md`;
+- próximo passo: publicar hash imutável e auditar o recovery 326; somente com
+  GO será permitido novo artefato com canário `off` e uma tentativa operacional
+  única da pergunta base.

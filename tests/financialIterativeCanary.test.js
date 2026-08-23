@@ -529,6 +529,23 @@ test('iterative reasoner sends only sanitized context and fails closed on invali
         /reasoner_invalid_decision/
     );
     assert.strictEqual(requests[0].model, 'openai/test-model');
+    assert.deepStrictEqual(requests[0].provider, { require_parameters: true });
+    assert.deepStrictEqual(requests[0].response_format, {
+        type: 'json_schema',
+        json_schema: {
+            name: 'financial_readonly_answer',
+            strict: true,
+            schema: {
+                type: 'object',
+                properties: {
+                    action: { type: 'string', enum: ['answer'] },
+                    answer: { type: 'string' }
+                },
+                required: ['action', 'answer'],
+                additionalProperties: false
+            }
+        }
+    });
     assert.doesNotMatch(JSON.stringify(requests), /secret-key|private-user|user_id/);
     assert.match(requests[0].messages[0].content, /Plano resolvido server-side/);
     assert.match(requests[0].messages[0].content, /nao peca novamente pessoa, escopo, periodo, categoria ou dimensao/);
@@ -561,6 +578,7 @@ test('iterative reasoner sends only sanitized context and fails closed on invali
         }
     }), { action: 'clarify', question: 'Qual periodo?' });
     assert.strictEqual(requests.length, 3);
+    assert.deepStrictEqual(requests[2].response_format, { type: 'json_object' });
 
     assert.strictEqual(reasonerTest.normalizeReasonerDecision({ action: 'write', amount: 10 }), null);
     assert.strictEqual(createFinancialIterativeReasoner({ env: {}, fetchImpl: async () => {} }), null);

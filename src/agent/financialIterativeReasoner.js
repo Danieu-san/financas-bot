@@ -123,6 +123,28 @@ function getReasonerTimeoutMs(env = process.env) {
     );
 }
 
+function buildReasonerResponseFormat({ resolvedPlan = null, hasEvidence = false } = {}) {
+    if (resolvedPlan && hasEvidence) {
+        return {
+            type: 'json_schema',
+            json_schema: {
+                name: 'financial_readonly_answer',
+                strict: true,
+                schema: {
+                    type: 'object',
+                    properties: {
+                        action: { type: 'string', enum: ['answer'] },
+                        answer: { type: 'string' }
+                    },
+                    required: ['action', 'answer'],
+                    additionalProperties: false
+                }
+            }
+        };
+    }
+    return { type: 'json_object' };
+}
+
 function createFinancialIterativeReasoner({
     env = process.env,
     fetchImpl = global.fetch,
@@ -156,6 +178,8 @@ function createFinancialIterativeReasoner({
                     model,
                     temperature: 0,
                     max_tokens: 700,
+                    provider: { require_parameters: true },
+                    response_format: buildReasonerResponseFormat({ resolvedPlan, hasEvidence }),
                     messages: [{ role: 'user', content: buildReasonerPrompt(context) }]
                 }),
                 signal: controller.signal
@@ -186,6 +210,7 @@ module.exports = {
         enforceResolvedPlanDecision,
         containsBlockedArgumentKey,
         createIterativeCostGuard,
-        getReasonerTimeoutMs
+        getReasonerTimeoutMs,
+        buildReasonerResponseFormat
     }
 };
