@@ -245,5 +245,21 @@ proibidos.
   `1.815/1.825`, zero falha e dez skips previstos;
 - candidato:
   `docs/audit/319-financial-evidence-compatible-read-recovery-candidate-2026-08-23.md`;
-- próximo passo: auditoria independente por hash imutável; somente com GO será
-  permitido novo artefato/deploy e nova tentativa do smoke real.
+- auditoria do hash `a62d81b2...`: `GO TÉCNICO LOCAL`, zero achados e nenhuma
+  lacuna indispensável residual;
+- artefato imutável `a62d81b2...` promovido na OCI com canário `off`; processo,
+  WhatsApp, SQLite e health local/público permaneceram saudáveis;
+- o novo smoke real preservou corretamente família, dois membros e
+  `personal_sheet`, mas o reasoner devolveu `candidate_clarification` depois de
+  duas leituras apesar de o plano já estar resolvido; baseline preservado e
+  canário revertido imediatamente para `off`;
+- recovery local expõe ao reasoner o plano sanitizado somente quando
+  `needsContext === false`, exige a primeira leitura com o plano exato, impede
+  repetir perguntas de contexto resolvido e preserva esclarecimento legítimo
+  quando ainda há contexto indispensável ausente;
+- evidência do recovery: causal `134/134` e suíte hermética ampla
+  `1.815/1.825`, zero falha e dez skips previstos;
+- candidato:
+  `docs/audit/320-financial-iterative-resolved-plan-reasoner-recovery-candidate-2026-08-23.md`;
+- próximo passo: publicar e auditar o novo hash imutável; somente com GO será
+  permitido novo artefato/deploy e nova tentativa única do smoke real.

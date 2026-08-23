@@ -47,9 +47,13 @@ function parseJsonContent(content = '') {
 }
 
 function buildReasonerPrompt(context = {}) {
+    const resolvedPlan = context.trajectory?.executedPlan?.needsContext === false
+        ? context.trajectory.executedPlan
+        : null;
     const safeContext = sanitizeFinancialEvidenceValue({
         message: boundedText(context.message, 700),
         trajectory: context.trajectory || null,
+        resolvedPlan,
         allowedCapabilities: context.allowedCapabilities || [],
         remainingReads: Number(context.remainingReads || 0),
         evidenceHistory: context.evidenceHistory || []
@@ -59,6 +63,10 @@ function buildReasonerPrompt(context = {}) {
         'Escolha uma ferramenta semântica permitida, responda usando somente a evidência recebida ou peça esclarecimento.',
         'Nunca escolha usuário, família, planilha, tenant ou fonte. Nunca escreva, não faça SQL livre e não calcule valores financeiros.',
         'Quando precisar de um número, solicite uma ferramenta que o calcule. Não trate fonte indisponível como zero ou ausência.',
+        'Plano resolvido server-side: quando resolvedPlan estiver presente, execute primeiro query_financial_plan com esse plan exatamente, sem trocar filtros, periodo, escopo, agrupamento ou base temporal.',
+        'Com resolvedPlan, nao peca novamente pessoa, escopo, periodo, categoria ou dimensao; esses campos ja foram resolvidos pelo servidor.',
+        'Depois de uma leitura compatível com cobertura available ou empty, responda assim que a evidência for suficiente e nao faca leituras auxiliares redundantes.',
+        'Use clarify somente quando resolvedPlan estiver ausente ou marcado com needsContext=true e faltar contexto indispensavel.',
         'Retorne somente JSON válido em um destes formatos:',
         '{"action":"tool","tool":"nome_permitido","args":{}}',
         '{"action":"answer","answer":"texto sustentado pela evidência"}',

@@ -39,10 +39,15 @@ sem novo ciclo de correção por frase.
 26. [concluído com rollback seguro] smoke real produziu candidato, mas a
     adequação rejeitou três leituras; baseline preservado e canário revertido
     para `off` sem restart, escrita ou perda de saúde.
-27. [aguardando auditoria] recovery do verificador aceita uma prova anterior
-    somente quando uma única leitura sustenta integralmente a resposta; focal,
-    integração, causal e suíte ampla estão verdes.
-28. [pendente de GO] publicar novo artefato imutável com `off`, reativar somente
+27. [concluído] recovery do verificador recebeu GO independente, foi promovido
+    com canário `off` e preservou saúde e ausência de escrita.
+28. [concluído com rollback seguro] o smoke real preservou família e fonte, mas
+    pediu esclarecimento redundante apesar do plano resolvido; baseline
+    preservado e canário revertido imediatamente para `off`.
+29. [aguardando auditoria] recovery do reasoner recebe o plano sanitizado somente
+    quando `needsContext === false`, exige sua primeira leitura exata e mantém o
+    esclarecimento apenas para contexto indispensável realmente ausente.
+30. [pendente de GO] publicar novo artefato imutável com `off`, reativar somente
     `expenses`/`personal_sheet` e repetir pergunta base, follow-up, telemetria
     terminal e health, com rollback imediato se qualquer invariante falhar.
 

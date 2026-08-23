@@ -444,11 +444,37 @@ test('iterative reasoner sends only sanitized context and fails closed on invali
         allowedCapabilities: [{ tool: 'query_financial_plan', capability: 'financial_query' }],
         remainingReads: 2,
         evidenceHistory: [{ payload: { value: 10, user_id: 'private-user' } }],
-        trajectory: { context: { scope: 'personal' } }
+        trajectory: {
+            context: { scope: 'personal' },
+            executedPlan: {
+                kind: 'financial_query',
+                domain: 'expenses',
+                operation: 'rank',
+                filters: { period: { type: 'month', month: 7, year: 2026 }, scope: 'personal' },
+                groupBy: ['merchant'],
+                timeBasis: 'billing_month',
+                needsContext: false
+            }
+        }
     });
     assert.deepStrictEqual(decision, { action: 'clarify', question: 'Qual periodo?' });
     assert.strictEqual(requests[0].model, 'openai/test-model');
     assert.doesNotMatch(JSON.stringify(requests), /secret-key|private-user|user_id/);
+    assert.match(requests[0].messages[0].content, /Plano resolvido server-side/);
+    assert.match(requests[0].messages[0].content, /nao peca novamente pessoa, escopo, periodo, categoria ou dimensao/);
+    assert.match(requests[0].messages[0].content, /responda assim que a evidência for suficiente/i);
+    assert.deepStrictEqual(
+        JSON.parse(requests[0].messages[0].content.match(/Contexto sanitizado: (.+)$/s)[1]).resolvedPlan,
+        {
+            kind: 'financial_query',
+            domain: 'expenses',
+            operation: 'rank',
+            filters: { period: { type: 'month', month: 7, year: 2026 }, scope: 'personal' },
+            groupBy: ['merchant'],
+            timeBasis: 'billing_month',
+            needsContext: false
+        }
+    );
 
     assert.strictEqual(reasonerTest.normalizeReasonerDecision({ action: 'write', amount: 10 }), null);
     assert.strictEqual(createFinancialIterativeReasoner({ env: {}, fetchImpl: async () => {} }), null);
