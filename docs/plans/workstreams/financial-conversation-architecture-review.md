@@ -53,13 +53,16 @@ sem novo ciclo de correção por frase.
     baseline preservado e canário revertido imediatamente para `off`.
 32. [NO-GO fechado por novo recovery] o ranking foi aprovado, mas a telemetria
     aceitava identidade já em `snake_case` e o log ainda consumia motivo bruto.
-33. [aguardando reauditoria] allowlist fechada aplicada antes do JSONL, log e
-    envelope terminal; código desconhecido vira `unknown`; regressão de `group`
-    coberta explicitamente.
-34. [pendente de GO] publicar novo artefato imutável com `off`, reativar somente
-    `expenses`/`personal_sheet` e repetir uma vez pergunta base, follow-up,
-    telemetria terminal e health, com rollback imediato se qualquer invariante
-    falhar.
+33. [concluído] allowlist fechada recebeu GO independente e o artefato
+    `0fb7bd7...` foi promovido com o canário desligado.
+34. [concluído com rollback seguro] a ativação estrita preservou o escopo
+    familiar, executou uma leitura e caiu no baseline com `reasoner_failed`;
+    canário revertido imediatamente para `off`.
+35. [candidato aguardando auditoria] janela finita ampliada para 30 segundos e
+    falhas classificadas somente por códigos fechados, sem exceção bruta.
+36. [pendente de GO] promover novo artefato com `off`, ajustar atomicamente o
+    timeout privado e repetir uma única vez a pergunta base; somente se ela
+    promover, executar o follow-up e fechar a telemetria/health.
 
 ## Critério de conclusão
 

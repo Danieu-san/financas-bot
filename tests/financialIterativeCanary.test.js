@@ -24,7 +24,8 @@ const {
     buildMerchantRankingsByCategory
 } = require('../src/services/userSheetAnalyticsService').__test__;
 const {
-    runFinancialIterativeShadowWithAdapters
+    runFinancialIterativeShadowWithAdapters,
+    classifyReasonerFailure
 } = require('../src/agent/financialIterativeShadowAgent').__test__;
 const { __test__: messageHandlerTest } = require('../src/handlers/messageHandler');
 const logger = require('../src/utils/logger');
@@ -38,6 +39,44 @@ function activeEnv(overrides = {}) {
         ...overrides
     };
 }
+
+test('iterative reasoner allows the bounded 30 second window and exposes only fixed failure codes', async () => {
+    assert.strictEqual(reasonerTest.getReasonerTimeoutMs({}), 30000);
+    assert.strictEqual(reasonerTest.getReasonerTimeoutMs({
+        FINANCIAL_ITERATIVE_REASONER_TIMEOUT_MS: '12000'
+    }), 12000);
+    assert.strictEqual(reasonerTest.getReasonerTimeoutMs({
+        FINANCIAL_ITERATIVE_REASONER_TIMEOUT_MS: '999999'
+    }), 30000);
+
+    const timeout = new Error('private_user');
+    timeout.name = 'AbortError';
+    assert.strictEqual(classifyReasonerFailure(timeout), 'reasoner_timeout');
+    assert.strictEqual(
+        classifyReasonerFailure(new Error('reasoner_http_failure')),
+        'reasoner_http_failure'
+    );
+    assert.strictEqual(
+        classifyReasonerFailure(new Error('reasoner_invalid_decision')),
+        'reasoner_invalid_decision'
+    );
+    assert.strictEqual(
+        classifyReasonerFailure(new Error('reasoner_budget_monthly_limit')),
+        'reasoner_budget_monthly_limit'
+    );
+    assert.strictEqual(classifyReasonerFailure(new Error('private_user')), 'reasoner_failed');
+
+    const shadow = await runFinancialIterativeShadowWithAdapters({
+        message: 'consulta familiar',
+        trajectory: null,
+        trustedContext: {},
+        reasoner: async () => { throw new Error('private_user'); },
+        adapters: {}
+    });
+    assert.strictEqual(shadow.stopReason, 'reasoner_failed');
+    assert.strictEqual(shadow.candidate, null);
+    assert.deepStrictEqual(shadow.sideEffects, { messagesSent: 0, financialWrites: 0 });
+});
 
 test('iterative canary config applies atomically and rolls back one domain without affecting another', () => {
     const env = {

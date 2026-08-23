@@ -300,6 +300,22 @@ proibidos.
   `1.819/1.829`, zero falha e dez skips previstos;
 - recovery:
   `docs/audit/323-financial-adequacy-reason-allowlist-recovery-2026-08-23.md`;
-- próximo passo: publicar novo hash imutável e reauditar o recovery 323;
-  somente com GO será permitido novo artefato, deploy com `off` e uma nova
-  tentativa única da pergunta base e do follow-up.
+- a reauditoria integral do hash `0fb7bd7...` retornou `GO TÉCNICO LOCAL`, sem
+  achado residual;
+- o artefato imutável foi promovido na OCI com canário `off`, processo único,
+  WhatsApp, SQLite e health local/público saudáveis;
+- a ativação estrita preservou dois membros familiares e `personal_sheet`, mas
+  a única pergunta base caiu no baseline com `reasoner_failed`; o canário foi
+  revertido imediatamente para `off`, sem escrita ou perda de saúde;
+- orçamento e catálogo do provedor estavam válidos, enquanto a janela privada
+  ainda era 12 segundos; a cronologia é compatível com timeout do reasoner;
+- recovery 324 eleva apenas a janela finita para 30 segundos e classifica
+  falhas por códigos fechados, reduzindo toda exceção desconhecida a
+  `reasoner_failed` sem texto bruto;
+- evidência do recovery: causal `142/142`, suíte hermética ampla
+  `1.820/1.830`, zero falha e dez skips previstos;
+- candidato:
+  `docs/audit/324-financial-iterative-reasoner-timeout-recovery-candidate-2026-08-23.md`;
+- próximo passo: publicar hash imutável e auditar o recovery 324; somente com
+  GO será permitido novo artefato com canário `off`, ajuste privado atômico do
+  timeout e uma nova tentativa operacional única.

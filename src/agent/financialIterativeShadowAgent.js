@@ -9,6 +9,13 @@ const { verifyFinancialEvidenceAdequacy } = require('./financialEvidenceAdequacy
 const { createPersonalSheetSemanticAdapters } = require('./financialPersonalSheetSemanticAdapters');
 
 const MAX_SHADOW_READS = 3;
+const KNOWN_REASONER_FAILURE_CODES = new Set([
+    'reasoner_http_failure',
+    'reasoner_invalid_decision',
+    'reasoner_budget_per_question_limit',
+    'reasoner_budget_monthly_limit',
+    'reasoner_budget_usage_state_unavailable'
+]);
 const BLOCKING_TOOL_REASONS = new Set([
     'tool_not_allowed',
     'tool_adapter_unavailable',
@@ -123,6 +130,14 @@ function shadowResult({ steps, candidate = null, stopReason, baselineEvidence = 
     };
 }
 
+function classifyReasonerFailure(error) {
+    if (error?.name === 'AbortError' || error?.cause?.name === 'AbortError') {
+        return 'reasoner_timeout';
+    }
+    const code = String(error?.message || '').trim().toLowerCase();
+    return KNOWN_REASONER_FAILURE_CODES.has(code) ? code : 'reasoner_failed';
+}
+
 async function runFinancialIterativeShadowCore({
     message = '',
     trajectory = null,
@@ -155,8 +170,12 @@ async function runFinancialIterativeShadowCore({
                 remainingReads: readLimit - steps.filter(step => step.executed === true).length,
                 evidenceHistory: steps.map(step => step.evidence)
             });
-        } catch (_) {
-            return shadowResult({ steps, stopReason: 'reasoner_failed', baselineEvidence });
+        } catch (error) {
+            return shadowResult({
+                steps,
+                stopReason: classifyReasonerFailure(error),
+                baselineEvidence
+            });
         }
 
         const candidate = normalizeCandidate(decision);
@@ -240,6 +259,7 @@ module.exports = {
         payloadFingerprint,
         stableValue,
         normalizeCandidate,
+        classifyReasonerFailure,
         runFinancialIterativeShadowWithAdapters: runFinancialIterativeShadowCore
     }
 };

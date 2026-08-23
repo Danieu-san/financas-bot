@@ -3,6 +3,7 @@ const path = require('node:path');
 const { createFinancialAgentCostGuard } = require('./financialAgentCostPolicy');
 
 const BLOCKED_ARGUMENT_KEYS = /(?:^|_)(?:user|owner|sheet|spreadsheet|tenant|oauth|token|secret|password)(?:_|$)/i;
+const DEFAULT_REASONER_TIMEOUT_MS = 30000;
 
 function boundedText(value, maxLength = 3000) {
     return String(value || '').trim().slice(0, maxLength);
@@ -111,6 +112,17 @@ function createIterativeCostGuard(env = process.env) {
     });
 }
 
+function getReasonerTimeoutMs(env = process.env) {
+    return Math.max(
+        1000,
+        Math.min(
+            30000,
+            Number.parseInt(env.FINANCIAL_ITERATIVE_REASONER_TIMEOUT_MS, 10) ||
+                DEFAULT_REASONER_TIMEOUT_MS
+        )
+    );
+}
+
 function createFinancialIterativeReasoner({
     env = process.env,
     fetchImpl = global.fetch,
@@ -119,7 +131,7 @@ function createFinancialIterativeReasoner({
     const apiKey = String(env.OPENROUTER_API_KEY || '').trim();
     if (!apiKey || typeof fetchImpl !== 'function') return null;
     const model = String(env.FINANCIAL_ITERATIVE_REASONER_MODEL || 'openai/gpt-5.6-terra').trim();
-    const timeoutMs = Math.max(1000, Math.min(30000, Number.parseInt(env.FINANCIAL_ITERATIVE_REASONER_TIMEOUT_MS, 10) || 12000));
+    const timeoutMs = getReasonerTimeoutMs(env);
     const guard = costGuard || createIterativeCostGuard(env);
 
     return async (context = {}) => {
@@ -173,6 +185,7 @@ module.exports = {
         resolvedPlanFromContext,
         enforceResolvedPlanDecision,
         containsBlockedArgumentKey,
-        createIterativeCostGuard
+        createIterativeCostGuard,
+        getReasonerTimeoutMs
     }
 };
