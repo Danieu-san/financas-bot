@@ -20,7 +20,7 @@ test('iterative canary telemetry keeps only sanitized operational fields', () =>
         readCount: 99,
         candidateAction: 'answer',
         adequacyStatus: 'adequate',
-        adequacyReason: 'wrong_result_order PRIVATE USER',
+        adequacyReason: 'private_user',
         baselineAvailable: true,
         sideEffectsZero: true,
         userId: 'private-user',

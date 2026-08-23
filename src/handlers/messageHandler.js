@@ -82,7 +82,8 @@ const {
 } = require('../agent/financialIterativeCanary');
 const { createFinancialIterativeReasoner } = require('../agent/financialIterativeReasoner');
 const {
-    recordFinancialIterativeCanaryAttempt
+    recordFinancialIterativeCanaryAttempt,
+    sanitizeReasonCode
 } = require('../agent/financialIterativeCanaryTelemetry');
 const {
     evaluateFinancialIterativeCanaryEligibility
@@ -568,13 +569,16 @@ async function maybeRunFinancialIterativeCanary({
     const sideEffectsZero = canary.status === 'observed'
         ? hasExplicitZeroSideEffects(canary.shadow)
         : null;
+    const adequacyReason = sanitizeReasonCode(
+        telemetry.adequacyReason || canary.shadow?.adequacy?.reasons?.[0] || 'none'
+    );
     const recorded = recordEligibleAttempt({
         outcome: promoted ? 'selected' : 'fallback',
         reason: telemetry.reason || canary.eligibility?.reason || 'unknown',
         readCount: telemetry.readCount || 0,
         candidateAction: telemetry.candidateAction || canary.shadow?.candidate?.action || 'none',
         adequacyStatus: telemetry.adequacyStatus || canary.shadow?.adequacy?.status || 'unknown',
-        adequacyReason: telemetry.adequacyReason || canary.shadow?.adequacy?.reasons?.[0] || 'none',
+        adequacyReason,
         sideEffectsZero
     });
     if (runtimeEligibility.eligible && !recorded?.recorded) promoted = false;
@@ -587,7 +591,7 @@ async function maybeRunFinancialIterativeCanary({
             `domain=${metricDomain} source=${normalizeMetricLabel(runtimeEligibility.source || 'unknown')} ` +
             `outcome=${metricOutcome} reason=${normalizeMetricLabel(telemetry.reason || canary.eligibility?.reason || 'unknown')} ` +
             `reads=${Number(telemetry.readCount || 0)} adequacy=${normalizeMetricLabel(telemetry.adequacyStatus || 'unknown')} ` +
-            `adequacy_reason=${normalizeMetricLabel(telemetry.adequacyReason || canary.shadow?.adequacy?.reasons?.[0] || 'none')}`
+            `adequacy_reason=${adequacyReason}`
         );
     }
     return {
@@ -603,7 +607,7 @@ async function maybeRunFinancialIterativeCanary({
             readCount: telemetry.readCount || 0,
             candidateAction: telemetry.candidateAction || canary.shadow?.candidate?.action || 'none',
             adequacyStatus: telemetry.adequacyStatus || canary.shadow?.adequacy?.status || 'unknown',
-            adequacyReason: telemetry.adequacyReason || canary.shadow?.adequacy?.reasons?.[0] || 'none',
+            adequacyReason,
             baselineAvailable: Boolean(baseline.trim()),
             sideEffectsZero
         } : null

@@ -4,6 +4,7 @@ const {
 const {
     runFinancialIterativeShadowForSource
 } = require('./financialIterativeShadowAgent');
+const { sanitizeReasonCode } = require('./financialIterativeCanaryTelemetry');
 
 function buildFinancialIterativeCanaryTelemetry({ eligibility = {}, shadow = null } = {}) {
     if (!eligibility.eligible || !shadow) {
@@ -22,7 +23,7 @@ function buildFinancialIterativeCanaryTelemetry({ eligibility = {}, shadow = nul
         readCount: Number(shadow.readCount || 0),
         candidateAction: String(shadow.candidate?.action || 'none'),
         adequacyStatus: String(shadow.adequacy?.status || 'unknown'),
-        adequacyReason: String(shadow.adequacy?.reasons?.[0] || 'none'),
+        adequacyReason: sanitizeReasonCode(shadow.adequacy?.reasons?.[0] || 'none'),
         comparable: shadow.comparison?.comparable === true,
         sameCapability: shadow.comparison?.sameCapability ?? null,
         sameSource: shadow.comparison?.sameSource ?? null,

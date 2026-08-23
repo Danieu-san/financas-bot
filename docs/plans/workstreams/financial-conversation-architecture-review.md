@@ -51,10 +51,12 @@ sem novo ciclo de correção por frase.
 31. [concluído com rollback seguro] o smoke real executou a leitura familiar e
     gerou candidato, mas o contrato exaustivo de ranking rejeitou a resposta;
     baseline preservado e canário revertido imediatamente para `off`.
-32. [aguardando auditoria] aceitar somente prefixo contínuo iniciado no primeiro
-    colocado, preservar controles de ordem e registrar código sanitizado da
-    inadequação.
-33. [pendente de GO] publicar novo artefato imutável com `off`, reativar somente
+32. [NO-GO fechado por novo recovery] o ranking foi aprovado, mas a telemetria
+    aceitava identidade já em `snake_case` e o log ainda consumia motivo bruto.
+33. [aguardando reauditoria] allowlist fechada aplicada antes do JSONL, log e
+    envelope terminal; código desconhecido vira `unknown`; regressão de `group`
+    coberta explicitamente.
+34. [pendente de GO] publicar novo artefato imutável com `off`, reativar somente
     `expenses`/`personal_sheet` e repetir uma vez pergunta base, follow-up,
     telemetria terminal e health, com rollback imediato se qualquer invariante
     falhar.

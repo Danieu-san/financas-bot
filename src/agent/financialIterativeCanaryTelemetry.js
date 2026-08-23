@@ -9,6 +9,53 @@ const DEFAULT_TELEMETRY_PATH = path.resolve(
 );
 const VALID_OUTCOMES = new Set(['selected', 'promoted', 'fallback']);
 const VALID_SOURCES = new Set(['central_read_model', 'personal_sheet']);
+const VALID_ADEQUACY_REASONS = new Set([
+    'none',
+    'unknown',
+    'unavailable',
+    'contained_error',
+    'numerical_verification_failed',
+    'empty_answer',
+    'empty_question',
+    'internal_data_leak',
+    'invalid_percentage_relation',
+    'invalid_plan_action',
+    'invalid_tool_order',
+    'invented_amount',
+    'invented_count',
+    'invented_percentage',
+    'missing_executed_query_plan',
+    'missing_plan_action',
+    'missing_planned_tool',
+    'missing_query_plan',
+    'missing_recent_item',
+    'missing_result_reference',
+    'missing_tool_result',
+    'period_label_mismatch',
+    'tool_mismatch',
+    'unexpected_tool_result',
+    'wrong_latest_item',
+    'wrong_percentage_components',
+    'wrong_recent_order',
+    'wrong_result_order',
+    'person_unproven',
+    'person_mismatch',
+    'person_scope_unproven',
+    'person_scope_mismatch',
+    'answer_person_mismatch',
+    'period_unproven',
+    'period_mismatch',
+    'time_basis_unproven',
+    'time_basis_mismatch',
+    'dimensions_unproven',
+    'dimension_mismatch',
+    'source_unproven',
+    'missing_evidence',
+    'source_unavailable',
+    'empty_unproven',
+    'absence_claim_unsupported',
+    'coverage_unproven'
+]);
 
 function sanitizeLabel(value, fallback = 'unknown') {
     const normalized = String(value || '')
@@ -26,7 +73,7 @@ function sanitizeEnum(value, allowed, fallback) {
 
 function sanitizeReasonCode(value, fallback = 'unknown') {
     const normalized = String(value || '').trim().toLowerCase();
-    return /^[a-z][a-z0-9_]{0,79}$/.test(normalized) ? normalized : fallback;
+    return VALID_ADEQUACY_REASONS.has(normalized) ? normalized : fallback;
 }
 
 function boundedReadCount(value) {
@@ -152,6 +199,7 @@ function summarizeFinancialIterativeCanaryTelemetry({
 module.exports = {
     DEFAULT_TELEMETRY_PATH,
     recordFinancialIterativeCanaryAttempt,
+    sanitizeReasonCode,
     sanitizeFinancialIterativeCanaryAttempt,
     summarizeFinancialIterativeCanaryTelemetry,
     __test__: { boundedReadCount, sanitizeAttemptId, sanitizeLabel, sanitizeReasonCode }

@@ -2219,6 +2219,33 @@ test('financial agent full debug log is controlled by a simple env flag and excl
     assert.match(payload, /"verified":true/);
 });
 
+test('result verifier preserves the complete ordered labels returned for groups', () => {
+    const toolResult = {
+        ok: true,
+        tool: 'query_financial_plan',
+        plan: { domain: 'expenses', operation: 'group' },
+        result: {
+            value: [
+                { label: 'Alimentação', total: 100 },
+                { label: 'Lazer', total: 80 }
+            ]
+        }
+    };
+
+    assert.strictEqual(
+        verifyAgentAnswer('1. Alimentação\n2. Lazer', { toolResult }).ok,
+        true
+    );
+    assert.strictEqual(
+        verifyAgentAnswer('1. Alimentação', { toolResult }).reason,
+        'wrong_result_order'
+    );
+    assert.strictEqual(
+        verifyAgentAnswer('1. Lazer\n2. Alimentação', { toolResult }).reason,
+        'wrong_result_order'
+    );
+});
+
 test('result verifier accepts only a contiguous ranking prefix starting at first place', () => {
     const toolResult = {
         ok: true,

@@ -4,7 +4,7 @@ Atualizado em: 2026-08-23
 
 ## Estado
 
-`ARQ-01 A ARQ-06 EM GO — CANÁRIO OCI REVERTIDO PARA OFF; RECOVERY DE RANKING AGUARDA AUDITORIA INDEPENDENTE`.
+`ARQ-01 A ARQ-06 EM GO — CANÁRIO OCI REVERTIDO PARA OFF; RECOVERY 323 AGUARDA REAUDITORIA INDEPENDENTE`.
 
 ## Objetivo
 
@@ -289,6 +289,17 @@ proibidos.
   `1.816/1.826`, zero falha e dez skips previstos;
 - candidato:
   `docs/audit/322-financial-ranking-prefix-and-adequacy-telemetry-recovery-candidate-2026-08-23.md`;
-- próximo passo: publicar hash imutável e auditar o recovery 322; somente com
-  GO será permitido novo artefato, deploy com `off` e uma nova tentativa única
-  da pergunta base e do follow-up.
+- auditoria do hash `c9a4a2a9...`: `NO-GO` por achado alto de privacidade; a
+  validação apenas sintática permitia identidade já em `snake_case` no JSONL e
+  o log ainda sanitizava o motivo bruto separadamente;
+- recovery aplica allowlist fechada antes de qualquer sink, reutiliza o mesmo
+  valor no JSONL, log e envelope terminal e reduz código desconhecido a
+  `unknown`;
+- controle adicional prova que `group` ainda exige lista completa e ordenada;
+- evidência do recovery: causal `149/149` e suíte hermética ampla
+  `1.819/1.829`, zero falha e dez skips previstos;
+- recovery:
+  `docs/audit/323-financial-adequacy-reason-allowlist-recovery-2026-08-23.md`;
+- próximo passo: publicar novo hash imutável e reauditar o recovery 323;
+  somente com GO será permitido novo artefato, deploy com `off` e uma nova
+  tentativa única da pergunta base e do follow-up.

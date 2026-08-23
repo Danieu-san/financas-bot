@@ -27,6 +27,7 @@ const {
     runFinancialIterativeShadowWithAdapters
 } = require('../src/agent/financialIterativeShadowAgent').__test__;
 const { __test__: messageHandlerTest } = require('../src/handlers/messageHandler');
+const logger = require('../src/utils/logger');
 
 function activeEnv(overrides = {}) {
     return {
@@ -214,6 +215,21 @@ test('iterative canary telemetry is value-free, identity-free and comparison-onl
         samePayload: false
     });
     assert.doesNotMatch(JSON.stringify(telemetry), /999|Pessoa|private|user_id|R\$/i);
+});
+
+test('iterative canary telemetry rejects an identity already shaped like a reason code', () => {
+    const telemetry = buildFinancialIterativeCanaryTelemetry({
+        eligibility: { eligible: true, domain: 'expenses', source: 'personal_sheet' },
+        shadow: {
+            readCount: 1,
+            stopReason: 'candidate_answer',
+            candidate: { action: 'answer', text: 'resposta omitida' },
+            adequacy: { ok: false, status: 'inadequate', reasons: ['private_user'] },
+            comparison: {},
+            sideEffects: { messagesSent: 0, financialWrites: 0 }
+        }
+    });
+    assert.strictEqual(telemetry.adequacyReason, 'unknown');
 });
 
 test('personal sheet adapters keep server owner authority and expose only personal-sheet results', async () => {
@@ -627,6 +643,47 @@ test('message-handler records every eligible selection before exposing it', asyn
     assert.strictEqual(recorded.input.sideEffectsZero, true);
     assert.strictEqual(recorded.options.env.FINANCIAL_ITERATIVE_CANARY_MODE, 'canary');
     assert.strictEqual(output.delivery.attemptId, '11111111-1111-4111-8111-111111111111');
+});
+
+test('message-handler uses the allowlisted adequacy reason for both telemetry and logs', async () => {
+    const info = [];
+    const originalInfo = logger.info;
+    let recorded = null;
+    logger.info = message => info.push(String(message));
+    try {
+        const output = await messageHandlerTest.maybeRunFinancialIterativeCanary({
+            baselineAnswer: 'Resposta vigente.',
+            message: 'quais foram os maiores gastos?',
+            userId: 'member-a',
+            domain: 'expenses',
+            source: 'personal_sheet',
+            env: activeEnv(),
+            runCanary: async () => ({
+                status: 'observed',
+                eligibility: { eligible: true, reason: 'eligible', domain: 'expenses', source: 'personal_sheet' },
+                telemetry: {
+                    status: 'observed', reason: 'candidate_answer', domain: 'expenses',
+                    source: 'personal_sheet', readCount: 1, candidateAction: 'answer',
+                    adequacyStatus: 'inadequate', adequacyReason: 'private_user'
+                },
+                shadow: {
+                    candidate: { action: 'answer', text: 'não deve aparecer' },
+                    adequacy: { ok: false, status: 'inadequate', reasons: ['private_user'] },
+                    sideEffects: { messagesSent: 0, financialWrites: 0 }
+                }
+            }),
+            recordAttempt: input => {
+                recorded = input;
+                return { recorded: true };
+            }
+        });
+        assert.strictEqual(output.promoted, false);
+        assert.strictEqual(recorded.adequacyReason, 'unknown');
+        assert.match(info.join('\n'), /adequacy_reason=unknown/);
+        assert.doesNotMatch(info.join('\n'), /private_user/);
+    } finally {
+        logger.info = originalInfo;
+    }
 });
 
 test('message-handler records terminal delivery only after the caller resolves reply', () => {
