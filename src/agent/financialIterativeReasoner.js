@@ -152,7 +152,7 @@ function createFinancialIterativeReasoner({
 } = {}) {
     const apiKey = String(env.OPENROUTER_API_KEY || '').trim();
     if (!apiKey || typeof fetchImpl !== 'function') return null;
-    const model = String(env.FINANCIAL_ITERATIVE_REASONER_MODEL || 'openai/gpt-5.6-terra').trim();
+    const model = String(env.FINANCIAL_ITERATIVE_REASONER_MODEL || 'openai/gpt-4o-mini').trim();
     const timeoutMs = getReasonerTimeoutMs(env);
     const guard = costGuard || createIterativeCostGuard(env);
 

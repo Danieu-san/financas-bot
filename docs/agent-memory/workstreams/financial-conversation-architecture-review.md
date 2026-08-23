@@ -332,6 +332,25 @@ proibidos.
   `1.820/1.830`, zero falha e dez skips previstos;
 - candidato:
   `docs/audit/326-financial-reasoner-structured-output-recovery-candidate-2026-08-23.md`;
-- próximo passo: publicar hash imutável e auditar o recovery 326; somente com
-  GO será permitido novo artefato com canário `off` e uma tentativa operacional
-  única da pergunta base.
+- a auditoria integral do recovery 326 retornou `GO TÉCNICO LOCAL`, zero
+  achados e nenhuma lacuna indispensável residual;
+- o artefato imutável `742974cc...` foi promovido com canário `off`, processo
+  único, zero reinícios e health local/público verde;
+- a única pergunta base caiu no baseline com `reasoner_http_failure`; a
+  telemetria registrou uma leitura e zero efeitos e o canário voltou
+  imediatamente para `off`;
+- sonda sintética isolou HTTP 404: `openai/gpt-5.6-terra` não possui endpoint
+  público compatível no OpenRouter; nenhuma evidência financeira foi enviada;
+- `openai/gpt-4o-mini` foi confirmado por documentação oficial e por uma única
+  sonda sintética HTTP 200 com o mesmo JSON Schema estrito e provider exigido;
+- recovery 327 altera somente o default e o exemplo de ambiente e faz o teste
+  exigir o slug público real; fronteiras de dados, escopo, adequação, efeitos e
+  writers permanecem invariantes;
+- evidência local: focal `34/34`, causal `142/142`, suíte hermética ampla
+  `1.820/1.830`, zero falha e dez skips previstos; cobertura de linhas
+  `91,76%`, branches `74,74%` e funções `91,22%`;
+- candidato:
+  `docs/audit/327-financial-reasoner-openrouter-model-recovery-candidate-2026-08-23.md`;
+- próximo passo: concluir a suíte já ativa, publicar e auditar o hash imutável;
+  somente com GO será permitido alterar o modelo privado e promover artefato
+  com canário `off` antes de uma única pergunta base.

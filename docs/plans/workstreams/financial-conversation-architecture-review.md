@@ -62,9 +62,15 @@ sem novo ciclo de correção por frase.
     artefato foi promovido e o timeout privado foi fixado em 30 segundos.
 36. [concluído com rollback seguro] o smoke não expirou, mas produziu
     `reasoner_invalid_decision` após uma leitura; canário revertido para `off`.
-37. [candidato aguardando auditoria] Structured Outputs restringe o caminho
-    pós-leitura a `answer` e exige provider compatível, sem alterar o kernel.
-38. [pendente de GO] promover novo artefato com `off` e repetir uma única vez a
+37. [concluído] Structured Outputs recebeu GO independente e o artefato
+    `742974cc...` foi promovido com o canário desligado.
+38. [concluído com rollback seguro] a única pergunta base caiu no baseline com
+    `reasoner_http_failure`; canário voltou imediatamente para `off`, zero
+    efeitos e health verde.
+39. [candidato aguardando auditoria] substituir somente o slug inexistente do
+    OpenRouter pelo `openai/gpt-4o-mini`, já confirmado por sonda sintética com
+    o mesmo schema estrito.
+40. [pendente de GO] promover novo artefato com `off` e repetir uma única vez a
     pergunta base; somente se promover, executar follow-up e fechar o gate.
 
 ## Critério de conclusão

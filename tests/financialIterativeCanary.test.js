@@ -486,7 +486,7 @@ test('iterative reasoner sends only sanitized context and fails closed on invali
     const requests = [];
     let modelContent = '{"action":"clarify","question":"Qual periodo?"}';
     const reasoner = createFinancialIterativeReasoner({
-        env: { OPENROUTER_API_KEY: 'secret-key', FINANCIAL_ITERATIVE_REASONER_MODEL: 'openai/test-model' },
+        env: { OPENROUTER_API_KEY: 'secret-key' },
         costGuard: { reserveModelCall: () => ({ allowed: true }) },
         fetchImpl: async (_url, options) => {
             requests.push(JSON.parse(options.body));
@@ -528,7 +528,7 @@ test('iterative reasoner sends only sanitized context and fails closed on invali
         }),
         /reasoner_invalid_decision/
     );
-    assert.strictEqual(requests[0].model, 'openai/test-model');
+    assert.strictEqual(requests[0].model, 'openai/gpt-4o-mini');
     assert.deepStrictEqual(requests[0].provider, { require_parameters: true });
     assert.deepStrictEqual(requests[0].response_format, {
         type: 'json_schema',
