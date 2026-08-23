@@ -4,7 +4,7 @@ Atualizado em: 2026-08-22
 
 ## Estado
 
-`ARQ-01 A ARQ-06 EM GO TÉCNICO LOCAL — ARTEFATO OFF VERIFICADO; OCI BLOQUEADA POR ACESSO`.
+`ARQ-01 A ARQ-06 EM GO — RELEASE OCI OFF EM PRODUÇÃO; ATIVAÇÃO READ-ONLY AGUARDA SEGREDO SEGURO`.
 
 ## Objetivo
 
@@ -55,10 +55,12 @@ matemática e toda escrita continuam determinísticos.
 
 ## Próxima ação exata
 
-Restabelecer o acesso administrativo normal à OCI, validar o preflight remoto
-e promover o artefato imutável `ccafb858...` com o canário ainda desligado.
-Somente depois avaliar a ativação mínima de um domínio read-only com segredo
-novo e armazenado com segurança. Writer e retirada do legado continuam
+Executar uma pergunta real de despesas e um follow-up pelo WhatsApp de Daniel,
+confirmar resposta adequada, telemetria terminal sanitizada e saúde estável.
+O consentimento específico foi obtido; a chave está no `.env` privado da OCI;
+`expenses`/`central_read_model` está ativo para exatamente os dois usuários
+vinculados server-side; o smoke sintético do reasoner passou. Fazer rollback do
+canário se qualquer invariante falhar. Writer e retirada do legado continuam
 proibidos.
 
 ## Implementação ARQ-02
@@ -198,3 +200,22 @@ proibidos.
 - `npm audit --omit=dev` passou a relatar o advisory alto sem correção
   `GHSA-jmr9-qjv8-65gv`; o instalador desliga download do navegador, e a
   disposição final deve ser confirmada no preflight remoto.
+- acesso SSH permanente recuperado pelo manifesto privado e pelo cofre montado;
+- release `ccafb858...` promovido na OCI sem rollback, com processo único,
+  zero reinícios e health local/público `ready/healthy`;
+- canário permaneceu `off`, allowlists vazias e OpenRouter ausente;
+- fechamento de produção:
+  `docs/audit/316-financial-iterative-canary-off-production-close-2026-08-23.md`.
+- chave OpenRouter gravada posteriormente no `.env` privado da OCI e validada
+  sem conteúdo financeiro; canário ainda `off` por aguardar consentimento
+  específico para o envio de evidência sanitizada ao provedor externo;
+- chave SSH OCI permanente disponível no SSD em
+  `E:\Users\horus\Documents\FinancasBot\private-recovery\financas_bot_oci_permanent_20260728`;
+  nenhum segredo foi copiado para o Git.
+- consentimento específico registrado e canário ativado somente para
+  `expenses`/`central_read_model`, com dois usuários derivados server-side;
+- runtime confirmou a allowlist por `SIGHUP`, health permaneceu `ready/healthy`
+  e o reasoner passou no smoke sintético sem dados financeiros;
+- ativação controlada:
+  `docs/audit/317-financial-iterative-expenses-canary-production-activation-2026-08-23.md`;
+- smoke real de WhatsApp e telemetria terminal ainda pendentes.
