@@ -64,3 +64,11 @@ test('launcher grava progresso durante a execução e limita o no-op a dez minut
     assert.match(log, /progresso-visível/);
     assert.match(log, /status=0/);
 });
+
+test('tarefa usa principal elevado para permitir o helper do sandbox', () => {
+    const installer = fs.readFileSync(path.join(
+        __dirname, '..', 'scripts', 'agent', 'Install-ChatCodexOrchestrationWatcher.ps1'
+    ), 'utf8');
+    assert.match(installer, /RunLevel = 'Highest'/);
+    assert.doesNotMatch(installer, /RunLevel = 'Limited'/);
+});
