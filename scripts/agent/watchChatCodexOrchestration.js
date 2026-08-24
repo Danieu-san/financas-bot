@@ -163,10 +163,17 @@ function parsePorcelainPaths(raw) {
 }
 
 function listIgnoredPaths(repoPath, deps = {}) {
-    const raw = (deps.runGit || runGit)(repoPath, [
+    const git = deps.runGit || runGit;
+    const raw = git(repoPath, [
         'ls-files', '-z', '--others', '--ignored', '--exclude-standard'
-    ], deps);
+    ], deps.runGit ? deps : {});
     return new Set(raw.split('\0').filter(Boolean).map(filePath => filePath.replaceAll('\\', '/')));
+}
+
+function assertNoIgnoredPaths(repoPath, deps = {}) {
+    const ignored = (deps.listIgnoredPaths || listIgnoredPaths)(repoPath, deps);
+    const first = ignored.values().next().value;
+    if (first) throw new Error(`worktree contém caminho ignorado: ${first}`);
 }
 
 function publishLocalResult({ repoPath, branch, statePath, observedHash, initialState }, deps = {}) {
@@ -210,7 +217,7 @@ function publishLocalResult({ repoPath, branch, statePath, observedHash, initial
 
 function runCodex({ codexPath, powershellPath, repoPath, prompt, logPath }, deps = {}) {
     const spawn = deps.spawnSync || spawnSync;
-    const ignoredBefore = (deps.listIgnoredPaths || listIgnoredPaths)(repoPath, deps);
+    assertNoIgnoredPaths(repoPath, deps);
     const commonArgs = [
         'exec', '--ephemeral', '--sandbox', 'workspace-write',
         '-m', 'gpt-5.4-mini', '-c', 'model_reasoning_effort="medium"', '-C', repoPath, '-'
@@ -227,9 +234,7 @@ function runCodex({ codexPath, powershellPath, repoPath, prompt, logPath }, deps
         timeout: 30 * 60_000,
         maxBuffer: 10 * 1024 * 1024
     });
-    const ignoredAfter = (deps.listIgnoredPaths || listIgnoredPaths)(repoPath, deps);
-    const newIgnored = [...ignoredAfter].find(filePath => !ignoredBefore.has(filePath));
-    if (newIgnored) throw new Error(`executor criou caminho ignorado: ${newIgnored}`);
+    assertNoIgnoredPaths(repoPath, deps);
     const log = [
         `status=${result.status}`,
         result.stdout || '',
@@ -388,6 +393,7 @@ module.exports = {
     DEFAULT_PLAN_PATH,
     DEFAULT_STATE_PATH,
     buildExecutorPrompt,
+    assertNoIgnoredPaths,
     listIgnoredPaths,
     defaultCache,
     fetchRemoteState,

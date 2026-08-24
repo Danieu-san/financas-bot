@@ -4,12 +4,16 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 const test = require('node:test');
 const { runCodex } = require('../scripts/agent/watchChatCodexOrchestration');
 
 function fixture() {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'orch-watch-ignored-'));
     const codex = path.join(root, 'codex.exe');
+    execFileSync('git', ['init', '-q', root]);
+    fs.writeFileSync(path.join(root, '.gitignore'), '.secret\n');
+    execFileSync('git', ['-C', root, 'add', '.gitignore']);
     fs.writeFileSync(codex, 'fixture\n');
     return {
         root,
@@ -23,22 +27,22 @@ function fixture() {
     };
 }
 
-test('executor falha fechado quando cria arquivo novo ignorado', () => {
+test('cadeia Git real rejeita arquivo ignorado criado pelo executor', () => {
     const item = fixture();
-    const snapshots = [new Set(['cache/existente']), new Set(['cache/existente', '.env.novo'])];
     assert.throws(() => runCodex(item.options, {
-        listIgnoredPaths: () => snapshots.shift(),
-        spawnSync: () => ({ status: 0, stdout: 'ok', stderr: '' })
-    }), /executor criou caminho ignorado: \.env\.novo/);
+        spawnSync: () => {
+            fs.writeFileSync(path.join(item.root, '.secret'), 'novo\n');
+            return { status: 0, stdout: 'ok', stderr: '' };
+        }
+    }), /worktree contém caminho ignorado: \.secret/);
 });
 
-test('arquivo ignorado preexistente e inalterado não produz falso positivo', () => {
+test('ignorado preexistente impede o executor antes do spawn', () => {
     const item = fixture();
-    const snapshots = [new Set(['cache/existente']), new Set(['cache/existente'])];
-    const status = runCodex(item.options, {
-        listIgnoredPaths: () => snapshots.shift(),
-        spawnSync: () => ({ status: 0, stdout: 'ok', stderr: '' })
-    });
-    assert.equal(status, 0);
-    assert.match(fs.readFileSync(item.options.logPath, 'utf8'), /status=0/);
+    fs.writeFileSync(path.join(item.root, '.secret'), 'preexistente\n');
+    let spawned = false;
+    assert.throws(() => runCodex(item.options, {
+        spawnSync: () => { spawned = true; return { status: 0, stdout: '', stderr: '' }; }
+    }), /worktree contém caminho ignorado: \.secret/);
+    assert.equal(spawned, false);
 });
