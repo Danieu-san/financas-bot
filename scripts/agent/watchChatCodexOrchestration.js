@@ -137,7 +137,9 @@ function buildExecutorPrompt({ branch, observedHash, taskId }) {
         `Branch remota: ${branch}.`,
         `Task: ${taskId}. Hash mecânico observado: ${observedHash}.`,
         'Leia AGENTS.md, docs/agent-memory/README.md, o checkpoint, plano e estado deste workstream.',
-        'Confirme que o remoto ainda está CODEX_READY com exatamente esse hash; falhe fechado se divergir.',
+        'O hash mecânico é o SHA-256 dos bytes serializados do arquivo JSON de estado; não é SHA de commit nem FETCH_HEAD.',
+        'Após git fetch, confirme que o estado remoto continua CODEX_READY e que o SHA-256 do JSON remoto é exatamente o hash mecânico observado.',
+        'Nunca compare o hash mecânico com o SHA do commit; falhe fechado somente se o conteúdo/estado remoto divergir.',
         'Reivindique CODEX_RUNNING por compare-and-swap, publique a reivindicação e execute apenas os checks descritos no checkpoint.',
         'Não toque no bot, produção, OCI, WhatsApp, Pluggy, planilhas, .env, writers ou dados reais.',
         'Registre evidência, publique CHAT_READY e, se o navegador interno estiver acessível, envie ao Chat somente ORCH-01 CHAT_READY <commit_sha>.',
@@ -238,11 +240,40 @@ function pollOnce(options, deps = {}) {
             }, deps.now?.() || new Date());
             throw error;
         }
+
+        let finalRaw;
+        try {
+            finalRaw = (deps.fetchRemoteState || fetchRemoteState)(repoPath, branch, statePath, deps);
+        } catch (error) {
+            saveCache(cachePath, {
+                ...cache,
+                launch_status: 'failed:verification_error'
+            }, deps.now?.() || new Date());
+            throw error;
+        }
+        const finalState = parseState(finalRaw);
+        const finalHash = stateHash(finalRaw);
+        const reachedChatReady = exitCode === 0
+            && finalState.orchestration_state === 'CHAT_READY'
+            && finalState.task_id === state.task_id;
+        const launchStatus = reachedChatReady
+            ? 'succeeded'
+            : exitCode === 0
+                ? 'failed:state_not_advanced'
+                : `failed:${exitCode}`;
         saveCache(cachePath, {
             ...cache,
-            launch_status: exitCode === 0 ? 'succeeded' : `failed:${exitCode}`
+            observed_hash: finalHash,
+            observed_state: finalState.orchestration_state,
+            launch_status: launchStatus
         }, deps.now?.() || new Date());
-        return { action: 'launched', exitCode, hash: observedHash, state: state.orchestration_state };
+        return {
+            action: 'launched',
+            exitCode,
+            hash: observedHash,
+            state: state.orchestration_state,
+            finalState: finalState.orchestration_state
+        };
     }, deps);
 }
 

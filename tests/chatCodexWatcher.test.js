@@ -37,6 +37,15 @@ function fixture(state = 'CHAT_WORKING') {
     return { codex, powershell, repo, root, runtime, raw: serializeState(value) };
 }
 
+function withState(raw, state, updatedAt = '2026-08-24T00:02:00.000Z') {
+    const value = JSON.parse(raw);
+    value.orchestration_state = state;
+    value.next_executor = state.startsWith('CODEX_') ? 'codex' : 'chat';
+    value.updated_at = updatedAt;
+    value.result_file = state === 'CHAT_READY' ? 'docs/result.md' : null;
+    return serializeState(value);
+}
+
 function watcherOptions(item, extra = {}) {
     return {
         repo: item.repo,
@@ -64,12 +73,14 @@ test('poll inalterado não desperta executor', () => {
 test('CODEX_READY novo dispara exatamente uma vez', () => {
     const item = fixture('CODEX_READY');
     let launches = 0;
+    let raw = item.raw;
     const deps = {
-        fetchRemoteState: () => item.raw,
+        fetchRemoteState: () => raw,
         runCodex: ({ prompt }) => {
             launches += 1;
             assert.match(prompt, /ORCH-01/);
             assert.doesNotMatch(prompt, /produção.*alter/i);
+            raw = withState(raw, 'CHAT_READY');
             return 0;
         }
     };
@@ -77,7 +88,9 @@ test('CODEX_READY novo dispara exatamente uma vez', () => {
     assert.equal(pollOnce(options, deps).action, 'launched');
     assert.equal(pollOnce(options, deps).action, 'unchanged');
     assert.equal(launches, 1);
-    assert.equal(readCache(path.join(item.runtime, 'watcher-state.json')).launch_status, 'succeeded');
+    const cache = readCache(path.join(item.runtime, 'watcher-state.json'));
+    assert.equal(cache.launch_status, 'succeeded');
+    assert.equal(cache.observed_state, 'CHAT_READY');
 });
 
 test('hash novo de CODEX_READY permite novo disparo', () => {
@@ -86,13 +99,15 @@ test('hash novo de CODEX_READY permite novo disparo', () => {
     let launches = 0;
     const deps = {
         fetchRemoteState: () => raw,
-        runCodex: () => { launches += 1; return 0; }
+        runCodex: () => {
+            launches += 1;
+            raw = withState(raw, 'CHAT_READY');
+            return 0;
+        }
     };
     const options = watcherOptions(item);
     pollOnce(options, deps);
-    const changed = JSON.parse(raw);
-    changed.updated_at = '2026-08-24T00:01:00.000Z';
-    raw = serializeState(changed);
+    raw = withState(raw, 'CODEX_READY', '2026-08-24T00:03:00.000Z');
     assert.equal(pollOnce(options, deps).action, 'launched');
     assert.equal(launches, 2);
 });
@@ -135,6 +150,25 @@ test('prompt é local, limitado e não contém ação financeira', () => {
     assert.match(prompt, /falhe fechado/);
     assert.match(prompt, /Não toque no bot/);
     assert.match(prompt, /CHAT_READY/);
+    assert.match(prompt, /SHA-256 dos bytes serializados/);
+    assert.match(prompt, /não é SHA de commit nem FETCH_HEAD/);
+});
+
+test('exit zero sem CHAT_READY falha fechado e não relança o mesmo hash', () => {
+    const item = fixture('CODEX_READY');
+    let launches = 0;
+    const deps = {
+        fetchRemoteState: () => item.raw,
+        runCodex: () => { launches += 1; return 0; }
+    };
+    const options = watcherOptions(item);
+    const result = pollOnce(options, deps);
+    assert.equal(result.action, 'launched');
+    assert.equal(result.finalState, 'CODEX_READY');
+    assert.equal(readCache(path.join(item.runtime, 'watcher-state.json')).launch_status,
+        'failed:state_not_advanced');
+    assert.equal(pollOnce(options, deps).action, 'unchanged');
+    assert.equal(launches, 1);
 });
 
 test('launcher PowerShell usa argumentos fixos sem shell', () => {
