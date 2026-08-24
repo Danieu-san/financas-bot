@@ -128,19 +128,10 @@ A primeira troca deve ser estritamente no-op/documental:
 
 ## Resultado do Codex em 2026-08-24
 
-- `CODEX_READY` foi reivindicado com compare-and-swap e publicado como
-  `CODEX_RUNNING` no commit
+- `CODEX_READY` foi reivindicado por CAS e publicado como `CODEX_RUNNING` em
   `63773ba47182a9f7c7295ba856508822addbb5c1`;
-- syntax check do transitioner: verde;
-- teste focal do protocolo: `12/12` verde;
-- o validator inicialmente falhou porque exigia o valor transitório
-  `CHAT_WORKING` dentro do arquivo de estado vivo e porque este checkpoint não
-  citava literalmente o path do estado;
-- o contrato foi corrigido para validar o campo estável
-  `orchestration_state`, mantendo a enumeração de estados no transitioner, e o
-  path mecânico foi explicitado neste checkpoint;
-- após a correção, `validateAgentWorkflow.js` retornou
-  `agent-workflow: OK` e o teste focal permaneceu `12/12` verde;
+- syntax, `12/12` testes e validator ficaram verdes após alinhar o contrato ao
+  campo estável `orchestration_state`;
 - nenhum arquivo do bot, runtime, produção ou dado real foi tocado.
 
 Limite probatório: o usuário trouxe a passagem `CODEX_READY` a esta conversa;
@@ -210,12 +201,17 @@ falha e single-shot após erro. Para repetir o ensaio com o mesmo estado remoto,
 o cache local somente poderá ser reinicializado por decisão operacional depois
 de confirmar que nenhum processo Codex foi criado.
 
+Na repetição, o caminho absoluto funcionou e o CLI foi efetivamente chamado,
+mas a conta ChatGPT recusou o slug explícito `gpt-5.6-sol` como não suportado.
+O cache terminou em `failed:1` e polls posteriores não relançaram. O recovery
+seguinte fixa `gpt-5.4` com esforço `medium`, capacidade suficiente e suportada
+para este ensaio documental, sem alterar a configuração pessoal do usuário.
+
 ## Próxima ação exata
 
-Publicar e reauditar o recovery do launcher. Com GO, confirmar novamente a
-ausência de processo Codex da tentativa falha, reinicializar uma única vez o
-cache local e observar a tarefa completar o `CODEX_READY` já publicado até
-`CHAT_READY`.
+Publicar e reauditar o recovery de compatibilidade do modelo. Com GO, preservar
+o cache falho, reinicializar uma única vez o cache ativo e observar a tarefa
+completar o `CODEX_READY` já publicado até `CHAT_READY`.
 
 ## Capacidade
 

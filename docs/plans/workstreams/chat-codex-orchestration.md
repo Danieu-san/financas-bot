@@ -1,6 +1,6 @@
 # Plano — coordenação Chat ↔ Codex
 
-Status: `ORCH-01: CODEX_READY detectado uma vez; launcher absoluto aguardando reauditoria`.
+Status: `ORCH-01: launcher validado; compatibilidade do modelo aguardando reauditoria`.
 
 ## Objetivo
 
@@ -85,7 +85,8 @@ Estados terminais não possuem transição de saída nesta versão.
    recusam tarefa viva, lock malformado ou PID vivo e recuperam apenas PID morto.
 10. [em execução] O Chat publicou `CODEX_READY` e o watcher o detectou uma vez;
    o primeiro spawn falhou antes do Codex porque `pwsh.exe` não estava no PATH
-   da tarefa. Reauditar o caminho absoluto e então repetir sem novo trabalho.
+   da tarefa. O caminho absoluto abriu o CLI na repetição, mas o slug Sol não é
+   suportado nessa autenticação; reauditar o fallback `gpt-5.4` em `medium`.
 11. [pendente] Com GO independente, concluir watcher -> Codex -> Chat;
    remover ou pausar a tarefa se qualquer ponta falhar.
 
@@ -113,6 +114,6 @@ Estados terminais não possuem transição de saída nesta versão.
 
 ## Próxima ação
 
-Publicar e reauditar o recovery do launcher absoluto; com GO, reinicializar o
+Publicar e reauditar o recovery de modelo; com GO, reinicializar o
 cache local da tentativa comprovadamente sem processo filho e concluir somente
 o ensaio no-op.

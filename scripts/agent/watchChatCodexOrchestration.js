@@ -149,7 +149,7 @@ function runCodex({ codexPath, powershellPath, repoPath, prompt, logPath }, deps
     const spawn = deps.spawnSync || spawnSync;
     const commonArgs = [
         'exec', '--ephemeral', '--full-auto', '--sandbox', 'workspace-write',
-        '-m', 'gpt-5.6-sol', '-c', 'model_reasoning_effort="medium"', '-C', repoPath, '-'
+        '-m', 'gpt-5.4', '-c', 'model_reasoning_effort="medium"', '-C', repoPath, '-'
     ];
     const extension = path.extname(codexPath).toLowerCase();
     const command = extension === '.ps1' ? powershellPath : codexPath;
