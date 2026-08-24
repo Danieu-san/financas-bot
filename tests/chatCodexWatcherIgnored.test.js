@@ -46,3 +46,21 @@ test('ignorado preexistente impede o executor antes do spawn', () => {
     }), /worktree contém caminho ignorado: \.secret/);
     assert.equal(spawned, false);
 });
+
+test('launcher grava progresso durante a execução e limita o no-op a dez minutos', () => {
+    const item = fixture();
+    const status = runCodex(item.options, {
+        listIgnoredPaths: () => new Set(),
+        spawnSync(command, args, options) {
+            assert.equal(options.timeout, 10 * 60_000);
+            assert.equal(options.stdio[0], 'pipe');
+            fs.writeSync(options.stdio[1], 'progresso-visível\n');
+            return { status: 0 };
+        }
+    });
+    const log = fs.readFileSync(item.options.logPath, 'utf8');
+    assert.equal(status, 0);
+    assert.match(log, /started_at=/);
+    assert.match(log, /progresso-visível/);
+    assert.match(log, /status=0/);
+});

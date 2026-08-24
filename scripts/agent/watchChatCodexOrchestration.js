@@ -137,7 +137,7 @@ function buildExecutorPrompt({ branch, observedHash, taskId }) {
         'Execute somente o ensaio no-op do workstream chat-codex-orchestration.',
         `Branch remota: ${branch}.`,
         `Task: ${taskId}. Hash mecânico observado: ${observedHash}.`,
-        'Leia AGENTS.md, docs/agent-memory/README.md, o checkpoint, plano e estado deste workstream.',
+        'Tarefa mecânica no-op: leia somente AGENTS.md, o checkpoint, o plano e o estado deste workstream.',
         'O hash mecânico é o SHA-256 dos bytes serializados do arquivo JSON de estado; não é SHA de commit nem FETCH_HEAD.',
         'O watcher já confirmou que o estado remoto continua CODEX_READY e que o SHA-256 do JSON remoto é exatamente o hash mecânico observado.',
         'Nunca compare o hash mecânico com o SHA do commit; falhe fechado somente se o conteúdo/estado remoto divergir.',
@@ -227,22 +227,22 @@ function runCodex({ codexPath, powershellPath, repoPath, prompt, logPath }, deps
     const args = extension === '.ps1'
         ? ['-NoLogo', '-NoProfile', '-NonInteractive', '-File', codexPath, ...commonArgs]
         : commonArgs;
-    const result = spawn(command, args, {
-        encoding: 'utf8',
-        input: prompt,
-        windowsHide: true,
-        timeout: 30 * 60_000,
-        maxBuffer: 10 * 1024 * 1024
-    });
-    assertNoIgnoredPaths(repoPath, deps);
-    const log = [
-        `status=${result.status}`,
-        result.stdout || '',
-        result.stderr || '',
-        result.error ? String(result.error.stack || result.error) : ''
-    ].join('\n');
     fs.mkdirSync(path.dirname(logPath), { recursive: true });
-    writeAtomically(logPath, log);
+    fs.writeFileSync(logPath, `started_at=${new Date().toISOString()}\n`);
+    const logDescriptor = fs.openSync(logPath, 'a');
+    let result;
+    try {
+        result = spawn(command, args, {
+            input: prompt,
+            stdio: ['pipe', logDescriptor, logDescriptor],
+            windowsHide: true,
+            timeout: 10 * 60_000
+        });
+    } finally {
+        fs.closeSync(logDescriptor);
+    }
+    assertNoIgnoredPaths(repoPath, deps);
+    fs.appendFileSync(logPath, `\nstatus=${result.status}\n`);
     if (result.error) throw result.error;
     return result.status ?? 1;
 }
