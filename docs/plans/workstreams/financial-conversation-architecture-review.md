@@ -69,8 +69,12 @@ sem novo ciclo de correção por frase.
     efeitos e health verde.
 39. [concluído] o recovery do slug público recebeu GO independente, com zero
     achados e nenhuma lacuna indispensável residual.
-40. [em execução] promover novo artefato com `off` e repetir uma única vez a
-    pergunta base; somente se promover, executar follow-up e fechar o gate.
+40. [concluído com recovery necessário] o novo artefato promoveu a pergunta
+    base, mas o follow-up foi descartado pelo roteador público antes do agente;
+    canário restaurado para `off`, health verde e zero efeitos.
+41. [em execução] publicar e auditar o recovery fechado do roteamento público;
+    com GO, promover novo artefato com `off` e executar uma única sequência
+    base + follow-up antes do fechamento do gate.
 
 ## Critério de conclusão
 

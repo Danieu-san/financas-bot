@@ -5451,6 +5451,24 @@ function classifyPerguntaLocally(userQuestion, previousContext = null) {
     };
 }
 
+function recoverAnalyticalFollowUpIntent(structuredResponse, messageBody, senderId) {
+    if (structuredResponse?.intent !== 'desconhecido') return structuredResponse;
+
+    const previousAnalyticalContext = getAnalyticalContext(senderId);
+    if (!previousAnalyticalContext) return structuredResponse;
+
+    const followUpClassification = classifyPerguntaLocally(messageBody, previousAnalyticalContext);
+    if (!followUpClassification?.intent || followUpClassification.intent === 'pergunta_geral') {
+        return structuredResponse;
+    }
+
+    return {
+        ...structuredResponse,
+        intent: 'pergunta',
+        question: messageBody
+    };
+}
+
 function buildFinancialQueryPlanForLocalClassification(classification = {}, userQuestion = '') {
     const intent = String(classification.intent || '');
     const parameters = classification.parameters || {};
@@ -11788,6 +11806,18 @@ async function processMessage(msg) {
             return;
         };
 
+            const recoveredAnalyticalFollowUp = recoverAnalyticalFollowUpIntent(
+                structuredResponse,
+                messageBody,
+                senderId
+            );
+            if (recoveredAnalyticalFollowUp !== structuredResponse) {
+                structuredResponse = recoveredAnalyticalFollowUp;
+                structuredResponseSource = 'analytical_followup';
+                metrics.increment('message.pergunta.follow_up_route_recovered');
+                logger.info(`[routing] recovered analytical_followup->pergunta sender=${senderId}`);
+            }
+
             if (structuredResponse.intent === 'resumo' && shouldRouteResumoToPergunta(messageBody)) {
                 logger.info(`[routing] override_intent resumo->pergunta sender=${senderId} msg="${sanitizeLogText(messageBody)}"`);
                 structuredResponse.intent = 'pergunta';
@@ -12776,6 +12806,7 @@ module.exports = {
     handleMessageForBackfill,
     __test__: {
         classifyPerguntaLocally,
+        recoverAnalyticalFollowUpIntent,
         detectFastPerguntaIntent,
         detectLocalCommandIntent,
         detectLocalTransactionIntent,

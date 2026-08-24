@@ -366,3 +366,18 @@ proibidos.
 - próximo passo: atualizar somente o modelo privado, gerar/promover artefato
   com canário `off` e executar uma única pergunta base; follow-up apenas se a
   resposta base for promovida.
+- o release `e8a27548...` foi promovido com canário `off`; health local/público,
+  processo único, SQLite e WhatsApp permaneceram verdes;
+- o smoke base foi promovido pelo reasoner com uma leitura, escopo familiar e
+  zero efeitos, mas o follow-up “E só com alimentação?” caiu no roteador
+  superior como `desconhecido` antes de entrar no agente;
+- o recovery 329 promove apenas `desconhecido -> pergunta` quando há checkpoint
+  analítico do mesmo remetente e classificação determinística válida;
+  resolvedor de escopo, consulta, adequação e writers permanecem invariantes;
+- evidência local do recovery: RED/GREEN pelo handler público, controle negativo
+  “sim”, zero append/delete, unitário causal `1/1` e suíte hermética ampla
+  `1.821/1.831`, zero falha e dez skips previstos;
+- candidato:
+  `docs/audit/329-financial-analytical-follow-up-route-recovery-candidate-2026-08-23.md`;
+- próximo passo: publicar e auditar o hash imutável; somente com GO será
+  permitido novo artefato e uma única sequência base + follow-up.

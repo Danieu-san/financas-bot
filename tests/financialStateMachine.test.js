@@ -2896,6 +2896,43 @@ stateMachineTest('financial states: cancelar clears only the pending write when 
     }
 });
 
+stateMachineTest('public handler routes an elliptical family expense follow-up through the analytical context', async () => {
+    const {
+        classifyPerguntaLocally,
+        storeAnalyticalContext,
+        getAnalyticalContext,
+        clearAnalyticalContextForTests
+    } = messageHandlerTest;
+
+    resetState();
+    clearAnalyticalContextForTests();
+    usesPersonalSpreadsheet = true;
+    financialScopeUserIds = [USER_ID, PARTNER_ID];
+    sheets.Users.push(partnerUserRow());
+    sheets.Saídas.push(
+        [todayBr(), 'Padaria Daniel', 'Alimentação', 'LANCHE', 10, 'Daniel', 'PIX', 'Não', '', USER_ID, 'Daniel - Nubank'],
+        [todayBr(), 'Restaurante Thais', 'Alimentação', 'RESTAURANTE', 20, 'Thais', 'PIX', 'Não', '', PARTNER_ID, 'Thais - Nubank'],
+        [todayBr(), 'Aluguel Thais', 'Moradia', 'Aluguel', 500, 'Thais', 'PIX', 'Não', '', PARTNER_ID, 'Thais - Nubank']
+    );
+
+    try {
+        const initial = classifyPerguntaLocally('Quais foram os maiores gastos da família neste mês?');
+        storeAnalyticalContext(SENDER, initial);
+
+        const reply = await send('E só com alimentação?');
+
+        assert.doesNotMatch(reply, /não entendi esse pedido/i);
+        assert.strictEqual(getAnalyticalContext(SENDER).intent, 'ranking_maiores_gastos');
+        assert.strictEqual(getAnalyticalContext(SENDER).parameters.categoria, 'alimentacao');
+        assert.strictEqual(getAnalyticalContext(SENDER).parameters.scope, 'family');
+        assert.match(await send('sim'), /não entendi esse pedido/i);
+        assert.strictEqual(appendedRows.length, 0);
+        assert.strictEqual(deletedRows.length, 0);
+    } finally {
+        clearAnalyticalContextForTests();
+    }
+});
+
 stateMachineTest('financial states: ajuda exits a pending payment flow and opens the help menu', async () => {
     resetState();
 
