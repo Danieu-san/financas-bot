@@ -194,19 +194,26 @@ explícito receberam GO independente antes desta prova. A ponta comprovada é
 
 ## Lacuna restante
 
-O Chat comum ainda não foi acordado automaticamente por `CHAT_READY`. A criação
-automática da tarefa agendada pelo navegador foi bloqueada pela política do
-controle de browser antes do envio. A automação nativa disponível neste Codex
-acordaria o próprio Codex e, por isso, não substitui o Chat como cérebro.
+O Chat comum ainda não pode ser considerado um cérebro autônomo despertado por
+`CHAT_READY`. Daniel criou manualmente a tarefa única `ORCH-01 ciclo completo`,
+agendada para 2026-08-24 20:37. A interface marcou a tarefa como `Concluído`,
+mas a branch remota permaneceu em
+`7f2cee45f007d8dfc8151c3e18bf22ce66e2e6df`: nenhum commit `CHAT_WORKING` ou
+`CODEX_READY` foi publicado e a tarefa não relatou a limitação exigida pelo
+prompt. O watcher local continuou saudável, com execuções por minuto e resultado
+zero, mas corretamente não iniciou o Codex sem `CODEX_READY`.
+
+Essa prova negativa encerra a tentativa via tarefa agendada do Chat comum nesta
+configuração. A ponta comprovada continua sendo somente
+`GitHub/CODEX_READY -> watcher -> Codex -> GitHub/CHAT_READY`.
 
 ## Próxima ação exata
 
-Daniel deve criar uma única tarefa no Chat pela interface autenticada usando o
-prompt de reconhecimento `CHAT_READY`. A prova deve confirmar se a tarefa
-agendada pode gravar no GitHub sem confirmação por execução. Se a plataforma
-exigir confirmação, a arquitetura totalmente autônoma via Chat comum fica
-bloqueada por capacidade externa e deve usar outro canal de cérebro.
+Definir e provar um canal de cérebro diferente da tarefa agendada do Chat comum,
+preservando GitHub como memória oficial e o watcher/Codex já comprovado como
+executor. Não repetir a mesma tarefa agendada sem mudança material de capacidade
+ou permissão da plataforma.
 
 ## Capacidade
 
-`Chat -> Sol -> Médio -> criar e provar a campainha agendada CHAT_READY.`
+`Codex -> Sol -> Alto -> desenhar o canal autônomo de cérebro substituto.`

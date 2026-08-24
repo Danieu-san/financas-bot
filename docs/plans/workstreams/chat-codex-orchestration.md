@@ -1,6 +1,6 @@
 # Plano — coordenação Chat ↔ Codex
 
-Status: `ORCH-01: executor automático provado; campainha do Chat pendente`.
+Status: `ORCH-01: executor automático provado; tarefa agendada do Chat reprovada`.
 
 ## Objetivo
 
@@ -88,9 +88,12 @@ Estados terminais não possuem transição de saída nesta versão.
 11. [concluída] Recuperar perfil/sandbox, hash LF/CRLF, Git explícito e
    publicação JSON-only; provar o ciclo sem intervenção até `CHAT_READY` no
    commit `4cea9e4f7ff3d97c28d7d7937329a9ea5785ac3f`.
-12. [pendente por ação na interface] Criar uma tarefa agendada no Chat comum
-   para reconhecer `CHAT_READY`, gravar `CHAT_WORKING` por CAS e provar se o
-   conector GitHub permite escrita sem confirmação humana por execução.
+12. [concluída com prova negativa] A tarefa agendada única do Chat foi criada e
+   marcada como concluída, mas não publicou `CHAT_WORKING` nem `CODEX_READY` e
+   não relatou a limitação prevista. O watcher permaneceu saudável e o remoto
+   ficou em `7f2cee45f007d8dfc8151c3e18bf22ce66e2e6df`.
+13. [pendente] Selecionar e provar outro canal autônomo para o cérebro, mantendo
+   GitHub como memória e reutilizando o executor Codex já comprovado.
 
 ## Critérios de GO
 
@@ -116,7 +119,6 @@ Estados terminais não possuem transição de saída nesta versão.
 
 ## Próxima ação
 
-Criar manualmente na interface autenticada do Chat a tarefa agendada de
-reconhecimento, pois o controle automático do navegador bloqueou essa criação.
-Depois, observar uma execução única sobre o `CHAT_READY` vigente e registrar se
-houve commit autônomo ou exigência externa de confirmação.
+Desenhar o menor canal autônomo substituto capaz de observar `CHAT_READY`,
+executar o raciocínio do cérebro e publicar `CODEX_READY` por CAS. Não repetir a
+tarefa agendada do Chat sem nova capacidade ou permissão material da plataforma.
