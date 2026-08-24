@@ -145,14 +145,14 @@ function buildExecutorPrompt({ branch, observedHash, taskId }) {
     ].join('\n');
 }
 
-function runCodex({ codexPath, repoPath, prompt, logPath }, deps = {}) {
+function runCodex({ codexPath, powershellPath, repoPath, prompt, logPath }, deps = {}) {
     const spawn = deps.spawnSync || spawnSync;
     const commonArgs = [
         'exec', '--ephemeral', '--full-auto', '--sandbox', 'workspace-write',
         '-m', 'gpt-5.6-sol', '-c', 'model_reasoning_effort="medium"', '-C', repoPath, '-'
     ];
     const extension = path.extname(codexPath).toLowerCase();
-    const command = extension === '.ps1' ? 'pwsh.exe' : codexPath;
+    const command = extension === '.ps1' ? powershellPath : codexPath;
     const args = extension === '.ps1'
         ? ['-NoLogo', '-NoProfile', '-NonInteractive', '-File', codexPath, ...commonArgs]
         : commonArgs;
@@ -179,6 +179,9 @@ function pollOnce(options, deps = {}) {
     const repoPath = assertAbsoluteExistingDirectory(options.repo, 'repo');
     const runtimePath = path.resolve(options.runtime);
     const codexPath = assertAbsoluteExistingFile(options.codex, 'codex');
+    const powershellPath = path.extname(codexPath).toLowerCase() === '.ps1'
+        ? assertAbsoluteExistingFile(options.powershell, 'powershell')
+        : null;
     const branch = options.branch || DEFAULT_BRANCH;
     const statePath = options['state-path'] || DEFAULT_STATE_PATH;
     if (!/^[A-Za-z0-9._/-]+$/.test(branch) || branch.startsWith('-') || branch.includes('..')) {
@@ -219,7 +222,22 @@ function pollOnce(options, deps = {}) {
         }, deps.now?.() || new Date());
         const logPath = path.join(runtimePath, 'runs', `${observedHash}.log`);
         const prompt = buildExecutorPrompt({ branch, observedHash, taskId: state.task_id });
-        const exitCode = (deps.runCodex || runCodex)({ codexPath, repoPath, prompt, logPath }, deps);
+        let exitCode;
+        try {
+            exitCode = (deps.runCodex || runCodex)({
+                codexPath,
+                powershellPath,
+                repoPath,
+                prompt,
+                logPath
+            }, deps);
+        } catch (error) {
+            saveCache(cachePath, {
+                ...cache,
+                launch_status: 'failed:error'
+            }, deps.now?.() || new Date());
+            throw error;
+        }
         saveCache(cachePath, {
             ...cache,
             launch_status: exitCode === 0 ? 'succeeded' : `failed:${exitCode}`

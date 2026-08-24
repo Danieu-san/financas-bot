@@ -1,6 +1,6 @@
 # Plano — coordenação Chat ↔ Codex
 
-Status: `ORCH-01: watcher instalado e silêncio comprovado; recovery fail-closed aguardando reauditoria`.
+Status: `ORCH-01: CODEX_READY detectado uma vez; launcher absoluto aguardando reauditoria`.
 
 ## Objetivo
 
@@ -80,10 +80,13 @@ Estados terminais não possuem transição de saída nesta versão.
    usuário e não provou despertar automático.
 8. [concluída] Auditar o watcher econômico e comprovar no Task Scheduler que
    `CHAT_WORKING` inalterado termina sem chamar modelo.
-9. [em execução] Reauditar o recovery final de lifecycle: usuário interativo,
+9. [concluída] Reauditar o recovery final de lifecycle: usuário interativo,
    bateria e safe.directory já foram confirmados; instalação/remoção agora
    recusam tarefa viva, lock malformado ou PID vivo e recuperam apenas PID morto.
-10. [pendente] Com GO independente, ensaiar Chat -> watcher -> Codex -> Chat;
+10. [em execução] O Chat publicou `CODEX_READY` e o watcher o detectou uma vez;
+   o primeiro spawn falhou antes do Codex porque `pwsh.exe` não estava no PATH
+   da tarefa. Reauditar o caminho absoluto e então repetir sem novo trabalho.
+11. [pendente] Com GO independente, concluir watcher -> Codex -> Chat;
    remover ou pausar a tarefa se qualquer ponta falhar.
 
 ## Critérios de GO
@@ -110,5 +113,6 @@ Estados terminais não possuem transição de saída nesta versão.
 
 ## Próxima ação
 
-Publicar e reauditar o recovery fail-closed; com GO, executar somente o ensaio
-no-op completo.
+Publicar e reauditar o recovery do launcher absoluto; com GO, reinicializar o
+cache local da tentativa comprovadamente sem processo filho e concluir somente
+o ensaio no-op.

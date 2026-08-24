@@ -105,19 +105,11 @@ blob/HEAD esperado e falhar fechado se o remoto avançar de forma concorrente.
 
 ## Evidência já obtida no Chat
 
-- inspeção integral do workflow relevante: `AGENTS.md`, README/START-HERE,
-  ADR-010, índice, checkpoint/plano ARQ, skills de execução/auditoria/handoff,
-  `preparePortableHandoff.ps1`, `resumePortableWork.ps1` e validator;
-- branch isolada criada a partir do HEAD `11c8fe591...`;
-- nenhuma alteração em runtime financeiro, produção ou integração privada;
-- syntax check do transitioner verde no ambiente de execução do Chat;
-- teste focal `tests/chatCodexOrchestration.test.js`: `12/12` verdes;
-- testes cobrem schema fechado, executor, hash estável, compare-and-swap,
-  transições, `CHAT_READY`, SHA/path traversal, Windows/UNC, terminais, lock
-  exclusivo e escrita atômica;
-- tentativa de clonar o repositório público no container do Chat não foi usada
-  como prova do workflow completo porque o ambiente não resolveu `github.com`;
-  por isso `validateAgentWorkflow.js` completo permanece para a etapa Codex.
+- workflow, ADR-010, memória, skills e scripts portáteis foram inspecionados;
+- branch isolada partiu de `11c8fe591...`; nenhum runtime ou dado real mudou;
+- transitioner e `12/12` testes focais ficaram verdes, cobrindo schema,
+  transições, CAS, hashes/caminhos, terminais, lock e escrita atômica;
+- o validator completo permanece evidência do Codex, não do Chat.
 
 ## Ensaio real pendente
 
@@ -204,11 +196,26 @@ Evidência causal local do recovery:
 - após reinstalação, poll real terminou com código zero, sem lock residual e
   sem alterar `launched_hash: null` em `CHAT_WORKING`.
 
+O primeiro `CODEX_READY` automático foi publicado pelo Chat no commit
+`8efea1d0a7d700e0a86227b2f8130f73f0c407ce`. A tarefa detectou o novo hash
+uma única vez e gravou `launch_status: running`, mas o processo não chegou a
+abrir o Codex: a conta agendada não possuía `pwsh.exe` no `PATH` e o spawn
+falhou com `ENOENT`. Nenhum arquivo de produto ou produção foi tocado.
+
+O recovery do launcher passa o caminho absoluto de `pwsh.exe`, resolvido pelo
+instalador, como argumento validado do watcher. Exceções de spawn agora também
+persistem `launch_status: failed:error`, mantendo o mesmo hash sem relançamento
+automático. O teste focal causal confirma caminho absoluto, persistência da
+falha e single-shot após erro. Para repetir o ensaio com o mesmo estado remoto,
+o cache local somente poderá ser reinicializado por decisão operacional depois
+de confirmar que nenhum processo Codex foi criado.
+
 ## Próxima ação exata
 
-Publicar e reauditar o recovery fail-closed do lifecycle. Com GO, pedir ao Chat que
-publique um novo `CODEX_READY` exclusivamente no-op e observar a tarefa
-disparar Codex uma única vez e devolver `CHAT_READY`.
+Publicar e reauditar o recovery do launcher. Com GO, confirmar novamente a
+ausência de processo Codex da tentativa falha, reinicializar uma única vez o
+cache local e observar a tarefa completar o `CODEX_READY` já publicado até
+`CHAT_READY`.
 
 ## Capacidade
 

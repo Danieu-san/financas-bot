@@ -10,6 +10,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $watcher = Join-Path $PSScriptRoot 'watchChatCodexOrchestration.js'
 $node = (Get-Command node -ErrorAction Stop).Source
+$powershell = (Get-Command pwsh.exe -ErrorAction Stop).Source
 
 if (-not $RunAsUser) {
     $RunAsUser = (Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).UserName
@@ -60,6 +61,7 @@ $arguments = @(
     '--repo', (Quote-Argument $RepositoryRoot),
     '--branch', (Quote-Argument $Branch),
     '--codex', (Quote-Argument $codex),
+    '--powershell', (Quote-Argument $powershell),
     '--runtime', (Quote-Argument $runtime)
 ) -join ' '
 

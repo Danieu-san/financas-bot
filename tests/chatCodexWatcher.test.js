@@ -19,8 +19,10 @@ function fixture(state = 'CHAT_WORKING') {
     const repo = path.join(root, 'repo');
     const runtime = path.join(root, 'runtime');
     const codex = path.join(root, 'codex.ps1');
+    const powershell = path.join(root, 'pwsh.exe');
     fs.mkdirSync(repo);
     fs.writeFileSync(codex, 'exit 0\n');
+    fs.writeFileSync(powershell, 'fixture\n');
     const value = {
         schema: 'financasbot-chat-codex-orchestration-v1',
         orchestration_state: state,
@@ -32,7 +34,17 @@ function fixture(state = 'CHAT_WORKING') {
         result_file: null,
         updated_at: '2026-08-24T00:00:00.000Z'
     };
-    return { codex, repo, root, runtime, raw: serializeState(value) };
+    return { codex, powershell, repo, root, runtime, raw: serializeState(value) };
+}
+
+function watcherOptions(item, extra = {}) {
+    return {
+        repo: item.repo,
+        runtime: item.runtime,
+        codex: item.codex,
+        powershell: item.powershell,
+        ...extra
+    };
 }
 
 test('poll inalterado não desperta executor', () => {
@@ -43,7 +55,7 @@ test('poll inalterado não desperta executor', () => {
         runCodex: () => { launches += 1; return 0; },
         now: () => new Date('2026-08-24T01:00:00.000Z')
     };
-    const options = { repo: item.repo, runtime: item.runtime, codex: item.codex };
+    const options = watcherOptions(item);
     assert.equal(pollOnce(options, deps).action, 'observed');
     assert.equal(pollOnce(options, deps).action, 'unchanged');
     assert.equal(launches, 0);
@@ -61,7 +73,7 @@ test('CODEX_READY novo dispara exatamente uma vez', () => {
             return 0;
         }
     };
-    const options = { repo: item.repo, runtime: item.runtime, codex: item.codex };
+    const options = watcherOptions(item);
     assert.equal(pollOnce(options, deps).action, 'launched');
     assert.equal(pollOnce(options, deps).action, 'unchanged');
     assert.equal(launches, 1);
@@ -76,7 +88,7 @@ test('hash novo de CODEX_READY permite novo disparo', () => {
         fetchRemoteState: () => raw,
         runCodex: () => { launches += 1; return 0; }
     };
-    const options = { repo: item.repo, runtime: item.runtime, codex: item.codex };
+    const options = watcherOptions(item);
     pollOnce(options, deps);
     const changed = JSON.parse(raw);
     changed.updated_at = '2026-08-24T00:01:00.000Z';
@@ -130,6 +142,7 @@ test('launcher PowerShell usa argumentos fixos sem shell', () => {
     let invocation;
     const status = runCodex({
         codexPath: item.codex,
+        powershellPath: item.powershell,
         repoPath: item.repo,
         prompt: 'no-op',
         logPath: path.join(item.runtime, 'run.log')
@@ -140,7 +153,7 @@ test('launcher PowerShell usa argumentos fixos sem shell', () => {
         }
     });
     assert.equal(status, 0);
-    assert.equal(invocation.command, 'pwsh.exe');
+    assert.equal(invocation.command, item.powershell);
     assert.equal(invocation.options.input, 'no-op');
     assert.equal(invocation.options.windowsHide, true);
     assert.equal(invocation.args.includes('--full-auto'), true);
@@ -151,16 +164,27 @@ test('launcher PowerShell usa argumentos fixos sem shell', () => {
 test('branch iniciada por hífen falha antes de chamar Git ou Codex', () => {
     const item = fixture('CODEX_READY');
     let fetched = false;
-    assert.throws(() => pollOnce({
-        repo: item.repo,
-        runtime: item.runtime,
-        codex: item.codex,
+    assert.throws(() => pollOnce(watcherOptions(item, {
         branch: '-upload-pack=malicioso'
-    }, {
+    }), {
         fetchRemoteState() { fetched = true; return item.raw; },
         runCodex() { assert.fail('não deveria chamar Codex'); }
     }), /branch inválida/);
     assert.equal(fetched, false);
+});
+
+test('falha de spawn é persistida e o mesmo hash não relança', () => {
+    const item = fixture('CODEX_READY');
+    let launches = 0;
+    const deps = {
+        fetchRemoteState: () => item.raw,
+        runCodex: () => { launches += 1; throw new Error('spawn falhou'); }
+    };
+    assert.throws(() => pollOnce(watcherOptions(item), deps), /spawn falhou/);
+    const cachePath = path.join(item.runtime, 'watcher-state.json');
+    assert.equal(readCache(cachePath).launch_status, 'failed:error');
+    assert.equal(pollOnce(watcherOptions(item), deps).action, 'unchanged');
+    assert.equal(launches, 1);
 });
 
 test('instalador recusa apagar lock sem provar PID morto', () => {
