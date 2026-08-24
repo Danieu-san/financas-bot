@@ -95,6 +95,24 @@ test('lock existente impede execução concorrente', () => {
     });
 });
 
+test('lock de PID comprovadamente morto é recuperado uma única vez', () => {
+    const item = fixture();
+    const cachePath = path.join(item.runtime, 'watcher-state.json');
+    fs.mkdirSync(item.runtime);
+    fs.writeFileSync(`${cachePath}.lock`, JSON.stringify({
+        pid: 999999,
+        created_at: '2026-08-24T00:00:00.000Z'
+    }));
+    let executions = 0;
+    const result = withWatcherLock(cachePath, () => {
+        executions += 1;
+        return { action: 'recovered' };
+    }, { processIsAlive: () => false });
+    assert.deepEqual(result, { action: 'recovered' });
+    assert.equal(executions, 1);
+    assert.equal(fs.existsSync(`${cachePath}.lock`), false);
+});
+
 test('prompt é local, limitado e não contém ação financeira', () => {
     const prompt = buildExecutorPrompt({
         branch: 'chat/test',

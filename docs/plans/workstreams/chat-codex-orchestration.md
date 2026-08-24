@@ -1,6 +1,6 @@
 # Plano — coordenação Chat ↔ Codex
 
-Status: `retorno ORCH-01 comprovado; watcher econômico candidato aguardando auditoria`.
+Status: `ORCH-01: watcher instalado e silêncio comprovado; recovery operacional aguardando reauditoria`.
 
 ## Objetivo
 
@@ -78,10 +78,12 @@ Estados terminais não possuem transição de saída nesta versão.
 7. [concluída] Devolver `CHAT_READY` e confirmar a ponta Codex -> Chat sem
    tocar no bot ou produção. A ponta Chat -> Codex foi iniciada manualmente pelo
    usuário e não provou despertar automático.
-8. [em execução] Auditar o watcher econômico que permanece silencioso quando o
-   hash não muda e chama Codex uma vez por novo `CODEX_READY`.
-9. [pendente] Com GO independente, instalar e ensaiar Chat -> watcher -> Codex
-   -> Chat; remover ou pausar a tarefa se qualquer ponta falhar.
+8. [concluída] Auditar o watcher econômico e comprovar no Task Scheduler que
+   `CHAT_WORKING` inalterado termina sem chamar modelo.
+9. [em execução] Reauditar os recoveries causados pelo ensaio real: usuário
+   interativo, bateria, lock órfão e safe.directory apenas por processo.
+10. [pendente] Com GO independente, ensaiar Chat -> watcher -> Codex -> Chat;
+   remover ou pausar a tarefa se qualquer ponta falhar.
 
 ## Critérios de GO
 
@@ -107,5 +109,5 @@ Estados terminais não possuem transição de saída nesta versão.
 
 ## Próxima ação
 
-Publicar o candidato do watcher, pedir auditoria independente por hash e, com
-GO, instalar e executar somente o ensaio no-op completo.
+Publicar e reauditar o recovery operacional; com GO, executar somente o ensaio
+no-op completo.

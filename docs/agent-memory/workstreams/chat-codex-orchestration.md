@@ -168,18 +168,30 @@ Agendador de Tarefas do Windows:
 - cache e lock ficam em `LOCALAPPDATA`, fora do Git;
 - a tarefa usa `IgnoreNew`, conta interativa atual e limite de 35 minutos;
 - o prompt é fixo e local; o estado remoto não fornece comandos;
-- seis testes focais verdes cobrem silêncio em estado inalterado, single-shot,
-  novo ciclo por hash, lock concorrente, escopo do prompt e launcher sem shell.
+- oito testes focais verdes cobrem silêncio em estado inalterado, single-shot,
+  novo ciclo por hash, lock concorrente e órfão, escopo do prompt, launcher sem
+  shell e rejeição de branch semelhante a opção.
 
-O watcher ainda não foi instalado. Instalação e ensaio real dependem de commit
-imutável e auditoria independente deste candidato.
+No ensaio de instalação, três limites reais foram descobertos e corrigidos:
+
+- a tarefa deve usar o usuário da sessão interativa, não o usuário do processo
+  de ferramentas;
+- o poll curto deve poder iniciar e continuar em bateria;
+- lock deve registrar PID e recuperar somente processo comprovadamente morto;
+- Git recebe `safe.directory` apenas na invocação local validada, sem alterar
+  configuração global do usuário.
+
+A tarefa instalada foi verificada com usuário `Usuario`, logon interativo,
+`IgnoreNew`, repetição de um minuto e limite de 35 minutos. Um poll real em
+`CHAT_WORKING` terminou com código zero, gravou o hash observado e manteve
+`launched_hash: null`, sem chamar modelo. A rodada completa com
+`CODEX_READY` ainda depende do recovery imutável e de reauditoria.
 
 ## Próxima ação exata
 
-Publicar o candidato do watcher, obter auditoria independente no Chat e, somente
-com GO, instalar a tarefa local e executar uma nova rodada no-op completa. Até a
-prova do trigger, o protocolo permanece semiautomático e não deve ser usado para
-tarefas materiais do bot.
+Publicar e reauditar o recovery da instalação real. Com GO, pedir ao Chat que
+publique um novo `CODEX_READY` exclusivamente no-op e observar a tarefa
+disparar Codex uma única vez e devolver `CHAT_READY`.
 
 ## Capacidade
 

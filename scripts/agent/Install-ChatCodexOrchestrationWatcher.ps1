@@ -3,14 +3,29 @@ param(
     [string]$Action = 'Status',
     [string]$RepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
     [string]$Branch = 'chat/chat-codex-orchestration-20260824',
-    [string]$TaskName = 'FinancasBot-ChatCodex-Orchestration'
+    [string]$TaskName = 'FinancasBot-ChatCodex-Orchestration',
+    [string]$RunAsUser
 )
 
 $ErrorActionPreference = 'Stop'
 $watcher = Join-Path $PSScriptRoot 'watchChatCodexOrchestration.js'
 $node = (Get-Command node -ErrorAction Stop).Source
-$codex = (Get-Command codex.ps1 -ErrorAction Stop).Source
-$runtime = Join-Path $env:LOCALAPPDATA 'FinancasBot\chat-codex-orchestration'
+
+if (-not $RunAsUser) {
+    $RunAsUser = (Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).UserName
+}
+if (-not $RunAsUser) { throw 'Nenhum usuario interativo foi encontrado.' }
+$accountName = ($RunAsUser -split '\\')[-1]
+$interactiveProfile = Get-CimInstance Win32_UserProfile -ErrorAction Stop |
+    Where-Object { $_.Loaded -and (Split-Path $_.LocalPath -Leaf) -eq $accountName } |
+    Select-Object -First 1
+if (-not $interactiveProfile) { throw "Perfil carregado nao encontrado para $RunAsUser." }
+$codex = Join-Path $interactiveProfile.LocalPath 'AppData\Roaming\npm\codex.ps1'
+if (-not (Test-Path -LiteralPath $codex -PathType Leaf)) {
+    throw "Codex CLI nao encontrado para $RunAsUser em $codex."
+}
+$runtime = Join-Path $interactiveProfile.LocalPath 'AppData\Local\FinancasBot\chat-codex-orchestration'
+$lockPath = Join-Path $runtime 'watcher-state.json.lock'
 
 function Quote-Argument([string]$Value) {
     if ($Value.Contains('"')) { throw 'Argumento contem aspas nao suportadas.' }
@@ -27,6 +42,7 @@ $arguments = @(
 
 switch ($Action) {
     'Install' {
+        Remove-Item -LiteralPath $lockPath -Force -ErrorAction SilentlyContinue
         $taskAction = New-ScheduledTaskAction -Execute $node -Argument $arguments
         $triggerParameters = @{
             Once = $true
@@ -39,10 +55,12 @@ switch ($Action) {
             MultipleInstances = 'IgnoreNew'
             ExecutionTimeLimit = (New-TimeSpan -Minutes 35)
             StartWhenAvailable = $true
+            AllowStartIfOnBatteries = $true
+            DontStopIfGoingOnBatteries = $true
         }
         $settings = New-ScheduledTaskSettingsSet @settingsParameters
         $principalParameters = @{
-            UserId = $env:USERNAME
+            UserId = $RunAsUser
             LogonType = 'Interactive'
             RunLevel = 'Limited'
         }
@@ -62,6 +80,7 @@ switch ($Action) {
         if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) {
             Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
         }
+        Remove-Item -LiteralPath $lockPath -Force -ErrorAction SilentlyContinue
         Write-Output "REMOVED $TaskName"
     }
     'RunNow' {
