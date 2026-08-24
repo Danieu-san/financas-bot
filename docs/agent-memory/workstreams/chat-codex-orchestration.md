@@ -11,7 +11,7 @@ planilhas ou writers.
 
 ## Estado
 
-`ORCH-01 VALIDADO PELO CODEX — DEVOLUÇÃO CHAT_READY PENDENTE`.
+`ORCH-01 COM EXECUTOR AUTOMÁTICO PROVADO — CAMPAINHA CHAT PENDENTE`.
 
 ## Base e branch
 
@@ -175,24 +175,38 @@ A auditoria encontrou e o recovery fechou um achado `MEDIUM`: `Install` e
 somente PID comprovadamente morto permite remover lock órfão. Testes reais
 confirmaram os três casos, `10/10` focais e validator verde.
 
-O Chat publicou `CODEX_READY` em
-`8efea1d0a7d700e0a86227b2f8130f73f0c407ce`. O watcher detectou cada tentativa
-uma vez. Os recoveries auditados passaram a usar PowerShell absoluto, persistir
-`failed:error`/`failed:<exitCode>` e selecionar `gpt-5.4-mini` em `medium` após
-o CLI recusar os slugs Sol e `gpt-5.4`.
+## Prova operacional concluída em 2026-08-24
 
-Na tentativa final, `gpt-5.4-mini` foi aceito, mas a conta do CLI respondeu que
-o limite de uso foi atingido e só libera em `2026-09-16 13:44`. O cache ficou
-`failed:1`, polls iguais não relançaram e a tarefa foi desabilitada para não
-consumir rede/CPU. Estado remoto: `CODEX_READY`; nenhum runtime financeiro,
-dado real ou produção foi tocado. A ponta provada é
-`Chat -> GitHub -> watcher -> Codex CLI`; `CHAT_READY` permanece sem prova real.
+- o evento `CODEX_READY` publicado em `ea0e30b08abf2fbc9ef34e7b00c131941610f7ca`
+  foi detectado pelo Agendador sem intervenção humana;
+- o watcher iniciou o Codex com perfil isolado, `workspace-write` e esforço
+  médio, usando prompt mecânico auditado;
+- o Codex executou `13/13` testes focais, syntax check e validator verde;
+- o watcher revalidou o estado remoto, aceitou somente o JSON e publicou
+  `CHAT_READY` em `4cea9e4f7ff3d97c28d7d7937329a9ea5785ac3f`;
+- cache final: `launch_status: succeeded`, tarefa pronta para novos polls;
+- nenhuma parte do bot, produção, OCI, WhatsApp, Pluggy, planilha ou dado real
+  foi acessada.
+
+Os recoveries de newline, perfil, prompt mecânico, fronteira JSON-only e Git
+explícito receberam GO independente antes desta prova. A ponta comprovada é
+`GitHub/CODEX_READY -> watcher -> Codex -> GitHub/CHAT_READY`.
+
+## Lacuna restante
+
+O Chat comum ainda não foi acordado automaticamente por `CHAT_READY`. A criação
+automática da tarefa agendada pelo navegador foi bloqueada pela política do
+controle de browser antes do envio. A automação nativa disponível neste Codex
+acordaria o próprio Codex e, por isso, não substitui o Chat como cérebro.
 
 ## Próxima ação exata
 
-Após a renovação de uso ou autenticação válida do CLI, preservar o cache atual,
-reativar a tarefa e repetir uma única vez até `CHAT_READY`.
+Daniel deve criar uma única tarefa no Chat pela interface autenticada usando o
+prompt de reconhecimento `CHAT_READY`. A prova deve confirmar se a tarefa
+agendada pode gravar no GitHub sem confirmação por execução. Se a plataforma
+exigir confirmação, a arquitetura totalmente autônoma via Chat comum fica
+bloqueada por capacidade externa e deve usar outro canal de cérebro.
 
 ## Capacidade
 
-`Codex -> Sol -> Médio -> executar apenas o ensaio local no-op ORCH-01 e devolver CHAT_READY.`
+`Chat -> Sol -> Médio -> criar e provar a campainha agendada CHAT_READY.`

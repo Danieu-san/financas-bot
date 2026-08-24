@@ -1,6 +1,6 @@
 # Plano — coordenação Chat ↔ Codex
 
-Status: `ORCH-01: ida até Codex CLI provada; tarefa pausada por limite de uso`.
+Status: `ORCH-01: executor automático provado; campainha do Chat pendente`.
 
 ## Objetivo
 
@@ -85,8 +85,12 @@ Estados terminais não possuem transição de saída nesta versão.
    recusam tarefa viva, lock malformado ou PID vivo e recuperam apenas PID morto.
 10. [concluída] Chat -> GitHub -> watcher -> Codex CLI e single-shot foram
    provados; launcher absoluto e `gpt-5.4-mini/medium` receberam GO independente.
-11. [bloqueada externamente] O CLI atingiu o limite de uso até
-   `2026-09-16 13:44`; tarefa desabilitada. Depois, concluir até `CHAT_READY`.
+11. [concluída] Recuperar perfil/sandbox, hash LF/CRLF, Git explícito e
+   publicação JSON-only; provar o ciclo sem intervenção até `CHAT_READY` no
+   commit `4cea9e4f7ff3d97c28d7d7937329a9ea5785ac3f`.
+12. [pendente por ação na interface] Criar uma tarefa agendada no Chat comum
+   para reconhecer `CHAT_READY`, gravar `CHAT_WORKING` por CAS e provar se o
+   conector GitHub permite escrita sem confirmação humana por execução.
 
 ## Critérios de GO
 
@@ -112,5 +116,7 @@ Estados terminais não possuem transição de saída nesta versão.
 
 ## Próxima ação
 
-Após renovar o uso do CLI, reativar a tarefa, preservar o cache falho e repetir
-uma única vez o ensaio no-op até `CHAT_READY`.
+Criar manualmente na interface autenticada do Chat a tarefa agendada de
+reconhecimento, pois o controle automático do navegador bloqueou essa criação.
+Depois, observar uma execução única sobre o `CHAT_READY` vigente e registrar se
+houve commit autônomo ou exigência externa de confirmação.
