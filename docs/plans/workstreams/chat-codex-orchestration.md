@@ -1,6 +1,6 @@
 # Plano — coordenação Chat ↔ Codex
 
-Status: `ORCH-01: launcher validado; compatibilidade do modelo aguardando reauditoria`.
+Status: `ORCH-01: ida até Codex CLI provada; tarefa pausada por limite de uso`.
 
 ## Objetivo
 
@@ -83,13 +83,10 @@ Estados terminais não possuem transição de saída nesta versão.
 9. [concluída] Reauditar o recovery final de lifecycle: usuário interativo,
    bateria e safe.directory já foram confirmados; instalação/remoção agora
    recusam tarefa viva, lock malformado ou PID vivo e recuperam apenas PID morto.
-10. [em execução] O Chat publicou `CODEX_READY` e o watcher o detectou uma vez;
-   o primeiro spawn falhou antes do Codex porque `pwsh.exe` não estava no PATH
-   da tarefa. O caminho absoluto abriu o CLI na repetição, mas o slug Sol não é
-   suportado nessa autenticação. `gpt-5.4` também foi recusado; reauditar o
-   `gpt-5.4-mini` em `medium`, explicitamente disponível no catálogo do CLI.
-11. [pendente] Com GO independente, concluir watcher -> Codex -> Chat;
-   remover ou pausar a tarefa se qualquer ponta falhar.
+10. [concluída] Chat -> GitHub -> watcher -> Codex CLI e single-shot foram
+   provados; launcher absoluto e `gpt-5.4-mini/medium` receberam GO independente.
+11. [bloqueada externamente] O CLI atingiu o limite de uso até
+   `2026-09-16 13:44`; tarefa desabilitada. Depois, concluir até `CHAT_READY`.
 
 ## Critérios de GO
 
@@ -115,6 +112,5 @@ Estados terminais não possuem transição de saída nesta versão.
 
 ## Próxima ação
 
-Publicar e reauditar o recovery de modelo; com GO, reinicializar o
-cache local da tentativa comprovadamente sem processo filho e concluir somente
-o ensaio no-op.
+Após renovar o uso do CLI, reativar a tarefa, preservar o cache falho e repetir
+uma única vez o ensaio no-op até `CHAT_READY`.

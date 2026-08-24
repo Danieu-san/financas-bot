@@ -170,51 +170,28 @@ A tarefa instalada foi verificada com usuário `Usuario`, logon interativo,
 `launched_hash: null`, sem chamar modelo. A rodada completa com
 `CODEX_READY` ainda depende do recovery imutável e de reauditoria.
 
-A reauditoria do commit `7b26b20f182b6b7e1e06053a79ca4db469d5726d`
-identificou um único achado `MEDIUM`: as ações `Install` e `Remove` ainda
-apagavam o lock incondicionalmente, contornando a proteção do watcher. O
-recovery seguinte tornou o lifecycle fail-closed: instalação e remoção recusam
-tarefa em execução, lock malformado, PID inválido e PID vivo; somente um PID
-válido e comprovadamente morto permite remover o lock órfão.
+A auditoria encontrou e o recovery fechou um achado `MEDIUM`: `Install` e
+`Remove` agora recusam tarefa viva, lock malformado/PID inválido ou PID vivo;
+somente PID comprovadamente morto permite remover lock órfão. Testes reais
+confirmaram os três casos, `10/10` focais e validator verde.
 
-Evidência causal local do recovery:
+O Chat publicou `CODEX_READY` em
+`8efea1d0a7d700e0a86227b2f8130f73f0c407ce`. O watcher detectou cada tentativa
+uma vez. Os recoveries auditados passaram a usar PowerShell absoluto, persistir
+`failed:error`/`failed:<exitCode>` e selecionar `gpt-5.4-mini` em `medium` após
+o CLI recusar os slugs Sol e `gpt-5.4`.
 
-- `9/9` testes focais do watcher verdes;
-- parser PowerShell verde;
-- lock com PID morto foi recuperado e a instalação prosseguiu;
-- lock malformado retornou erro e permaneceu intacto;
-- lock do processo vivo retornou erro e permaneceu intacto;
-- após reinstalação, poll real terminou com código zero, sem lock residual e
-  sem alterar `launched_hash: null` em `CHAT_WORKING`.
-
-O primeiro `CODEX_READY` automático foi publicado pelo Chat no commit
-`8efea1d0a7d700e0a86227b2f8130f73f0c407ce`. A tarefa detectou o novo hash
-uma única vez e gravou `launch_status: running`, mas o processo não chegou a
-abrir o Codex: a conta agendada não possuía `pwsh.exe` no `PATH` e o spawn
-falhou com `ENOENT`. Nenhum arquivo de produto ou produção foi tocado.
-
-O recovery do launcher passa o caminho absoluto de `pwsh.exe`, resolvido pelo
-instalador, como argumento validado do watcher. Exceções de spawn agora também
-persistem `launch_status: failed:error`, mantendo o mesmo hash sem relançamento
-automático. O teste focal causal confirma caminho absoluto, persistência da
-falha e single-shot após erro. Para repetir o ensaio com o mesmo estado remoto,
-o cache local somente poderá ser reinicializado por decisão operacional depois
-de confirmar que nenhum processo Codex foi criado.
-
-Na repetição, o caminho absoluto funcionou e o CLI foi efetivamente chamado,
-mas a conta ChatGPT recusou o slug explícito `gpt-5.6-sol` como não suportado.
-O cache terminou em `failed:1` e polls posteriores não relançaram. A tentativa
-seguinte fixou `gpt-5.4` em `medium`, sem alterar a configuração pessoal.
-
-O CLI também recusou `gpt-5.4`. Seu próprio catálogo, porém, declarou
-`gpt-5.4-mini` disponível para a conta. O candidato passa a usar esse slug em
-`medium`, suficiente e econômico para os três checks no-op.
+Na tentativa final, `gpt-5.4-mini` foi aceito, mas a conta do CLI respondeu que
+o limite de uso foi atingido e só libera em `2026-09-16 13:44`. O cache ficou
+`failed:1`, polls iguais não relançaram e a tarefa foi desabilitada para não
+consumir rede/CPU. Estado remoto: `CODEX_READY`; nenhum runtime financeiro,
+dado real ou produção foi tocado. A ponta provada é
+`Chat -> GitHub -> watcher -> Codex CLI`; `CHAT_READY` permanece sem prova real.
 
 ## Próxima ação exata
 
-Publicar e reauditar o recovery de compatibilidade do modelo. Com GO, preservar
-o cache falho, reinicializar uma única vez o cache ativo e observar a tarefa
-completar o `CODEX_READY` já publicado até `CHAT_READY`.
+Após a renovação de uso ou autenticação válida do CLI, preservar o cache atual,
+reativar a tarefa e repetir uma única vez até `CHAT_READY`.
 
 ## Capacidade
 
