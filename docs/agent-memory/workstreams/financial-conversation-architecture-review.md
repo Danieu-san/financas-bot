@@ -1,10 +1,10 @@
 # Revisão da arquitetura conversacional financeira
 
-Atualizado em: 2026-08-23
+Atualizado em: 2026-08-24
 
 ## Estado
 
-`ARQ-01 A ARQ-06 EM GO TÉCNICO LOCAL — CANÁRIO OCI OFF; RECOVERY 329 EM GO INDEPENDENTE, DEPLOY/SMOKE PENDENTES`.
+`ARQ-01 A ARQ-06 EM GO; ARQ-06 FECHADO EM PRODUÇÃO CONTROLADA, CANÁRIO OCI OFF`.
 
 ## Objetivo
 
@@ -55,13 +55,10 @@ matemática e toda escrita continuam determinísticos.
 
 ## Próxima ação exata
 
-Executar uma pergunta real de despesas e um follow-up pelo WhatsApp de Daniel,
-confirmar resposta adequada, telemetria terminal sanitizada e saúde estável.
-O consentimento específico foi obtido; a chave está no `.env` privado da OCI;
-`expenses`/`central_read_model` está ativo para exatamente os dois usuários
-vinculados server-side; o smoke sintético do reasoner passou. Fazer rollback do
-canário se qualquer invariante falhar. Writer e retirada do legado continuam
-proibidos.
+Nenhuma ação material permanece no ARQ-06. O canário read-only foi comprovado
+com uma sequência real base + follow-up e restaurado para `off`. Writer,
+retirada do legado e ampliação de escopo continuam proibidos; qualquer evolução
+seguinte deve abrir objetivo próprio.
 
 ## Implementação ARQ-02
 
@@ -404,5 +401,13 @@ proibidos.
   crítico/alto/médio e sem lacuna indispensável residual;
 - fechamento independente:
   `docs/audit/332-financial-resolved-ranking-deterministic-presentation-independent-close-2026-08-24.md`;
-- próximo passo: promover o artefato documental final com canário `off` e
-  executar exatamente uma sequência base + follow-up, restaurando `off` ao fim.
+- o release documental `b9a637066...` foi promovido na OCI; a primeira janela
+  de health de 60 segundos acionou rollback automático e a repetição com a
+  janela suportada de 300 segundos concluiu sem rollback;
+- a sequência real base + follow-up foi promovida nos dois ingressos, com uma
+  leitura, adequação aprovada, escopo familiar e fonte `personal_sheet`;
+- o `.env` exato anterior foi restaurado por `SIGHUP`; canário `off`, allowlists
+  vazias, PID invariável e health local/público `ready/healthy`;
+- fechamento de produção:
+  `docs/audit/333-financial-iterative-base-followup-independent-production-close-2026-08-24.md`;
+- nenhuma ação material permanece no ARQ-06.
