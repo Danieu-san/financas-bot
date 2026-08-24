@@ -156,13 +156,30 @@ portanto, esta rodada comprova reivindicação, validação e devolução mecân
 mas não comprova ainda que um timer desperta o Codex sozinho. A automação deve
 continuar classificada como semiautomática até um ensaio posterior do trigger.
 
+## Candidato de watcher econômico
+
+O segundo candidato acrescenta um poller local one-shot e um instalador para o
+Agendador de Tarefas do Windows:
+
+- o poller busca somente a branch do workstream e valida o JSON remoto com o
+  mesmo parser do transitioner;
+- hash e estado inalterados terminam sem chamar modelo;
+- apenas um hash novo em `CODEX_READY` pode chamar `codex exec`;
+- cache e lock ficam em `LOCALAPPDATA`, fora do Git;
+- a tarefa usa `IgnoreNew`, conta interativa atual e limite de 35 minutos;
+- o prompt é fixo e local; o estado remoto não fornece comandos;
+- seis testes focais verdes cobrem silêncio em estado inalterado, single-shot,
+  novo ciclo por hash, lock concorrente, escopo do prompt e launcher sem shell.
+
+O watcher ainda não foi instalado. Instalação e ensaio real dependem de commit
+imutável e auditoria independente deste candidato.
+
 ## Próxima ação exata
 
-Publicar `CHAT_READY` com o hash candidato desta validação e enviar ao Chat
-somente a campainha curta de `ORCH-01`. O Chat deve conferir o commit, assumir
-`CHAT_WORKING` e registrar se a ponta de retorno funcionou. Depois disso,
-planejar separadamente o trigger econômico; até sua prova, o protocolo permanece
-semiautomático e não deve ser usado para tarefas materiais do bot.
+Publicar o candidato do watcher, obter auditoria independente no Chat e, somente
+com GO, instalar a tarefa local e executar uma nova rodada no-op completa. Até a
+prova do trigger, o protocolo permanece semiautomático e não deve ser usado para
+tarefas materiais do bot.
 
 ## Capacidade
 

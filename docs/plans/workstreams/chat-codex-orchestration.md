@@ -1,6 +1,6 @@
 # Plano — coordenação Chat ↔ Codex
 
-Status: `ORCH-01 validado localmente; devolução CHAT_READY em execução; automação real não comprovada`.
+Status: `retorno ORCH-01 comprovado; watcher econômico candidato aguardando auditoria`.
 
 ## Objetivo
 
@@ -74,12 +74,14 @@ Estados terminais não possuem transição de saída nesta versão.
 3. [concluída] Criar o estado mecânico mínimo e o transitioner isolado.
 4. [concluída] Criar e executar testes focais do protocolo (`12/12`).
 5. [concluída] Executar `validateAgentWorkflow.js` e revisão adversarial do diff.
-6. [em execução] Publicar commit imutável com a validação do Codex.
-7. [em execução] Devolver `CHAT_READY` e confirmar a ponta Codex -> Chat sem
+6. [concluída] Publicar commit imutável com a validação do Codex.
+7. [concluída] Devolver `CHAT_READY` e confirmar a ponta Codex -> Chat sem
    tocar no bot ou produção. A ponta Chat -> Codex foi iniciada manualmente pelo
-   usuário e ainda não prova despertar automático.
-8. [pendente] Somente após prova das duas pontas, decidir se timer passa de
-   semiautomático para automático.
+   usuário e não provou despertar automático.
+8. [em execução] Auditar o watcher econômico que permanece silencioso quando o
+   hash não muda e chama Codex uma vez por novo `CODEX_READY`.
+9. [pendente] Com GO independente, instalar e ensaiar Chat -> watcher -> Codex
+   -> Chat; remover ou pausar a tarefa se qualquer ponta falhar.
 
 ## Critérios de GO
 
@@ -105,6 +107,5 @@ Estados terminais não possuem transição de saída nesta versão.
 
 ## Próxima ação
 
-Publicar o resultado validado, transicionar para `CHAT_READY` e enviar a
-campainha curta ao Chat. Após o Chat assumir `CHAT_WORKING`, decidir e provar em
-tarefa separada o trigger econômico que não desperta o modelo sem mudança.
+Publicar o candidato do watcher, pedir auditoria independente por hash e, com
+GO, instalar e executar somente o ensaio no-op completo.
