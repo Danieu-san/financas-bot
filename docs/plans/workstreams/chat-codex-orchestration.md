@@ -1,6 +1,6 @@
 # Plano — coordenação Chat ↔ Codex
 
-Status: `ORCH-01 em implementação isolada; automação real ainda não autorizada`.
+Status: `ORCH-01 validado localmente; devolução CHAT_READY em execução; automação real não comprovada`.
 
 ## Objetivo
 
@@ -71,11 +71,13 @@ Estados terminais não possuem transição de saída nesta versão.
    scripts de handoff/resume, validator, índice e workstream financeiro atual.
 2. [concluída] Confirmar que o workflow já define checkpoint, plano, workstreams,
    GitHub imutável, auditoria independente e retomada portátil.
-3. [em execução] Criar o estado mecânico mínimo e o transitioner isolado.
-4. [pendente] Criar e executar testes focais do protocolo.
-5. [pendente] Executar `validateAgentWorkflow.js` e revisão adversarial do diff.
-6. [pendente] Publicar commit imutável candidato.
-7. [pendente] Ensaio real Chat -> Codex -> Chat sem tocar no bot ou produção.
+3. [concluída] Criar o estado mecânico mínimo e o transitioner isolado.
+4. [concluída] Criar e executar testes focais do protocolo (`12/12`).
+5. [concluída] Executar `validateAgentWorkflow.js` e revisão adversarial do diff.
+6. [em execução] Publicar commit imutável com a validação do Codex.
+7. [em execução] Devolver `CHAT_READY` e confirmar a ponta Codex -> Chat sem
+   tocar no bot ou produção. A ponta Chat -> Codex foi iniciada manualmente pelo
+   usuário e ainda não prova despertar automático.
 8. [pendente] Somente após prova das duas pontas, decidir se timer passa de
    semiautomático para automático.
 
@@ -103,6 +105,6 @@ Estados terminais não possuem transição de saída nesta versão.
 
 ## Próxima ação
 
-Concluir o candidato mecânico, executar testes/validator e publicar hash
-imutável. A etapa seguinte será um ensaio no-op com o Codex, não uma alteração do
-FinancasBot.
+Publicar o resultado validado, transicionar para `CHAT_READY` e enviar a
+campainha curta ao Chat. Após o Chat assumir `CHAT_WORKING`, decidir e provar em
+tarefa separada o trigger econômico que não desperta o modelo sem mudança.

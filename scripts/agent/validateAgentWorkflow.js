@@ -17,7 +17,7 @@ const checks = [
     ['docs/plans/workstreams/codex-usage-calibration.md', 12 * 1024, ['CODEX-USAGE-CAL-01', 'receptor OTLP/HTTP somente em loopback', 'auditoria independente']],
     ['docs/agent-memory/workstreams/chat-codex-orchestration.md', 10 * 1024, ['ORCH-01', 'chat-codex-orchestration.state.json', 'CHAT_WORKING', 'CODEX_READY', 'HUMAN_APPROVAL_REQUIRED']],
     ['docs/plans/workstreams/chat-codex-orchestration.md', 12 * 1024, ['ORCH-01', 'estado mecânico', 'CHAT_WORKING -> CODEX_READY -> CODEX_RUNNING -> CHAT_READY -> CHAT_WORKING', 'Critérios de GO']],
-    ['docs/agent-memory/workstreams/chat-codex-orchestration.state.json', 4 * 1024, ['financasbot-chat-codex-orchestration-v1', 'CHAT_WORKING', 'next_executor', 'expected_base_sha']],
+    ['docs/agent-memory/workstreams/chat-codex-orchestration.state.json', 4 * 1024, ['financasbot-chat-codex-orchestration-v1', 'orchestration_state', 'next_executor', 'expected_base_sha']],
     ['scripts/agent/manageChatCodexOrchestration.js', 24 * 1024, ['financasbot-chat-codex-orchestration-v1', 'CHAT_WORKING', 'CODEX_READY', 'writeAtomically', 'stateHash']],
     ['docs/agent-memory/workstreams/aws-oracle-migration.md', 12 * 1024, ['## Objetivo conhecido', '## Próxima ação obrigatória']],
     ['docs/plans/workstreams/aws-oracle-migration.md', 16 * 1024, ['## Objetivo', '## Não autorizado por este stub', '## Invariantes mínimas']],

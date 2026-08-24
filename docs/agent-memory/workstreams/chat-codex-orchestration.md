@@ -11,12 +11,14 @@ planilhas ou writers.
 
 ## Estado
 
-`ORCH-01 CANDIDATO CHAT PUBLICADO — TESTE FOCAL 12/12; ENSAIO REAL CHAT -> CODEX -> CHAT PENDENTE`.
+`ORCH-01 VALIDADO PELO CODEX — DEVOLUÇÃO CHAT_READY PENDENTE`.
 
 ## Base e branch
 
 - base imutável do workstream: `11c8fe591287d7f020338594dbd08fb4e2920bee`;
 - branch isolada: `chat/chat-codex-orchestration-20260824`;
+- estado mecânico versionado:
+  `docs/agent-memory/workstreams/chat-codex-orchestration.state.json`;
 - candidato mecânico mais recente antes deste checkpoint:
   `d3c1c3e2faec87c7e61a5a5aa5f17f64bff435ba`;
 - workstream independente do ARQ-01..06 já encerrado.
@@ -132,11 +134,35 @@ A primeira troca deve ser estritamente no-op/documental:
    Chat apenas a campainha curta com `task_id` e SHA;
 7. Chat confere GitHub e assume `CHAT_WORKING`.
 
+## Resultado do Codex em 2026-08-24
+
+- `CODEX_READY` foi reivindicado com compare-and-swap e publicado como
+  `CODEX_RUNNING` no commit
+  `63773ba47182a9f7c7295ba856508822addbb5c1`;
+- syntax check do transitioner: verde;
+- teste focal do protocolo: `12/12` verde;
+- o validator inicialmente falhou porque exigia o valor transitório
+  `CHAT_WORKING` dentro do arquivo de estado vivo e porque este checkpoint não
+  citava literalmente o path do estado;
+- o contrato foi corrigido para validar o campo estável
+  `orchestration_state`, mantendo a enumeração de estados no transitioner, e o
+  path mecânico foi explicitado neste checkpoint;
+- após a correção, `validateAgentWorkflow.js` retornou
+  `agent-workflow: OK` e o teste focal permaneceu `12/12` verde;
+- nenhum arquivo do bot, runtime, produção ou dado real foi tocado.
+
+Limite probatório: o usuário trouxe a passagem `CODEX_READY` a esta conversa;
+portanto, esta rodada comprova reivindicação, validação e devolução mecânicas,
+mas não comprova ainda que um timer desperta o Codex sozinho. A automação deve
+continuar classificada como semiautomática até um ensaio posterior do trigger.
+
 ## Próxima ação exata
 
-Preparar a passagem `CODEX_READY` somente quando o timer/trigger local do Codex
-estiver configurado para observar este workstream. Até essa prova, o protocolo
-permanece semiautomático e não deve ser usado para tarefas materiais do bot.
+Publicar `CHAT_READY` com o hash candidato desta validação e enviar ao Chat
+somente a campainha curta de `ORCH-01`. O Chat deve conferir o commit, assumir
+`CHAT_WORKING` e registrar se a ponta de retorno funcionou. Depois disso,
+planejar separadamente o trigger econômico; até sua prova, o protocolo permanece
+semiautomático e não deve ser usado para tarefas materiais do bot.
 
 ## Capacidade
 
