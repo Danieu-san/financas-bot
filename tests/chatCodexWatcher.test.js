@@ -18,13 +18,10 @@ const {
 
 function fixture(state = 'CHAT_WORKING') {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'orch-watch-'));
-    const repo = path.join(root, 'repo');
-    const runtime = path.join(root, 'runtime');
-    const codex = path.join(root, 'codex.ps1');
-    const powershell = path.join(root, 'pwsh.exe');
+    const repo = path.join(root, 'repo'), runtime = path.join(root, 'runtime');
+    const codex = path.join(root, 'codex.ps1'), git = path.join(root, 'git.exe'), powershell = path.join(root, 'pwsh.exe');
     fs.mkdirSync(repo);
-    fs.writeFileSync(codex, 'exit 0\n');
-    fs.writeFileSync(powershell, 'fixture\n');
+    for (const file of [codex, git, powershell]) fs.writeFileSync(file, 'fixture\n');
     const value = {
         schema: 'financasbot-chat-codex-orchestration-v1',
         orchestration_state: state,
@@ -36,9 +33,8 @@ function fixture(state = 'CHAT_WORKING') {
         result_file: null,
         updated_at: '2026-08-24T00:00:00.000Z'
     };
-    return { codex, powershell, repo, root, runtime, raw: serializeState(value) };
+    return {codex,git,powershell,repo,root,runtime,raw:serializeState(value)};
 }
-
 function withState(raw, state, updatedAt = '2026-08-24T00:02:00.000Z') {
     const value = JSON.parse(raw);
     value.orchestration_state = state;
@@ -53,6 +49,7 @@ function watcherOptions(item, extra = {}) {
         repo: item.repo,
         runtime: item.runtime,
         codex: item.codex,
+        git: item.git,
         powershell: item.powershell,
         ...extra
     };
@@ -265,6 +262,7 @@ test('launcher PowerShell é fixo e sem shell', () => {
     let invocation;
     const status = runCodex({
         codexPath: item.codex,
+        gitPath: item.git,
         powershellPath: item.powershell,
         repoPath: item.repo,
         prompt: 'no-op',
@@ -295,6 +293,7 @@ test('launcher nativo é direto e sem shell', () => {
     let invocation;
     const status = runCodex({
         codexPath: nativeCodex,
+        gitPath: item.git,
         powershellPath: item.powershell,
         repoPath: item.repo,
         prompt: 'no-op',

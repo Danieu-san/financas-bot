@@ -219,7 +219,7 @@ function publishLocalResult({ repoPath, branch, statePath, observedHash, initial
     git(repoPath, ['push', 'origin', `HEAD:refs/heads/${branch}`], deps);
 }
 
-function runCodex({ codexPath, powershellPath, repoPath, prompt, logPath }, deps = {}) {
+function runCodex({ codexPath, gitPath, powershellPath, repoPath, prompt, logPath }, deps = {}) {
     const spawn = deps.spawnSync || spawnSync;
     assertNoIgnoredPaths(repoPath, deps);
     const commonArgs = [
@@ -243,6 +243,7 @@ function runCodex({ codexPath, powershellPath, repoPath, prompt, logPath }, deps
             windowsHide: true,
             env: {
                 ...process.env,
+                GIT_BIN: gitPath,
                 GIT_CONFIG_COUNT: '1',
                 GIT_CONFIG_KEY_0: 'safe.directory',
                 GIT_CONFIG_VALUE_0: repoPath.replaceAll('\\', '/')
@@ -262,6 +263,7 @@ function pollOnce(options, deps = {}) {
     const repoPath = assertAbsoluteExistingDirectory(options.repo, 'repo');
     const runtimePath = path.resolve(options.runtime);
     const codexPath = assertAbsoluteExistingFile(options.codex, 'codex');
+    const gitPath = assertAbsoluteExistingFile(options.git, 'git');
     const powershellPath = path.extname(codexPath).toLowerCase() === '.ps1'
         ? assertAbsoluteExistingFile(options.powershell, 'powershell')
         : null;
@@ -309,6 +311,7 @@ function pollOnce(options, deps = {}) {
         try {
             exitCode = (deps.runCodex || runCodex)({
                 codexPath,
+                gitPath,
                 powershellPath,
                 repoPath,
                 prompt,

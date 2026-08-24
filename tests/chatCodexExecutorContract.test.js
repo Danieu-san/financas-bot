@@ -25,11 +25,13 @@ test('launcher limita safe.directory ao processo executor', t => {
     t.after(() => fs.rmSync(root, { recursive: true, force: true }));
     const repo = path.join(root, 'repo');
     const codex = path.join(root, 'codex.exe');
+    const git = path.join(root, 'git.exe');
     fs.mkdirSync(repo);
     fs.writeFileSync(codex, 'fixture\n');
+    fs.writeFileSync(git, 'fixture\n');
     let invocation;
     assert.equal(runCodex({
-        codexPath: codex, powershellPath: null, repoPath: repo, prompt: 'no-op',
+        codexPath: codex, gitPath: git, powershellPath: null, repoPath: repo, prompt: 'no-op',
         logPath: path.join(root, 'run.log')
     }, {
         listIgnoredPaths: () => new Set(),
@@ -39,7 +41,16 @@ test('launcher limita safe.directory ao processo executor', t => {
         }
     }), 0);
     assert.deepEqual([
-        invocation.options.env.GIT_CONFIG_COUNT, invocation.options.env.GIT_CONFIG_KEY_0,
+        invocation.options.env.GIT_BIN, invocation.options.env.GIT_CONFIG_COUNT,
+        invocation.options.env.GIT_CONFIG_KEY_0,
         invocation.options.env.GIT_CONFIG_VALUE_0
-    ], ['1', 'safe.directory', repo.replaceAll('\\', '/')]);
+    ], [git, '1', 'safe.directory', repo.replaceAll('\\', '/')]);
+});
+
+test('instalador entrega Git absoluto ao watcher', () => {
+    const installer = fs.readFileSync(path.join(
+        __dirname, '..', 'scripts', 'agent', 'Install-ChatCodexOrchestrationWatcher.ps1'
+    ), 'utf8');
+    assert.match(installer, /Get-Command git -ErrorAction Stop/);
+    assert.match(installer, /'--git', \(Quote-Argument \$git\)/);
 });

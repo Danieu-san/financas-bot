@@ -10,6 +10,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $watcher = Join-Path $PSScriptRoot 'watchChatCodexOrchestration.js'
 $node = (Get-Command node -ErrorAction Stop).Source
+$git = (Get-Command git -ErrorAction Stop).Source
 $powershell = (Get-Command powershell.exe -ErrorAction Stop).Source
 
 if (-not $RunAsUser) {
@@ -73,6 +74,7 @@ $arguments = @(
     '--repo', (Quote-Argument $RepositoryRoot),
     '--branch', (Quote-Argument $Branch),
     '--codex', (Quote-Argument $codex),
+    '--git', (Quote-Argument $git),
     '--powershell', (Quote-Argument $powershell),
     '--runtime', (Quote-Argument $runtime)
 ) -join ' '
