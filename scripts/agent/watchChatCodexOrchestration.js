@@ -8,6 +8,7 @@ const { parseState, stateHash, writeAtomically } = require('./manageChatCodexOrc
 const CACHE_SCHEMA = 'financasbot-chat-codex-watcher-v1';
 const DEFAULT_BRANCH = 'chat/chat-codex-orchestration-20260824';
 const DEFAULT_STATE_PATH = 'docs/agent-memory/workstreams/chat-codex-orchestration.state.json';
+const DEFAULT_PLAN_PATH = 'docs/plans/workstreams/chat-codex-orchestration.md';
 
 function parseArgs(argv) {
     const options = {};
@@ -138,13 +139,66 @@ function buildExecutorPrompt({ branch, observedHash, taskId }) {
         `Task: ${taskId}. Hash mecânico observado: ${observedHash}.`,
         'Leia AGENTS.md, docs/agent-memory/README.md, o checkpoint, plano e estado deste workstream.',
         'O hash mecânico é o SHA-256 dos bytes serializados do arquivo JSON de estado; não é SHA de commit nem FETCH_HEAD.',
-        'Após git fetch, confirme que o estado remoto continua CODEX_READY e que o SHA-256 do JSON remoto é exatamente o hash mecânico observado.',
+        'O watcher já confirmou que o estado remoto continua CODEX_READY e que o SHA-256 do JSON remoto é exatamente o hash mecânico observado.',
         'Nunca compare o hash mecânico com o SHA do commit; falhe fechado somente se o conteúdo/estado remoto divergir.',
-        'Reivindique CODEX_RUNNING por compare-and-swap, publique a reivindicação e execute apenas os checks descritos no checkpoint.',
+        'Faça localmente as transições CODEX_READY -> CODEX_RUNNING -> CHAT_READY por compare-and-swap e execute apenas os checks descritos no checkpoint.',
+        'Não execute git fetch, add, commit ou push; o watcher publicará deterministicamente somente os arquivos autorizados após validar seu resultado.',
         'Não toque no bot, produção, OCI, WhatsApp, Pluggy, planilhas, .env, writers ou dados reais.',
-        'Registre evidência, publique CHAT_READY e, se o navegador interno estiver acessível, envie ao Chat somente ORCH-01 CHAT_READY <commit_sha>.',
-        'Se a campainha não puder ser enviada, deixe CHAT_READY publicado e informe isso no resultado; não amplie o escopo.'
+        'Registre localmente a evidência e deixe o estado CHAT_READY; não afirme que houve publicação remota.',
+        'Não tente acessar navegador nem enviar campainha; o watcher verificará o GitHub depois da publicação.'
     ].join('\n');
+}
+
+function parsePorcelainPaths(raw) {
+    if (typeof raw !== 'string') throw new Error('status Git inválido');
+    return raw.split(/\r?\n/).filter(Boolean).map(line => {
+        if (line.length < 4 || line[2] !== ' ') throw new Error(`status Git não suportado: ${line}`);
+        const status = line.slice(0, 2);
+        const filePath = line.slice(3).replaceAll('\\', '/');
+        if (status.includes('R') || status.includes('C') || filePath.includes(' -> ')) {
+            throw new Error(`rename/copy não autorizado: ${line}`);
+        }
+        return { status, path: filePath };
+    });
+}
+
+function publishLocalResult({ repoPath, branch, statePath, observedHash, initialState }, deps = {}) {
+    const git = deps.runGit || runGit;
+    const entries = parsePorcelainPaths(git(repoPath, [
+        'status', '--porcelain=v1', '--untracked-files=all'
+    ], deps));
+    const allowedPaths = new Set([statePath, initialState.task_file, DEFAULT_PLAN_PATH]);
+    if (entries.length === 0) throw new Error('executor não produziu resultado local');
+    const unsupported = entries.find(entry => entry.status !== ' M');
+    if (unsupported) {
+        throw new Error(`status Git não autorizado para ${unsupported.path}: ${unsupported.status}`);
+    }
+    const unexpected = entries.filter(entry => !allowedPaths.has(entry.path));
+    if (unexpected.length > 0) {
+        throw new Error(`executor alterou caminho não autorizado: ${unexpected[0].path}`);
+    }
+    if (!entries.some(entry => entry.path === statePath)) {
+        throw new Error('estado mecânico não foi alterado pelo executor');
+    }
+
+    const localRaw = fs.readFileSync(path.join(repoPath, ...statePath.split('/')), 'utf8');
+    const localState = parseState(localRaw);
+    if (localState.orchestration_state !== 'CHAT_READY' || localState.task_id !== initialState.task_id) {
+        throw new Error('resultado local não alcançou CHAT_READY para a mesma tarefa');
+    }
+
+    const remoteRaw = (deps.fetchRemoteState || fetchRemoteState)(repoPath, branch, statePath, deps);
+    const remoteState = parseState(remoteRaw);
+    if (stateHash(remoteRaw) !== observedHash
+        || remoteState.orchestration_state !== 'CODEX_READY'
+        || remoteState.task_id !== initialState.task_id) {
+        throw new Error('estado remoto avançou antes da publicação');
+    }
+
+    const changedPaths = [...new Set(entries.map(entry => entry.path))];
+    git(repoPath, ['add', '--', ...changedPaths], deps);
+    git(repoPath, ['commit', '-m', `chore: publish ${initialState.task_id} CHAT_READY`], deps);
+    git(repoPath, ['push', 'origin', `HEAD:refs/heads/${branch}`], deps);
 }
 
 function runCodex({ codexPath, powershellPath, repoPath, prompt, logPath }, deps = {}) {
@@ -241,6 +295,24 @@ function pollOnce(options, deps = {}) {
             throw error;
         }
 
+        if (exitCode === 0) {
+            try {
+                (deps.publishLocalResult || publishLocalResult)({
+                    repoPath,
+                    branch,
+                    statePath,
+                    observedHash,
+                    initialState: state
+                }, deps);
+            } catch (error) {
+                saveCache(cachePath, {
+                    ...cache,
+                    launch_status: 'failed:publish_error'
+                }, deps.now?.() || new Date());
+                throw error;
+            }
+        }
+
         let finalRaw;
         try {
             finalRaw = (deps.fetchRemoteState || fetchRemoteState)(repoPath, branch, statePath, deps);
@@ -302,11 +374,14 @@ if (require.main === module) {
 module.exports = {
     CACHE_SCHEMA,
     DEFAULT_BRANCH,
+    DEFAULT_PLAN_PATH,
     DEFAULT_STATE_PATH,
     buildExecutorPrompt,
     defaultCache,
     fetchRemoteState,
+    parsePorcelainPaths,
     pollOnce,
+    publishLocalResult,
     readCache,
     runCodex,
     saveCache,

@@ -8,7 +8,9 @@ const test = require('node:test');
 const { serializeState } = require('../scripts/agent/manageChatCodexOrchestration');
 const {
     buildExecutorPrompt,
+    parsePorcelainPaths,
     pollOnce,
+    publishLocalResult,
     readCache,
     runCodex,
     withWatcherLock
@@ -82,7 +84,8 @@ test('CODEX_READY novo dispara exatamente uma vez', () => {
             assert.doesNotMatch(prompt, /produção.*alter/i);
             raw = withState(raw, 'CHAT_READY');
             return 0;
-        }
+        },
+        publishLocalResult: () => {}
     };
     const options = watcherOptions(item);
     assert.equal(pollOnce(options, deps).action, 'launched');
@@ -103,7 +106,8 @@ test('hash novo de CODEX_READY permite novo disparo', () => {
             launches += 1;
             raw = withState(raw, 'CHAT_READY');
             return 0;
-        }
+        },
+        publishLocalResult: () => {}
     };
     const options = watcherOptions(item);
     pollOnce(options, deps);
@@ -152,6 +156,9 @@ test('prompt é local, limitado e não contém ação financeira', () => {
     assert.match(prompt, /CHAT_READY/);
     assert.match(prompt, /SHA-256 dos bytes serializados/);
     assert.match(prompt, /não é SHA de commit nem FETCH_HEAD/);
+    assert.match(prompt, /Não execute git fetch, add, commit ou push/);
+    assert.match(prompt, /watcher publicará deterministicamente/);
+    assert.match(prompt, /não afirme que houve publicação remota/);
 });
 
 test('exit zero sem CHAT_READY falha fechado e não relança o mesmo hash', () => {
@@ -159,7 +166,8 @@ test('exit zero sem CHAT_READY falha fechado e não relança o mesmo hash', () =
     let launches = 0;
     const deps = {
         fetchRemoteState: () => item.raw,
-        runCodex: () => { launches += 1; return 0; }
+        runCodex: () => { launches += 1; return 0; },
+        publishLocalResult: () => {}
     };
     const options = watcherOptions(item);
     const result = pollOnce(options, deps);
@@ -169,6 +177,87 @@ test('exit zero sem CHAT_READY falha fechado e não relança o mesmo hash', () =
         'failed:state_not_advanced');
     assert.equal(pollOnce(options, deps).action, 'unchanged');
     assert.equal(launches, 1);
+});
+
+test('publicação fixa', () => {
+    const item = fixture('CODEX_READY');
+    const initialState = JSON.parse(item.raw);
+    const localRaw = withState(item.raw, 'CHAT_READY');
+    const statePath = 'docs/agent-memory/workstreams/chat-codex-orchestration.state.json';
+    fs.mkdirSync(path.join(item.repo, 'docs', 'agent-memory', 'workstreams'), { recursive: true });
+    fs.writeFileSync(path.join(item.repo, ...statePath.split('/')), localRaw);
+    const commands = [];
+    publishLocalResult({
+        repoPath: item.repo,
+        branch: 'chat/test',
+        statePath,
+        observedHash: require('../scripts/agent/manageChatCodexOrchestration').stateHash(item.raw),
+        initialState
+    }, {
+        runGit(repoPath, args) {
+            commands.push(args);
+            if (args[0] === 'status') {
+                return ` M ${statePath}\n M docs/task.md\n`;
+            }
+            return '';
+        },
+        fetchRemoteState: () => item.raw
+    });
+    assert.deepEqual(commands.slice(1), [
+        ['add', '--', statePath, 'docs/task.md'],
+        ['commit', '-m', 'chore: publish ORCH-01 CHAT_READY'],
+        ['push', 'origin', 'HEAD:refs/heads/chat/test']
+    ]);
+});
+
+test('rejeita caminho extra', () => {
+    const item = fixture('CODEX_READY');
+    const initialState = JSON.parse(item.raw);
+    const statePath = 'docs/agent-memory/workstreams/chat-codex-orchestration.state.json';
+    fs.mkdirSync(path.join(item.repo, 'docs', 'agent-memory', 'workstreams'), { recursive: true });
+    fs.writeFileSync(path.join(item.repo, ...statePath.split('/')), withState(item.raw, 'CHAT_READY'));
+    assert.throws(() => publishLocalResult({
+        repoPath: item.repo,
+        branch: 'chat/test',
+        statePath,
+        observedHash: '0'.repeat(64),
+        initialState
+    }, {
+        runGit: () => ' M src/index.js\n',
+        fetchRemoteState: () => item.raw
+    }), /caminho não autorizado: src\/index\.js/);
+});
+
+test('rejeita status inseguro', () => {
+    const item = fixture('CODEX_READY');
+    const statePath = 'docs/agent-memory/workstreams/chat-codex-orchestration.state.json';
+    fs.mkdirSync(path.join(item.repo, 'docs', 'agent-memory', 'workstreams'), { recursive: true });
+    fs.writeFileSync(path.join(item.repo, ...statePath.split('/')), withState(item.raw, 'CHAT_READY'));
+    for (const status of ['??', ' D', 'M ']) {
+    assert.throws(() => parsePorcelainPaths('R  a -> b\n'), /rename\/copy não autorizado/);
+        assert.throws(() => publishLocalResult({
+            repoPath: item.repo,
+            branch: 'chat/test',
+            statePath,
+            observedHash: '0'.repeat(64),
+            initialState: JSON.parse(item.raw)
+        }, {
+            runGit: () => `${status} ${statePath}\n`,
+            fetchRemoteState: () => item.raw
+        }), /status Git não autorizado/);
+    }
+});
+
+test('falha do publicador é persistida sem falso sucesso', () => {
+    const item = fixture('CODEX_READY');
+    const deps = {
+        fetchRemoteState: () => item.raw,
+        runCodex: () => 0,
+        publishLocalResult: () => { throw new Error('push recusado'); }
+    };
+    assert.throws(() => pollOnce(watcherOptions(item), deps), /push recusado/);
+    assert.equal(readCache(path.join(item.runtime, 'watcher-state.json')).launch_status,
+        'failed:publish_error');
 });
 
 test('launcher PowerShell usa argumentos fixos sem shell', () => {
