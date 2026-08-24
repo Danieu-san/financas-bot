@@ -10,7 +10,8 @@ const {
 
 test('executor recebe sequência mecânica fechada', () => {
     const prompt = buildExecutorPrompt({
-        branch: 'chat/test', observedHash: 'b'.repeat(64), taskId: 'ORCH-01'
+        branch: 'chat/test', gitPath: "C:\\Git O'Brien\\git.exe",
+        observedHash: 'b'.repeat(64), repoPath: "E:\\repo O'Brien", taskId: 'ORCH-01'
     });
     for (const text of [
         '--experimental-test-isolation=none --test tests/chatCodexOrchestration.test.js',
@@ -18,6 +19,8 @@ test('executor recebe sequência mecânica fechada', () => {
         'Altere somente o JSON de estado'
     ]) assert.ok(prompt.includes(text));
     assert.doesNotMatch(prompt, /leia somente AGENTS\.md/);
+    assert.match(prompt, /\$env:GIT_BIN = 'C:\\Git O''Brien\\git\.exe'/);
+    assert.match(prompt, /\$env:GIT_CONFIG_VALUE_0 = 'E:\/repo O''Brien'/);
 });
 
 test('launcher limita safe.directory ao processo executor', t => {

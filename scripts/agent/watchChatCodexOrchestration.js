@@ -132,7 +132,13 @@ function withWatcherLock(cachePath, callback, deps = {}) {
     }
 }
 
-function buildExecutorPrompt({ branch, observedHash, taskId }) {
+function quotePowerShellLiteral(value) {
+    return `'${value.replaceAll("'", "''")}'`;
+}
+
+function buildExecutorPrompt({ branch, gitPath, observedHash, repoPath, taskId }) {
+    const quotedGit = quotePowerShellLiteral(gitPath);
+    const quotedRepo = quotePowerShellLiteral(repoPath.replaceAll('\\', '/'));
     return [
         'Execute somente o ensaio no-op do workstream chat-codex-orchestration.',
         `Branch remota: ${branch}.`,
@@ -143,7 +149,7 @@ function buildExecutorPrompt({ branch, observedHash, taskId }) {
         `1. node scripts/agent/manageChatCodexOrchestration.js transition --file docs/agent-memory/workstreams/chat-codex-orchestration.state.json --to CODEX_RUNNING --expected-state-hash ${observedHash}`,
         '2. node --experimental-test-isolation=none --test tests/chatCodexOrchestration.test.js',
         '3. node --check scripts/agent/manageChatCodexOrchestration.js',
-        '4. node scripts/agent/validateAgentWorkflow.js',
+        `4. $env:GIT_BIN = ${quotedGit}; $env:GIT_CONFIG_COUNT = '1'; $env:GIT_CONFIG_KEY_0 = 'safe.directory'; $env:GIT_CONFIG_VALUE_0 = ${quotedRepo}; node scripts/agent/validateAgentWorkflow.js`,
         '5. calcule o hash atual com o comando hash do transitioner e use exatamente esse valor para transicionar a CHAT_READY com --result-file docs/agent-memory/workstreams/chat-codex-orchestration.md.',
         'Se qualquer comando falhar, falhe fechado: pare sem tentar recovery ou alternativa.',
         'Não execute git fetch, add, commit ou push; o watcher publicará deterministicamente somente os arquivos autorizados após validar seu resultado.',
@@ -306,7 +312,9 @@ function pollOnce(options, deps = {}) {
             launch_status: 'running'
         }, deps.now?.() || new Date());
         const logPath = path.join(runtimePath, 'runs', `${observedHash}.log`);
-        const prompt = buildExecutorPrompt({ branch, observedHash, taskId: state.task_id });
+        const prompt = buildExecutorPrompt({
+            branch, gitPath, observedHash, repoPath, taskId: state.task_id
+        });
         let exitCode;
         try {
             exitCode = (deps.runCodex || runCodex)({

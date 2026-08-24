@@ -143,9 +143,7 @@ test('lock de PID morto é recuperado', () => {
 
 test('prompt é local, limitado e não contém ação financeira', () => {
     const prompt = buildExecutorPrompt({
-        branch: 'chat/test',
-        observedHash: 'b'.repeat(64),
-        taskId: 'ORCH-01'
+        branch:'x',gitPath:'g',observedHash:'b'.repeat(64),repoPath:'r',taskId:'ORCH-01'
     });
     assert.match(prompt, /somente o ensaio no-op/);
     assert.match(prompt, /falhe fechado/);
