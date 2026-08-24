@@ -9,11 +9,14 @@ const test = require('node:test');
 const {
     EXECUTOR_BY_STATE,
     SCHEMA,
+    assertExpectedStateHash,
+    isSafeRepoPath,
     parseState,
     serializeState,
     stateHash,
     transitionState,
     validateState,
+    withStateLock,
     writeAtomically
 } = require('../scripts/agent/manageChatCodexOrchestration');
 
@@ -56,6 +59,17 @@ test('hash mecânico é estável sem mudança e muda quando o estado muda', () =
 
     const changed = serializeState(makeState({ task_id: 'ORCH-02' }));
     assert.notEqual(stateHash(first), stateHash(changed));
+});
+
+test('compare-and-swap rejeita hash de estado obsoleto', () => {
+    const raw = serializeState(makeState());
+    const hash = stateHash(raw);
+    assert.doesNotThrow(() => assertExpectedStateHash(raw, hash));
+    assert.throws(
+        () => assertExpectedStateHash(raw, '0'.repeat(64)),
+        /estado mudou: esperado/
+    );
+    assert.throws(() => assertExpectedStateHash(raw, 'abc123'), /expected-state-hash inválido/);
 });
 
 test('fluxo normal exige cada transição e deriva o executor', () => {
@@ -114,6 +128,13 @@ test('hashes curtos e caminhos que escapam do repositório são rejeitados', () 
     assert.match(joined, /result_file inválido/);
 });
 
+test('caminhos absolutos Windows e UNC são rejeitados independentemente do host', () => {
+    assert.equal(isSafeRepoPath('C:\\private\\task.md'), false);
+    assert.equal(isSafeRepoPath('D:/private/task.md'), false);
+    assert.equal(isSafeRepoPath('\\\\server\\share\\task.md'), false);
+    assert.equal(isSafeRepoPath('docs/tasks/task.md'), true);
+});
+
 test('estados de parada não possuem saída silenciosa', () => {
     for (const terminal of ['BLOCKED', 'FAILED', 'HUMAN_APPROVAL_REQUIRED', 'FINISHED']) {
         const state = makeState({
@@ -122,6 +143,23 @@ test('estados de parada não possuem saída silenciosa', () => {
         });
         assert.deepEqual(validateState(state), []);
         assert.throws(() => transitionState(state, 'CHAT_WORKING'), /transição inválida/);
+    }
+});
+
+test('lock exclusivo impede dois transitioners locais de possuir o mesmo estado', () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-orch-lock-'));
+    const file = path.join(directory, 'state.json');
+    try {
+        fs.writeFileSync(file, serializeState(makeState()), 'utf8');
+        withStateLock(file, () => {
+            assert.throws(
+                () => withStateLock(file, () => {}),
+                /estado já está sendo transicionado/
+            );
+        });
+        assert.equal(fs.existsSync(`${file}.lock`), false);
+    } finally {
+        fs.rmSync(directory, { recursive: true, force: true });
     }
 });
 
