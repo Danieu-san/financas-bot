@@ -72,9 +72,10 @@ sem novo ciclo de correção por frase.
 40. [concluído com recovery necessário] o novo artefato promoveu a pergunta
     base, mas o follow-up foi descartado pelo roteador público antes do agente;
     canário restaurado para `off`, health verde e zero efeitos.
-41. [em execução] publicar e auditar o recovery fechado do roteamento público;
-    com GO, promover novo artefato com `off` e executar uma única sequência
-    base + follow-up antes do fechamento do gate.
+41. [concluído] recovery fechado publicado e auditado com GO independente, zero
+    achados e nenhuma lacuna residual.
+42. [em execução] promover novo artefato com `off` e executar uma única
+    sequência base + follow-up antes do fechamento do gate.
 
 ## Critério de conclusão
 

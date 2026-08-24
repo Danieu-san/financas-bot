@@ -4,7 +4,7 @@ Atualizado em: 2026-08-23
 
 ## Estado
 
-`ARQ-01 A ARQ-06 EM GO — CANÁRIO OCI REVERTIDO PARA OFF; RECOVERY 323 AGUARDA REAUDITORIA INDEPENDENTE`.
+`ARQ-01 A ARQ-06 EM GO TÉCNICO LOCAL — CANÁRIO OCI OFF; RECOVERY 329 EM GO INDEPENDENTE, DEPLOY/SMOKE PENDENTES`.
 
 ## Objetivo
 
@@ -381,3 +381,11 @@ proibidos.
   `docs/audit/329-financial-analytical-follow-up-route-recovery-candidate-2026-08-23.md`;
 - próximo passo: publicar e auditar o hash imutável; somente com GO será
   permitido novo artefato e uma única sequência base + follow-up.
+- candidato publicado no hash imutável
+  `0683d6d06a9ad671f7822829deed3b94e8c98e97`;
+- a auditoria independente confirmou manifesto, diff, pai causal, handler e
+  testes e retornou `GO TÉCNICO LOCAL`, zero achados e nenhuma lacuna residual;
+- fechamento independente:
+  `docs/audit/330-financial-analytical-follow-up-route-independent-close-2026-08-23.md`;
+- próximo passo: gerar/promover artefato OCI com canário `off` e executar uma
+  única sequência base + follow-up; qualquer erro exige restauração imediata.
