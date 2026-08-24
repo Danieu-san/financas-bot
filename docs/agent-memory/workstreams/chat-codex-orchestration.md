@@ -187,9 +187,26 @@ A tarefa instalada foi verificada com usuário `Usuario`, logon interativo,
 `launched_hash: null`, sem chamar modelo. A rodada completa com
 `CODEX_READY` ainda depende do recovery imutável e de reauditoria.
 
+A reauditoria do commit `7b26b20f182b6b7e1e06053a79ca4db469d5726d`
+identificou um único achado `MEDIUM`: as ações `Install` e `Remove` ainda
+apagavam o lock incondicionalmente, contornando a proteção do watcher. O
+recovery seguinte tornou o lifecycle fail-closed: instalação e remoção recusam
+tarefa em execução, lock malformado, PID inválido e PID vivo; somente um PID
+válido e comprovadamente morto permite remover o lock órfão.
+
+Evidência causal local do recovery:
+
+- `9/9` testes focais do watcher verdes;
+- parser PowerShell verde;
+- lock com PID morto foi recuperado e a instalação prosseguiu;
+- lock malformado retornou erro e permaneceu intacto;
+- lock do processo vivo retornou erro e permaneceu intacto;
+- após reinstalação, poll real terminou com código zero, sem lock residual e
+  sem alterar `launched_hash: null` em `CHAT_WORKING`.
+
 ## Próxima ação exata
 
-Publicar e reauditar o recovery da instalação real. Com GO, pedir ao Chat que
+Publicar e reauditar o recovery fail-closed do lifecycle. Com GO, pedir ao Chat que
 publique um novo `CODEX_READY` exclusivamente no-op e observar a tarefa
 disparar Codex uma única vez e devolver `CHAT_READY`.
 

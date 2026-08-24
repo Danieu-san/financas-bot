@@ -27,6 +27,29 @@ if (-not (Test-Path -LiteralPath $codex -PathType Leaf)) {
 $runtime = Join-Path $interactiveProfile.LocalPath 'AppData\Local\FinancasBot\chat-codex-orchestration'
 $lockPath = Join-Path $runtime 'watcher-state.json.lock'
 
+function Assert-WatcherLifecycleSafe {
+    $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+    if ($task -and $task.State -eq 'Running') {
+        throw "O watcher $TaskName esta em execucao; aguarde o encerramento antes de instalar ou remover."
+    }
+
+    if (-not (Test-Path -LiteralPath $lockPath -PathType Leaf)) { return }
+
+    try {
+        $lock = Get-Content -LiteralPath $lockPath -Raw | ConvertFrom-Json -ErrorAction Stop
+        $lockPid = [int]$lock.pid
+    } catch {
+        throw "Lock malformado em $lockPath; remocao automatica recusada."
+    }
+    if ($lockPid -le 0) {
+        throw "Lock sem PID valido em $lockPath; remocao automatica recusada."
+    }
+    if (Get-Process -Id $lockPid -ErrorAction SilentlyContinue) {
+        throw "Lock pertence ao processo vivo $lockPid; remocao automatica recusada."
+    }
+    Remove-Item -LiteralPath $lockPath -Force
+}
+
 function Quote-Argument([string]$Value) {
     if ($Value.Contains('"')) { throw 'Argumento contem aspas nao suportadas.' }
     return '"' + $Value + '"'
@@ -42,7 +65,7 @@ $arguments = @(
 
 switch ($Action) {
     'Install' {
-        Remove-Item -LiteralPath $lockPath -Force -ErrorAction SilentlyContinue
+        Assert-WatcherLifecycleSafe
         $taskAction = New-ScheduledTaskAction -Execute $node -Argument $arguments
         $triggerParameters = @{
             Once = $true
@@ -77,10 +100,10 @@ switch ($Action) {
         Write-Output "INSTALLED $TaskName"
     }
     'Remove' {
+        Assert-WatcherLifecycleSafe
         if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) {
             Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
         }
-        Remove-Item -LiteralPath $lockPath -Force -ErrorAction SilentlyContinue
         Write-Output "REMOVED $TaskName"
     }
     'RunNow' {

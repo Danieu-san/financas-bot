@@ -162,3 +162,21 @@ test('branch iniciada por hífen falha antes de chamar Git ou Codex', () => {
     }), /branch inválida/);
     assert.equal(fetched, false);
 });
+
+test('instalador recusa apagar lock sem provar PID morto', () => {
+    const installer = fs.readFileSync(path.join(
+        __dirname,
+        '..',
+        'scripts',
+        'agent',
+        'Install-ChatCodexOrchestrationWatcher.ps1'
+    ), 'utf8');
+    assert.match(installer, /if \(\$task -and \$task\.State -eq 'Running'\)/);
+    assert.match(installer, /ConvertFrom-Json -ErrorAction Stop/);
+    assert.match(installer, /Get-Process -Id \$lockPid -ErrorAction SilentlyContinue/);
+    assert.match(installer, /Lock pertence ao processo vivo/);
+    assert.match(installer, /Lock malformado/);
+    assert.equal((installer.match(/Remove-Item -LiteralPath \$lockPath -Force/g) || []).length, 1);
+    assert.match(installer, /Assert-WatcherLifecycleSafe[\s\S]*?'Install' \{\s*Assert-WatcherLifecycleSafe/);
+    assert.match(installer, /'Remove' \{\s*Assert-WatcherLifecycleSafe/);
+});

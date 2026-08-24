@@ -1,6 +1,6 @@
 # Plano — coordenação Chat ↔ Codex
 
-Status: `ORCH-01: watcher instalado e silêncio comprovado; recovery operacional aguardando reauditoria`.
+Status: `ORCH-01: watcher instalado e silêncio comprovado; recovery fail-closed aguardando reauditoria`.
 
 ## Objetivo
 
@@ -80,8 +80,9 @@ Estados terminais não possuem transição de saída nesta versão.
    usuário e não provou despertar automático.
 8. [concluída] Auditar o watcher econômico e comprovar no Task Scheduler que
    `CHAT_WORKING` inalterado termina sem chamar modelo.
-9. [em execução] Reauditar os recoveries causados pelo ensaio real: usuário
-   interativo, bateria, lock órfão e safe.directory apenas por processo.
+9. [em execução] Reauditar o recovery final de lifecycle: usuário interativo,
+   bateria e safe.directory já foram confirmados; instalação/remoção agora
+   recusam tarefa viva, lock malformado ou PID vivo e recuperam apenas PID morto.
 10. [pendente] Com GO independente, ensaiar Chat -> watcher -> Codex -> Chat;
    remover ou pausar a tarefa se qualquer ponta falhar.
 
@@ -109,5 +110,5 @@ Estados terminais não possuem transição de saída nesta versão.
 
 ## Próxima ação
 
-Publicar e reauditar o recovery operacional; com GO, executar somente o ensaio
+Publicar e reauditar o recovery fail-closed; com GO, executar somente o ensaio
 no-op completo.
