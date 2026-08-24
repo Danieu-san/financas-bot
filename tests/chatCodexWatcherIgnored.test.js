@@ -52,6 +52,9 @@ test('launcher grava progresso durante a execução e limita o no-op a dez minut
     const status = runCodex(item.options, {
         listIgnoredPaths: () => new Set(),
         spawnSync(command, args, options) {
+            assert.deepEqual(args.slice(0, 3), [
+                '-c', 'windows.sandbox="unelevated"', 'exec'
+            ]);
             assert.equal(options.timeout, 10 * 60_000);
             assert.equal(options.stdio[0], 'pipe');
             fs.writeSync(options.stdio[1], 'progresso-visível\n');
@@ -65,10 +68,14 @@ test('launcher grava progresso durante a execução e limita o no-op a dez minut
     assert.match(log, /status=0/);
 });
 
-test('tarefa usa principal elevado para permitir o helper do sandbox', () => {
+test('tarefa permanece limitada e o Codex usa o fallback unelevated explicitamente', () => {
     const installer = fs.readFileSync(path.join(
         __dirname, '..', 'scripts', 'agent', 'Install-ChatCodexOrchestrationWatcher.ps1'
     ), 'utf8');
-    assert.match(installer, /RunLevel = 'Highest'/);
-    assert.doesNotMatch(installer, /RunLevel = 'Limited'/);
+    const watcher = fs.readFileSync(path.join(
+        __dirname, '..', 'scripts', 'agent', 'watchChatCodexOrchestration.js'
+    ), 'utf8');
+    assert.match(installer, /RunLevel = 'Limited'/);
+    assert.doesNotMatch(installer, /RunLevel = 'Highest'/);
+    assert.match(watcher, /'windows\.sandbox="unelevated"'/);
 });

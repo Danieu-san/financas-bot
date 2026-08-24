@@ -89,7 +89,7 @@ switch ($Action) {
         $principalParameters = @{
             UserId = $RunAsUser
             LogonType = 'Interactive'
-            RunLevel = 'Highest'
+            RunLevel = 'Limited'
         }
         $principal = New-ScheduledTaskPrincipal @principalParameters
         $registerParameters = @{
