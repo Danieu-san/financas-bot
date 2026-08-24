@@ -219,7 +219,7 @@ function runCodex({ codexPath, powershellPath, repoPath, prompt, logPath }, deps
     const spawn = deps.spawnSync || spawnSync;
     assertNoIgnoredPaths(repoPath, deps);
     const commonArgs = [
-        '-c', 'windows.sandbox="unelevated"',
+        '--profile', 'chat-codex-orchestration',
         'exec', '--ephemeral', '--sandbox', 'workspace-write',
         '-m', 'gpt-5.4-mini', '-c', 'model_reasoning_effort="medium"', '-C', repoPath, '-'
     ];

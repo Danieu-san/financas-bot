@@ -29,6 +29,16 @@ if ($codexCandidates.Count -ne 1) {
 $codex = $codexCandidates[0].FullName
 $runtime = Join-Path $interactiveProfile.LocalPath 'AppData\Local\FinancasBot\chat-codex-orchestration'
 $lockPath = Join-Path $runtime 'watcher-state.json.lock'
+$profilePath = Join-Path $interactiveProfile.LocalPath '.codex\chat-codex-orchestration.config.toml'
+$profileContent = "[windows]`nsandbox = `"unelevated`"`n"
+
+function Assert-OrchestrationProfileSafe {
+    if (-not (Test-Path -LiteralPath $profilePath -PathType Leaf)) { return }
+    $actual = (Get-Content -LiteralPath $profilePath -Raw).Replace("`r`n", "`n")
+    if ($actual -ne $profileContent) {
+        throw "Perfil existente nao pertence a este instalador: $profilePath"
+    }
+}
 
 function Assert-WatcherLifecycleSafe {
     $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
@@ -70,6 +80,9 @@ $arguments = @(
 switch ($Action) {
     'Install' {
         Assert-WatcherLifecycleSafe
+        Assert-OrchestrationProfileSafe
+        $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+        [System.IO.File]::WriteAllText($profilePath, $profileContent, $utf8NoBom)
         $taskAction = New-ScheduledTaskAction -Execute $node -Argument $arguments
         $triggerParameters = @{
             Once = $true
@@ -105,8 +118,12 @@ switch ($Action) {
     }
     'Remove' {
         Assert-WatcherLifecycleSafe
+        Assert-OrchestrationProfileSafe
         if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) {
             Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
+        }
+        if (Test-Path -LiteralPath $profilePath -PathType Leaf) {
+            Remove-Item -LiteralPath $profilePath -Force
         }
         Write-Output "REMOVED $TaskName"
     }

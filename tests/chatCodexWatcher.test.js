@@ -308,7 +308,7 @@ test('launcher nativo é direto e sem shell', () => {
     });
     assert.equal(status, 0);
     assert.equal(invocation.command, nativeCodex);
-    assert.equal(invocation.args.slice(0, 3).join('|'), '-c|windows.sandbox="unelevated"|exec');
+    assert.equal(invocation.args.slice(0, 3).join('|'), '--profile|chat-codex-orchestration|exec');
     assert.equal(invocation.options.input, 'no-op');
     assert.equal(invocation.args.at(-1), '-');
 });

@@ -53,7 +53,7 @@ test('launcher grava progresso durante a execução e limita o no-op a dez minut
         listIgnoredPaths: () => new Set(),
         spawnSync(command, args, options) {
             assert.deepEqual(args.slice(0, 3), [
-                '-c', 'windows.sandbox="unelevated"', 'exec'
+                '--profile', 'chat-codex-orchestration', 'exec'
             ]);
             assert.equal(options.timeout, 10 * 60_000);
             assert.equal(options.stdio[0], 'pipe');
@@ -68,7 +68,7 @@ test('launcher grava progresso durante a execução e limita o no-op a dez minut
     assert.match(log, /status=0/);
 });
 
-test('tarefa permanece limitada e o Codex usa o fallback unelevated explicitamente', () => {
+test('tarefa limitada instala perfil dedicado unelevated sem elevar o watcher', () => {
     const installer = fs.readFileSync(path.join(
         __dirname, '..', 'scripts', 'agent', 'Install-ChatCodexOrchestrationWatcher.ps1'
     ), 'utf8');
@@ -77,5 +77,8 @@ test('tarefa permanece limitada e o Codex usa o fallback unelevated explicitamen
     ), 'utf8');
     assert.match(installer, /RunLevel = 'Limited'/);
     assert.doesNotMatch(installer, /RunLevel = 'Highest'/);
-    assert.match(watcher, /'windows\.sandbox="unelevated"'/);
+    assert.match(installer, /chat-codex-orchestration\.config\.toml/);
+    assert.match(installer, /sandbox = `"unelevated`"/);
+    assert.match(installer, /Assert-OrchestrationProfileSafe/);
+    assert.match(watcher, /'--profile', 'chat-codex-orchestration'/);
 });
