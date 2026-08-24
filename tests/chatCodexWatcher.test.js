@@ -232,6 +232,7 @@ test('instalador recusa apagar lock sem provar PID morto', () => {
         'agent',
         'Install-ChatCodexOrchestrationWatcher.ps1'
     ), 'utf8');
+    assert.match(installer, /Get-Command powershell\.exe -ErrorAction Stop/);
     assert.match(installer, /if \(\$task -and \$task\.State -eq 'Running'\)/);
     assert.match(installer, /ConvertFrom-Json -ErrorAction Stop/);
     assert.match(installer, /Get-Process -Id \$lockPid -ErrorAction SilentlyContinue/);
