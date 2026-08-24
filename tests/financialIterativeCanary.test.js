@@ -584,6 +584,71 @@ test('iterative reasoner sends only sanitized context and fails closed on invali
     assert.strictEqual(createFinancialIterativeReasoner({ env: {}, fetchImpl: async () => {} }), null);
 });
 
+test('resolved ranking is rendered from authoritative evidence without a second model call', async () => {
+    let fetchCalls = 0;
+    const reasoner = createFinancialIterativeReasoner({
+        env: { OPENROUTER_API_KEY: 'secret-key' },
+        costGuard: { reserveModelCall: () => ({ allowed: true }) },
+        fetchImpl: async () => {
+            fetchCalls += 1;
+            return {
+                ok: true,
+                json: async () => ({
+                    choices: [{
+                        message: {
+                            content: JSON.stringify({
+                                action: 'answer',
+                                answer: '2. Mercado Beta\n1. Pagamento efetuado'
+                            })
+                        }
+                    }]
+                })
+            };
+        }
+    });
+    const resolvedPlan = {
+        kind: 'financial_query',
+        domain: 'expenses',
+        operation: 'rank',
+        filters: { period: { type: 'month', month: 7, year: 2026 }, scope: 'family' },
+        groupBy: ['merchant'],
+        timeBasis: 'billing_month',
+        needsContext: false
+    };
+    const evidence = {
+        schemaVersion: 1,
+        capability: 'financial_query',
+        mode: 'read_only',
+        provenance: { authority: 'server', source: 'personal_sheet', scope: 'family' },
+        coverage: { status: 'available', itemCount: 2 },
+        payload: {
+            plan: resolvedPlan,
+            result: {
+                value: [
+                    { label: 'Pagamento efetuado|GCI CAIXA - HABITACAO', total: 2731.65, count: 1 },
+                    { label: 'Mercado Beta', total: 225.27, count: 2 }
+                ]
+            }
+        }
+    };
+
+    const decision = await reasoner({
+        message: 'Quais foram os maiores gastos da família neste mês?',
+        trajectory: { context: { scope: 'family' }, executedPlan: resolvedPlan },
+        evidenceHistory: [evidence]
+    });
+
+    assert.deepStrictEqual(decision, {
+        action: 'answer',
+        answer: [
+            'Gastos:',
+            '1. Pagamento efetuado|GCI CAIXA - HABITACAO: R$\u00a02.731,65, 1 lançamento(s)',
+            '2. Mercado Beta: R$\u00a0225,27, 2 lançamento(s)'
+        ].join('\n')
+    });
+    assert.strictEqual(fetchCalls, 0);
+});
+
 test('iterative reasoner enforces the persistent model-call budget before network use', async () => {
     let fetchCalls = 0;
     const reasoner = createFinancialIterativeReasoner({

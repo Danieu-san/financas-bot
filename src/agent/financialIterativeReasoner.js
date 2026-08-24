@@ -66,6 +66,59 @@ function enforceResolvedPlanDecision({ decision = null, resolvedPlan = null, has
     return decision?.action === 'answer' ? decision : null;
 }
 
+function stableValue(value) {
+    if (Array.isArray(value)) return value.map(stableValue);
+    if (!value || typeof value !== 'object') return value;
+    return Object.fromEntries(Object.keys(value).sort().map(key => [key, stableValue(value[key])]));
+}
+
+function sameResolvedPlan(left = null, right = null) {
+    if (!left || !right) return false;
+    return JSON.stringify(stableValue(left)) === JSON.stringify(stableValue(right));
+}
+
+function rankItemLabel(item = {}) {
+    return item.label || item.description || item.name || item.category || item.card || 'item';
+}
+
+function rankItemValue(item = {}) {
+    for (const key of ['total', 'value', 'amount', 'current', 'balance', 'saldo', 'expected', 'remaining']) {
+        if (Number.isFinite(Number(item?.[key]))) return Number(item[key]);
+    }
+    return null;
+}
+
+function rankTitle(domain = '') {
+    return ({ expenses: 'Gastos', cards: 'Cartões', income: 'Entradas' })[String(domain || '')] || 'Resultados';
+}
+
+function composeResolvedRankingDecision({ resolvedPlan = null, evidenceHistory = [] } = {}) {
+    if (resolvedPlan?.operation !== 'rank') return null;
+    const evidence = [...(Array.isArray(evidenceHistory) ? evidenceHistory : [])].reverse().find(item => (
+        item?.capability === 'financial_query' &&
+        item?.mode === 'read_only' &&
+        item?.provenance?.authority === 'server' &&
+        ['available', 'empty'].includes(String(item?.coverage?.status || '')) &&
+        sameResolvedPlan(item?.payload?.plan, resolvedPlan) &&
+        Array.isArray(item?.payload?.result?.value)
+    ));
+    if (!evidence) return null;
+    const items = evidence.payload.result.value.slice(0, 10);
+    const title = rankTitle(resolvedPlan.domain);
+    if (items.length === 0) return { action: 'answer', answer: `${title}: nenhum item encontrado.` };
+    const lines = items.map((item, index) => {
+        const value = rankItemValue(item);
+        const amount = value === null
+            ? ''
+            : `: ${value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+        const count = Number.isFinite(Number(item?.count))
+            ? `, ${Number(item.count)} lançamento(s)`
+            : '';
+        return `${index + 1}. ${rankItemLabel(item)}${amount}${count}`;
+    });
+    return { action: 'answer', answer: `${title}:\n${lines.join('\n')}` };
+}
+
 function buildReasonerPrompt(context = {}) {
     const resolvedPlan = resolvedPlanFromContext(context);
     const safeContext = sanitizeFinancialEvidenceValue({
@@ -159,6 +212,11 @@ function createFinancialIterativeReasoner({
     return async (context = {}) => {
         const resolvedPlan = resolvedPlanFromContext(context);
         const hasEvidence = Array.isArray(context.evidenceHistory) && context.evidenceHistory.length > 0;
+        const resolvedRanking = composeResolvedRankingDecision({
+            resolvedPlan,
+            evidenceHistory: context.evidenceHistory
+        });
+        if (resolvedRanking) return resolvedRanking;
         const deterministicDecision = enforceResolvedPlanDecision({ resolvedPlan, hasEvidence });
         if (deterministicDecision) return deterministicDecision;
 
@@ -208,6 +266,8 @@ module.exports = {
         buildReasonerPrompt,
         resolvedPlanFromContext,
         enforceResolvedPlanDecision,
+        composeResolvedRankingDecision,
+        sameResolvedPlan,
         containsBlockedArgumentKey,
         createIterativeCostGuard,
         getReasonerTimeoutMs,
