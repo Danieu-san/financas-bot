@@ -137,14 +137,18 @@ function buildExecutorPrompt({ branch, observedHash, taskId }) {
         'Execute somente o ensaio no-op do workstream chat-codex-orchestration.',
         `Branch remota: ${branch}.`,
         `Task: ${taskId}. Hash mecânico observado: ${observedHash}.`,
-        'Tarefa mecânica no-op: leia somente AGENTS.md, o checkpoint, o plano e o estado deste workstream.',
         'O hash mecânico é o SHA-256 dos bytes serializados do arquivo JSON de estado; não é SHA de commit nem FETCH_HEAD.',
         'O watcher já confirmou que o estado remoto continua CODEX_READY e que o SHA-256 do JSON remoto é exatamente o hash mecânico observado.',
-        'Nunca compare o hash mecânico com o SHA do commit; falhe fechado somente se o conteúdo/estado remoto divergir.',
-        'Faça localmente as transições CODEX_READY -> CODEX_RUNNING -> CHAT_READY por compare-and-swap e execute apenas os checks descritos no checkpoint.',
+        'Não investigue alternativas nem leia outros arquivos. Execute exatamente esta sequência mecânica:',
+        `1. node scripts/agent/manageChatCodexOrchestration.js transition --file docs/agent-memory/workstreams/chat-codex-orchestration.state.json --to CODEX_RUNNING --expected-state-hash ${observedHash}`,
+        '2. node --experimental-test-isolation=none --test tests/chatCodexOrchestration.test.js',
+        '3. node --check scripts/agent/manageChatCodexOrchestration.js',
+        '4. node scripts/agent/validateAgentWorkflow.js',
+        '5. calcule o hash atual com o comando hash do transitioner e use exatamente esse valor para transicionar a CHAT_READY com --result-file docs/agent-memory/workstreams/chat-codex-orchestration.md.',
+        'Se qualquer comando falhar, falhe fechado: pare sem tentar recovery ou alternativa.',
         'Não execute git fetch, add, commit ou push; o watcher publicará deterministicamente somente os arquivos autorizados após validar seu resultado.',
         'Não toque no bot, produção, OCI, WhatsApp, Pluggy, planilhas, .env, writers ou dados reais.',
-        'Registre localmente a evidência e deixe o estado CHAT_READY; não afirme que houve publicação remota.',
+        'Altere somente o JSON de estado e deixe-o em CHAT_READY; não edite checkpoint ou plano e não afirme que houve publicação remota.',
         'Não tente acessar navegador nem enviar campainha; o watcher verificará o GitHub depois da publicação.'
     ].join('\n');
 }
@@ -237,6 +241,12 @@ function runCodex({ codexPath, powershellPath, repoPath, prompt, logPath }, deps
             input: prompt,
             stdio: ['pipe', logDescriptor, logDescriptor],
             windowsHide: true,
+            env: {
+                ...process.env,
+                GIT_CONFIG_COUNT: '1',
+                GIT_CONFIG_KEY_0: 'safe.directory',
+                GIT_CONFIG_VALUE_0: repoPath.replaceAll('\\', '/')
+            },
             timeout: 10 * 60_000
         });
     } finally {
