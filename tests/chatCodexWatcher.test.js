@@ -156,7 +156,7 @@ test('launcher PowerShell usa argumentos fixos sem shell', () => {
     assert.equal(invocation.command, item.powershell);
     assert.equal(invocation.options.input, 'no-op');
     assert.equal(invocation.options.windowsHide, true);
-    assert.equal(invocation.args.includes('--full-auto'), true);
+    assert.equal(invocation.args.includes('--full-auto'), false);
     assert.equal(invocation.args.includes('workspace-write'), true);
     assert.equal(invocation.args.includes('gpt-5.4-mini'), true);
     assert.equal(invocation.args.includes('gpt-5.4'), false);

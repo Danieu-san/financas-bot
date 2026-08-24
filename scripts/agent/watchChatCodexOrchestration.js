@@ -148,7 +148,7 @@ function buildExecutorPrompt({ branch, observedHash, taskId }) {
 function runCodex({ codexPath, powershellPath, repoPath, prompt, logPath }, deps = {}) {
     const spawn = deps.spawnSync || spawnSync;
     const commonArgs = [
-        'exec', '--ephemeral', '--full-auto', '--sandbox', 'workspace-write',
+        'exec', '--ephemeral', '--sandbox', 'workspace-write',
         '-m', 'gpt-5.4-mini', '-c', 'model_reasoning_effort="medium"', '-C', repoPath, '-'
     ];
     const extension = path.extname(codexPath).toLowerCase();
