@@ -74,8 +74,14 @@ sem novo ciclo de correção por frase.
     canário restaurado para `off`, health verde e zero efeitos.
 41. [concluído] recovery fechado publicado e auditado com GO independente, zero
     achados e nenhuma lacuna residual.
-42. [em execução] promover novo artefato com `off` e executar uma única
-    sequência base + follow-up antes do fechamento do gate.
+42. [concluído com rollback seguro] o artefato foi promovido com `off`; a base
+    alcançou a fonte familiar, mas o candidato foi bloqueado por
+    `wrong_result_order`; o follow-up não foi enviado e o canário voltou para
+    `off` com PID invariável e health verde.
+43. [concluído] a apresentação determinística do ranking resolvido recebeu GO
+    independente, sem lacuna indispensável e sem afrouxar o verificador.
+44. [em execução] promover o artefato documental final com `off` e executar
+    exatamente uma sequência base + follow-up antes do fechamento do gate.
 
 ## Critério de conclusão
 

@@ -389,3 +389,20 @@ proibidos.
   `docs/audit/330-financial-analytical-follow-up-route-independent-close-2026-08-23.md`;
 - próximo passo: gerar/promover artefato OCI com canário `off` e executar uma
   única sequência base + follow-up; qualquer erro exige restauração imediata.
+- o artefato `b0e0c196...` foi promovido com canário `off`; uma única pergunta
+  base chegou ao ranking familiar pela `personal_sheet`, mas o candidato foi
+  bloqueado por `wrong_result_order`; o follow-up não foi enviado e o canário
+  voltou imediatamente para `off`, com PID invariável e health verde;
+- o recovery 331 apresenta ranking já resolvido diretamente da evidência
+  server-side, exige plano completo idêntico, cobertura explícita e vetor já
+  calculado, preserva a ordem e evita a segunda chamada de modelo;
+- evidência local: RED/GREEN focal, causal `25/25`, base/follow-up `2/2` e suíte
+  hermética ampla `1.822/1.832`, zero falha e dez skips previstos;
+- candidato imutável:
+  `4dbac7738b76e4160509fb80e0a7b114626bbab4`;
+- a auditoria independente retornou `GO TÉCNICO LOCAL`, sem achado
+  crítico/alto/médio e sem lacuna indispensável residual;
+- fechamento independente:
+  `docs/audit/332-financial-resolved-ranking-deterministic-presentation-independent-close-2026-08-24.md`;
+- próximo passo: promover o artefato documental final com canário `off` e
+  executar exatamente uma sequência base + follow-up, restaurando `off` ao fim.
