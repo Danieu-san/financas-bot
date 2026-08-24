@@ -154,7 +154,7 @@ function pollOnce(options, deps = {}) {
     const codexPath = assertAbsoluteExistingFile(options.codex, 'codex');
     const branch = options.branch || DEFAULT_BRANCH;
     const statePath = options['state-path'] || DEFAULT_STATE_PATH;
-    if (!/^[A-Za-z0-9._/-]+$/.test(branch) || branch.includes('..')) {
+    if (!/^[A-Za-z0-9._/-]+$/.test(branch) || branch.startsWith('-') || branch.includes('..')) {
         throw new Error('branch inválida');
     }
     if (!/^[A-Za-z0-9._/-]+$/.test(statePath) || statePath.includes('..') || path.isAbsolute(statePath)) {

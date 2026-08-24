@@ -129,3 +129,18 @@ test('launcher PowerShell usa argumentos fixos sem shell', () => {
     assert.equal(invocation.args.includes('workspace-write'), true);
     assert.equal(invocation.args.at(-1), '-');
 });
+
+test('branch iniciada por hífen falha antes de chamar Git ou Codex', () => {
+    const item = fixture('CODEX_READY');
+    let fetched = false;
+    assert.throws(() => pollOnce({
+        repo: item.repo,
+        runtime: item.runtime,
+        codex: item.codex,
+        branch: '-upload-pack=malicioso'
+    }, {
+        fetchRemoteState() { fetched = true; return item.raw; },
+        runCodex() { assert.fail('não deveria chamar Codex'); }
+    }), /branch inválida/);
+    assert.equal(fetched, false);
+});
