@@ -61,6 +61,11 @@ test('hash mecânico é estável sem mudança e muda quando o estado muda', () =
     assert.notEqual(stateHash(first), stateHash(changed));
 });
 
+test('hash mecânico é idêntico em LF e CRLF', () => {
+    const lf = serializeState(makeState());
+    assert.equal(stateHash(lf), stateHash(lf.replace(/\n/g, '\r\n')));
+});
+
 test('compare-and-swap rejeita hash de estado obsoleto', () => {
     const raw = serializeState(makeState());
     const hash = stateHash(raw);

@@ -157,7 +157,8 @@ function serializeState(state) {
 }
 
 function stateHash(raw) {
-    return crypto.createHash('sha256').update(raw, 'utf8').digest('hex');
+    const canonical = raw.replace(/\r\n?/g, '\n');
+    return crypto.createHash('sha256').update(canonical, 'utf8').digest('hex');
 }
 
 function assertExpectedStateHash(raw, expectedHash) {
