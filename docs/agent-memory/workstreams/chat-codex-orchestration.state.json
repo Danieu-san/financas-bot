@@ -1,0 +1,11 @@
+{
+  "schema": "financasbot-chat-codex-orchestration-v1",
+  "orchestration_state": "CHAT_WORKING",
+  "next_executor": "chat",
+  "task_id": "ORCH-01",
+  "expected_base_sha": "11c8fe591287d7f020338594dbd08fb4e2920bee",
+  "task_file": "docs/plans/workstreams/chat-codex-orchestration.md",
+  "candidate_sha": null,
+  "result_file": null,
+  "updated_at": "2026-08-24T13:10:00.000Z"
+}
