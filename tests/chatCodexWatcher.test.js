@@ -197,14 +197,14 @@ test('publicação fixa', () => {
         runGit(repoPath, args) {
             commands.push(args);
             if (args[0] === 'status') {
-                return ` M ${statePath}\n M docs/task.md\n`;
+                return ` M ${statePath}\n`;
             }
             return '';
         },
         fetchRemoteState: () => item.raw
     });
     assert.deepEqual(commands.slice(1), [
-        ['add', '--', statePath, 'docs/task.md'],
+        ['add', '--', statePath],
         ['commit', '-m', 'chore: publish ORCH-01 CHAT_READY'],
         ['push', 'origin', 'HEAD:refs/heads/chat/test']
     ]);
@@ -223,9 +223,9 @@ test('rejeita caminho extra', () => {
         observedHash: '0'.repeat(64),
         initialState
     }, {
-        runGit: () => ' M src/index.js\n',
+        runGit: () => ' M docs/task.md\n',
         fetchRemoteState: () => item.raw
-    }), /caminho não autorizado: src\/index\.js/);
+    }), /caminho não autorizado: docs\/task\.md/);
 });
 
 test('rejeita status inseguro', () => {

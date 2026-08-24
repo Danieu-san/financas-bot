@@ -185,7 +185,7 @@ function publishLocalResult({ repoPath, branch, statePath, observedHash, initial
     const entries = parsePorcelainPaths(git(repoPath, [
         'status', '--porcelain=v1', '--untracked-files=all'
     ], deps));
-    const allowedPaths = new Set([statePath, initialState.task_file, DEFAULT_PLAN_PATH]);
+    const allowedPaths = new Set([statePath]);
     if (entries.length === 0) throw new Error('executor não produziu resultado local');
     const unsupported = entries.find(entry => entry.status !== ' M');
     if (unsupported) {
