@@ -198,6 +198,31 @@ test('launcher PowerShell usa argumentos fixos sem shell', () => {
     assert.equal(invocation.args.at(-1), '-');
 });
 
+test('launcher nativo executa codex.exe diretamente sem shell', () => {
+    const item = fixture();
+    const nativeCodex = path.join(item.root, 'codex.exe');
+    fs.writeFileSync(nativeCodex, 'fixture\n');
+    let invocation;
+    const status = runCodex({
+        codexPath: nativeCodex,
+        powershellPath: item.powershell,
+        repoPath: item.repo,
+        prompt: 'no-op',
+        logPath: path.join(item.runtime, 'native.log')
+    }, {
+        spawnSync(command, args, options) {
+            invocation = { command, args, options };
+            return { status: 0, stdout: 'ok', stderr: '' };
+        }
+    });
+    assert.equal(status, 0);
+    assert.equal(invocation.command, nativeCodex);
+    assert.equal(invocation.args[0], 'exec');
+    assert.equal(invocation.args.includes('-File'), false);
+    assert.equal(invocation.options.input, 'no-op');
+    assert.equal(invocation.args.at(-1), '-');
+});
+
 test('branch iniciada por hífen falha antes de chamar Git ou Codex', () => {
     const item = fixture('CODEX_READY');
     let fetched = false;
@@ -233,6 +258,8 @@ test('instalador recusa apagar lock sem provar PID morto', () => {
         'Install-ChatCodexOrchestrationWatcher.ps1'
     ), 'utf8');
     assert.match(installer, /Get-Command powershell\.exe -ErrorAction Stop/);
+    assert.match(installer, /Get-ChildItem[\s\S]*?-Filter 'codex\.exe'/);
+    assert.doesNotMatch(installer, /AppData\\Roaming\\npm\\codex\.ps1/);
     assert.match(installer, /if \(\$task -and \$task\.State -eq 'Running'\)/);
     assert.match(installer, /ConvertFrom-Json -ErrorAction Stop/);
     assert.match(installer, /Get-Process -Id \$lockPid -ErrorAction SilentlyContinue/);

@@ -21,10 +21,12 @@ $interactiveProfile = Get-CimInstance Win32_UserProfile -ErrorAction Stop |
     Where-Object { $_.Loaded -and (Split-Path $_.LocalPath -Leaf) -eq $accountName } |
     Select-Object -First 1
 if (-not $interactiveProfile) { throw "Perfil carregado nao encontrado para $RunAsUser." }
-$codex = Join-Path $interactiveProfile.LocalPath 'AppData\Roaming\npm\codex.ps1'
-if (-not (Test-Path -LiteralPath $codex -PathType Leaf)) {
-    throw "Codex CLI nao encontrado para $RunAsUser em $codex."
+$codexPackage = Join-Path $interactiveProfile.LocalPath 'AppData\Roaming\npm\node_modules\@openai\codex'
+$codexCandidates = @(Get-ChildItem -LiteralPath $codexPackage -Recurse -Filter 'codex.exe' -File -ErrorAction Stop)
+if ($codexCandidates.Count -ne 1) {
+    throw "Esperado exatamente um Codex nativo para $RunAsUser; encontrados $($codexCandidates.Count)."
 }
+$codex = $codexCandidates[0].FullName
 $runtime = Join-Path $interactiveProfile.LocalPath 'AppData\Local\FinancasBot\chat-codex-orchestration'
 $lockPath = Join-Path $runtime 'watcher-state.json.lock'
 
