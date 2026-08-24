@@ -126,7 +126,7 @@ test('lock existente impede execução concorrente', () => {
     });
 });
 
-test('lock de PID comprovadamente morto é recuperado uma única vez', () => {
+test('lock de PID morto é recuperado', () => {
     const item = fixture();
     const cachePath = path.join(item.runtime, 'watcher-state.json');
     fs.mkdirSync(item.runtime);
@@ -161,7 +161,7 @@ test('prompt é local, limitado e não contém ação financeira', () => {
     assert.match(prompt, /não afirme que houve publicação remota/);
 });
 
-test('exit zero sem CHAT_READY falha fechado e não relança o mesmo hash', () => {
+test('exit zero sem avanço falha fechado', () => {
     const item = fixture('CODEX_READY');
     let launches = 0;
     const deps = {
@@ -260,7 +260,7 @@ test('falha do publicador é persistida sem falso sucesso', () => {
         'failed:publish_error');
 });
 
-test('launcher PowerShell usa argumentos fixos sem shell', () => {
+test('launcher PowerShell é fixo e sem shell', () => {
     const item = fixture();
     let invocation;
     const status = runCodex({
@@ -270,6 +270,7 @@ test('launcher PowerShell usa argumentos fixos sem shell', () => {
         prompt: 'no-op',
         logPath: path.join(item.runtime, 'run.log')
     }, {
+        listIgnoredPaths: () => new Set(),
         spawnSync(command, args, options) {
             invocation = { command, args, options };
             return { status: 0, stdout: 'ok', stderr: '' };
@@ -287,7 +288,7 @@ test('launcher PowerShell usa argumentos fixos sem shell', () => {
     assert.equal(invocation.args.at(-1), '-');
 });
 
-test('launcher nativo executa codex.exe diretamente sem shell', () => {
+test('launcher nativo é direto e sem shell', () => {
     const item = fixture();
     const nativeCodex = path.join(item.root, 'codex.exe');
     fs.writeFileSync(nativeCodex, 'fixture\n');
@@ -299,6 +300,7 @@ test('launcher nativo executa codex.exe diretamente sem shell', () => {
         prompt: 'no-op',
         logPath: path.join(item.runtime, 'native.log')
     }, {
+        listIgnoredPaths: () => new Set(),
         spawnSync(command, args, options) {
             invocation = { command, args, options };
             return { status: 0, stdout: 'ok', stderr: '' };

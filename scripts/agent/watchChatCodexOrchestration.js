@@ -162,6 +162,13 @@ function parsePorcelainPaths(raw) {
     });
 }
 
+function listIgnoredPaths(repoPath, deps = {}) {
+    const raw = (deps.runGit || runGit)(repoPath, [
+        'ls-files', '-z', '--others', '--ignored', '--exclude-standard'
+    ], deps);
+    return new Set(raw.split('\0').filter(Boolean).map(filePath => filePath.replaceAll('\\', '/')));
+}
+
 function publishLocalResult({ repoPath, branch, statePath, observedHash, initialState }, deps = {}) {
     const git = deps.runGit || runGit;
     const entries = parsePorcelainPaths(git(repoPath, [
@@ -203,6 +210,7 @@ function publishLocalResult({ repoPath, branch, statePath, observedHash, initial
 
 function runCodex({ codexPath, powershellPath, repoPath, prompt, logPath }, deps = {}) {
     const spawn = deps.spawnSync || spawnSync;
+    const ignoredBefore = (deps.listIgnoredPaths || listIgnoredPaths)(repoPath, deps);
     const commonArgs = [
         'exec', '--ephemeral', '--sandbox', 'workspace-write',
         '-m', 'gpt-5.4-mini', '-c', 'model_reasoning_effort="medium"', '-C', repoPath, '-'
@@ -219,6 +227,9 @@ function runCodex({ codexPath, powershellPath, repoPath, prompt, logPath }, deps
         timeout: 30 * 60_000,
         maxBuffer: 10 * 1024 * 1024
     });
+    const ignoredAfter = (deps.listIgnoredPaths || listIgnoredPaths)(repoPath, deps);
+    const newIgnored = [...ignoredAfter].find(filePath => !ignoredBefore.has(filePath));
+    if (newIgnored) throw new Error(`executor criou caminho ignorado: ${newIgnored}`);
     const log = [
         `status=${result.status}`,
         result.stdout || '',
@@ -377,6 +388,7 @@ module.exports = {
     DEFAULT_PLAN_PATH,
     DEFAULT_STATE_PATH,
     buildExecutorPrompt,
+    listIgnoredPaths,
     defaultCache,
     fetchRemoteState,
     parsePorcelainPaths,
