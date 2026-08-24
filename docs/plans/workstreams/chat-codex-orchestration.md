@@ -86,7 +86,8 @@ Estados terminais não possuem transição de saída nesta versão.
 10. [em execução] O Chat publicou `CODEX_READY` e o watcher o detectou uma vez;
    o primeiro spawn falhou antes do Codex porque `pwsh.exe` não estava no PATH
    da tarefa. O caminho absoluto abriu o CLI na repetição, mas o slug Sol não é
-   suportado nessa autenticação; reauditar o fallback `gpt-5.4` em `medium`.
+   suportado nessa autenticação. `gpt-5.4` também foi recusado; reauditar o
+   `gpt-5.4-mini` em `medium`, explicitamente disponível no catálogo do CLI.
 11. [pendente] Com GO independente, concluir watcher -> Codex -> Chat;
    remover ou pausar a tarefa se qualquer ponta falhar.
 

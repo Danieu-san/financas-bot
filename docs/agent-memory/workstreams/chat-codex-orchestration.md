@@ -203,9 +203,12 @@ de confirmar que nenhum processo Codex foi criado.
 
 Na repetição, o caminho absoluto funcionou e o CLI foi efetivamente chamado,
 mas a conta ChatGPT recusou o slug explícito `gpt-5.6-sol` como não suportado.
-O cache terminou em `failed:1` e polls posteriores não relançaram. O recovery
-seguinte fixa `gpt-5.4` com esforço `medium`, capacidade suficiente e suportada
-para este ensaio documental, sem alterar a configuração pessoal do usuário.
+O cache terminou em `failed:1` e polls posteriores não relançaram. A tentativa
+seguinte fixou `gpt-5.4` em `medium`, sem alterar a configuração pessoal.
+
+O CLI também recusou `gpt-5.4`. Seu próprio catálogo, porém, declarou
+`gpt-5.4-mini` disponível para a conta. O candidato passa a usar esse slug em
+`medium`, suficiente e econômico para os três checks no-op.
 
 ## Próxima ação exata
 
