@@ -11,14 +11,20 @@ const {
 test('executor recebe sequência mecânica fechada', () => {
     const prompt = buildExecutorPrompt({
         branch: 'chat/test', gitPath: "C:\\Git O'Brien\\git.exe",
-        observedHash: 'b'.repeat(64), repoPath: "E:\\repo O'Brien", taskId: 'ORCH-01'
+        observedHash: 'b'.repeat(64), repoPath: "E:\\repo O'Brien",
+        statePath: 'docs/state.json', taskFile: 'docs/task.json',
+        task: {
+            task_id: 'JOB-01', objective: 'Atualizar o contrato.',
+            required_files: ['src/a.js'], allowed_paths: ['src/a.js', 'docs/agent-memory/workstreams/results/JOB-01.md'],
+            result_file: 'docs/agent-memory/workstreams/results/JOB-01.md',
+            validation: ['node --test tests/a.test.js'], constraints: ['Não ampliar escopo.']
+        }
     });
     for (const text of [
-        '--experimental-test-isolation=none --test tests/chatCodexOrchestration.test.js',
-        'node scripts/agent/validateAgentWorkflow.js', 'falhe fechado',
-        'Altere somente o JSON de estado'
+        'Atualizar o contrato.', 'node --test tests/a.test.js', 'falhe fechado',
+        'docs/agent-memory/workstreams/results/JOB-01.md', 'src/a.js'
     ]) assert.ok(prompt.includes(text));
-    assert.doesNotMatch(prompt, /leia somente AGENTS\.md/);
+    assert.match(prompt, /Leia AGENTS\.md/);
     assert.match(prompt, /\$env:GIT_BIN = 'C:\\Git O''Brien\\git\.exe'/);
     assert.match(prompt, /\$env:GIT_CONFIG_VALUE_0 = 'E:\/repo O''Brien'/);
 });

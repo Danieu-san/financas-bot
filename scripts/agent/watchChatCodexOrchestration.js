@@ -4,10 +4,11 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { parseState, stateHash, writeAtomically } = require('./manageChatCodexOrchestration');
+const { loadTaskDefinition } = require('./chatCodexTaskContract');
 
 const CACHE_SCHEMA = 'financasbot-chat-codex-watcher-v1';
 const DEFAULT_BRANCH = 'chat/chat-codex-orchestration-20260824';
-const DEFAULT_STATE_PATH = 'docs/agent-memory/workstreams/chat-codex-orchestration.state.json';
+const DEFAULT_STATE_PATH = 'docs/agent-memory/workstreams/chat-codex-channel.state.json';
 const DEFAULT_PLAN_PATH = 'docs/plans/workstreams/chat-codex-orchestration.md';
 const WAKE_REQUEST_SCHEMA = 'financasbot-codex-app-wake-request-v1';
 
@@ -260,25 +261,34 @@ function maybeWakeCodexApp({ cache, cachePath, options, observedHash, state }, d
     return { cache: nextCache, action: dispatchStatus };
 }
 
-function buildExecutorPrompt({ branch, gitPath, observedHash, repoPath, taskId }) {
+function buildExecutorPrompt({ branch, gitPath, observedHash, repoPath, statePath, task, taskFile }) {
     const quotedGit = quotePowerShellLiteral(gitPath);
     const quotedRepo = quotePowerShellLiteral(repoPath.replaceAll('\\', '/'));
     return [
-        'Execute somente o ensaio no-op do workstream chat-codex-orchestration.',
+        'Execute uma tarefa versionada do canal permanente Chat -> Codex.',
         `Branch remota: ${branch}.`,
-        `Task: ${taskId}. Hash mecânico observado: ${observedHash}.`,
+        `Task: ${task.task_id}. Hash mecânico observado: ${observedHash}.`,
         'O hash mecânico é o SHA-256 dos bytes serializados do arquivo JSON de estado; não é SHA de commit nem FETCH_HEAD.',
         'O watcher já confirmou que o estado remoto continua CODEX_READY e que o SHA-256 do JSON remoto é exatamente o hash mecânico observado.',
-        'Não investigue alternativas nem leia outros arquivos. Execute exatamente esta sequência mecânica:',
-        `1. node scripts/agent/manageChatCodexOrchestration.js transition --file docs/agent-memory/workstreams/chat-codex-orchestration.state.json --to CODEX_RUNNING --expected-state-hash ${observedHash}`,
-        '2. node --experimental-test-isolation=none --test tests/chatCodexOrchestration.test.js',
-        '3. node --check scripts/agent/manageChatCodexOrchestration.js',
-        `4. $env:GIT_BIN = ${quotedGit}; $env:GIT_CONFIG_COUNT = '1'; $env:GIT_CONFIG_KEY_0 = 'safe.directory'; $env:GIT_CONFIG_VALUE_0 = ${quotedRepo}; node scripts/agent/validateAgentWorkflow.js`,
-        '5. calcule o hash atual com o comando hash do transitioner e use exatamente esse valor para transicionar a CHAT_READY com --result-file docs/agent-memory/workstreams/chat-codex-orchestration.md.',
+        `Leia AGENTS.md, ${taskFile} e somente os required_files abaixo:`,
+        ...task.required_files.map(file => `- ${file}`),
+        `Objetivo: ${task.objective}`,
+        'Modifique somente estes caminhos exatos:',
+        ...task.allowed_paths.map(file => `- ${file}`),
+        'Validações exigidas:',
+        ...task.validation.map(item => `- ${item}`),
+        'Restrições adicionais:',
+        ...task.constraints.map(item => `- ${item}`),
+        'Sequência obrigatória:',
+        `1. node scripts/agent/manageChatCodexOrchestration.js transition --file ${statePath} --to CODEX_RUNNING --expected-state-hash ${observedHash}`,
+        '2. execute o objetivo e as validações, sem ampliar o escopo.',
+        `3. registre resultado, evidências e pendências em ${task.result_file}.`,
+        `4. calcule o hash atual e transicione ${statePath} para CHAT_READY com --result-file ${task.result_file}.`,
         'Se qualquer comando falhar, falhe fechado: pare sem tentar recovery ou alternativa.',
         'Não execute git fetch, add, commit ou push; o watcher publicará deterministicamente somente os arquivos autorizados após validar seu resultado.',
-        'Não toque no bot, produção, OCI, WhatsApp, Pluggy, planilhas, .env, writers ou dados reais.',
-        'Altere somente o JSON de estado e deixe-o em CHAT_READY; não edite checkpoint ou plano e não afirme que houve publicação remota.',
+        `Use Git somente com $env:GIT_BIN = ${quotedGit}; $env:GIT_CONFIG_COUNT = '1'; $env:GIT_CONFIG_KEY_0 = 'safe.directory'; $env:GIT_CONFIG_VALUE_0 = ${quotedRepo}.`,
+        'Não acesse produção, OCI, WhatsApp, Pluggy, planilhas, .env, credenciais, sessões ou dados privados.',
+        'Deixe o estado em CHAT_READY e não afirme que houve publicação remota.',
         'Não tente acessar navegador nem enviar campainha; o watcher verificará o GitHub depois da publicação.'
     ].join('\n');
 }
@@ -310,14 +320,16 @@ function assertNoIgnoredPaths(repoPath, deps = {}) {
     if (first) throw new Error(`worktree contém caminho ignorado: ${first}`);
 }
 
-function publishLocalResult({ repoPath, branch, statePath, observedHash, initialState }, deps = {}) {
+function publishLocalResult({ repoPath, branch, statePath, observedHash, initialState, task }, deps = {}) {
     const git = deps.runGit || runGit;
     const entries = parsePorcelainPaths(git(repoPath, [
         'status', '--porcelain=v1', '--untracked-files=all'
     ], deps));
-    const allowedPaths = new Set([statePath]);
+    const allowedPaths = new Set([statePath, ...task.allowed_paths]);
     if (entries.length === 0) throw new Error('executor não produziu resultado local');
-    const unsupported = entries.find(entry => entry.status !== ' M');
+    const unsupported = entries.find(entry => entry.path === statePath
+        ? entry.status !== ' M'
+        : ![' M', '??'].includes(entry.status));
     if (unsupported) {
         throw new Error(`status Git não autorizado para ${unsupported.path}: ${unsupported.status}`);
     }
@@ -328,10 +340,22 @@ function publishLocalResult({ repoPath, branch, statePath, observedHash, initial
     if (!entries.some(entry => entry.path === statePath)) {
         throw new Error('estado mecânico não foi alterado pelo executor');
     }
+    if (!entries.some(entry => entry.path === task.result_file)) {
+        throw new Error('executor não produziu result_file');
+    }
+    for (const entry of entries) {
+        const changedPath = path.join(repoPath, ...entry.path.split('/'));
+        const stat = fs.lstatSync(changedPath);
+        if (stat.isSymbolicLink() || !stat.isFile()) {
+            throw new Error(`artefato alterado deve ser arquivo regular: ${entry.path}`);
+        }
+    }
 
     const localRaw = fs.readFileSync(path.join(repoPath, ...statePath.split('/')), 'utf8');
     const localState = parseState(localRaw);
-    if (localState.orchestration_state !== 'CHAT_READY' || localState.task_id !== initialState.task_id) {
+    if (localState.orchestration_state !== 'CHAT_READY'
+        || localState.task_id !== initialState.task_id
+        || localState.result_file !== task.result_file) {
         throw new Error('resultado local não alcançou CHAT_READY para a mesma tarefa');
     }
 
@@ -466,8 +490,21 @@ function pollOnce(options, deps = {}) {
             }, deps.now?.() || new Date());
             throw error;
         }
+        let task;
+        try {
+            task = (deps.loadTaskDefinition || loadTaskDefinition)(
+                repoPath, state.task_file, state.task_id
+            );
+        } catch (error) {
+            saveCache(cachePath, {
+                ...cache,
+                launch_status: 'failed:task_invalid'
+            }, deps.now?.() || new Date());
+            throw error;
+        }
         const prompt = buildExecutorPrompt({
-            branch, gitPath, observedHash, repoPath, taskId: state.task_id
+            branch, gitPath, observedHash, repoPath, statePath,
+            task, taskFile: state.task_file
         });
         let exitCode;
         try {
@@ -494,7 +531,8 @@ function pollOnce(options, deps = {}) {
                     branch,
                     statePath,
                     observedHash,
-                    initialState: state
+                    initialState: state,
+                    task
                 }, gitDeps);
             } catch (error) {
                 saveCache(cachePath, {
@@ -580,6 +618,7 @@ module.exports = {
     DEFAULT_STATE_PATH,
     WAKE_REQUEST_SCHEMA,
     buildExecutorPrompt,
+    loadTaskDefinition,
     maybeWakeCodexApp,
     assertNoIgnoredPaths,
     listIgnoredPaths,

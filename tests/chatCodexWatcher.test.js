@@ -55,8 +55,16 @@ function watcherOptions(item, extra = {}) {
     };
 }
 
+function taskFixture() {
+    return {
+        task_id: 'ORCH-01', objective: 'Executar fixture.', required_files: [],
+        allowed_paths: ['docs/result.md'], result_file: 'docs/result.md',
+        validation: ['teste focal'], constraints: ['sem produção']
+    };
+}
+
 function executorDeps(deps = {}) {
-    return { syncLocalBranch: () => {}, ...deps };
+    return { syncLocalBranch: () => {}, loadTaskDefinition: () => taskFixture(), ...deps };
 }
 
 test('poll inalterado não desperta executor', () => {
@@ -126,11 +134,12 @@ test('lock de PID morto é recuperado', () => {
 
 test('prompt é local, limitado e não contém ação financeira', () => {
     const prompt = buildExecutorPrompt({
-        branch:'x',gitPath:'g',observedHash:'b'.repeat(64),repoPath:'r',taskId:'ORCH-01'
+        branch:'x',gitPath:'g',observedHash:'b'.repeat(64),repoPath:'r',
+        statePath:'docs/state.json',taskFile:'docs/task.json',task:taskFixture()
     });
-    assert.match(prompt, /somente o ensaio no-op/);
+    assert.match(prompt, /tarefa versionada/);
     assert.match(prompt, /falhe fechado/);
-    assert.match(prompt, /Não toque no bot/);
+    assert.match(prompt, /Não acesse produção/);
     assert.match(prompt, /CHAT_READY/);
     assert.match(prompt, /SHA-256 dos bytes serializados/);
     assert.match(prompt, /não é SHA de commit nem FETCH_HEAD/);
@@ -157,6 +166,21 @@ test('exit zero sem avanço falha fechado', () => {
     assert.equal(launches, 1);
 });
 
+test('tarefa inválida falha antes de iniciar Codex e fica terminal no cache', () => {
+    const item = fixture('CODEX_READY');
+    let launches = 0;
+    const deps = {
+        syncLocalBranch: () => {},
+        fetchRemoteState: () => item.raw,
+        loadTaskDefinition: () => { throw new Error('task inválida'); },
+        runCodex: () => { launches += 1; return 0; }
+    };
+    assert.throws(() => pollOnce(watcherOptions(item), deps), /task inválida/);
+    assert.equal(launches, 0);
+    assert.equal(readCache(path.join(item.runtime, 'watcher-state.json')).launch_status,
+        'failed:task_invalid');
+});
+
 test('publicação fixa', () => {
     const item = fixture('CODEX_READY');
     const initialState = JSON.parse(item.raw);
@@ -164,25 +188,27 @@ test('publicação fixa', () => {
     const statePath = 'docs/agent-memory/workstreams/chat-codex-orchestration.state.json';
     fs.mkdirSync(path.join(item.repo, 'docs', 'agent-memory', 'workstreams'), { recursive: true });
     fs.writeFileSync(path.join(item.repo, ...statePath.split('/')), localRaw);
+    fs.writeFileSync(path.join(item.repo, 'docs', 'result.md'), 'ok\n');
     const commands = [];
     publishLocalResult({
         repoPath: item.repo,
         branch: 'chat/test',
         statePath,
         observedHash: require('../scripts/agent/manageChatCodexOrchestration').stateHash(item.raw),
-        initialState
+        initialState,
+        task: taskFixture()
     }, {
         runGit(repoPath, args) {
             commands.push(args);
             if (args[0] === 'status') {
-                return ` M ${statePath}\n`;
+                return ` M ${statePath}\n?? docs/result.md\n`;
             }
             return '';
         },
         fetchRemoteState: () => item.raw
     });
     assert.deepEqual(commands.slice(1), [
-        ['add', '--', statePath],
+        ['add', '--', statePath, 'docs/result.md'],
         ['commit', '-m', 'chore: publish ORCH-01 CHAT_READY'],
         ['push', 'origin', 'HEAD:refs/heads/chat/test']
     ]);
@@ -199,7 +225,8 @@ test('rejeita caminho extra', () => {
         branch: 'chat/test',
         statePath,
         observedHash: '0'.repeat(64),
-        initialState
+        initialState,
+        task: taskFixture()
     }, {
         runGit: () => ' M docs/task.md\n',
         fetchRemoteState: () => item.raw
@@ -218,7 +245,8 @@ test('rejeita status inseguro', () => {
             branch: 'chat/test',
             statePath,
             observedHash: '0'.repeat(64),
-            initialState: JSON.parse(item.raw)
+            initialState: JSON.parse(item.raw),
+            task: taskFixture()
         }, {
             runGit: () => `${status} ${statePath}\n`,
             fetchRemoteState: () => item.raw

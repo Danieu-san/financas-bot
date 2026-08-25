@@ -7,7 +7,8 @@ param(
     [string]$RunAsUser,
     [string]$AppThreadId,
     [string]$ChatUrl,
-    [string]$AppWakeRequestPath
+    [string]$AppWakeRequestPath,
+    [string]$StatePath = 'docs/agent-memory/workstreams/chat-codex-channel.state.json'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -79,8 +80,13 @@ $arguments = @(
     '--codex', (Quote-Argument $codex),
     '--git', (Quote-Argument $git),
     '--powershell', (Quote-Argument $powershell),
-    '--runtime', (Quote-Argument $runtime)
+    '--runtime', (Quote-Argument $runtime),
+    '--state-path', (Quote-Argument $StatePath)
 )
+if ($StatePath -notmatch '^[A-Za-z0-9._/-]+$' -or
+    $StatePath.Contains('..') -or [System.IO.Path]::IsPathRooted($StatePath)) {
+    throw 'StatePath deve ser um caminho relativo seguro.'
+}
 if ([bool]$AppThreadId -xor [bool]$ChatUrl) {
     throw 'AppThreadId e ChatUrl devem ser informados juntos.'
 }

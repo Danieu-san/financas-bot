@@ -58,7 +58,15 @@ function watcherOptions(item, extra = {}) {
 }
 
 function executorDeps(deps = {}) {
-    return { syncLocalBranch: () => {}, ...deps };
+    return {
+        syncLocalBranch: () => {},
+        loadTaskDefinition: () => ({
+            task_id: 'ORCH-01', objective: 'fixture', required_files: [],
+            allowed_paths: ['docs/result.md'], result_file: 'docs/result.md',
+            validation: ['teste'], constraints: ['sem produção']
+        }),
+        ...deps
+    };
 }
 
 test('CHAT_READY acorda Codex App uma vez por hash', () => {
@@ -179,6 +187,42 @@ test('hash novo de CODEX_READY permite novo disparo', () => {
     });
     pollOnce(watcherOptions(item), deps);
     raw = withState(raw, 'CODEX_READY', '2026-08-24T00:03:00.000Z');
+    assert.equal(pollOnce(watcherOptions(item), deps).action, 'launched');
+    assert.equal(launches, 2);
+});
+
+test('canal reutiliza CHAT_WORKING entre duas tarefas distintas', () => {
+    const item = fixture('CODEX_READY');
+    let raw = item.raw, launches = 0;
+    const deps = executorDeps({
+        fetchRemoteState: () => raw,
+        loadTaskDefinition: (_repo, _file, taskId) => ({
+            task_id: taskId, objective: `executar ${taskId}`, required_files: [],
+            allowed_paths: ['docs/result.md'], result_file: 'docs/result.md',
+            validation: ['teste'], constraints: ['sem produção']
+        }),
+        runCodex: ({ prompt }) => {
+            launches += 1;
+            assert.match(prompt, new RegExp(`executar JOB-${launches}`));
+            raw = withState(raw, 'CHAT_READY');
+            return 0;
+        },
+        publishLocalResult: () => {}
+    });
+    let value = JSON.parse(raw);
+    value.task_id = 'JOB-1';
+    raw = serializeState(value);
+    assert.equal(pollOnce(watcherOptions(item), deps).action, 'launched');
+
+    raw = withState(raw, 'CHAT_WORKING', '2026-08-24T00:03:00.000Z');
+    assert.equal(pollOnce(watcherOptions(item), deps).state, 'CHAT_WORKING');
+    value = JSON.parse(raw);
+    value.task_id = 'JOB-2';
+    value.orchestration_state = 'CODEX_READY';
+    value.next_executor = 'codex';
+    value.result_file = null;
+    value.updated_at = '2026-08-24T00:04:00.000Z';
+    raw = serializeState(value);
     assert.equal(pollOnce(watcherOptions(item), deps).action, 'launched');
     assert.equal(launches, 2);
 });
