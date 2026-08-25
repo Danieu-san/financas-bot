@@ -39,7 +39,8 @@ function assertAbsoluteExistingFile(value, name) {
 
 function runGit(repoPath, args, deps = {}) {
     const spawn = deps.spawnSync || spawnSync;
-    const result = spawn('git', ['-c', `safe.directory=${repoPath}`, '-C', repoPath, ...args], {
+    const command = deps.gitCommand || 'git';
+    const result = spawn(command, ['-c', `safe.directory=${repoPath}`, '-C', repoPath, ...args], {
         encoding: 'utf8',
         windowsHide: true,
         timeout: 60_000
@@ -357,6 +358,7 @@ function pollOnce(options, deps = {}) {
     const runtimePath = path.resolve(options.runtime);
     const codexPath = assertAbsoluteExistingFile(options.codex, 'codex');
     const gitPath = assertAbsoluteExistingFile(options.git, 'git');
+    const gitDeps = { ...deps, gitCommand: gitPath };
     const powershellPath = path.extname(codexPath).toLowerCase() === '.ps1'
         ? assertAbsoluteExistingFile(options.powershell, 'powershell')
         : null;
@@ -371,7 +373,7 @@ function pollOnce(options, deps = {}) {
     const cachePath = path.join(runtimePath, 'watcher-state.json');
 
     return withWatcherLock(cachePath, () => {
-        const raw = (deps.fetchRemoteState || fetchRemoteState)(repoPath, branch, statePath, deps);
+        const raw = (deps.fetchRemoteState || fetchRemoteState)(repoPath, branch, statePath, gitDeps);
         const state = parseState(raw);
         const observedHash = stateHash(raw);
         let cache = readCache(cachePath);
@@ -411,18 +413,21 @@ function pollOnce(options, deps = {}) {
             launched_hash: observedHash,
             launch_status: 'running'
         }, deps.now?.() || new Date());
+        const logPath = path.join(runtimePath, 'runs', `${observedHash}.log`);
         try {
             (deps.syncLocalBranch || syncLocalBranch)({
                 repoPath, branch, statePath, observedHash
-            }, deps);
+            }, gitDeps);
         } catch (error) {
+            fs.mkdirSync(path.dirname(logPath), { recursive: true });
+            fs.writeFileSync(logPath,
+                `sync_failed_at=${new Date().toISOString()}\nsync_error=${error.message}\n`);
             saveCache(cachePath, {
                 ...cache,
                 launch_status: 'failed:sync_error'
             }, deps.now?.() || new Date());
             throw error;
         }
-        const logPath = path.join(runtimePath, 'runs', `${observedHash}.log`);
         const prompt = buildExecutorPrompt({
             branch, gitPath, observedHash, repoPath, taskId: state.task_id
         });
@@ -435,7 +440,7 @@ function pollOnce(options, deps = {}) {
                 repoPath,
                 prompt,
                 logPath
-            }, deps);
+            }, gitDeps);
         } catch (error) {
             saveCache(cachePath, {
                 ...cache,
@@ -452,7 +457,7 @@ function pollOnce(options, deps = {}) {
                     statePath,
                     observedHash,
                     initialState: state
-                }, deps);
+                }, gitDeps);
             } catch (error) {
                 saveCache(cachePath, {
                     ...cache,
@@ -464,7 +469,9 @@ function pollOnce(options, deps = {}) {
 
         let finalRaw;
         try {
-            finalRaw = (deps.fetchRemoteState || fetchRemoteState)(repoPath, branch, statePath, deps);
+            finalRaw = (deps.fetchRemoteState || fetchRemoteState)(
+                repoPath, branch, statePath, gitDeps
+            );
         } catch (error) {
             saveCache(cachePath, {
                 ...cache,
@@ -544,6 +551,7 @@ module.exports = {
     publishLocalResult,
     readCache,
     runCodex,
+    runGit,
     saveCache,
     processIsAlive,
     syncLocalBranch,

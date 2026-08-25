@@ -13,6 +13,7 @@ const {
     publishLocalResult,
     readCache,
     runCodex,
+    runGit,
     syncLocalBranch,
     wakeCodexApp,
     withWatcherLock
@@ -217,6 +218,22 @@ test('sincronização exige worktree limpa, branch exata e fast-forward do FETCH
         ['branch', '--show-current'],
         ['merge', '--ff-only', 'FETCH_HEAD']
     ]);
+});
+
+test('operações Git do watcher usam o executável absoluto validado', () => {
+    const item = fixture();
+    let invocation;
+    runGit(item.repo, ['status', '--short'], {
+        gitCommand: item.git,
+        spawnSync(command, args, options) {
+            invocation = { command, args, options };
+            return { status: 0, stdout: '', stderr: '' };
+        }
+    });
+    assert.equal(invocation.command, item.git);
+    assert.equal(invocation.args[0], '-c');
+    assert.match(invocation.args[1], /^safe\.directory=/);
+    assert.equal(invocation.options.windowsHide, true);
 });
 
 test('falha de sincronização é terminal para o hash e não chama Codex', () => {
