@@ -1,11 +1,11 @@
 {
   "schema": "financasbot-chat-codex-orchestration-v1",
-  "orchestration_state": "CHAT_WORKING",
-  "next_executor": "chat",
-  "task_id": "CHANNEL-IDLE",
-  "expected_base_sha": "ace8fed094413ffecae9bfd6f9c764e98f0a57df",
-  "task_file": "docs/agent-memory/workstreams/chat-codex-channel.md",
+  "orchestration_state": "CODEX_READY",
+  "next_executor": "codex",
+  "task_id": "ORCH02-POC-1",
+  "expected_base_sha": "9ebdfd8124f4f182527642b75c387b0b9e6791ef",
+  "task_file": "docs/agent-memory/workstreams/tasks/chat-codex-task-slot.json",
   "candidate_sha": null,
   "result_file": null,
-  "updated_at": "2026-08-25T05:00:00.000Z"
+  "updated_at": "2026-08-25T10:49:43.402Z"
 }
