@@ -6,7 +6,8 @@ param(
     [string]$TaskName = 'FinancasBot-ChatCodex-Orchestration',
     [string]$RunAsUser,
     [string]$AppThreadId,
-    [string]$ChatUrl
+    [string]$ChatUrl,
+    [string]$AppWakeRequestPath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -83,6 +84,9 @@ $arguments = @(
 if ([bool]$AppThreadId -xor [bool]$ChatUrl) {
     throw 'AppThreadId e ChatUrl devem ser informados juntos.'
 }
+if ($AppWakeRequestPath -and ($AppThreadId -or $ChatUrl)) {
+    throw 'AppWakeRequestPath e exclusivo de AppThreadId/ChatUrl.'
+}
 if ($AppThreadId -and $ChatUrl) {
     if ($AppThreadId -notmatch '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$') {
         throw 'AppThreadId invalido.'
@@ -100,6 +104,16 @@ if ($AppThreadId -and $ChatUrl) {
         '--app-thread-id', (Quote-Argument $AppThreadId),
         '--chat-url', (Quote-Argument $ChatUrl)
     )
+}
+if ($AppWakeRequestPath) {
+    if (-not [System.IO.Path]::IsPathRooted($AppWakeRequestPath)) {
+        throw 'AppWakeRequestPath deve ser absoluto.'
+    }
+    $requestParent = Split-Path -Parent $AppWakeRequestPath
+    if (-not (Test-Path -LiteralPath $requestParent -PathType Container)) {
+        throw 'Diretorio de AppWakeRequestPath nao existe.'
+    }
+    $arguments += @('--app-wake-request', (Quote-Argument $AppWakeRequestPath))
 }
 $arguments = $arguments -join ' '
 

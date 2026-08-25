@@ -9,6 +9,7 @@ const { serializeState, stateHash } = require('../scripts/agent/manageChatCodexO
 const {
     defaultCache,
     pollOnce,
+    queueCodexAppWakeRequest,
     readCache,
     runGit,
     syncLocalBranch,
@@ -78,6 +79,41 @@ test('CHAT_READY acorda Codex App uma vez por hash', () => {
     const cache = readCache(path.join(item.runtime, 'watcher-state.json'));
     assert.equal(cache.app_wake_status, 'accepted');
     assert.equal(cache.app_wake_hash.length, 64);
+});
+
+test('CHAT_READY enfileira somente o hash para a ponte S4U', () => {
+    const item = fixture('CHAT_READY');
+    const queue = path.join(item.runtime, 'bridge', 'request.json');
+    fs.mkdirSync(path.dirname(queue), { recursive: true });
+    const options = watcherOptions(item, { 'app-wake-request': queue });
+    assert.equal(pollOnce(options, { fetchRemoteState: () => item.raw }).action,
+        'app_wake_queued');
+    assert.equal(pollOnce(options, { fetchRemoteState: () => item.raw }).action, 'unchanged');
+    const request = JSON.parse(fs.readFileSync(queue, 'utf8'));
+    assert.deepEqual(Object.keys(request), ['schema', 'observed_hash', 'created_at']);
+    assert.equal(request.schema, 'financasbot-codex-app-wake-request-v1');
+    assert.equal(request.observed_hash, stateHash(item.raw));
+    assert.equal(readCache(path.join(item.runtime, 'watcher-state.json')).app_wake_status, 'queued');
+});
+
+test('fila da ponte exige caminho absoluto e recusa symlink', t => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'orch-wake-queue-'));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    assert.throws(() => queueCodexAppWakeRequest({
+        observedHash: 'a'.repeat(64), requestPath: 'request.json'
+    }), /deve ser absoluto/);
+    const target = path.join(root, 'request.json');
+    const source = path.join(root, 'source.json');
+    fs.writeFileSync(source, '{}');
+    try {
+        fs.symlinkSync(source, target, 'file');
+    } catch (error) {
+        if (process.platform === 'win32' && error.code === 'EPERM') return;
+        throw error;
+    }
+    assert.throws(() => queueCodexAppWakeRequest({
+        observedHash: 'a'.repeat(64), requestPath: target
+    }), /link simbólico/);
 });
 
 test('launcher do wake chama helper Node sem shell', () => {
@@ -225,4 +261,3 @@ test('retry manual exige limpar launched_hash, sem alterar o estado remoto', () 
     assert.equal(pollOnce(watcherOptions(item), deps).action, 'launched');
     assert.equal(launches, 1);
 });
-

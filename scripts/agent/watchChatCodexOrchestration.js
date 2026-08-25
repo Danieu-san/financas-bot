@@ -9,6 +9,7 @@ const CACHE_SCHEMA = 'financasbot-chat-codex-watcher-v1';
 const DEFAULT_BRANCH = 'chat/chat-codex-orchestration-20260824';
 const DEFAULT_STATE_PATH = 'docs/agent-memory/workstreams/chat-codex-orchestration.state.json';
 const DEFAULT_PLAN_PATH = 'docs/plans/workstreams/chat-codex-orchestration.md';
+const WAKE_REQUEST_SCHEMA = 'financasbot-codex-app-wake-request-v1';
 
 function parseArgs(argv) {
     const options = {};
@@ -188,12 +189,37 @@ function wakeCodexApp({ chatUrl, observedHash, taskId, threadId }, deps = {}) {
     return response;
 }
 
+function queueCodexAppWakeRequest({ observedHash, requestPath }, deps = {}) {
+    if (!path.isAbsolute(requestPath)) throw new Error('app-wake-request deve ser absoluto');
+    const parent = fs.realpathSync(path.dirname(requestPath));
+    if (!fs.statSync(parent).isDirectory()) {
+        throw new Error('diretório de app-wake-request inválido');
+    }
+    const target = path.join(parent, path.basename(requestPath));
+    if (fs.existsSync(target) && fs.lstatSync(target).isSymbolicLink()) {
+        throw new Error('app-wake-request não pode ser link simbólico');
+    }
+    const now = deps.now?.() || new Date();
+    writeAtomically(target, `${JSON.stringify({
+        schema: WAKE_REQUEST_SCHEMA,
+        observed_hash: observedHash,
+        created_at: now.toISOString()
+    }, null, 2)}\n`);
+    return { status: 'queued', requestPath: target };
+}
+
 function maybeWakeCodexApp({ cache, cachePath, options, observedHash, state }, deps = {}) {
     if (state.orchestration_state !== 'CHAT_READY') return { cache, action: null };
     const threadId = options['app-thread-id'];
     const chatUrl = options['chat-url'];
-    if (!threadId && !chatUrl) return { cache, action: null };
-    if (!threadId || !chatUrl) throw new Error('app-thread-id e chat-url devem ser informados juntos');
+    const requestPath = options['app-wake-request'];
+    if (requestPath && (threadId || chatUrl)) {
+        throw new Error('app-wake-request é exclusivo de app-thread-id/chat-url');
+    }
+    if (!threadId && !chatUrl && !requestPath) return { cache, action: null };
+    if (!requestPath && (!threadId || !chatUrl)) {
+        throw new Error('app-thread-id e chat-url devem ser informados juntos');
+    }
     if (cache.app_wake_hash === observedHash) return { cache, action: 'already_dispatched' };
 
     let nextCache = saveCache(cachePath, {
@@ -203,13 +229,23 @@ function maybeWakeCodexApp({ cache, cachePath, options, observedHash, state }, d
         app_wake_hash: observedHash,
         app_wake_status: 'dispatching'
     }, deps.now?.() || new Date());
+    let dispatchStatus;
     try {
-        (deps.wakeCodexApp || wakeCodexApp)({
-            chatUrl,
-            observedHash,
-            taskId: state.task_id,
-            threadId
-        }, deps);
+        if (requestPath) {
+            (deps.queueCodexAppWakeRequest || queueCodexAppWakeRequest)({
+                observedHash,
+                requestPath
+            }, deps);
+            dispatchStatus = 'queued';
+        } else {
+            (deps.wakeCodexApp || wakeCodexApp)({
+                chatUrl,
+                observedHash,
+                taskId: state.task_id,
+                threadId
+            }, deps);
+            dispatchStatus = 'accepted';
+        }
     } catch (error) {
         nextCache = saveCache(cachePath, {
             ...nextCache,
@@ -219,9 +255,9 @@ function maybeWakeCodexApp({ cache, cachePath, options, observedHash, state }, d
     }
     nextCache = saveCache(cachePath, {
         ...nextCache,
-        app_wake_status: 'accepted'
+        app_wake_status: dispatchStatus
     }, deps.now?.() || new Date());
-    return { cache: nextCache, action: 'accepted' };
+    return { cache: nextCache, action: dispatchStatus };
 }
 
 function buildExecutorPrompt({ branch, gitPath, observedHash, repoPath, taskId }) {
@@ -389,7 +425,9 @@ function pollOnce(options, deps = {}) {
             && cache.launched_hash !== observedHash;
         if (observationUnchanged && !codeReadyAwaitingManualRetry) {
             return {
-                action: appWake.action === 'accepted' ? 'app_wake_accepted' : 'unchanged',
+                action: appWake.action === 'accepted'
+                    ? 'app_wake_accepted'
+                    : appWake.action === 'queued' ? 'app_wake_queued' : 'unchanged',
                 hash: observedHash,
                 state: state.orchestration_state
             };
@@ -540,6 +578,7 @@ module.exports = {
     DEFAULT_BRANCH,
     DEFAULT_PLAN_PATH,
     DEFAULT_STATE_PATH,
+    WAKE_REQUEST_SCHEMA,
     buildExecutorPrompt,
     maybeWakeCodexApp,
     assertNoIgnoredPaths,
@@ -549,6 +588,7 @@ module.exports = {
     parsePorcelainPaths,
     pollOnce,
     publishLocalResult,
+    queueCodexAppWakeRequest,
     readCache,
     runCodex,
     runGit,
