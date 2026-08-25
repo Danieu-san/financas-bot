@@ -1,10 +1,10 @@
 {
   "schema": "financasbot-chat-codex-task-v1",
-  "task_id": "ORCH02-POC-2",
-  "objective": "Crie docs/agent-memory/workstreams/results/ORCH02-POC-2.md comprovando a segunda tarefa sequencial do canal.",
+  "task_id": "ORCH02-APP-POC",
+  "objective": "Crie docs/agent-memory/workstreams/results/ORCH02-APP-POC.md comprovando o smoke único do executor Codex App.",
   "required_files": ["docs/plans/workstreams/chat-codex-channel.md"],
-  "allowed_paths": ["docs/agent-memory/workstreams/results/ORCH02-POC-2.md"],
-  "result_file": "docs/agent-memory/workstreams/results/ORCH02-POC-2.md",
-  "validation": ["Confirmar que o arquivo existe, contém ORCH02-POC-2 e docs/plans/workstreams/chat-codex-channel.md, e que não houve nenhuma outra alteração."],
+  "allowed_paths": ["docs/agent-memory/workstreams/results/ORCH02-APP-POC.md"],
+  "result_file": "docs/agent-memory/workstreams/results/ORCH02-APP-POC.md",
+  "validation": ["Confirmar que o arquivo existe, contém ORCH02-APP-POC e docs/plans/workstreams/chat-codex-channel.md, e que não houve nenhuma outra alteração."],
   "constraints": ["Não alterar produto, produção ou dados privados."]
 }
