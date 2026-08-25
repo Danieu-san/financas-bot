@@ -1,0 +1,16 @@
+{
+  "schema": "financasbot-chat-codex-task-v1",
+  "task_id": "CHANNEL-IDLE",
+  "objective": "Slot ocioso do canal permanente. Não executar enquanto o estado for CHAT_WORKING.",
+  "required_files": [],
+  "allowed_paths": [
+    "docs/agent-memory/workstreams/results/CHANNEL-IDLE.md"
+  ],
+  "result_file": "docs/agent-memory/workstreams/results/CHANNEL-IDLE.md",
+  "validation": [
+    "Nenhuma validação enquanto o canal estiver ocioso."
+  ],
+  "constraints": [
+    "Não publicar CODEX_READY para CHANNEL-IDLE."
+  ]
+}

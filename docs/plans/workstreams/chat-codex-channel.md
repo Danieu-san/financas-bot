@@ -14,8 +14,13 @@ sem manter modelo ocioso e sem encerrar o canal ao concluir um trabalho.
 3. [concluída] Generalizar prompt e publicador do watcher.
 4. [em andamento] Candidato amplo `62/62` verde; NO-GO nominal de segredos
    corrigido; bateria causal pós-achado `30/30` verde; reauditar recovery.
-5. [pendente] Instalar o watcher apontando ao canal permanente.
+5. [concluída] Reauditoria do recovery em GO; watcher instalado e ociosidade
+   comprovada sem novo lançamento de modelo.
 6. [pendente] Provar duas tarefas sequenciais e retorno ocioso.
+
+O Chat editará um manifesto-slot preexistente em commit inerte e depois o
+estado em commit separado; isso respeita a limitação observada do conector sem
+perder a ordenação causal.
 
 ## Critérios de GO
 

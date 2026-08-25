@@ -44,11 +44,19 @@ deleção, staged change ou caminho adicional falham fechados.
 
 ## Responsabilidade do Chat
 
-1. produzir um manifesto pequeno e completo;
-2. publicar manifesto + `CODEX_READY` no mesmo commit;
+1. atualizar o manifesto preexistente
+   `docs/agent-memory/workstreams/tasks/chat-codex-task-slot.json` enquanto o
+   estado ainda estiver `CHAT_WORKING`;
+2. somente após confirmar esse commit inerte, publicar em outro commit a
+   transição do estado para `CODEX_READY`, apontando ao slot;
 3. após `CHAT_READY`, ler estado, resultado e diff no GitHub;
 4. auditar ou solicitar novo trabalho conforme o risco;
 5. devolver o canal a `CHAT_WORKING` antes de encerrar sua resposta.
+
+A publicação em duas fases é intencional: o conector do Chat consegue editar
+arquivos existentes, mas bloqueou a criação de um manifesto novo e o commit
+atômico de dois arquivos. O primeiro commit não desperta executor; o segundo só
+é publicado depois que o slot válido já existe no remoto.
 
 Daniel não precisa criar objetivo, arquivo ou transição manualmente. “Novo
 objetivo” é apenas a ficha de trabalho que o próprio Chat publica.
