@@ -1,6 +1,6 @@
 # Plano — canal permanente Chat ↔ Codex
 
-Status: `ORCH-02 candidato aguardando auditoria independente`.
+Status: `ORCH-02 recovery candidato aguardando reauditoria independente`.
 
 ## Objetivo
 
@@ -12,7 +12,8 @@ sem manter modelo ocioso e sem encerrar o canal ao concluir um trabalho.
 1. [concluída] Separar o gate ORCH-01 terminal do novo estado operacional.
 2. [concluída] Definir manifesto de tarefa fechado e caminhos exatos.
 3. [concluída] Generalizar prompt e publicador do watcher.
-4. [em andamento] Bateria causal `62/62` verde; publicar e auditar candidato.
+4. [em andamento] Candidato amplo `62/62` verde; NO-GO nominal de segredos
+   corrigido; bateria causal pós-achado `30/30` verde; reauditar recovery.
 5. [pendente] Instalar o watcher apontando ao canal permanente.
 6. [pendente] Provar duas tarefas sequenciais e retorno ocioso.
 
@@ -37,4 +38,4 @@ sem manter modelo ocioso e sem encerrar o canal ao concluir um trabalho.
 
 ## Próxima ação
 
-Estabilizar o candidato, auditar por hash e executar a prova sequencial.
+Publicar e reauditar o recovery por hash; com GO, executar a prova sequencial.

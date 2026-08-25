@@ -12,7 +12,11 @@ const DENIED_SEGMENTS = new Set([
     '.git', '.env', 'private', 'data', '.wwebjs_auth', 'node_modules'
 ]);
 const DENIED_BASENAMES = new Set([
-    'credentials.json', 'state_store.json', 'agents.md'
+    'credentials.json', 'state_store.json', 'agents.md',
+    'id_rsa', 'id_dsa', 'id_ecdsa', 'id_ed25519'
+]);
+const DENIED_SECRET_EXTENSIONS = new Set([
+    '.pem', '.key', '.p12', '.pfx', '.jks', '.keystore'
 ]);
 const DENIED_PREFIXES = [
     '.github/', '.agents/', '.codex/', 'scripts/agent/',
@@ -27,8 +31,14 @@ function assertSafeRepoPath(value, name) {
         throw new Error(`${name} inválido`);
     }
     const segments = value.toLowerCase().split('/');
+    const basename = segments.at(-1);
+    const sensitiveName = segments.some(segment => /^\.env(?:\.|$)/.test(segment))
+        || /^(?:secrets?|credentials?)(?:[._-].*)?$/.test(basename)
+        || /^(?:client[_-]?secret|service[_-]?account)(?:[._-].*)?$/.test(basename)
+        || DENIED_SECRET_EXTENSIONS.has(path.extname(basename));
     if (segments.some(segment => DENIED_SEGMENTS.has(segment))
-        || DENIED_BASENAMES.has(segments.at(-1))
+        || DENIED_BASENAMES.has(basename)
+        || sensitiveName
         || DENIED_PREFIXES.some(prefix => value.toLowerCase().startsWith(prefix))) {
         throw new Error(`${name} sensível`);
     }

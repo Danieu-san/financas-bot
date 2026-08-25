@@ -11,7 +11,7 @@ Daniel. O fechamento do gate que construiu o canal não encerra o serviço.
 
 ## Estado operacional
 
-`ORCH-02 CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE`.
+`ORCH-02 RECOVERY CANDIDATO AGUARDANDO REAUDITORIA INDEPENDENTE`.
 
 Enquanto não há trabalho, o estado permanece `CHAT_WORKING`: o Chat possui o
 canal, mas nenhum modelo local é iniciado. Para cada trabalho, o Chat cria um
@@ -61,11 +61,18 @@ e segredos continuam fora do executor automático; necessidade privada deve ser
 registrada no resultado e encaminhada ao Codex App por fluxo separado, sem
 ampliar silenciosamente a tarefa.
 
+## Achado e recovery
+
+O primeiro parecer independente recusou o candidato porque variantes como
+`.env.local` e `config/secrets.json` ainda podiam ser declaradas no manifesto.
+O recovery amplia a recusa nominal de recipientes e extensões de segredo antes
+do modelo, com testes negativos simétricos para leitura e escrita.
+
 ## Próxima ação
 
-Auditar o candidato imutável. Com GO, instalar o watcher e provar duas tarefas
+Reauditar o recovery imutável. Com GO, instalar o watcher e provar duas tarefas
 sequenciais no mesmo canal, confirmando retorno a `CHAT_WORKING` entre elas.
 
 ## Capacidade
 
-`Codex App -> Sol -> Alto -> auditar e provar o canal permanente.`
+`Codex App -> Sol -> Alto -> reauditar e provar o canal permanente.`

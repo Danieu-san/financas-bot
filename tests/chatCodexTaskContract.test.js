@@ -35,6 +35,24 @@ test('contrato aceita tarefa delimitada e rejeita campo extra, segredo e resulta
     assert.throws(() => validateTask({
         ...validTask(), required_files: ['.env']
     }, 'JOB-01'), /sensível/);
+    for (const sensitivePath of [
+        '.env.local',
+        'config/secrets.json',
+        'config/client_secret.json',
+        'config/service-account.production.json',
+        'keys/deploy.pem',
+        'keys/id_ed25519'
+    ]) {
+        assert.throws(() => validateTask({
+            ...validTask(), required_files: [sensitivePath]
+        }, 'JOB-01'), /sensível/, sensitivePath);
+        assert.throws(() => validateTask({
+            ...validTask(), allowed_paths: [
+                sensitivePath,
+                'docs/agent-memory/workstreams/results/JOB-01.md'
+            ]
+        }, 'JOB-01'), /sensível/, sensitivePath);
+    }
     assert.throws(() => validateTask({
         ...validTask(), allowed_paths: [
             'scripts/agent/watchChatCodexOrchestration.js',
