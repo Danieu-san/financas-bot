@@ -98,7 +98,7 @@ switch ($Action) {
         Copy-Item -LiteralPath $workerSource -Destination $workerInstalled -Force
         Copy-Item -LiteralPath $helperSource -Destination $helperInstalled -Force
         $config = [ordered]@{
-            schema = 'financasbot-codex-app-wake-bridge-config-v1'
+            schema = 'financasbot-codex-app-wake-bridge-config-v2'
             thread_id = $AppThreadId
             chat_url = $ChatUrl
         } | ConvertTo-Json

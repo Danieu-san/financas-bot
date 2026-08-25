@@ -11,7 +11,7 @@ Daniel. O fechamento do gate que construiu o canal não encerra o serviço.
 
 ## Estado operacional
 
-`ORCH-02 CAMPAINHA STATE-AWARE CANDIDATA AGUARDANDO AUDITORIA INDEPENDENTE`.
+`ORCH-02 RECOVERY DO SCHEMA DA PONTE AGUARDANDO REAUDITORIA INDEPENDENTE`.
 
 Enquanto não há trabalho, o estado permanece `CHAT_WORKING`: o Chat possui o
 canal, mas nenhum modelo local é iniciado. Para cada trabalho, o Chat cria um
@@ -81,9 +81,14 @@ rejeitada pelo Chat porque a ponte ainda usava a constante histórica
 `ORCH-01`. O recovery seguinte transporta no pedido validado a tarefa e o
 caminho exatos do estado remoto, de modo que o Chat consulte o canal ORCH-02.
 
+A auditoria desse recovery encontrou que o instalador ainda produzia
+`config-v1` enquanto o worker atualizado exigia `config-v2`. O literal foi
+alinhado e um teste cruzado passou a comparar o schema do instalador com a
+constante exportada pelo worker.
+
 ## Próxima ação
 
-Auditar o recovery da campainha. Com GO, atualizar a ponte, repetir o retorno da
+Reauditar o schema da ponte. Com GO, atualizar a ponte, repetir o retorno da
 tarefa 1 e provar a tarefa 2, confirmando retorno final a `CHAT_WORKING`.
 
 ## Capacidade

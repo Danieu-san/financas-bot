@@ -185,4 +185,9 @@ test('instalador usa S4U limitado e executa somente cópia protegida em ProgramD
     assert.match(installer, /Copy-Item -LiteralPath \$helperSource -Destination \$helperInstalled/);
     assert.doesNotMatch(installer, /RunLevel Highest|NT AUTHORITY\\SYSTEM.*Principal/);
     assert.match(installer, /raiz da ponte inesperada/);
+    const installedSchema = installer.match(
+        /schema\s*=\s*'(financasbot-codex-app-wake-bridge-config-v\d+)'/
+    )?.[1];
+    assert.equal(installedSchema, CONFIG_SCHEMA,
+        'schema gravado pelo instalador deve ser o aceito pelo worker');
 });
