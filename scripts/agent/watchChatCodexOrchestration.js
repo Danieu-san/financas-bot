@@ -381,7 +381,11 @@ function pollOnce(options, deps = {}) {
         }, deps);
         cache = appWake.cache;
 
-        if (cache.observed_hash === observedHash && cache.observed_state === state.orchestration_state) {
+        const observationUnchanged = cache.observed_hash === observedHash
+            && cache.observed_state === state.orchestration_state;
+        const codeReadyAwaitingManualRetry = state.orchestration_state === 'CODEX_READY'
+            && cache.launched_hash !== observedHash;
+        if (observationUnchanged && !codeReadyAwaitingManualRetry) {
             return {
                 action: appWake.action === 'accepted' ? 'app_wake_accepted' : 'unchanged',
                 hash: observedHash,

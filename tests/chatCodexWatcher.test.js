@@ -234,6 +234,31 @@ test('falha de sincronização é terminal para o hash e não chama Codex', () =
     assert.equal(pollOnce(watcherOptions(item), deps).action, 'unchanged');
 });
 
+test('retry manual exige limpar launched_hash, sem alterar o estado remoto', () => {
+    const item = fixture('CODEX_READY');
+    let launches = 0, raw = item.raw;
+    const deps = executorDeps({
+        fetchRemoteState: () => raw,
+        runCodex: () => {
+            launches += 1;
+            raw = withState(raw, 'CHAT_READY');
+            return 0;
+        },
+        publishLocalResult: () => {}
+    });
+    const cachePath = path.join(item.runtime, 'watcher-state.json');
+    fs.mkdirSync(item.runtime, { recursive: true });
+    fs.writeFileSync(cachePath, JSON.stringify({
+        ...require('../scripts/agent/watchChatCodexOrchestration').defaultCache(),
+        observed_hash: stateHash(item.raw),
+        observed_state: 'CODEX_READY',
+        launched_hash: null,
+        launch_status: null
+    }));
+    assert.equal(pollOnce(watcherOptions(item), deps).action, 'launched');
+    assert.equal(launches, 1);
+});
+
 test('lock existente impede execução concorrente', () => {
     const item = fixture();
     const cachePath = path.join(item.runtime, 'watcher-state.json');
