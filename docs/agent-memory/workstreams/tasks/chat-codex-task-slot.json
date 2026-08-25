@@ -1,10 +1,10 @@
 {
   "schema": "financasbot-chat-codex-task-v1",
-  "task_id": "ORCH02-POC-1",
-  "objective": "Crie o relatório obrigatório com o título ORCH02-POC-1, registre que o canal reutilizável executou a primeira tarefa e cite o nome do required_file lido. Não altere produto.",
-  "required_files": ["docs/agent-memory/README.md"],
-  "allowed_paths": ["docs/agent-memory/workstreams/results/ORCH02-POC-1.md"],
-  "result_file": "docs/agent-memory/workstreams/results/ORCH02-POC-1.md",
-  "validation": ["Confirmar que o relatório contém ORCH02-POC-1 e docs/agent-memory/README.md."],
-  "constraints": ["Não alterar produto, scripts, testes, produção ou dados privados."]
+  "task_id": "ORCH02-POC-2",
+  "objective": "Crie docs/agent-memory/workstreams/results/ORCH02-POC-2.md comprovando a segunda tarefa sequencial do canal.",
+  "required_files": ["docs/plans/workstreams/chat-codex-channel.md"],
+  "allowed_paths": ["docs/agent-memory/workstreams/results/ORCH02-POC-2.md"],
+  "result_file": "docs/agent-memory/workstreams/results/ORCH02-POC-2.md",
+  "validation": ["Confirmar que o arquivo existe, contém ORCH02-POC-2 e docs/plans/workstreams/chat-codex-channel.md, e que não houve nenhuma outra alteração."],
+  "constraints": ["Não alterar produto, produção ou dados privados."]
 }
