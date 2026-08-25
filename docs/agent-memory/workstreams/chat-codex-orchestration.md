@@ -11,7 +11,7 @@ planilhas ou writers.
 
 ## Estado
 
-`ORCH-01 RECOVERY DE IDEMPOTÊNCIA — CANDIDATO AGUARDANDO REAUDITORIA`.
+`ORCH-01 FINISHED — GO TÉCNICO LOCAL`.
 
 ## Base e branch
 
@@ -167,6 +167,14 @@ mantém `dispatching` antes do IPC, aceita de forma compatível o resultado `v1`
 já instalado e acrescenta prova causal explícita de `A -> B -> A`. Nenhuma
 fronteira, destino ou dado novo foi acrescentado.
 
+A reauditoria do commit
+`5eb87a0dffbbc95b97577b5cdf0df36a72fd4180` confirmou leitura integral dos
+quatro arquivos, fechou `A -> B -> A`, migração e fronteira de privilégio e
+emitiu `GO TÉCNICO LOCAL` sem lacuna indispensável residual. Depois do GO, a
+cópia protegida foi atualizada; o SHA-256 instalado coincidiu com o artefato
+auditado e a tarefa permaneceu `Ready`, `S4U`, `Limited`, resultado zero. O
+estado mecânico foi transicionado para `FINISHED` por CAS.
+
 ## Limites operacionais
 
 - polls inalterados não iniciam modelo, mas as duas tarefas Node acordam o SO a
@@ -181,9 +189,10 @@ fronteira, destino ou dado novo foi acrescentado.
 
 ## Próxima ação exata
 
-Publicar e reauditar por hash imutável somente o recovery de idempotência. Sem
-GO independente, o estado máximo permanece `candidato aguardando auditoria`.
+Nenhuma ação material pendente em ORCH-01. Usar a automação em novos objetivos
+somente por uma nova transição/workstream autorizado; estados terminais não
+reiniciam silenciosamente.
 
 ## Capacidade
 
-`Chat -> Sol -> Alto -> reauditar o recovery imutável de ORCH-01.`
+`Codex App -> Sol -> Baixo -> consultar o fechamento, se necessário.`
