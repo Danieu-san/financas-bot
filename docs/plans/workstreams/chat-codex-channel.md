@@ -1,6 +1,6 @@
 # Plano — canal permanente Chat ↔ Codex
 
-Status: `ORCH-02 recovery do schema da ponte aguardando reauditoria independente`.
+Status: `ORCH-02 retorno automático provado; túnel oficial conectado; autostart pendente`.
 
 ## Objetivo
 
@@ -19,6 +19,16 @@ sem manter modelo ocioso e sem encerrar o canal ao concluir um trabalho.
 6. [em andamento] Tarefa 1 publicou `CHAT_READY`; campainha state-aware pronta;
    NO-GO de incompatibilidade config-v1/v2 corrigido; reauditar e executar a
    tarefa 2.
+7. [concluída] Congelar como funcional o caminho
+   `Chat -> GitHub -> watcher -> Codex App`; ele não pertence ao recovery do
+   retorno.
+8. [concluída] Provar em PoC isolado que o widget MCP `v7` envia a campainha
+   após o turno originador e cria nova resposta no Chat sem clique.
+9. [concluída] Substituir o túnel temporário por Secure MCP Tunnel oficial,
+   mantendo o servidor local restrito a `127.0.0.1:3210` e embutindo o SDK.
+10. [em andamento] Executar um único smoke no app definitivo.
+11. [pendente de autorização específica] Instalar watchdog no logon do Windows
+    e comprovar recuperação dos processos sem iniciar modelo.
 
 O Chat editará um manifesto-slot preexistente em commit inerte e depois o
 estado em commit separado; isso respeita a limitação observada do conector sem
@@ -45,5 +55,6 @@ perder a ordenação causal.
 
 ## Próxima ação
 
-Publicar e reauditar o schema da ponte; com GO, atualizar a ponte e concluir a
-prova sequencial.
+Executar um único smoke no app definitivo. Depois, com autorização específica,
+instalar e validar o watchdog local. Não alterar nem retestar o caminho
+Chat -> Codex.

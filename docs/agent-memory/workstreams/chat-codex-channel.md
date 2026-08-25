@@ -11,7 +11,14 @@ Daniel. O fechamento do gate que construiu o canal não encerra o serviço.
 
 ## Estado operacional
 
-`ORCH-02 RECOVERY DO SCHEMA DA PONTE AGUARDANDO REAUDITORIA INDEPENDENTE`.
+`ORCH-02 RETORNO CODEX -> CHAT PROVADO; SECURE MCP TUNNEL CONECTADO; AUTOSTART PENDENTE`.
+
+### Fronteira congelada
+
+O caminho `Chat -> GitHub -> watcher -> Codex App` já foi provado e não faz
+parte do recovery atual. Nenhuma tentativa de corrigir o retorno pode alterar,
+substituir ou repetir essa ponta sem um achado causal novo e autorização
+específica. O único escopo aberto é `Codex -> Chat`.
 
 Enquanto não há trabalho, o estado permanece `CHAT_WORKING`: o Chat possui o
 canal, mas nenhum modelo local é iniciado. Para cada trabalho, o Chat cria um
@@ -86,11 +93,48 @@ A auditoria desse recovery encontrou que o instalador ainda produzia
 alinhado e um teste cruzado passou a comparar o schema do instalador com a
 constante exportada pelo worker.
 
+## Prova isolada do retorno em 2026-08-25
+
+O MCP local expôs uma ação sem argumentos e um widget com mensagem fixa
+`ORCH_PLUGIN_WAKE_POC`. A versão `v7` usou nomes novos de ferramenta e recurso
+para impedir reutilização do snapshot congelado do app anterior.
+
+Evidência causal observada numa única tentativa, sem clique no widget:
+
+- o Chat executou `open_chat_wake_poc_v7` uma vez;
+- o widget aguardou 15 segundos para o turno originador encerrar;
+- o widget exibiu `Wake enviado` com a mensagem fixa;
+- o Chat produziu uma nova resposta contendo `ORCH_PLUGIN_WAKE_POC` e registrou
+  o wake às `12:32:55` no fuso de Brasília;
+- o caminho de ida, watcher, launcher e manifesto não foram alterados.
+
+O endpoint usado nessa prova era temporário. Tailscale HTTPS foi
+habilitado no tailnet, porém o cliente Windows não sincroniza com
+`controlplane.tailscale.com`; por isso nenhum Funnel foi criado. A alternativa
+adotada foi o Secure MCP Tunnel oficial, sem exposição pública do servidor.
+
+## Endpoint definitivo em 2026-08-25
+
+O app `FinancasBot Chat Wake Definitivo` foi criado e conectado ao Secure MCP
+Tunnel oficial. O servidor permanece restrito a `127.0.0.1:3210`, expõe apenas
+`open_financasbot_chat_wake` e entrega o SDK do componente embutido no próprio
+recurso `ui://financasbot/chat-wake-definitive-v1.html`. Não há dependência do
+Cloudflare Quick Tunnel nem carregamento de JavaScript por endereço local no
+iframe do Chat.
+
+O runtime do túnel foi reiniciado e ficou `ready`; o smoke MCP local confirmou
+somente a ferramenta definitiva e o recurso novo. O processo corrente continua
+ativo fora do ciclo do Codex App. A instalação de um watchdog no logon do
+Windows não foi aplicada porque a elevação recusou a persistência sem uma
+autorização específica posterior; isso não invalida a sessão atual, mas impede
+de declarar sobrevivência a reboot.
+
 ## Próxima ação
 
-Reauditar o schema da ponte. Com GO, atualizar a ponte, repetir o retorno da
-tarefa 1 e provar a tarefa 2, confirmando retorno final a `CHAT_WORKING`.
+Executar somente um smoke do retorno no app definitivo. Depois, mediante
+autorização específica, instalar o watchdog no logon e validar um reinício dos
+processos. Não repetir nem alterar a ponta `Chat -> Codex`.
 
 ## Capacidade
 
-`Codex App -> Sol -> Alto -> auditar e concluir a prova do canal permanente.`
+`Codex App -> Sol -> Alto -> tornar persistente somente o retorno Codex -> Chat.`
