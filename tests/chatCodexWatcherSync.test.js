@@ -89,7 +89,7 @@ test('CHAT_READY acorda Codex App uma vez por hash', () => {
     assert.equal(cache.app_wake_hash.length, 64);
 });
 
-test('CHAT_READY enfileira somente o hash para a ponte S4U', () => {
+test('CHAT_READY enfileira hash, tarefa e estado exatos para a ponte S4U', () => {
     const item = fixture('CHAT_READY');
     const queue = path.join(item.runtime, 'bridge', 'request.json');
     fs.mkdirSync(path.dirname(queue), { recursive: true });
@@ -98,9 +98,14 @@ test('CHAT_READY enfileira somente o hash para a ponte S4U', () => {
         'app_wake_queued');
     assert.equal(pollOnce(options, { fetchRemoteState: () => item.raw }).action, 'unchanged');
     const request = JSON.parse(fs.readFileSync(queue, 'utf8'));
-    assert.deepEqual(Object.keys(request), ['schema', 'observed_hash', 'created_at']);
-    assert.equal(request.schema, 'financasbot-codex-app-wake-request-v1');
+    assert.deepEqual(Object.keys(request), [
+        'schema', 'observed_hash', 'task_id', 'state_path', 'created_at'
+    ]);
+    assert.equal(request.schema, 'financasbot-codex-app-wake-request-v2');
     assert.equal(request.observed_hash, stateHash(item.raw));
+    assert.equal(request.task_id, 'ORCH-01');
+    assert.equal(request.state_path,
+        'docs/agent-memory/workstreams/chat-codex-channel.state.json');
     assert.equal(readCache(path.join(item.runtime, 'watcher-state.json')).app_wake_status, 'queued');
 });
 
@@ -108,7 +113,8 @@ test('fila da ponte exige caminho absoluto e recusa symlink', t => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'orch-wake-queue-'));
     t.after(() => fs.rmSync(root, { recursive: true, force: true }));
     assert.throws(() => queueCodexAppWakeRequest({
-        observedHash: 'a'.repeat(64), requestPath: 'request.json'
+        observedHash: 'a'.repeat(64), requestPath: 'request.json',
+        statePath: 'docs/agent-memory/workstreams/channel.state.json', taskId: 'ORCH-01'
     }), /deve ser absoluto/);
     const target = path.join(root, 'request.json');
     const source = path.join(root, 'source.json');
@@ -120,7 +126,8 @@ test('fila da ponte exige caminho absoluto e recusa symlink', t => {
         throw error;
     }
     assert.throws(() => queueCodexAppWakeRequest({
-        observedHash: 'a'.repeat(64), requestPath: target
+        observedHash: 'a'.repeat(64), requestPath: target,
+        statePath: 'docs/agent-memory/workstreams/channel.state.json', taskId: 'ORCH-01'
     }), /link simbólico/);
 });
 
@@ -129,6 +136,7 @@ test('launcher do wake chama helper Node sem shell', () => {
     const result = wakeCodexApp({
         chatUrl: 'https://chatgpt.com/c/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
         observedHash: 'a'.repeat(64),
+        statePath: 'docs/agent-memory/workstreams/chat-codex-channel.state.json',
         taskId: 'ORCH-01',
         threadId: '11111111-2222-4333-8444-555555555555'
     }, {
@@ -151,6 +159,7 @@ test('launcher recusa aceite IPC sem cliente do Codex App confirmado', () => {
     assert.throws(() => wakeCodexApp({
         chatUrl: 'https://chatgpt.com/c/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
         observedHash: 'a'.repeat(64),
+        statePath: 'docs/agent-memory/workstreams/chat-codex-channel.state.json',
         taskId: 'ORCH-01',
         threadId: '11111111-2222-4333-8444-555555555555'
     }, {

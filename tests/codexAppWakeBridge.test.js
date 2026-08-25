@@ -27,12 +27,13 @@ function fixture(t) {
     fs.writeFileSync(paths.config, JSON.stringify({
         schema: CONFIG_SCHEMA,
         thread_id: '11111111-2222-4333-8444-555555555555',
-        chat_url: 'https://chatgpt.com/c/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
-        task_id: 'ORCH-01'
+        chat_url: 'https://chatgpt.com/c/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
     }));
     fs.writeFileSync(paths.request, JSON.stringify({
         schema: REQUEST_SCHEMA,
         observed_hash: 'a'.repeat(64),
+        task_id: 'ORCH02-POC-1',
+        state_path: 'docs/agent-memory/workstreams/chat-codex-channel.state.json',
         created_at: '2026-08-25T00:00:00.000Z'
     }));
     return paths;
@@ -43,10 +44,12 @@ test('ponte usa configuração protegida e processa cada hash no máximo uma vez
     let calls = 0;
     const deps = {
         now: () => new Date('2026-08-25T00:01:00.000Z'),
-        invokeWake({ config, observedHash }) {
+        invokeWake({ config, observedHash, statePath, taskId }) {
             calls += 1;
-            assert.equal(config.task_id, 'ORCH-01');
+            assert.equal(config.chat_url, 'https://chatgpt.com/c/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee');
             assert.match(observedHash, /^[ab]{64}$/);
+            assert.equal(taskId, 'ORCH02-POC-1');
+            assert.equal(statePath, 'docs/agent-memory/workstreams/chat-codex-channel.state.json');
             return { status: 'accepted', handledByClientId: '99999999-8888-4777-8666-555555555555' };
         }
     };
@@ -67,6 +70,8 @@ test('ponte usa configuração protegida e processa cada hash no máximo uma vez
     fs.writeFileSync(paths.request, JSON.stringify({
         schema: REQUEST_SCHEMA,
         observed_hash: 'b'.repeat(64),
+        task_id: 'ORCH02-POC-1',
+        state_path: 'docs/agent-memory/workstreams/chat-codex-channel.state.json',
         created_at: '2026-08-25T00:02:00.000Z'
     }));
     assert.equal(processWakeRequest(paths, deps).action, 'accepted');
@@ -75,6 +80,8 @@ test('ponte usa configuração protegida e processa cada hash no máximo uma vez
     fs.writeFileSync(paths.request, JSON.stringify({
         schema: REQUEST_SCHEMA,
         observed_hash: 'a'.repeat(64),
+        task_id: 'ORCH02-POC-1',
+        state_path: 'docs/agent-memory/workstreams/chat-codex-channel.state.json',
         created_at: '2026-08-25T00:03:00.000Z'
     }));
     assert.equal(processWakeRequest(paths, deps).action, 'already_processed');
@@ -138,11 +145,12 @@ test('launcher da ponte chama helper protegido sem shell', () => {
     const response = invokeWake({
         config: {
             thread_id: '11111111-2222-4333-8444-555555555555',
-            chat_url: 'https://chatgpt.com/c/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
-            task_id: 'ORCH-01'
+            chat_url: 'https://chatgpt.com/c/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
         },
         helperPath: 'C:\\ProgramData\\FinancasBot\\bridge\\wake.js',
-        observedHash: 'b'.repeat(64)
+        observedHash: 'b'.repeat(64),
+        statePath: 'docs/agent-memory/workstreams/chat-codex-channel.state.json',
+        taskId: 'ORCH02-POC-1'
     }, {
         spawnSync(command, args, options) {
             invocation = { command, args, options };
@@ -156,6 +164,10 @@ test('launcher da ponte chama helper protegido sem shell', () => {
     assert.equal(invocation.command, process.execPath);
     assert.equal(invocation.options.windowsHide, true);
     assert.equal(invocation.options.shell, undefined);
+    assert.deepEqual(invocation.args.slice(-4), [
+        '--task-id', 'ORCH02-POC-1', '--state-path',
+        'docs/agent-memory/workstreams/chat-codex-channel.state.json'
+    ]);
     assert.equal(response.status, 'accepted');
 });
 

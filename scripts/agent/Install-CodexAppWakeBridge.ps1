@@ -5,8 +5,7 @@ param(
     [string]$AppUser,
     [string]$RequestWriterUser,
     [string]$AppThreadId,
-    [string]$ChatUrl,
-    [string]$TaskId = 'ORCH-01'
+    [string]$ChatUrl
 )
 
 $ErrorActionPreference = 'Stop'
@@ -67,7 +66,6 @@ function Assert-Inputs {
     if ($AppThreadId -notmatch '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$') {
         throw 'AppThreadId invalido.'
     }
-    if ($TaskId -notmatch '^[A-Z0-9][A-Z0-9._-]{0,63}$') { throw 'TaskId invalido.' }
     $parsed = $null
     if (-not [Uri]::TryCreate($ChatUrl, [UriKind]::Absolute, [ref]$parsed) -or
         $parsed.Scheme -ne 'https' -or $parsed.Host -ne 'chatgpt.com' -or
@@ -103,7 +101,6 @@ switch ($Action) {
             schema = 'financasbot-codex-app-wake-bridge-config-v1'
             thread_id = $AppThreadId
             chat_url = $ChatUrl
-            task_id = $TaskId
         } | ConvertTo-Json
         [IO.File]::WriteAllText($configPath, "$config`n", [Text.UTF8Encoding]::new($false))
         Set-BridgeAcl $bridgeRoot $false

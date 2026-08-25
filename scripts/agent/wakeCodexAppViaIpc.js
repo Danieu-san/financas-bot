@@ -41,15 +41,24 @@ function assertChatUrl(value) {
     return url.toString();
 }
 
-function buildWakePrompt({ chatUrl, observedHash, taskId }) {
+function assertStatePath(value) {
+    if (!/^docs\/agent-memory\/workstreams\/[A-Za-z0-9._/-]+\.state\.json$/.test(value || '')
+        || value.includes('..') || value.includes('//')) {
+        throw new Error('state-path de wake inválido');
+    }
+    return value;
+}
+
+function buildWakePrompt({ chatUrl, observedHash, statePath, taskId }) {
     if (!/^[0-9a-f]{64}$/i.test(observedHash || '')) throw new Error('hash de wake inválido');
     if (!/^[A-Za-z0-9._-]{1,80}$/.test(taskId || '')) throw new Error('task-id de wake inválido');
     const safeChatUrl = assertChatUrl(chatUrl);
+    const safeStatePath = assertStatePath(statePath);
     return [
         `Retorno mecânico ${taskId}.`,
-        `O watcher confirmou GitHub/CHAT_READY no hash de estado ${observedHash}.`,
+        `O watcher confirmou GitHub/CHAT_READY em ${safeStatePath} no hash de estado ${observedHash}.`,
         'Use somente a ferramenta Browser do Codex App nesta tarefa.',
-        `Na conversa ${safeChatUrl}, envie exatamente: ORCH_WAKE ${taskId} ${observedHash}`,
+        `Na conversa ${safeChatUrl}, envie exatamente: ORCH_WAKE ${taskId} ${observedHash} ${safeStatePath}`,
         'Não leia Git, arquivos, produção, WhatsApp, Pluggy, planilhas ou dados privados.',
         'Depois de confirmar o envio, termine sem executar outra ação.'
     ].join(' ');
@@ -83,9 +92,9 @@ class FrameDecoder {
     }
 }
 
-function buildStartTurnRequest({ chatUrl, observedHash, requestId, taskId, threadId }) {
+function buildStartTurnRequest({ chatUrl, observedHash, requestId, statePath, taskId, threadId }) {
     const conversationId = assertThreadId(threadId);
-    const prompt = buildWakePrompt({ chatUrl, observedHash, taskId });
+    const prompt = buildWakePrompt({ chatUrl, observedHash, statePath, taskId });
     return {
         type: 'request',
         requestId,
@@ -125,6 +134,7 @@ function runClient(options, deps = {}) {
         chatUrl: options['chat-url'],
         observedHash: options.hash,
         requestId: startId,
+        statePath: options['state-path'],
         taskId: options['task-id'],
         threadId: options['thread-id']
     });
@@ -206,6 +216,7 @@ module.exports = {
     IPC_PATH,
     buildStartTurnRequest,
     buildWakePrompt,
+    assertStatePath,
     frameMessage,
     parseArgs,
     runClient

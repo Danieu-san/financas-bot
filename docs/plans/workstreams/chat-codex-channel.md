@@ -1,6 +1,6 @@
 # Plano — canal permanente Chat ↔ Codex
 
-Status: `ORCH-02 recovery candidato aguardando reauditoria independente`.
+Status: `ORCH-02 campainha state-aware candidata aguardando auditoria independente`.
 
 ## Objetivo
 
@@ -16,7 +16,8 @@ sem manter modelo ocioso e sem encerrar o canal ao concluir um trabalho.
    corrigido; bateria causal pós-achado `30/30` verde; reauditar recovery.
 5. [concluída] Reauditoria do recovery em GO; watcher instalado e ociosidade
    comprovada sem novo lançamento de modelo.
-6. [pendente] Provar duas tarefas sequenciais e retorno ocioso.
+6. [em andamento] Tarefa 1 publicou `CHAT_READY`; corrigir a campainha que ainda
+   apontava a ORCH-01, validar retorno e executar a tarefa 2.
 
 O Chat editará um manifesto-slot preexistente em commit inerte e depois o
 estado em commit separado; isso respeita a limitação observada do conector sem
@@ -43,4 +44,5 @@ perder a ordenação causal.
 
 ## Próxima ação
 
-Publicar e reauditar o recovery por hash; com GO, executar a prova sequencial.
+Publicar e auditar o recovery da campainha; com GO, atualizar a ponte e concluir
+a prova sequencial.

@@ -20,7 +20,7 @@ const checks = [
     ['docs/agent-memory/workstreams/chat-codex-orchestration.state.json', 4 * 1024, ['financasbot-chat-codex-orchestration-v1', 'orchestration_state', 'next_executor', 'expected_base_sha']],
     ['docs/agent-memory/workstreams/chat-codex-channel.md', 10 * 1024, ['Canal permanente', 'CHAT_WORKING', 'financasbot-chat-codex-task-v1']],
     ['docs/plans/workstreams/chat-codex-channel.md', 8 * 1024, ['ORCH-02', 'canal permanente', 'Critérios de GO']],
-    ['docs/agent-memory/workstreams/chat-codex-channel.state.json', 4 * 1024, ['financasbot-chat-codex-orchestration-v1', 'CHANNEL-IDLE', 'CHAT_WORKING']],
+    ['docs/agent-memory/workstreams/chat-codex-channel.state.json', 4 * 1024, ['financasbot-chat-codex-orchestration-v1', 'orchestration_state', 'next_executor', 'task_id']],
     ['scripts/agent/manageChatCodexOrchestration.js', 24 * 1024, ['financasbot-chat-codex-orchestration-v1', 'CHAT_WORKING', 'CODEX_READY', 'writeAtomically', 'stateHash']],
     ['scripts/agent/watchChatCodexOrchestration.js', 28 * 1024, ['financasbot-chat-codex-watcher-v1', 'CODEX_READY', 'unchanged', 'runCodex']],
     ['scripts/agent/chatCodexTaskContract.js', 16 * 1024, ['financasbot-chat-codex-task-v1', 'allowed_paths', 'result_file']],

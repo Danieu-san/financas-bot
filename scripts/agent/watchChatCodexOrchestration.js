@@ -10,7 +10,7 @@ const CACHE_SCHEMA = 'financasbot-chat-codex-watcher-v1';
 const DEFAULT_BRANCH = 'chat/chat-codex-orchestration-20260824';
 const DEFAULT_STATE_PATH = 'docs/agent-memory/workstreams/chat-codex-channel.state.json';
 const DEFAULT_PLAN_PATH = 'docs/plans/workstreams/chat-codex-orchestration.md';
-const WAKE_REQUEST_SCHEMA = 'financasbot-codex-app-wake-request-v1';
+const WAKE_REQUEST_SCHEMA = 'financasbot-codex-app-wake-request-v2';
 
 function parseArgs(argv) {
     const options = {};
@@ -163,7 +163,7 @@ function quotePowerShellLiteral(value) {
     return `'${value.replaceAll("'", "''")}'`;
 }
 
-function wakeCodexApp({ chatUrl, observedHash, taskId, threadId }, deps = {}) {
+function wakeCodexApp({ chatUrl, observedHash, statePath, taskId, threadId }, deps = {}) {
     const spawn = deps.spawnSync || spawnSync;
     const helper = path.join(__dirname, 'wakeCodexAppViaIpc.js');
     const result = spawn(process.execPath, [
@@ -171,7 +171,8 @@ function wakeCodexApp({ chatUrl, observedHash, taskId, threadId }, deps = {}) {
         '--thread-id', threadId,
         '--chat-url', chatUrl,
         '--hash', observedHash,
-        '--task-id', taskId
+        '--task-id', taskId,
+        '--state-path', statePath
     ], {
         encoding: 'utf8',
         windowsHide: true,
@@ -190,7 +191,7 @@ function wakeCodexApp({ chatUrl, observedHash, taskId, threadId }, deps = {}) {
     return response;
 }
 
-function queueCodexAppWakeRequest({ observedHash, requestPath }, deps = {}) {
+function queueCodexAppWakeRequest({ observedHash, requestPath, statePath, taskId }, deps = {}) {
     if (!path.isAbsolute(requestPath)) throw new Error('app-wake-request deve ser absoluto');
     const parent = fs.realpathSync(path.dirname(requestPath));
     if (!fs.statSync(parent).isDirectory()) {
@@ -204,6 +205,8 @@ function queueCodexAppWakeRequest({ observedHash, requestPath }, deps = {}) {
     writeAtomically(target, `${JSON.stringify({
         schema: WAKE_REQUEST_SCHEMA,
         observed_hash: observedHash,
+        task_id: taskId,
+        state_path: statePath,
         created_at: now.toISOString()
     }, null, 2)}\n`);
     return { status: 'queued', requestPath: target };
@@ -235,13 +238,16 @@ function maybeWakeCodexApp({ cache, cachePath, options, observedHash, state }, d
         if (requestPath) {
             (deps.queueCodexAppWakeRequest || queueCodexAppWakeRequest)({
                 observedHash,
-                requestPath
+                requestPath,
+                statePath: options['state-path'] || DEFAULT_STATE_PATH,
+                taskId: state.task_id
             }, deps);
             dispatchStatus = 'queued';
         } else {
             (deps.wakeCodexApp || wakeCodexApp)({
                 chatUrl,
                 observedHash,
+                statePath: options['state-path'] || DEFAULT_STATE_PATH,
                 taskId: state.task_id,
                 threadId
             }, deps);

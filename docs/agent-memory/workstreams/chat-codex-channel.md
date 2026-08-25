@@ -11,7 +11,7 @@ Daniel. O fechamento do gate que construiu o canal não encerra o serviço.
 
 ## Estado operacional
 
-`ORCH-02 RECOVERY CANDIDATO AGUARDANDO REAUDITORIA INDEPENDENTE`.
+`ORCH-02 CAMPAINHA STATE-AWARE CANDIDATA AGUARDANDO AUDITORIA INDEPENDENTE`.
 
 Enquanto não há trabalho, o estado permanece `CHAT_WORKING`: o Chat possui o
 canal, mas nenhum modelo local é iniciado. Para cada trabalho, o Chat cria um
@@ -76,11 +76,16 @@ O primeiro parecer independente recusou o candidato porque variantes como
 O recovery amplia a recusa nominal de recipientes e extensões de segredo antes
 do modelo, com testes negativos simétricos para leitura e escrita.
 
+A primeira tarefa operacional alcançou `CHAT_READY`, mas a campainha foi
+rejeitada pelo Chat porque a ponte ainda usava a constante histórica
+`ORCH-01`. O recovery seguinte transporta no pedido validado a tarefa e o
+caminho exatos do estado remoto, de modo que o Chat consulte o canal ORCH-02.
+
 ## Próxima ação
 
-Reauditar o recovery imutável. Com GO, instalar o watcher e provar duas tarefas
-sequenciais no mesmo canal, confirmando retorno a `CHAT_WORKING` entre elas.
+Auditar o recovery da campainha. Com GO, atualizar a ponte, repetir o retorno da
+tarefa 1 e provar a tarefa 2, confirmando retorno final a `CHAT_WORKING`.
 
 ## Capacidade
 
-`Codex App -> Sol -> Alto -> reauditar e provar o canal permanente.`
+`Codex App -> Sol -> Alto -> auditar e concluir a prova do canal permanente.`
