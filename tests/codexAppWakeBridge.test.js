@@ -7,6 +7,7 @@ const path = require('node:path');
 const test = require('node:test');
 const {
     CONFIG_SCHEMA,
+    LEGACY_RESULT_SCHEMA,
     REQUEST_SCHEMA,
     RESULT_SCHEMA,
     invokeWake,
@@ -45,21 +46,39 @@ test('ponte usa configuração protegida e processa cada hash no máximo uma vez
         invokeWake({ config, observedHash }) {
             calls += 1;
             assert.equal(config.task_id, 'ORCH-01');
-            assert.equal(observedHash, 'a'.repeat(64));
+            assert.match(observedHash, /^[ab]{64}$/);
             return { status: 'accepted', handledByClientId: '99999999-8888-4777-8666-555555555555' };
         }
     };
     assert.equal(processWakeRequest(paths, deps).action, 'accepted');
     assert.deepEqual(JSON.parse(fs.readFileSync(paths.result, 'utf8')), {
         schema: RESULT_SCHEMA,
-        observed_hash: 'a'.repeat(64),
-        status: 'accepted',
-        updated_at: '2026-08-25T00:01:00.000Z',
-        handled_by_client_id: '99999999-8888-4777-8666-555555555555',
-        error_code: null
+        records: [{
+            observed_hash: 'a'.repeat(64),
+            status: 'accepted',
+            updated_at: '2026-08-25T00:01:00.000Z',
+            handled_by_client_id: '99999999-8888-4777-8666-555555555555',
+            error_code: null
+        }]
     });
     assert.equal(processWakeRequest(paths, deps).action, 'already_processed');
     assert.equal(calls, 1);
+
+    fs.writeFileSync(paths.request, JSON.stringify({
+        schema: REQUEST_SCHEMA,
+        observed_hash: 'b'.repeat(64),
+        created_at: '2026-08-25T00:02:00.000Z'
+    }));
+    assert.equal(processWakeRequest(paths, deps).action, 'accepted');
+    assert.equal(calls, 2);
+
+    fs.writeFileSync(paths.request, JSON.stringify({
+        schema: REQUEST_SCHEMA,
+        observed_hash: 'a'.repeat(64),
+        created_at: '2026-08-25T00:03:00.000Z'
+    }));
+    assert.equal(processWakeRequest(paths, deps).action, 'already_processed');
+    assert.equal(calls, 2);
 });
 
 test('falha fica terminal para o mesmo hash sem duplicar campainha', t => {
@@ -70,10 +89,27 @@ test('falha fica terminal para o mesmo hash sem duplicar campainha', t => {
     };
     assert.throws(() => processWakeRequest(paths, deps), /pipe indisponível/);
     const result = JSON.parse(fs.readFileSync(paths.result, 'utf8'));
-    assert.equal(result.status, 'failed');
-    assert.equal(result.error_code, 'IPC_WAKE_FAILED');
+    assert.equal(result.records[0].status, 'failed');
+    assert.equal(result.records[0].error_code, 'IPC_WAKE_FAILED');
     assert.equal(processWakeRequest(paths, deps).action, 'already_processed');
     assert.equal(calls, 1);
+});
+
+test('marcador legado preserva o hash já terminal durante a migração', t => {
+    const paths = fixture(t);
+    fs.writeFileSync(paths.result, JSON.stringify({
+        schema: LEGACY_RESULT_SCHEMA,
+        observed_hash: 'a'.repeat(64),
+        status: 'accepted',
+        updated_at: '2026-08-25T00:00:30.000Z',
+        handled_by_client_id: '99999999-8888-4777-8666-555555555555',
+        error_code: null
+    }));
+    let calls = 0;
+    assert.equal(processWakeRequest(paths, {
+        invokeWake() { calls += 1; }
+    }).action, 'already_processed');
+    assert.equal(calls, 0);
 });
 
 test('pedido gravável não pode injetar destino, tarefa ou prompt', t => {

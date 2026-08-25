@@ -11,7 +11,7 @@ planilhas ou writers.
 
 ## Estado
 
-`ORCH-01 CICLO COMPLETO PROVADO — CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE`.
+`ORCH-01 RECOVERY DE IDEMPOTÊNCIA — CANDIDATO AGUARDANDO REAUDITORIA`.
 
 ## Base e branch
 
@@ -134,8 +134,9 @@ A solução permanente separa responsabilidades:
   idempotente permitem apenas leitura ao watcher, impedindo que ele substitua o
   código ou apague a prova de envio;
 - pedido, configuração, helper e marcador por symlink são recusados;
-- o marcador `dispatching` é persistido antes do IPC, de modo que queda ou erro
-  ficam terminais para o mesmo hash e não duplicam a campainha.
+- o histórico protegido registra cada hash antes do IPC como `dispatching`, de
+  modo que queda, erro e replay posterior, inclusive `A -> B -> A`, ficam
+  terminais e não duplicam a campainha.
 
 Prova final sem intervenção entre as pontas mecânicas:
 
@@ -154,6 +155,18 @@ Prova final sem intervenção entre as pontas mecânicas:
 A bateria ampla final do domínio ficou 56/56 verde. As duas tarefas instaladas
 ficaram `Ready`, resultado zero, `RunLevel Limited` e `IgnoreNew`.
 
+## Auditoria independente e recovery em 2026-08-25
+
+O Chat leu integralmente o commit
+`bf7667cec8bea693f48c1f0c544ddc670d15d96d` e emitiu `NO-GO`: a versão inicial
+lembrava somente o último hash e não fechava o replay `A -> B -> A`. A fronteira
+de privilégio e a causalidade restante foram aceitas.
+
+O recovery substitui o marcador único por histórico protegido de registros,
+mantém `dispatching` antes do IPC, aceita de forma compatível o resultado `v1`
+já instalado e acrescenta prova causal explícita de `A -> B -> A`. Nenhuma
+fronteira, destino ou dado novo foi acrescentado.
+
 ## Limites operacionais
 
 - polls inalterados não iniciam modelo, mas as duas tarefas Node acordam o SO a
@@ -168,10 +181,9 @@ ficaram `Ready`, resultado zero, `RunLevel Limited` e `IgnoreNew`.
 
 ## Próxima ação exata
 
-Auditar por hash imutável a ponte S4U, a separação de ACL, a idempotência e a
-prova do ciclo completo. Sem GO independente, o estado máximo permanece
-`candidato aguardando auditoria`.
+Publicar e reauditar por hash imutável somente o recovery de idempotência. Sem
+GO independente, o estado máximo permanece `candidato aguardando auditoria`.
 
 ## Capacidade
 
-`Chat -> Sol -> Alto -> auditar o candidato imutável de ORCH-01.`
+`Chat -> Sol -> Alto -> reauditar o recovery imutável de ORCH-01.`

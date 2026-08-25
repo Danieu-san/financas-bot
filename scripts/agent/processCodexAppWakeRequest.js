@@ -6,7 +6,8 @@ const { spawnSync } = require('node:child_process');
 
 const CONFIG_SCHEMA = 'financasbot-codex-app-wake-bridge-config-v1';
 const REQUEST_SCHEMA = 'financasbot-codex-app-wake-request-v1';
-const RESULT_SCHEMA = 'financasbot-codex-app-wake-result-v1';
+const LEGACY_RESULT_SCHEMA = 'financasbot-codex-app-wake-result-v1';
+const RESULT_SCHEMA = 'financasbot-codex-app-wake-result-v2';
 
 function parseArgs(argv) {
     const options = {};
@@ -62,6 +63,58 @@ function writeAtomically(filePath, value) {
     fs.renameSync(temporary, filePath);
 }
 
+function assertResultRecord(value) {
+    const allowedKeys = [
+        'observed_hash', 'status', 'updated_at', 'handled_by_client_id', 'error_code'
+    ];
+    if (!value || typeof value !== 'object' || Array.isArray(value)
+        || Object.keys(value).some(key => !allowedKeys.includes(key))
+        || !/^[0-9a-f]{64}$/.test(value.observed_hash || '')
+        || !['dispatching', 'accepted', 'failed'].includes(value.status)
+        || Number.isNaN(Date.parse(value.updated_at || ''))
+        || (value.handled_by_client_id !== null
+            && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+                .test(value.handled_by_client_id || ''))
+        || (value.error_code !== null
+            && !['IPC_ACCEPT_INVALID', 'IPC_WAKE_FAILED'].includes(value.error_code))) {
+        throw new Error('resultado inválido');
+    }
+    return value;
+}
+
+function readResultStore(filePath) {
+    const value = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        throw new Error('resultado inválido');
+    }
+    if (value.schema === LEGACY_RESULT_SCHEMA) {
+        const allowedKeys = [
+            'schema', 'observed_hash', 'status', 'updated_at', 'handled_by_client_id', 'error_code'
+        ];
+        if (Object.keys(value).some(key => !allowedKeys.includes(key))) {
+            throw new Error('resultado inválido');
+        }
+        const { schema: _legacySchema, ...record } = value;
+        return { schema: RESULT_SCHEMA, records: [assertResultRecord(record)] };
+    }
+    if (value.schema !== RESULT_SCHEMA
+        || Object.keys(value).some(key => !['schema', 'records'].includes(key))
+        || !Array.isArray(value.records)) {
+        throw new Error('resultado inválido');
+    }
+    const seen = new Set();
+    for (const record of value.records) {
+        assertResultRecord(record);
+        if (seen.has(record.observed_hash)) throw new Error('resultado duplicado');
+        seen.add(record.observed_hash);
+    }
+    return value;
+}
+
+function writeResultStore(filePath, records) {
+    writeAtomically(filePath, { schema: RESULT_SCHEMA, records });
+}
+
 function invokeWake({ config, helperPath, observedHash }, deps = {}) {
     const spawn = deps.spawnSync || spawnSync;
     const result = spawn(process.execPath, [
@@ -95,48 +148,40 @@ function processWakeRequest(options, deps = {}) {
         ['schema', 'thread_id', 'chat_url', 'task_id'], CONFIG_SCHEMA));
     const request = assertRequest(readExactJson(options.request,
         ['schema', 'observed_hash', 'created_at'], REQUEST_SCHEMA));
-    if (fs.existsSync(options.result)) {
-        const previous = readExactJson(options.result,
-            ['schema', 'observed_hash', 'status', 'updated_at', 'handled_by_client_id', 'error_code'],
-            RESULT_SCHEMA);
-        if (previous.observed_hash === request.observed_hash) {
-            return { action: 'already_processed', status: previous.status };
-        }
-    }
+    const store = fs.existsSync(options.result)
+        ? readResultStore(options.result)
+        : { schema: RESULT_SCHEMA, records: [] };
+    const previous = store.records.find(record => record.observed_hash === request.observed_hash);
+    if (previous) return { action: 'already_processed', status: previous.status };
 
     const now = () => (deps.now?.() || new Date()).toISOString();
-    writeAtomically(options.result, {
-        schema: RESULT_SCHEMA,
+    const record = {
         observed_hash: request.observed_hash,
         status: 'dispatching',
         updated_at: now(),
         handled_by_client_id: null,
         error_code: null
-    });
+    };
+    store.records.push(record);
+    writeResultStore(options.result, store.records);
     try {
         const response = (deps.invokeWake || invokeWake)({
             config,
             helperPath: fs.realpathSync(options.helper),
             observedHash: request.observed_hash
         }, deps);
-        writeAtomically(options.result, {
-            schema: RESULT_SCHEMA,
-            observed_hash: request.observed_hash,
-            status: 'accepted',
-            updated_at: now(),
-            handled_by_client_id: response.handledByClientId,
-            error_code: null
+        Object.assign(record, {
+            status: 'accepted', updated_at: now(),
+            handled_by_client_id: response.handledByClientId, error_code: null
         });
+        writeResultStore(options.result, store.records);
         return { action: 'accepted', hash: request.observed_hash };
     } catch (error) {
-        writeAtomically(options.result, {
-            schema: RESULT_SCHEMA,
-            observed_hash: request.observed_hash,
-            status: 'failed',
-            updated_at: now(),
-            handled_by_client_id: null,
+        Object.assign(record, {
+            status: 'failed', updated_at: now(), handled_by_client_id: null,
             error_code: error.message === 'IPC_ACCEPT_INVALID' ? 'IPC_ACCEPT_INVALID' : 'IPC_WAKE_FAILED'
         });
+        writeResultStore(options.result, store.records);
         throw error;
     }
 }
@@ -152,6 +197,7 @@ if (require.main === module) {
 
 module.exports = {
     CONFIG_SCHEMA,
+    LEGACY_RESULT_SCHEMA,
     REQUEST_SCHEMA,
     RESULT_SCHEMA,
     assertRegularFile,
@@ -161,5 +207,6 @@ module.exports = {
     parseArgs,
     processWakeRequest,
     readExactJson,
+    readResultStore,
     writeAtomically
 };

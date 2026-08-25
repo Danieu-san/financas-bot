@@ -1,6 +1,6 @@
 # Plano — coordenação Chat ↔ Codex
 
-Status: `ORCH-01: ciclo completo provado; candidato aguardando auditoria independente`.
+Status: `ORCH-01: recovery de idempotência; candidato aguardando reauditoria independente`.
 
 ## Objetivo
 
@@ -98,7 +98,8 @@ Estados terminais não possuem transição de saída nesta versão.
    protegidos, caixa de entrada gravável e execução `S4U/Limited`.
 15. [concluída] Provar o ciclo Chat -> GitHub -> watcher -> Codex CLI -> GitHub
    -> fila -> ponte S4U -> Codex App -> Browser -> Chat.
-16. [em andamento] Publicar candidato imutável e obter auditoria independente.
+16. [em andamento] O primeiro candidato recebeu `NO-GO` por replay `A -> B -> A`;
+    publicar e reauditar o recovery com histórico protegido por hash.
 
 ## Critérios de GO
 
@@ -124,5 +125,6 @@ Estados terminais não possuem transição de saída nesta versão.
 
 ## Próxima ação
 
-Auditar o commit final e, somente com GO independente, fechar ORCH-01. A
-automação não autoriza produto, produção, dados privados ou ação irreversível.
+Reauditar o recovery final e, somente com GO independente, instalar a cópia
+protegida atualizada e fechar ORCH-01. A automação não autoriza produto,
+produção, dados privados ou ação irreversível.
