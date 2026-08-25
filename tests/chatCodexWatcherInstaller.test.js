@@ -27,5 +27,5 @@ test('instalador recusa apagar lock sem provar PID morto', () => {
     assert.match(installer, /'--chat-url'/);
     assert.match(installer, /AppWakeRequestPath e exclusivo/);
     assert.match(installer, /'--app-wake-request'/);
-    assert.doesNotMatch(installer, /6a8ba15e|019f5b91/);
+    assert.doesNotMatch(installer, /chatgpt\.com\/c\/[0-9a-f-]{16,}/i);
 });

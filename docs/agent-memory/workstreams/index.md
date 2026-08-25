@@ -14,7 +14,7 @@ Cada conversa/worktree trabalha em um objetivo e preserva seu próprio estado.
 | `open-finance-historical-import` | Gate 41.7 GO tecnico local; RX read-only sem revisoes | `open-finance-historical-import.md` | `../../plans/workstreams/open-finance-historical-import.md` | decisoes exatas; dados privados fora do Git; writer historico desligado |
 | `open-finance-proactive-alert-recovery` | Gate 42 candidato; ciclo clonado GO | `open-finance-proactive-alert-recovery.md` | `../../plans/workstreams/open-finance-proactive-alert-recovery.md` | auditoria por hash; deploy somente apos GO |
 | `financial-conversation-architecture-review` | ARQ-01..06 GO; ARQ-06 fechado em produção controlada, canário `off` | `financial-conversation-architecture-review.md` | `../../plans/workstreams/financial-conversation-architecture-review.md` | smoke base+follow-up concluído; zero writer; evolução seguinte exige objetivo próprio |
-| `chat-codex-orchestration` | ORCH-01 em implementação isolada | `chat-codex-orchestration.md` | `../../plans/workstreams/chat-codex-orchestration.md` | estado mecânico separado do checkpoint; sem bot, produção ou dados reais |
+| `chat-codex-orchestration` | ORCH-01 ciclo completo provado; candidato aguardando auditoria | `chat-codex-orchestration.md` | `../../plans/workstreams/chat-codex-orchestration.md` | GitHub autoritativo; ponte local sem bot, produção ou dados reais |
 
 Se dois workstreams puderem escrever simultaneamente, usar branches/worktrees
 distintas. Atualizar somente a própria linha e seus arquivos.

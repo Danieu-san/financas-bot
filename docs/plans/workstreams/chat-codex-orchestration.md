@@ -1,6 +1,6 @@
 # Plano — coordenação Chat ↔ Codex
 
-Status: `ORCH-01: executor automático provado; tarefa agendada do Chat reprovada`.
+Status: `ORCH-01: ciclo completo provado; candidato aguardando auditoria independente`.
 
 ## Objetivo
 
@@ -92,8 +92,13 @@ Estados terminais não possuem transição de saída nesta versão.
    marcada como concluída, mas não publicou `CHAT_WORKING` nem `CODEX_READY` e
    não relatou a limitação prevista. O watcher permaneceu saudável e o remoto
    ficou em `7f2cee45f007d8dfc8151c3e18bf22ce66e2e6df`.
-13. [pendente] Selecionar e provar outro canal autônomo para o cérebro, mantendo
-   GitHub como memória e reutilizando o executor Codex já comprovado.
+13. [concluída] Provar que S4U sob o usuário do Codex App alcança o IPC local e
+   remover a tarefa temporária depois do resultado zero.
+14. [concluída] Instalar ponte permanente com código/configuração/estado
+   protegidos, caixa de entrada gravável e execução `S4U/Limited`.
+15. [concluída] Provar o ciclo Chat -> GitHub -> watcher -> Codex CLI -> GitHub
+   -> fila -> ponte S4U -> Codex App -> Browser -> Chat.
+16. [em andamento] Publicar candidato imutável e obter auditoria independente.
 
 ## Critérios de GO
 
@@ -119,6 +124,5 @@ Estados terminais não possuem transição de saída nesta versão.
 
 ## Próxima ação
 
-Desenhar o menor canal autônomo substituto capaz de observar `CHAT_READY`,
-executar o raciocínio do cérebro e publicar `CODEX_READY` por CAS. Não repetir a
-tarefa agendada do Chat sem nova capacidade ou permissão material da plataforma.
+Auditar o commit final e, somente com GO independente, fechar ORCH-01. A
+automação não autoriza produto, produção, dados privados ou ação irreversível.

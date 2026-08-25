@@ -11,8 +11,8 @@ const {
     parseArgs
 } = require('../scripts/agent/wakeCodexAppViaIpc');
 
-const threadId = '019f5b91-d615-7032-bc2b-3f1203becb4b';
-const chatUrl = 'https://chatgpt.com/c/6a8ba15e-21b0-83e9-add4-76799c4df087';
+const threadId = '11111111-2222-4333-8444-555555555555';
+const chatUrl = 'https://chatgpt.com/c/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
 
 test('protocolo IPC usa pipe local fixo e start-turn versão 2', () => {
     const request = buildStartTurnRequest({
@@ -60,4 +60,3 @@ test('validação rejeita destino externo e argumentos incompletos', () => {
     }), /chat-url deve apontar/);
     assert.throws(() => parseArgs(['--thread-id']), /argumento inválido/);
 });
-

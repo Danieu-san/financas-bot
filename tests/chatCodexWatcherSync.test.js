@@ -65,8 +65,8 @@ test('CHAT_READY acorda Codex App uma vez por hash', () => {
     const item = fixture('CHAT_READY');
     const calls = [];
     const options = watcherOptions(item, {
-        'app-thread-id': '019f5b91-d615-7032-bc2b-3f1203becb4b',
-        'chat-url': 'https://chatgpt.com/c/6a8ba15e-21b0-83e9-add4-76799c4df087'
+        'app-thread-id': '11111111-2222-4333-8444-555555555555',
+        'chat-url': 'https://chatgpt.com/c/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
     });
     const deps = {
         fetchRemoteState: () => item.raw,
@@ -119,16 +119,16 @@ test('fila da ponte exige caminho absoluto e recusa symlink', t => {
 test('launcher do wake chama helper Node sem shell', () => {
     let invocation;
     const result = wakeCodexApp({
-        chatUrl: 'https://chatgpt.com/c/6a8ba15e-21b0-83e9-add4-76799c4df087',
+        chatUrl: 'https://chatgpt.com/c/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
         observedHash: 'a'.repeat(64),
         taskId: 'ORCH-01',
-        threadId: '019f5b91-d615-7032-bc2b-3f1203becb4b'
+        threadId: '11111111-2222-4333-8444-555555555555'
     }, {
         spawnSync(command, args, options) {
             invocation = { command, args, options };
             return {
                 status: 0,
-                stdout: '{"status":"accepted","handledByClientId":"8aae4c18-47d2-4b50-963f-6241eb9c3074"}\n',
+                stdout: '{"status":"accepted","handledByClientId":"99999999-8888-4777-8666-555555555555"}\n',
                 stderr: ''
             };
         }
@@ -141,10 +141,10 @@ test('launcher do wake chama helper Node sem shell', () => {
 
 test('launcher recusa aceite IPC sem cliente do Codex App confirmado', () => {
     assert.throws(() => wakeCodexApp({
-        chatUrl: 'https://chatgpt.com/c/6a8ba15e-21b0-83e9-add4-76799c4df087',
+        chatUrl: 'https://chatgpt.com/c/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
         observedHash: 'a'.repeat(64),
         taskId: 'ORCH-01',
-        threadId: '019f5b91-d615-7032-bc2b-3f1203becb4b'
+        threadId: '11111111-2222-4333-8444-555555555555'
     }, {
         spawnSync: () => ({ status: 0, stdout: '{"status":"accepted"}\n', stderr: '' })
     }), /não confirmou o cliente/);
@@ -154,8 +154,8 @@ test('wake falho fica terminal para o mesmo hash', () => {
     const item = fixture('CHAT_READY');
     let calls = 0;
     const options = watcherOptions(item, {
-        'app-thread-id': '019f5b91-d615-7032-bc2b-3f1203becb4b',
-        'chat-url': 'https://chatgpt.com/c/6a8ba15e-21b0-83e9-add4-76799c4df087'
+        'app-thread-id': '11111111-2222-4333-8444-555555555555',
+        'chat-url': 'https://chatgpt.com/c/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
     });
     assert.throws(() => pollOnce(options, {
         fetchRemoteState: () => item.raw,

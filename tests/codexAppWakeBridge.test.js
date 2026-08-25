@@ -25,8 +25,8 @@ function fixture(t) {
     fs.writeFileSync(paths.helper, '// fixture\n');
     fs.writeFileSync(paths.config, JSON.stringify({
         schema: CONFIG_SCHEMA,
-        thread_id: '019f5b91-d615-7032-bc2b-3f1203becb4b',
-        chat_url: 'https://chatgpt.com/c/6a8ba15e-21b0-83e9-add4-76799c4df087',
+        thread_id: '11111111-2222-4333-8444-555555555555',
+        chat_url: 'https://chatgpt.com/c/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
         task_id: 'ORCH-01'
     }));
     fs.writeFileSync(paths.request, JSON.stringify({
@@ -46,7 +46,7 @@ test('ponte usa configuração protegida e processa cada hash no máximo uma vez
             calls += 1;
             assert.equal(config.task_id, 'ORCH-01');
             assert.equal(observedHash, 'a'.repeat(64));
-            return { status: 'accepted', handledByClientId: '8aae4c18-47d2-4b50-963f-6241eb9c3074' };
+            return { status: 'accepted', handledByClientId: '99999999-8888-4777-8666-555555555555' };
         }
     };
     assert.equal(processWakeRequest(paths, deps).action, 'accepted');
@@ -55,7 +55,7 @@ test('ponte usa configuração protegida e processa cada hash no máximo uma vez
         observed_hash: 'a'.repeat(64),
         status: 'accepted',
         updated_at: '2026-08-25T00:01:00.000Z',
-        handled_by_client_id: '8aae4c18-47d2-4b50-963f-6241eb9c3074',
+        handled_by_client_id: '99999999-8888-4777-8666-555555555555',
         error_code: null
     });
     assert.equal(processWakeRequest(paths, deps).action, 'already_processed');
@@ -101,8 +101,8 @@ test('launcher da ponte chama helper protegido sem shell', () => {
     let invocation;
     const response = invokeWake({
         config: {
-            thread_id: '019f5b91-d615-7032-bc2b-3f1203becb4b',
-            chat_url: 'https://chatgpt.com/c/6a8ba15e-21b0-83e9-add4-76799c4df087',
+            thread_id: '11111111-2222-4333-8444-555555555555',
+            chat_url: 'https://chatgpt.com/c/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
             task_id: 'ORCH-01'
         },
         helperPath: 'C:\\ProgramData\\FinancasBot\\bridge\\wake.js',
@@ -112,7 +112,7 @@ test('launcher da ponte chama helper protegido sem shell', () => {
             invocation = { command, args, options };
             return {
                 status: 0,
-                stdout: '{"status":"accepted","handledByClientId":"8aae4c18-47d2-4b50-963f-6241eb9c3074"}',
+                stdout: '{"status":"accepted","handledByClientId":"99999999-8888-4777-8666-555555555555"}',
                 stderr: ''
             };
         }

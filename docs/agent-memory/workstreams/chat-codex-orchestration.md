@@ -1,6 +1,6 @@
 # Coordenação Chat ↔ Codex
 
-Atualizado em: 2026-08-24
+Atualizado em: 2026-08-25
 
 ## Objetivo
 
@@ -11,7 +11,7 @@ planilhas ou writers.
 
 ## Estado
 
-`ORCH-01 COM EXECUTOR AUTOMÁTICO PROVADO — CAMPAINHA CHAT PENDENTE`.
+`ORCH-01 CICLO COMPLETO PROVADO — CANDIDATO AGUARDANDO AUDITORIA INDEPENDENTE`.
 
 ## Base e branch
 
@@ -103,117 +103,75 @@ blob/HEAD esperado e falhar fechado se o remoto avançar de forma concorrente.
    dentro do repositório, incluindo rejeição portátil de caminhos absolutos
    Windows/UNC.
 
-## Evidência já obtida no Chat
+## Histórico relevante
 
-- workflow, ADR-010, memória, skills e scripts portáteis foram inspecionados;
-- branch isolada partiu de `11c8fe591...`; nenhum runtime ou dado real mudou;
-- transitioner e `12/12` testes focais ficaram verdes, cobrindo schema,
-  transições, CAS, hashes/caminhos, terminais, lock e escrita atômica;
-- o validator completo permanece evidência do Codex, não do Chat.
+Em 2026-08-24 foram fechados transitioner, schema, CAS, lock, escrita atômica,
+watcher econômico, perfil isolado, Git explícito e publicação JSON-only. O
+Agendador provou sem intervenção a ponta
+`GitHub/CODEX_READY -> watcher -> Codex -> GitHub/CHAT_READY`, com 13/13 testes,
+syntax e validator verdes. A tentativa de usar tarefa agendada do Chat como
+retorno foi negativa e descartada; o navegador interno passou a ser somente a
+campainha, nunca memória ou autoridade.
 
-## Ensaio real pendente
+## Recovery da campainha e prova completa em 2026-08-25
 
-A primeira troca deve ser estritamente no-op/documental:
+O Codex App e o watcher pertencem a usuários Windows diferentes. A chamada IPC
+direta do watcher falhou corretamente nessa fronteira. Um PoC isolado por S4U,
+executado como o mesmo usuário do Codex App, foi aceito pelo cliente real e
+acordou esta tarefa; a tarefa temporária terminou com código zero e foi
+removida.
 
-1. Chat publica `CODEX_READY` apontando para o candidato mecânico;
-2. timer local detecta mudança de hash sem acordar modelo em polls inalterados;
-3. Codex reivindica `CODEX_RUNNING` com hash observado;
-4. Codex executa somente `node --test tests/chatCodexOrchestration.test.js`,
-   `node --check scripts/agent/manageChatCodexOrchestration.js` e
-   `node scripts/agent/validateAgentWorkflow.js`;
-5. Codex não toca bot, OCI, WhatsApp, Pluggy, planilha, `.env` ou dados reais;
-6. Codex registra resultado no checkpoint, publica `CHAT_READY` e envia a este
-   Chat apenas a campainha curta com `task_id` e SHA;
-7. Chat confere GitHub e assume `CHAT_WORKING`.
+A solução permanente separa responsabilidades:
 
-## Resultado do Codex em 2026-08-24
+- `FinancasBot-ChatCodex-Orchestration` permanece `Interactive/Limited` sob o
+  usuário operacional, consulta GitHub e executa Codex somente em hash novo
+  `CODEX_READY`;
+- ao publicar `CHAT_READY`, o watcher grava numa caixa de entrada local somente
+  schema, SHA-256 do estado e horário;
+- `FinancasBot-CodexApp-Wake-Bridge` roda `S4U/Limited` sob o usuário do Codex
+  App, lê configuração fixa protegida e chama uma cópia protegida do helper IPC;
+- caixa de entrada permite `Modify` ao watcher; binário/configuração e marcador
+  idempotente permitem apenas leitura ao watcher, impedindo que ele substitua o
+  código ou apague a prova de envio;
+- pedido, configuração, helper e marcador por symlink são recusados;
+- o marcador `dispatching` é persistido antes do IPC, de modo que queda ou erro
+  ficam terminais para o mesmo hash e não duplicam a campainha.
 
-- `CODEX_READY` foi reivindicado por CAS e publicado como `CODEX_RUNNING` em
-  `63773ba47182a9f7c7295ba856508822addbb5c1`;
-- syntax, `12/12` testes e validator ficaram verdes após alinhar o contrato ao
-  campo estável `orchestration_state`;
-- nenhum arquivo do bot, runtime, produção ou dado real foi tocado.
+Prova final sem intervenção entre as pontas mecânicas:
 
-Limite probatório: o usuário trouxe a passagem `CODEX_READY` a esta conversa;
-portanto, esta rodada comprova reivindicação, validação e devolução mecânicas,
-mas não comprova ainda que um timer desperta o Codex sozinho. A automação deve
-continuar classificada como semiautomática até um ensaio posterior do trigger.
+1. o Chat publicou `CODEX_READY` no commit `b48e22ebe6281cfb3f6fd8f6e2bbc83153a324b8`;
+2. o Agendador detectou o hash
+   `0e93f928e1e6bfb041db63d978dbc7be0d7296b094502e56059fe40aad32a33a`;
+3. o Codex CLI executou 13/13 testes, syntax check e validator verde;
+4. o watcher publicou `CHAT_READY` em
+   `e09708e8e5810addf1ab9278a161db4ce4161c74` e marcou `launch_status: succeeded`;
+5. a caixa recebeu o hash
+   `8125c03786a7ca275e9503c6905d483cd385f0706cc582a1bc64807f8b24eed9`;
+6. a ponte S4U registrou `accepted` por um cliente real do Codex App;
+7. esta tarefa foi acordada e enviou exatamente uma mensagem `ORCH_WAKE` à
+   conversa configurada no navegador interno.
 
-## Candidato de watcher econômico
+A bateria ampla final do domínio ficou 56/56 verde. As duas tarefas instaladas
+ficaram `Ready`, resultado zero, `RunLevel Limited` e `IgnoreNew`.
 
-O segundo candidato acrescenta um poller local one-shot e um instalador para o
-Agendador de Tarefas do Windows:
+## Limites operacionais
 
-- o poller busca somente a branch do workstream e valida o JSON remoto com o
-  mesmo parser do transitioner;
-- hash e estado inalterados terminam sem chamar modelo;
-- apenas um hash novo em `CODEX_READY` pode chamar `codex exec`;
-- cache e lock ficam em `LOCALAPPDATA`, fora do Git;
-- a tarefa usa `IgnoreNew`, conta interativa atual e limite de 35 minutos;
-- o prompt é fixo e local; o estado remoto não fornece comandos;
-- oito testes focais verdes cobrem silêncio em estado inalterado, single-shot,
-  novo ciclo por hash, lock concorrente e órfão, escopo do prompt, launcher sem
-  shell e rejeição de branch semelhante a opção.
-
-No ensaio de instalação, três limites reais foram descobertos e corrigidos:
-
-- a tarefa deve usar o usuário da sessão interativa, não o usuário do processo
-  de ferramentas;
-- o poll curto deve poder iniciar e continuar em bateria;
-- lock deve registrar PID e recuperar somente processo comprovadamente morto;
-- Git recebe `safe.directory` apenas na invocação local validada, sem alterar
-  configuração global do usuário.
-
-A tarefa instalada foi verificada com usuário `Usuario`, logon interativo,
-`IgnoreNew`, repetição de um minuto e limite de 35 minutos. Um poll real em
-`CHAT_WORKING` terminou com código zero, gravou o hash observado e manteve
-`launched_hash: null`, sem chamar modelo. A rodada completa com
-`CODEX_READY` ainda depende do recovery imutável e de reauditoria.
-
-A auditoria encontrou e o recovery fechou um achado `MEDIUM`: `Install` e
-`Remove` agora recusam tarefa viva, lock malformado/PID inválido ou PID vivo;
-somente PID comprovadamente morto permite remover lock órfão. Testes reais
-confirmaram os três casos, `10/10` focais e validator verde.
-
-## Prova operacional concluída em 2026-08-24
-
-- o evento `CODEX_READY` publicado em `ea0e30b08abf2fbc9ef34e7b00c131941610f7ca`
-  foi detectado pelo Agendador sem intervenção humana;
-- o watcher iniciou o Codex com perfil isolado, `workspace-write` e esforço
-  médio, usando prompt mecânico auditado;
-- o Codex executou `13/13` testes focais, syntax check e validator verde;
-- o watcher revalidou o estado remoto, aceitou somente o JSON e publicou
-  `CHAT_READY` em `4cea9e4f7ff3d97c28d7d7937329a9ea5785ac3f`;
-- cache final: `launch_status: succeeded`, tarefa pronta para novos polls;
-- nenhuma parte do bot, produção, OCI, WhatsApp, Pluggy, planilha ou dado real
-  foi acessada.
-
-Os recoveries de newline, perfil, prompt mecânico, fronteira JSON-only e Git
-explícito receberam GO independente antes desta prova. A ponta comprovada é
-`GitHub/CODEX_READY -> watcher -> Codex -> GitHub/CHAT_READY`.
-
-## Lacuna restante
-
-O Chat comum ainda não pode ser considerado um cérebro autônomo despertado por
-`CHAT_READY`. Daniel criou manualmente a tarefa única `ORCH-01 ciclo completo`,
-agendada para 2026-08-24 20:37. A interface marcou a tarefa como `Concluído`,
-mas a branch remota permaneceu em
-`7f2cee45f007d8dfc8151c3e18bf22ce66e2e6df`: nenhum commit `CHAT_WORKING` ou
-`CODEX_READY` foi publicado e a tarefa não relatou a limitação exigida pelo
-prompt. O watcher local continuou saudável, com execuções por minuto e resultado
-zero, mas corretamente não iniciou o Codex sem `CODEX_READY`.
-
-Essa prova negativa encerra a tentativa via tarefa agendada do Chat comum nesta
-configuração. A ponta comprovada continua sendo somente
-`GitHub/CODEX_READY -> watcher -> Codex -> GitHub/CHAT_READY`.
+- polls inalterados não iniciam modelo, mas as duas tarefas Node acordam o SO a
+  cada minuto por poucos instantes;
+- o retorno exige Codex App em execução e a conversa autenticada e aberta no
+  navegador interno;
+- GitHub continua sendo a única memória/autoridade; a mensagem é só campainha;
+- falha do IPC fica terminal para o hash e exige recuperação explícita, sem
+  relançamento automático;
+- nenhum bot, OCI, WhatsApp, Pluggy, planilha, `.env`, writer ou dado financeiro
+  participa desta automação.
 
 ## Próxima ação exata
 
-Definir e provar um canal de cérebro diferente da tarefa agendada do Chat comum,
-preservando GitHub como memória oficial e o watcher/Codex já comprovado como
-executor. Não repetir a mesma tarefa agendada sem mudança material de capacidade
-ou permissão da plataforma.
+Auditar por hash imutável a ponte S4U, a separação de ACL, a idempotência e a
+prova do ciclo completo. Sem GO independente, o estado máximo permanece
+`candidato aguardando auditoria`.
 
 ## Capacidade
 
-`Codex -> Sol -> Alto -> desenhar o canal autônomo de cérebro substituto.`
+`Chat -> Sol -> Alto -> auditar o candidato imutável de ORCH-01.`
