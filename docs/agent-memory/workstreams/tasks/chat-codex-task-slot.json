@@ -1,16 +1,10 @@
 {
   "schema": "financasbot-chat-codex-task-v1",
-  "task_id": "CHANNEL-IDLE",
-  "objective": "Slot ocioso do canal permanente. Não executar enquanto o estado for CHAT_WORKING.",
-  "required_files": [],
-  "allowed_paths": [
-    "docs/agent-memory/workstreams/results/CHANNEL-IDLE.md"
-  ],
-  "result_file": "docs/agent-memory/workstreams/results/CHANNEL-IDLE.md",
-  "validation": [
-    "Nenhuma validação enquanto o canal estiver ocioso."
-  ],
-  "constraints": [
-    "Não publicar CODEX_READY para CHANNEL-IDLE."
-  ]
+  "task_id": "ORCH02-POC-1",
+  "objective": "Crie o relatório obrigatório com o título ORCH02-POC-1, registre que o canal reutilizável executou a primeira tarefa e cite o nome do required_file lido. Não altere produto.",
+  "required_files": ["docs/agent-memory/README.md"],
+  "allowed_paths": ["docs/agent-memory/workstreams/results/ORCH02-POC-1.md"],
+  "result_file": "docs/agent-memory/workstreams/results/ORCH02-POC-1.md",
+  "validation": ["Confirmar que o relatório contém ORCH02-POC-1 e docs/agent-memory/README.md."],
+  "constraints": ["Não alterar produto, scripts, testes, produção ou dados privados."]
 }
