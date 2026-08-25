@@ -56,6 +56,28 @@ function fetchRemoteState(repoPath, branch, statePath, deps = {}) {
     return runGit(repoPath, ['show', `FETCH_HEAD:${statePath}`], deps);
 }
 
+function syncLocalBranch({ repoPath, branch, statePath, observedHash }, deps = {}) {
+    const git = deps.runGit || runGit;
+    const before = git(repoPath, [
+        'status', '--porcelain=v1', '--untracked-files=all'
+    ], deps).trim();
+    if (before) throw new Error('worktree do watcher deve estar limpa antes da sincronização');
+
+    const currentBranch = git(repoPath, ['branch', '--show-current'], deps).trim();
+    if (currentBranch !== branch) {
+        throw new Error(`branch local divergente: esperado ${branch}, atual ${currentBranch || '<detached>'}`);
+    }
+
+    git(repoPath, ['merge', '--ff-only', 'FETCH_HEAD'], deps);
+    const localPath = path.join(repoPath, ...statePath.split('/'));
+    const localRaw = fs.readFileSync(localPath, 'utf8');
+    parseState(localRaw);
+    if (stateHash(localRaw) !== observedHash) {
+        throw new Error('estado local não corresponde ao estado remoto observado após fast-forward');
+    }
+    return localRaw;
+}
+
 function defaultCache() {
     return {
         schema: CACHE_SCHEMA,
@@ -63,6 +85,8 @@ function defaultCache() {
         observed_state: null,
         launched_hash: null,
         launch_status: null,
+        app_wake_hash: null,
+        app_wake_status: null,
         updated_at: null
     };
 }
@@ -134,6 +158,69 @@ function withWatcherLock(cachePath, callback, deps = {}) {
 
 function quotePowerShellLiteral(value) {
     return `'${value.replaceAll("'", "''")}'`;
+}
+
+function wakeCodexApp({ chatUrl, observedHash, taskId, threadId }, deps = {}) {
+    const spawn = deps.spawnSync || spawnSync;
+    const helper = path.join(__dirname, 'wakeCodexAppViaIpc.js');
+    const result = spawn(process.execPath, [
+        helper,
+        '--thread-id', threadId,
+        '--chat-url', chatUrl,
+        '--hash', observedHash,
+        '--task-id', taskId
+    ], {
+        encoding: 'utf8',
+        windowsHide: true,
+        timeout: 15_000
+    });
+    if (result.error) throw result.error;
+    if (result.status !== 0) {
+        throw new Error(`Codex App wake falhou: ${(result.stderr || '').trim() || result.status}`);
+    }
+    const response = JSON.parse(result.stdout);
+    if (response.status !== 'accepted') throw new Error('Codex App não aceitou o wake');
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+        .test(response.handledByClientId || '')) {
+        throw new Error('wake IPC não confirmou o cliente do Codex App');
+    }
+    return response;
+}
+
+function maybeWakeCodexApp({ cache, cachePath, options, observedHash, state }, deps = {}) {
+    if (state.orchestration_state !== 'CHAT_READY') return { cache, action: null };
+    const threadId = options['app-thread-id'];
+    const chatUrl = options['chat-url'];
+    if (!threadId && !chatUrl) return { cache, action: null };
+    if (!threadId || !chatUrl) throw new Error('app-thread-id e chat-url devem ser informados juntos');
+    if (cache.app_wake_hash === observedHash) return { cache, action: 'already_dispatched' };
+
+    let nextCache = saveCache(cachePath, {
+        ...cache,
+        observed_hash: observedHash,
+        observed_state: state.orchestration_state,
+        app_wake_hash: observedHash,
+        app_wake_status: 'dispatching'
+    }, deps.now?.() || new Date());
+    try {
+        (deps.wakeCodexApp || wakeCodexApp)({
+            chatUrl,
+            observedHash,
+            taskId: state.task_id,
+            threadId
+        }, deps);
+    } catch (error) {
+        nextCache = saveCache(cachePath, {
+            ...nextCache,
+            app_wake_status: 'failed'
+        }, deps.now?.() || new Date());
+        throw error;
+    }
+    nextCache = saveCache(cachePath, {
+        ...nextCache,
+        app_wake_status: 'accepted'
+    }, deps.now?.() || new Date());
+    return { cache: nextCache, action: 'accepted' };
 }
 
 function buildExecutorPrompt({ branch, gitPath, observedHash, repoPath, taskId }) {
@@ -289,8 +376,17 @@ function pollOnce(options, deps = {}) {
         const observedHash = stateHash(raw);
         let cache = readCache(cachePath);
 
+        const appWake = maybeWakeCodexApp({
+            cache, cachePath, options, observedHash, state
+        }, deps);
+        cache = appWake.cache;
+
         if (cache.observed_hash === observedHash && cache.observed_state === state.orchestration_state) {
-            return { action: 'unchanged', hash: observedHash, state: state.orchestration_state };
+            return {
+                action: appWake.action === 'accepted' ? 'app_wake_accepted' : 'unchanged',
+                hash: observedHash,
+                state: state.orchestration_state
+            };
         }
 
         cache = saveCache(cachePath, {
@@ -311,6 +407,17 @@ function pollOnce(options, deps = {}) {
             launched_hash: observedHash,
             launch_status: 'running'
         }, deps.now?.() || new Date());
+        try {
+            (deps.syncLocalBranch || syncLocalBranch)({
+                repoPath, branch, statePath, observedHash
+            }, deps);
+        } catch (error) {
+            saveCache(cachePath, {
+                ...cache,
+                launch_status: 'failed:sync_error'
+            }, deps.now?.() || new Date());
+            throw error;
+        }
         const logPath = path.join(runtimePath, 'runs', `${observedHash}.log`);
         const prompt = buildExecutorPrompt({
             branch, gitPath, observedHash, repoPath, taskId: state.task_id
@@ -377,12 +484,20 @@ function pollOnce(options, deps = {}) {
             observed_state: finalState.orchestration_state,
             launch_status: launchStatus
         }, deps.now?.() || new Date());
+        const finalWake = maybeWakeCodexApp({
+            cache: readCache(cachePath),
+            cachePath,
+            options,
+            observedHash: finalHash,
+            state: finalState
+        }, deps);
         return {
             action: 'launched',
             exitCode,
             hash: observedHash,
             state: state.orchestration_state,
-            finalState: finalState.orchestration_state
+            finalState: finalState.orchestration_state,
+            appWake: finalWake.action
         };
     }, deps);
 }
@@ -415,6 +530,7 @@ module.exports = {
     DEFAULT_PLAN_PATH,
     DEFAULT_STATE_PATH,
     buildExecutorPrompt,
+    maybeWakeCodexApp,
     assertNoIgnoredPaths,
     listIgnoredPaths,
     defaultCache,
@@ -426,5 +542,7 @@ module.exports = {
     runCodex,
     saveCache,
     processIsAlive,
+    syncLocalBranch,
+    wakeCodexApp,
     withWatcherLock
 };

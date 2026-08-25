@@ -4,7 +4,9 @@ param(
     [string]$RepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
     [string]$Branch = 'chat/chat-codex-orchestration-20260824',
     [string]$TaskName = 'FinancasBot-ChatCodex-Orchestration',
-    [string]$RunAsUser
+    [string]$RunAsUser,
+    [string]$AppThreadId,
+    [string]$ChatUrl
 )
 
 $ErrorActionPreference = 'Stop'
@@ -77,7 +79,29 @@ $arguments = @(
     '--git', (Quote-Argument $git),
     '--powershell', (Quote-Argument $powershell),
     '--runtime', (Quote-Argument $runtime)
-) -join ' '
+)
+if ([bool]$AppThreadId -xor [bool]$ChatUrl) {
+    throw 'AppThreadId e ChatUrl devem ser informados juntos.'
+}
+if ($AppThreadId -and $ChatUrl) {
+    if ($AppThreadId -notmatch '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$') {
+        throw 'AppThreadId invalido.'
+    }
+    $parsedChatUrl = $null
+    if (-not [Uri]::TryCreate($ChatUrl, [UriKind]::Absolute, [ref]$parsedChatUrl) -or
+        $parsedChatUrl.Scheme -ne 'https' -or
+        $parsedChatUrl.Host -ne 'chatgpt.com' -or
+        $parsedChatUrl.Query -or
+        $parsedChatUrl.Fragment -or
+        $parsedChatUrl.AbsolutePath -notmatch '^/(?:g/[^/]+/)?c/[0-9a-fA-F-]+/?$') {
+        throw 'ChatUrl deve apontar para uma conversa HTTPS do chatgpt.com.'
+    }
+    $arguments += @(
+        '--app-thread-id', (Quote-Argument $AppThreadId),
+        '--chat-url', (Quote-Argument $ChatUrl)
+    )
+}
+$arguments = $arguments -join ' '
 
 switch ($Action) {
     'Install' {

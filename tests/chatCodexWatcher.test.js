@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
-const { serializeState } = require('../scripts/agent/manageChatCodexOrchestration');
+const { serializeState, stateHash } = require('../scripts/agent/manageChatCodexOrchestration');
 const {
     buildExecutorPrompt,
     parsePorcelainPaths,
@@ -13,6 +13,8 @@ const {
     publishLocalResult,
     readCache,
     runCodex,
+    syncLocalBranch,
+    wakeCodexApp,
     withWatcherLock
 } = require('../scripts/agent/watchChatCodexOrchestration');
 
@@ -30,7 +32,7 @@ function fixture(state = 'CHAT_WORKING') {
         expected_base_sha: 'a'.repeat(40),
         task_file: 'docs/task.md',
         candidate_sha: null,
-        result_file: null,
+        result_file: state === 'CHAT_READY' ? 'docs/result.md' : null,
         updated_at: '2026-08-24T00:00:00.000Z'
     };
     return {codex,git,powershell,repo,root,runtime,raw:serializeState(value)};
@@ -53,6 +55,10 @@ function watcherOptions(item, extra = {}) {
         powershell: item.powershell,
         ...extra
     };
+}
+
+function executorDeps(deps = {}) {
+    return { syncLocalBranch: () => {}, ...deps };
 }
 
 test('poll inalterado não desperta executor', () => {
@@ -85,12 +91,85 @@ test('CODEX_READY novo dispara exatamente uma vez', () => {
         publishLocalResult: () => {}
     };
     const options = watcherOptions(item);
-    assert.equal(pollOnce(options, deps).action, 'launched');
-    assert.equal(pollOnce(options, deps).action, 'unchanged');
+    assert.equal(pollOnce(options, executorDeps(deps)).action, 'launched');
+    assert.equal(pollOnce(options, executorDeps(deps)).action, 'unchanged');
     assert.equal(launches, 1);
     const cache = readCache(path.join(item.runtime, 'watcher-state.json'));
     assert.equal(cache.launch_status, 'succeeded');
     assert.equal(cache.observed_state, 'CHAT_READY');
+});
+
+test('CHAT_READY acorda Codex App uma vez por hash', () => {
+    const item = fixture('CHAT_READY');
+    const calls = [];
+    const options = watcherOptions(item, {
+        'app-thread-id': '019f5b91-d615-7032-bc2b-3f1203becb4b',
+        'chat-url': 'https://chatgpt.com/c/6a8ba15e-21b0-83e9-add4-76799c4df087'
+    });
+    const deps = {
+        fetchRemoteState: () => item.raw,
+        wakeCodexApp: value => calls.push(value)
+    };
+    assert.equal(pollOnce(options, deps).action, 'app_wake_accepted');
+    assert.equal(pollOnce(options, deps).action, 'unchanged');
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].taskId, 'ORCH-01');
+    const cache = readCache(path.join(item.runtime, 'watcher-state.json'));
+    assert.equal(cache.app_wake_status, 'accepted');
+    assert.equal(cache.app_wake_hash.length, 64);
+});
+
+test('launcher do wake chama helper Node sem shell', () => {
+    let invocation;
+    const result = wakeCodexApp({
+        chatUrl: 'https://chatgpt.com/c/6a8ba15e-21b0-83e9-add4-76799c4df087',
+        observedHash: 'a'.repeat(64),
+        taskId: 'ORCH-01',
+        threadId: '019f5b91-d615-7032-bc2b-3f1203becb4b'
+    }, {
+        spawnSync(command, args, options) {
+            invocation = { command, args, options };
+            return {
+                status: 0,
+                stdout: '{"status":"accepted","handledByClientId":"8aae4c18-47d2-4b50-963f-6241eb9c3074"}\n',
+                stderr: ''
+            };
+        }
+    });
+    assert.equal(invocation.command, process.execPath);
+    assert.match(invocation.args[0], /wakeCodexAppViaIpc\.js$/);
+    assert.equal(invocation.options.windowsHide, true);
+    assert.equal(result.status, 'accepted');
+});
+
+test('launcher recusa aceite IPC sem cliente do Codex App confirmado', () => {
+    assert.throws(() => wakeCodexApp({
+        chatUrl: 'https://chatgpt.com/c/6a8ba15e-21b0-83e9-add4-76799c4df087',
+        observedHash: 'a'.repeat(64),
+        taskId: 'ORCH-01',
+        threadId: '019f5b91-d615-7032-bc2b-3f1203becb4b'
+    }, {
+        spawnSync: () => ({ status: 0, stdout: '{"status":"accepted"}\n', stderr: '' })
+    }), /não confirmou o cliente/);
+});
+
+test('wake falho fica terminal para o mesmo hash', () => {
+    const item = fixture('CHAT_READY');
+    let calls = 0;
+    const options = watcherOptions(item, {
+        'app-thread-id': '019f5b91-d615-7032-bc2b-3f1203becb4b',
+        'chat-url': 'https://chatgpt.com/c/6a8ba15e-21b0-83e9-add4-76799c4df087'
+    });
+    assert.throws(() => pollOnce(options, {
+        fetchRemoteState: () => item.raw,
+        wakeCodexApp() { calls += 1; throw new Error('IPC indisponível'); }
+    }), /IPC indisponível/);
+    assert.equal(pollOnce(options, {
+        fetchRemoteState: () => item.raw,
+        wakeCodexApp() { calls += 1; }
+    }).action, 'unchanged');
+    assert.equal(calls, 1);
+    assert.equal(readCache(path.join(item.runtime, 'watcher-state.json')).app_wake_status, 'failed');
 });
 
 test('hash novo de CODEX_READY permite novo disparo', () => {
@@ -107,10 +186,52 @@ test('hash novo de CODEX_READY permite novo disparo', () => {
         publishLocalResult: () => {}
     };
     const options = watcherOptions(item);
-    pollOnce(options, deps);
+    pollOnce(options, executorDeps(deps));
     raw = withState(raw, 'CODEX_READY', '2026-08-24T00:03:00.000Z');
-    assert.equal(pollOnce(options, deps).action, 'launched');
+    assert.equal(pollOnce(options, executorDeps(deps)).action, 'launched');
     assert.equal(launches, 2);
+});
+
+test('sincronização exige worktree limpa, branch exata e fast-forward do FETCH_HEAD', () => {
+    const item = fixture('CODEX_READY');
+    const statePath = 'docs/agent-memory/workstreams/chat-codex-orchestration.state.json';
+    fs.mkdirSync(path.join(item.repo, 'docs', 'agent-memory', 'workstreams'), { recursive: true });
+    fs.writeFileSync(path.join(item.repo, ...statePath.split('/')), item.raw);
+    const commands = [];
+    const result = syncLocalBranch({
+        repoPath: item.repo,
+        branch: 'chat/test',
+        statePath,
+        observedHash: stateHash(item.raw)
+    }, {
+        runGit(repoPath, args) {
+            commands.push(args);
+            if (args[0] === 'status') return '';
+            if (args[0] === 'branch') return 'chat/test\n';
+            return '';
+        }
+    });
+    assert.equal(result, item.raw);
+    assert.deepEqual(commands, [
+        ['status', '--porcelain=v1', '--untracked-files=all'],
+        ['branch', '--show-current'],
+        ['merge', '--ff-only', 'FETCH_HEAD']
+    ]);
+});
+
+test('falha de sincronização é terminal para o hash e não chama Codex', () => {
+    const item = fixture('CODEX_READY');
+    let launches = 0;
+    const deps = {
+        fetchRemoteState: () => item.raw,
+        syncLocalBranch: () => { throw new Error('worktree do watcher deve estar limpa'); },
+        runCodex: () => { launches += 1; return 0; }
+    };
+    assert.throws(() => pollOnce(watcherOptions(item), deps), /worktree do watcher deve estar limpa/);
+    assert.equal(launches, 0);
+    assert.equal(readCache(path.join(item.runtime, 'watcher-state.json')).launch_status,
+        'failed:sync_error');
+    assert.equal(pollOnce(watcherOptions(item), deps).action, 'unchanged');
 });
 
 test('lock existente impede execução concorrente', () => {
@@ -165,12 +286,12 @@ test('exit zero sem avanço falha fechado', () => {
         publishLocalResult: () => {}
     };
     const options = watcherOptions(item);
-    const result = pollOnce(options, deps);
+    const result = pollOnce(options, executorDeps(deps));
     assert.equal(result.action, 'launched');
     assert.equal(result.finalState, 'CODEX_READY');
     assert.equal(readCache(path.join(item.runtime, 'watcher-state.json')).launch_status,
         'failed:state_not_advanced');
-    assert.equal(pollOnce(options, deps).action, 'unchanged');
+    assert.equal(pollOnce(options, executorDeps(deps)).action, 'unchanged');
     assert.equal(launches, 1);
 });
 
@@ -250,7 +371,7 @@ test('falha do publicador é persistida sem falso sucesso', () => {
         runCodex: () => 0,
         publishLocalResult: () => { throw new Error('push recusado'); }
     };
-    assert.throws(() => pollOnce(watcherOptions(item), deps), /push recusado/);
+    assert.throws(() => pollOnce(watcherOptions(item), executorDeps(deps)), /push recusado/);
     assert.equal(readCache(path.join(item.runtime, 'watcher-state.json')).launch_status,
         'failed:publish_error');
 });
@@ -329,10 +450,10 @@ test('falha de spawn é persistida e o mesmo hash não relança', () => {
         fetchRemoteState: () => item.raw,
         runCodex: () => { launches += 1; throw new Error('spawn falhou'); }
     };
-    assert.throws(() => pollOnce(watcherOptions(item), deps), /spawn falhou/);
+    assert.throws(() => pollOnce(watcherOptions(item), executorDeps(deps)), /spawn falhou/);
     const cachePath = path.join(item.runtime, 'watcher-state.json');
     assert.equal(readCache(cachePath).launch_status, 'failed:error');
-    assert.equal(pollOnce(watcherOptions(item), deps).action, 'unchanged');
+    assert.equal(pollOnce(watcherOptions(item), executorDeps(deps)).action, 'unchanged');
     assert.equal(launches, 1);
 });
 
@@ -355,4 +476,10 @@ test('instalador recusa apagar lock sem provar PID morto', () => {
     assert.equal((installer.match(/Remove-Item -LiteralPath \$lockPath -Force/g) || []).length, 1);
     assert.match(installer, /Assert-WatcherLifecycleSafe[\s\S]*?'Install' \{\s*Assert-WatcherLifecycleSafe/);
     assert.match(installer, /'Remove' \{\s*Assert-WatcherLifecycleSafe/);
+    assert.match(installer, /AppThreadId e ChatUrl devem ser informados juntos/);
+    assert.match(installer, /AppThreadId invalido/);
+    assert.match(installer, /ChatUrl deve apontar para uma conversa HTTPS do chatgpt\.com/);
+    assert.match(installer, /'--app-thread-id'/);
+    assert.match(installer, /'--chat-url'/);
+    assert.doesNotMatch(installer, /6a8ba15e|019f5b91/);
 });
