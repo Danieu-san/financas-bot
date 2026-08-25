@@ -99,13 +99,17 @@ test('CHAT_READY enfileira hash, tarefa e estado exatos para a ponte S4U', () =>
     assert.equal(pollOnce(options, { fetchRemoteState: () => item.raw }).action, 'unchanged');
     const request = JSON.parse(fs.readFileSync(queue, 'utf8'));
     assert.deepEqual(Object.keys(request), [
-        'schema', 'observed_hash', 'task_id', 'state_path', 'created_at'
+        'schema', 'observed_hash', 'task_id', 'state_path', 'mode', 'branch', 'repo_path',
+        'created_at'
     ]);
-    assert.equal(request.schema, 'financasbot-codex-app-wake-request-v2');
+    assert.equal(request.schema, 'financasbot-codex-app-wake-request-v3');
     assert.equal(request.observed_hash, stateHash(item.raw));
     assert.equal(request.task_id, 'ORCH-01');
     assert.equal(request.state_path,
         'docs/agent-memory/workstreams/chat-codex-channel.state.json');
+    assert.equal(request.mode, 'return');
+    assert.equal(request.branch, 'chat/chat-codex-orchestration-20260824');
+    assert.equal(request.repo_path, item.repo);
     assert.equal(readCache(path.join(item.runtime, 'watcher-state.json')).app_wake_status, 'queued');
 });
 
@@ -198,6 +202,23 @@ test('hash novo de CODEX_READY permite novo disparo', () => {
     raw = withState(raw, 'CODEX_READY', '2026-08-24T00:03:00.000Z');
     assert.equal(pollOnce(watcherOptions(item), deps).action, 'launched');
     assert.equal(launches, 2);
+});
+
+test('CODEX_READY validado acorda App e não chama CLI', () => {
+    const item = fixture('CODEX_READY');
+    const queue = path.join(item.runtime, 'bridge', 'request.json');
+    fs.mkdirSync(path.dirname(queue), { recursive: true });
+    let cliCalls = 0;
+    const result = pollOnce(watcherOptions(item, { 'app-wake-request': queue }), executorDeps({
+        fetchRemoteState: () => item.raw,
+        runCodex: () => { cliCalls += 1; return 0; }
+    }));
+    assert.equal(result.action, 'app_task_queued');
+    assert.equal(cliCalls, 0);
+    const request = JSON.parse(fs.readFileSync(queue, 'utf8'));
+    assert.equal(request.mode, 'execute');
+    assert.equal(request.observed_hash, stateHash(item.raw));
+    assert.equal(request.repo_path, item.repo);
 });
 
 test('canal reutiliza CHAT_WORKING entre duas tarefas distintas', () => {

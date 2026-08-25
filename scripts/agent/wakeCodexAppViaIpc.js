@@ -49,11 +49,39 @@ function assertStatePath(value) {
     return value;
 }
 
-function buildWakePrompt({ chatUrl, observedHash, statePath, taskId }) {
+function assertBranch(value) {
+    if (!/^[A-Za-z0-9._/-]+$/.test(value || '') || value.startsWith('-') || value.includes('..')) {
+        throw new Error('branch de wake inválida');
+    }
+    return value;
+}
+
+function assertRepoPath(value) {
+    if (!value || !require('node:path').isAbsolute(value)) throw new Error('repo-path de wake inválido');
+    return value;
+}
+
+function buildWakePrompt({ branch, chatUrl, mode, observedHash, repoPath, statePath, taskId }) {
     if (!/^[0-9a-f]{64}$/i.test(observedHash || '')) throw new Error('hash de wake inválido');
     if (!/^[A-Za-z0-9._-]{1,80}$/.test(taskId || '')) throw new Error('task-id de wake inválido');
     const safeChatUrl = assertChatUrl(chatUrl);
     const safeStatePath = assertStatePath(statePath);
+    if (!['execute', 'return'].includes(mode)) throw new Error('mode de wake inválido');
+    const safeBranch = assertBranch(branch);
+    const safeRepoPath = assertRepoPath(repoPath);
+    if (mode === 'execute') {
+        return [
+            `Execução mecânica ${taskId}.`,
+            `O watcher confirmou GitHub/CODEX_READY em ${safeStatePath} no hash de estado ${observedHash}.`,
+            `Use a worktree ${safeRepoPath} na branch ${safeBranch}.`,
+            `Confirme o hash remoto, leia AGENTS.md, ${safeStatePath} e o task_file indicado pelo estado.`,
+            'Execute somente o manifesto, respeite allowed_paths e falhe fechado diante de qualquer divergência.',
+            'Transicione para CODEX_RUNNING, produza e valide o result_file, depois transicione para CHAT_READY.',
+            'Publique somente o estado, o resultado e os caminhos explicitamente autorizados no manifesto.',
+            'Não acesse produção, WhatsApp, Pluggy, planilhas, segredos ou dados privados.',
+            'Não use Browser nesta etapa; depois de publicar CHAT_READY, termine sem outra ação.'
+        ].join(' ');
+    }
     return [
         `Retorno mecânico ${taskId}.`,
         `O watcher confirmou GitHub/CHAT_READY em ${safeStatePath} no hash de estado ${observedHash}.`,
@@ -92,9 +120,9 @@ class FrameDecoder {
     }
 }
 
-function buildStartTurnRequest({ chatUrl, observedHash, requestId, statePath, taskId, threadId }) {
+function buildStartTurnRequest({ branch, chatUrl, mode, observedHash, repoPath, requestId, statePath, taskId, threadId }) {
     const conversationId = assertThreadId(threadId);
-    const prompt = buildWakePrompt({ chatUrl, observedHash, statePath, taskId });
+    const prompt = buildWakePrompt({ branch, chatUrl, mode, observedHash, repoPath, statePath, taskId });
     return {
         type: 'request',
         requestId,
@@ -136,6 +164,9 @@ function runClient(options, deps = {}) {
         requestId: startId,
         statePath: options['state-path'],
         taskId: options['task-id'],
+        mode: options.mode,
+        branch: options.branch,
+        repoPath: options['repo-path'],
         threadId: options['thread-id']
     });
 
@@ -216,6 +247,8 @@ module.exports = {
     IPC_PATH,
     buildStartTurnRequest,
     buildWakePrompt,
+    assertBranch,
+    assertRepoPath,
     assertStatePath,
     frameMessage,
     parseArgs,

@@ -10,7 +10,7 @@ const CACHE_SCHEMA = 'financasbot-chat-codex-watcher-v1';
 const DEFAULT_BRANCH = 'chat/chat-codex-orchestration-20260824';
 const DEFAULT_STATE_PATH = 'docs/agent-memory/workstreams/chat-codex-channel.state.json';
 const DEFAULT_PLAN_PATH = 'docs/plans/workstreams/chat-codex-orchestration.md';
-const WAKE_REQUEST_SCHEMA = 'financasbot-codex-app-wake-request-v2';
+const WAKE_REQUEST_SCHEMA = 'financasbot-codex-app-wake-request-v3';
 
 function parseArgs(argv) {
     const options = {};
@@ -163,7 +163,7 @@ function quotePowerShellLiteral(value) {
     return `'${value.replaceAll("'", "''")}'`;
 }
 
-function wakeCodexApp({ chatUrl, observedHash, statePath, taskId, threadId }, deps = {}) {
+function wakeCodexApp({ branch, chatUrl, mode, observedHash, repoPath, statePath, taskId, threadId }, deps = {}) {
     const spawn = deps.spawnSync || spawnSync;
     const helper = path.join(__dirname, 'wakeCodexAppViaIpc.js');
     const result = spawn(process.execPath, [
@@ -172,7 +172,10 @@ function wakeCodexApp({ chatUrl, observedHash, statePath, taskId, threadId }, de
         '--chat-url', chatUrl,
         '--hash', observedHash,
         '--task-id', taskId,
-        '--state-path', statePath
+        '--state-path', statePath,
+        '--mode', mode,
+        '--branch', branch,
+        '--repo-path', repoPath
     ], {
         encoding: 'utf8',
         windowsHide: true,
@@ -191,7 +194,7 @@ function wakeCodexApp({ chatUrl, observedHash, statePath, taskId, threadId }, de
     return response;
 }
 
-function queueCodexAppWakeRequest({ observedHash, requestPath, statePath, taskId }, deps = {}) {
+function queueCodexAppWakeRequest({ branch, mode, observedHash, repoPath, requestPath, statePath, taskId }, deps = {}) {
     if (!path.isAbsolute(requestPath)) throw new Error('app-wake-request deve ser absoluto');
     const parent = fs.realpathSync(path.dirname(requestPath));
     if (!fs.statSync(parent).isDirectory()) {
@@ -207,13 +210,19 @@ function queueCodexAppWakeRequest({ observedHash, requestPath, statePath, taskId
         observed_hash: observedHash,
         task_id: taskId,
         state_path: statePath,
+        mode,
+        branch,
+        repo_path: repoPath,
         created_at: now.toISOString()
     }, null, 2)}\n`);
     return { status: 'queued', requestPath: target };
 }
 
 function maybeWakeCodexApp({ cache, cachePath, options, observedHash, state }, deps = {}) {
-    if (state.orchestration_state !== 'CHAT_READY') return { cache, action: null };
+    if (!['CODEX_READY', 'CHAT_READY'].includes(state.orchestration_state)) {
+        return { cache, action: null };
+    }
+    const mode = state.orchestration_state === 'CODEX_READY' ? 'execute' : 'return';
     const threadId = options['app-thread-id'];
     const chatUrl = options['chat-url'];
     const requestPath = options['app-wake-request'];
@@ -238,6 +247,9 @@ function maybeWakeCodexApp({ cache, cachePath, options, observedHash, state }, d
         if (requestPath) {
             (deps.queueCodexAppWakeRequest || queueCodexAppWakeRequest)({
                 observedHash,
+                branch: options.branch || DEFAULT_BRANCH,
+                mode,
+                repoPath: options.repo,
                 requestPath,
                 statePath: options['state-path'] || DEFAULT_STATE_PATH,
                 taskId: state.task_id
@@ -246,7 +258,10 @@ function maybeWakeCodexApp({ cache, cachePath, options, observedHash, state }, d
         } else {
             (deps.wakeCodexApp || wakeCodexApp)({
                 chatUrl,
+                branch: options.branch || DEFAULT_BRANCH,
+                mode,
                 observedHash,
+                repoPath: options.repo,
                 statePath: options['state-path'] || DEFAULT_STATE_PATH,
                 taskId: state.task_id,
                 threadId
@@ -444,15 +459,19 @@ function pollOnce(options, deps = {}) {
         const observedHash = stateHash(raw);
         let cache = readCache(cachePath);
 
-        const appWake = maybeWakeCodexApp({
-            cache, cachePath, options, observedHash, state
-        }, deps);
+        const usesAppExecutor = state.orchestration_state === 'CODEX_READY'
+            && Boolean(options['app-wake-request']
+                || (options['app-thread-id'] && options['chat-url']));
+        const appWake = state.orchestration_state === 'CHAT_READY'
+            ? maybeWakeCodexApp({ cache, cachePath, options, observedHash, state }, deps)
+            : { cache, action: null };
         cache = appWake.cache;
 
         const observationUnchanged = cache.observed_hash === observedHash
             && cache.observed_state === state.orchestration_state;
         const codeReadyAwaitingManualRetry = state.orchestration_state === 'CODEX_READY'
-            && cache.launched_hash !== observedHash;
+            && cache.launched_hash !== observedHash
+            && !usesAppExecutor;
         if (observationUnchanged && !codeReadyAwaitingManualRetry) {
             return {
                 action: appWake.action === 'accepted'
@@ -507,6 +526,17 @@ function pollOnce(options, deps = {}) {
                 launch_status: 'failed:task_invalid'
             }, deps.now?.() || new Date());
             throw error;
+        }
+        if (usesAppExecutor) {
+            const executionWake = maybeWakeCodexApp({
+                cache: readCache(cachePath), cachePath, options, observedHash, state
+            }, deps);
+            return {
+                action: executionWake.action === 'accepted'
+                    ? 'app_task_accepted' : 'app_task_queued',
+                hash: observedHash,
+                state: state.orchestration_state
+            };
         }
         const prompt = buildExecutorPrompt({
             branch, gitPath, observedHash, repoPath, statePath,

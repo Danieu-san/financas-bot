@@ -14,6 +14,8 @@ const {
 const threadId = '11111111-2222-4333-8444-555555555555';
 const chatUrl = 'https://chatgpt.com/c/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
 const statePath = 'docs/agent-memory/workstreams/chat-codex-channel.state.json';
+const branch = 'chat/chat-codex-orchestration-20260824';
+const repoPath = 'C:\\workspace\\financas-bot';
 
 test('protocolo IPC usa pipe local fixo e start-turn versão 2', () => {
     const request = buildStartTurnRequest({
@@ -21,7 +23,7 @@ test('protocolo IPC usa pipe local fixo e start-turn versão 2', () => {
         observedHash: 'a'.repeat(64),
         requestId: 'request-1',
         statePath,
-        taskId: 'ORCH-01',
+        taskId: 'ORCH-01', mode: 'return', branch, repoPath,
         threadId
     });
     assert.equal(IPC_PATH, '\\\\.\\pipe\\codex-ipc');
@@ -48,7 +50,8 @@ test('codec IPC recompõe frames fragmentados e múltiplos', () => {
 
 test('prompt identifica tarefa e estado exatos sem dados privados', () => {
     const prompt = buildWakePrompt({
-        chatUrl, observedHash: 'b'.repeat(64), statePath, taskId: 'ORCH02-POC-1'
+        chatUrl, observedHash: 'b'.repeat(64), statePath, taskId: 'ORCH02-POC-1',
+        mode: 'return', branch, repoPath
     });
     assert.match(prompt, /GitHub\/CHAT_READY/);
     assert.match(prompt, /ORCH02-POC-1/);
@@ -58,16 +61,28 @@ test('prompt identifica tarefa e estado exatos sem dados privados', () => {
     assert.doesNotMatch(prompt, /senha|token|\.env/i);
 });
 
+test('prompt execute entrega Git e manifesto ao App sem usar Browser', () => {
+    const prompt = buildWakePrompt({
+        chatUrl, observedHash: 'c'.repeat(64), statePath, taskId: 'ORCH02-POC-2',
+        mode: 'execute', branch, repoPath
+    });
+    assert.match(prompt, /GitHub\/CODEX_READY/);
+    assert.match(prompt, /task_file indicado pelo estado/);
+    assert.match(prompt, /allowed_paths/);
+    assert.match(prompt, /Não use Browser nesta etapa/);
+    assert.doesNotMatch(prompt, /ORCH_WAKE/);
+});
+
 test('validação rejeita destino externo e argumentos incompletos', () => {
     assert.throws(() => buildWakePrompt({
         chatUrl: 'https://example.com/c/abc',
         observedHash: 'b'.repeat(64),
         statePath,
-        taskId: 'ORCH-01'
+        taskId: 'ORCH-01', mode: 'return', branch, repoPath
     }), /chat-url deve apontar/);
     assert.throws(() => buildWakePrompt({
         chatUrl, observedHash: 'b'.repeat(64), statePath: '../private.state.json',
-        taskId: 'ORCH-01'
+        taskId: 'ORCH-01', mode: 'return', branch, repoPath
     }), /state-path de wake inválido/);
     assert.throws(() => parseArgs(['--thread-id']), /argumento inválido/);
 });

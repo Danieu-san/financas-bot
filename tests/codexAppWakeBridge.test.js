@@ -34,6 +34,9 @@ function fixture(t) {
         observed_hash: 'a'.repeat(64),
         task_id: 'ORCH02-POC-1',
         state_path: 'docs/agent-memory/workstreams/chat-codex-channel.state.json',
+        mode: 'return',
+        branch: 'chat/chat-codex-orchestration-20260824',
+        repo_path: 'C:\\workspace\\financas-bot',
         created_at: '2026-08-25T00:00:00.000Z'
     }));
     return paths;
@@ -72,6 +75,8 @@ test('ponte usa configuração protegida e processa cada hash no máximo uma vez
         observed_hash: 'b'.repeat(64),
         task_id: 'ORCH02-POC-1',
         state_path: 'docs/agent-memory/workstreams/chat-codex-channel.state.json',
+        mode: 'return', branch: 'chat/chat-codex-orchestration-20260824',
+        repo_path: 'C:\\workspace\\financas-bot',
         created_at: '2026-08-25T00:02:00.000Z'
     }));
     assert.equal(processWakeRequest(paths, deps).action, 'accepted');
@@ -82,6 +87,8 @@ test('ponte usa configuração protegida e processa cada hash no máximo uma vez
         observed_hash: 'a'.repeat(64),
         task_id: 'ORCH02-POC-1',
         state_path: 'docs/agent-memory/workstreams/chat-codex-channel.state.json',
+        mode: 'return', branch: 'chat/chat-codex-orchestration-20260824',
+        repo_path: 'C:\\workspace\\financas-bot',
         created_at: '2026-08-25T00:03:00.000Z'
     }));
     assert.equal(processWakeRequest(paths, deps).action, 'already_processed');
@@ -150,7 +157,9 @@ test('launcher da ponte chama helper protegido sem shell', () => {
         helperPath: 'C:\\ProgramData\\FinancasBot\\bridge\\wake.js',
         observedHash: 'b'.repeat(64),
         statePath: 'docs/agent-memory/workstreams/chat-codex-channel.state.json',
-        taskId: 'ORCH02-POC-1'
+        taskId: 'ORCH02-POC-1', mode: 'return',
+        branch: 'chat/chat-codex-orchestration-20260824',
+        repoPath: 'C:\\workspace\\financas-bot'
     }, {
         spawnSync(command, args, options) {
             invocation = { command, args, options };
@@ -164,9 +173,11 @@ test('launcher da ponte chama helper protegido sem shell', () => {
     assert.equal(invocation.command, process.execPath);
     assert.equal(invocation.options.windowsHide, true);
     assert.equal(invocation.options.shell, undefined);
-    assert.deepEqual(invocation.args.slice(-4), [
+    assert.deepEqual(invocation.args.slice(-10), [
         '--task-id', 'ORCH02-POC-1', '--state-path',
-        'docs/agent-memory/workstreams/chat-codex-channel.state.json'
+        'docs/agent-memory/workstreams/chat-codex-channel.state.json',
+        '--mode', 'return', '--branch', 'chat/chat-codex-orchestration-20260824',
+        '--repo-path', 'C:\\workspace\\financas-bot'
     ]);
     assert.equal(response.status, 'accepted');
 });

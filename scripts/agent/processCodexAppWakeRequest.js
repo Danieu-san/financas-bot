@@ -5,7 +5,7 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 const CONFIG_SCHEMA = 'financasbot-codex-app-wake-bridge-config-v2';
-const REQUEST_SCHEMA = 'financasbot-codex-app-wake-request-v2';
+const REQUEST_SCHEMA = 'financasbot-codex-app-wake-request-v3';
 const LEGACY_RESULT_SCHEMA = 'financasbot-codex-app-wake-result-v1';
 const RESULT_SCHEMA = 'financasbot-codex-app-wake-result-v2';
 
@@ -59,6 +59,12 @@ function assertRequest(value) {
         throw new Error('state_path inválido');
     }
     if (Number.isNaN(Date.parse(value.created_at || ''))) throw new Error('created_at inválido');
+    if (!['execute', 'return'].includes(value.mode)) throw new Error('mode inválido');
+    if (!/^[A-Za-z0-9._/-]+$/.test(value.branch || '')
+        || value.branch.startsWith('-') || value.branch.includes('..')) {
+        throw new Error('branch inválida');
+    }
+    if (!path.isAbsolute(value.repo_path || '')) throw new Error('repo_path inválido');
     return value;
 }
 
@@ -121,7 +127,7 @@ function writeResultStore(filePath, records) {
     writeAtomically(filePath, { schema: RESULT_SCHEMA, records });
 }
 
-function invokeWake({ config, helperPath, observedHash, statePath, taskId }, deps = {}) {
+function invokeWake({ branch, config, helperPath, mode, observedHash, repoPath, statePath, taskId }, deps = {}) {
     const spawn = deps.spawnSync || spawnSync;
     const result = spawn(process.execPath, [
         helperPath,
@@ -129,7 +135,10 @@ function invokeWake({ config, helperPath, observedHash, statePath, taskId }, dep
         '--chat-url', config.chat_url,
         '--hash', observedHash,
         '--task-id', taskId,
-        '--state-path', statePath
+        '--state-path', statePath,
+        '--mode', mode,
+        '--branch', branch,
+        '--repo-path', repoPath
     ], { encoding: 'utf8', windowsHide: true, timeout: 15_000 });
     if (result.error) throw result.error;
     if (result.status !== 0) throw new Error('IPC_WAKE_FAILED');
@@ -154,7 +163,7 @@ function processWakeRequest(options, deps = {}) {
     const config = assertConfig(readExactJson(options.config,
         ['schema', 'thread_id', 'chat_url'], CONFIG_SCHEMA));
     const request = assertRequest(readExactJson(options.request,
-        ['schema', 'observed_hash', 'task_id', 'state_path', 'created_at'], REQUEST_SCHEMA));
+        ['schema', 'observed_hash', 'task_id', 'state_path', 'mode', 'branch', 'repo_path', 'created_at'], REQUEST_SCHEMA));
     const store = fs.existsSync(options.result)
         ? readResultStore(options.result)
         : { schema: RESULT_SCHEMA, records: [] };
@@ -177,7 +186,10 @@ function processWakeRequest(options, deps = {}) {
             helperPath: fs.realpathSync(options.helper),
             observedHash: request.observed_hash,
             statePath: request.state_path,
-            taskId: request.task_id
+            taskId: request.task_id,
+            mode: request.mode,
+            branch: request.branch,
+            repoPath: request.repo_path
         }, deps);
         Object.assign(record, {
             status: 'accepted', updated_at: now(),
