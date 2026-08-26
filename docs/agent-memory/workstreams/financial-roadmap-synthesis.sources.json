@@ -1,0 +1,157 @@
+{
+  "schema": "financasbot-financial-roadmap-synthesis-v1",
+  "status": "CONTROL_ONLY",
+  "as_of": "2026-08-26",
+  "snapshot_base_sha": "8c93e1edd5b8c9b98055cfc6ca4283c2932de96b",
+  "canonical_roadmap_allowed": false,
+  "evidence_classes": [
+    "USER_DECISION",
+    "CURRENT_CODE",
+    "PRODUCTION_EVIDENCE",
+    "QA_GATE",
+    "HISTORICAL_PLAN",
+    "PENDING_AUDIT",
+    "HYPOTHESIS"
+  ],
+  "mandatory_sources": [
+    {
+      "path": "docs/plans/family-financial-platform-evolution-roadmap.md",
+      "role": "macro historical roadmap",
+      "evidence_class": "HISTORICAL_PLAN"
+    },
+    {
+      "path": "docs/plans/family-financial-platform-step-by-step-roadmap.md",
+      "role": "operational historical roadmap and Phase 8/9 gates",
+      "evidence_class": "HISTORICAL_PLAN"
+    },
+    {
+      "path": "docs/agent-memory/workstreams/financial-conversation-architecture-review.md",
+      "role": "ARQ-01..ARQ-06 current architecture evidence as of 2026-08-24",
+      "evidence_class": "QA_GATE"
+    },
+    {
+      "path": "docs/agent-memory/workstreams/results/FIN-AUDIT-PRE-ROADMAP-20260826.md",
+      "role": "independent Codex pre-roadmap audit",
+      "evidence_class": "PENDING_AUDIT"
+    },
+    {
+      "path": "docs/qa/phase-8a-legacy-inventory-audit-2026-07-14.md",
+      "role": "legacy inventory",
+      "evidence_class": "QA_GATE"
+    },
+    {
+      "path": "docs/qa/phase-8b0-durable-legacy-telemetry-gate-2026-07-14.md",
+      "role": "durable legacy telemetry",
+      "evidence_class": "QA_GATE"
+    },
+    {
+      "path": "docs/qa/phase-8b1-bill015-analytical-gate-2026-07-14.md",
+      "role": "analytical legacy migration gap",
+      "evidence_class": "QA_GATE"
+    },
+    {
+      "path": "docs/qa/phase-8b2-dashboard-adoption-telemetry-gate-2026-07-15.md",
+      "role": "dashboard v1/v2 observation",
+      "evidence_class": "QA_GATE"
+    },
+    {
+      "path": "docs/qa/phase-8b3-financial-undo-product-decision-gate-2026-07-15.md",
+      "role": "undo product status",
+      "evidence_class": "QA_GATE"
+    },
+    {
+      "path": "docs/qa/phase-8b4-card-sheet-and-quarantine-characterization-gate-2026-07-15.md",
+      "role": "card legacy characterization",
+      "evidence_class": "QA_GATE"
+    },
+    {
+      "path": "docs/qa/phase-8b5-card-consumer-parity-and-migration-plan-gate-2026-07-15.md",
+      "role": "card consumer parity/migration plan",
+      "evidence_class": "QA_GATE"
+    },
+    {
+      "path": "docs/qa/phase-8b6-card-read-model-unified-first-gate-2026-07-15.md",
+      "role": "card read-model unified-first canary",
+      "evidence_class": "QA_GATE"
+    },
+    {
+      "path": "docs/qa/phase-8b7-card-scheduler-unified-first-gate-2026-07-15.md",
+      "role": "card scheduler unified-first canary",
+      "evidence_class": "QA_GATE"
+    },
+    {
+      "path": "docs/qa/phase-8b8-card-user-id-validation-unified-first-gate-2026-07-15.md",
+      "role": "card maintenance/user-id unified-first characterization",
+      "evidence_class": "QA_GATE"
+    },
+    {
+      "path": "docs/qa/phase-8b9-whatsapp-card-consumer-characterization-gate-2026-07-15.md",
+      "role": "WhatsApp card consumer characterization",
+      "evidence_class": "QA_GATE"
+    }
+  ],
+  "preserved_user_decisions": [
+    "All active family spreadsheet cards are intentionally shared across authorized family users; card names identify cards and are not ownership restrictions.",
+    "Uber BRL 22.91 on 2026-08-25 was correctly paid on Nubank Daniel; do not invent a digital wallet explanation.",
+    "Configured card closing day is not absolute because banks can move closing due to weekends/holidays; real statement evidence must be able to override projection.",
+    "Installment remaining balance is not necessarily available in real time; confirmed monthly charges and deterministic projections must be distinguished.",
+    "Atacadao was newly added to Daniel's Pluggy connection and dynamic discovery/mapping must be verified.",
+    "Payment method UX must be numbered 1 Credit, 2 Debit, 3 PIX, 4 Cash with text fallback.",
+    "Final roadmap must be complete/detailed, independently reviewed by Codex, then explicitly confirmed by the user.",
+    "Existing shadow/canary work for legacy retirement must be preserved and reused rather than reset or duplicated without cause."
+  ],
+  "legacy_removal_constraints": {
+    "must_preserve_existing_shadow_evidence": true,
+    "must_have_heartbeat_telemetry": true,
+    "must_have_consumer_destination": true,
+    "must_have_semantic_parity": true,
+    "must_have_rollback": true,
+    "must_check_whatsapp_dashboard_jobs_import_maintenance_as_applicable": true,
+    "physical_removal_historical_card_gate_not_before": "2026-09-12",
+    "historical_gate_can_be_overridden_only_by": "explicit superseding evidence or user-approved new gate"
+  },
+  "roadmap_entry_required_fields": [
+    "id",
+    "objective",
+    "planned_state",
+    "verified_current_state",
+    "evidence_refs",
+    "dependencies",
+    "risk",
+    "tests",
+    "shadow_or_canary",
+    "rollback",
+    "entry_gate",
+    "exit_gate",
+    "status"
+  ],
+  "allowed_status_transitions": [
+    "ADDED",
+    "MERGED",
+    "DEFERRED",
+    "SUPERSEDED",
+    "REMOVED_WITH_EVIDENCE"
+  ],
+  "anti_hallucination_rules": [
+    "Historical roadmap status never proves current runtime status by itself.",
+    "Contradictory sources must be logged and resolved by code/test/telemetry or explicit human decision, never by model guess.",
+    "No item may disappear between roadmap versions without a changelog status.",
+    "Do not collapse legado, Financial Agent v1 and novo agente/ARQ into one system label.",
+    "Do not mark a legacy component removable from static search alone; require runtime evidence and applicable observation window.",
+    "Do not call an evidence source current after its observation date without revalidation."
+  ],
+  "finalization_workflow": [
+    "Chat consolidates draft",
+    "Codex independently tries to refute each phase",
+    "Chat records and reconciles disagreements",
+    "User explicitly confirms",
+    "Only then canonical_roadmap_allowed may become true"
+  ],
+  "open_questions": [
+    "Which July Phase 8/9 statuses are still current in August runtime?",
+    "How should historical canonical installment schedules reconcile with current personal-sheet monthly entries?",
+    "What is the precedence model between configured closing day and actual statement billing evidence?",
+    "Does Pluggy discover the newly added Atacadao card dynamically or require mapping/configuration?",
+    "Which legacy consumers still have nonzero runtime usage and which observation windows are still open?"
+  ]
+}
