@@ -1,9 +1,18 @@
 {
   "schema": "financasbot-chat-codex-task-v1",
-  "task_id": "FIN-AUDIT-PRE-ROADMAP-20260826",
-  "objective": "NOME DA CONVERSA/TAREFA NO CODEX: 'FinançasBot — Auditoria independente pré-roadmap — 2026-08-26'. Faça uma auditoria defensiva, independente e somente de leitura dos achados levantados pelo Chat antes de criarmos o roadmap financeiro. NÃO presuma que os achados do Chat estão corretos: para cada item, trace o código, procure testes/documentação relevantes e classifique como CONFIRMADO, PARCIAL, REFUTADO ou NÃO PROVÁVEL SEM DADO EXTERNO, sempre com arquivo/função/causa. Evidência sanitizada observada na planilha para confrontar com o código: (1) um lançamento manual Uber R$22,91 de 25/08/2026 tem card_id nubank-daniel, mas coluna Cartão='Cartão Nubank - Daniel', enquanto lançamentos reconciliados do mesmo card_id usam 'Nubank - Daniel'; a aba Faturas separa os dois nomes; (2) cartões usam mês de cobrança e a data real de fechamento pode mudar por fim de semana/feriado, portanto audite se o código trata o dia configurado como verdade absoluta e proponha contrato robusto onde fechamento configurado seja apenas fallback/projeção quando não houver evidência real da fatura; (3) parcelamentos não têm atualização externa em tempo real do saldo restante: o comportamento desejado é que as parcelas/mês de cobrança já registradas permitam ao bot dizer o que está aberto e o que falta; audite se a aba/serviço atual consegue isso, se importações reduzem parcelas a 1/1, se futuras parcelas são materializadas e, se a estratégia atual for insuficiente, proponha outra estratégia determinística distinguindo confirmado vs projetado; (4) usuário adicionou recentemente o cartão Atacadão à conexão Pluggy de Daniel: SEM chamar Pluggy real, determine pelo código se novas contas/cartões são descobertos dinamicamente ou se existe allowlist/mapeamento/configuração/migração que precise ser alterada; (5) audite se Faturas agrupa por nome textual em vez de card_id estável e o impacto; (6) audite a regra de fronteira do fechamento, especialmente compra no próprio dia do fechamento; (7) audite a fórmula/semântica de Parcelamentos, inclusive recorrências mensais aparecendo como se fossem parcelamentos e descrições com sufixo 1/6, 2/6 fragmentando a mesma compra; (8) audite estornos/créditos: existem caminhos que preservam valores negativos e importador genérico que pode filtrar 'estorno', 'crédito', 'cashback' etc.; diferencie pagamento de fatura de estorno de compra; (9) audite drift de schema de Saídas/Entradas: código/template novo tem Conta Financeira em K/J, mas há leitores antigos A:J/A:I e planilhas antigas podem manter cabeçalhos sem a nova coluna; (10) audite recorrências com user_id ausente: não proponha abrir escopo inseguro; diga como migrar/corrigir dado mantendo fail-closed; (11) audite transaction_date vs billing_month: verifique se userSheetAnalyticsService e financialPersonalSheetSemanticAdapters realmente respeitam plan.timeBasis ou se podem devolver KPI por data da compra para pergunta de fatura; (12) audite budget.sum: confirmar/refutar se retorna dailyGoal.spent (dia) em vez de monthSpent; (13) audite saldo de Contas Financeiras: confirmar/refutar se parte do saldo inicial e aplica apenas movimentos do período consultado, produzindo valor não cumulativo; (14) audite UX de forma de pagamento: deve virar lista numerada 1 Crédito, 2 Débito, 3 PIX, 4 Dinheiro, preservando texto como fallback; confirmar se parser atual aceita números; (15) audite ausência de subcategoria estruturada em Lançamentos Cartão e impacto nas consultas; (16) audite timezone da planilha/código e risco de divergência de 'hoje'; (17) procure problemas adicionais relevantes que o Chat não identificou, especialmente dupla contagem, pagamento de fatura, transferências internas, recorrências, projeções e source-of-truth. Entregue no resultado: sumário executivo; matriz de veredictos dos 17 itens; causa raiz com referências de código; riscos P0/P1/P2; análise específica do Atacadão/Pluggy; estratégia recomendada para fechamento variável; estratégia recomendada para parcelamentos sem saldo restante em tempo real; testes de regressão mínimos; dependências para um roadmap posterior. Não implemente correções nesta tarefa.",
+  "task_id": "FIN-AUDIT-PRE-ROADMAP-RETRY-20260826",
+  "objective": "NOME DA CONVERSA/TAREFA NO CODEX: 'FinançasBot — Auditoria independente pré-roadmap — RETRY 2026-08-26'. Repita e conclua a auditoria defensiva, independente e somente de leitura dos achados levantados pelo Chat antes do roadmap financeiro. Não presuma que o Chat está correto: tente refutar cada achado com código, testes e documentação. Classifique cada item como CONFIRMADO, PARCIAL, REFUTADO ou NÃO PROVÁVEL SEM DADO EXTERNO, sempre com arquivo/função/causa. Audite: (1) Uber R$22,91 com card_id nubank-daniel mas nome textual 'Cartão Nubank - Daniel' versus 'Nubank - Daniel' e impacto em Faturas; (2) fechamento real variável por fim de semana/feriado versus dia configurado; (3) parcelamentos sem saldo restante em tempo real, meses de cobrança, 1/1 e futuras parcelas; (4) novo cartão Atacadão na conexão Pluggy de Daniel, sem chamar Pluggy real, verificando descoberta dinâmica/allowlists/mapeamentos; (5) agrupamento de Faturas por nome versus card_id; (6) compra no próprio dia do fechamento; (7) semântica/fórmula de Parcelamentos e fragmentação 1/6, 2/6; (8) estorno/crédito versus pagamento de fatura; (9) drift de schema Saídas/Entradas e readers antigos; (10) recorrências com user_id ausente mantendo fail-closed; (11) transaction_date versus billing_month e plan.timeBasis; (12) budget.sum dia versus mês; (13) saldo de Contas Financeiras cumulativo versus recorte; (14) forma de pagamento numerada 1 Crédito, 2 Débito, 3 PIX, 4 Dinheiro com texto fallback; (15) subcategoria em cartão; (16) timezone; (17) problemas adicionais: dupla contagem, transferências, recorrências, projeções e source-of-truth. Confronte também as capacidades canônicas e shadows/canários já documentados para distinguir 'não existe' de 'existe mas está desconectado/defeituoso'. Não implemente correções.",
   "required_files": [
+    "docs/agent-memory/README.md",
     "docs/plans/workstreams/chat-codex-channel.md",
+    "docs/plans/family-financial-platform-evolution-roadmap.md",
+    "docs/plans/family-financial-platform-step-by-step-roadmap.md",
+    "docs/agent-memory/workstreams/financial-conversation-architecture-review.md",
+    "docs/qa/phase-8a-legacy-inventory-audit-2026-07-14.md",
+    "docs/qa/phase-8b5-card-consumer-parity-and-migration-plan-gate-2026-07-15.md",
+    "docs/qa/phase-8b6-card-read-model-unified-first-gate-2026-07-15.md",
+    "docs/qa/phase-8b7-card-scheduler-unified-first-gate-2026-07-15.md",
+    "docs/qa/phase-8b9-whatsapp-card-consumer-characterization-gate-2026-07-15.md",
     "src/handlers/messageHandler.js",
     "src/services/google.js",
     "src/services/userSpreadsheetService.js",
@@ -15,21 +24,28 @@
     "src/openFinance/pluggyReadOnlyContract.js",
     "src/openFinance/openFinanceRuntimeReconciliation.js"
   ],
-  "allowed_paths": ["docs/agent-memory/workstreams/results/FIN-AUDIT-PRE-ROADMAP-20260826.md"],
-  "result_file": "docs/agent-memory/workstreams/results/FIN-AUDIT-PRE-ROADMAP-20260826.md",
+  "allowed_paths": ["docs/agent-memory/workstreams/results/FIN-AUDIT-PRE-ROADMAP-RETRY-20260826.md"],
+  "result_file": "docs/agent-memory/workstreams/results/FIN-AUDIT-PRE-ROADMAP-RETRY-20260826.md",
   "validation": [
-    "O resultado existe e começa identificando a conversa/tarefa como FinançasBot — Auditoria independente pré-roadmap — 2026-08-26.",
-    "O relatório classifica explicitamente todos os 17 achados como CONFIRMADO, PARCIAL, REFUTADO ou NÃO PROVÁVEL SEM DADO EXTERNO, com evidência de arquivo/função.",
+    "O resultado começa identificando a tarefa como FinançasBot — Auditoria independente pré-roadmap — RETRY 2026-08-26.",
+    "O relatório classifica explicitamente os 17 achados como CONFIRMADO, PARCIAL, REFUTADO ou NÃO PROVÁVEL SEM DADO EXTERNO, com evidência de arquivo/função.",
     "O relatório contém seções específicas para fechamento variável por fim de semana/feriado, parcelamentos sem saldo restante em tempo real e novo cartão Atacadão na conexão Pluggy de Daniel.",
-    "O relatório lista achados adicionais independentes, se houver, e testes de regressão mínimos.",
+    "O relatório confronta os achados atuais com o roadmap antigo, Fase 8 e ARQ/shadows para distinguir capacidade ausente de capacidade existente mas desconectada ou defeituosa.",
+    "O relatório lista achados adicionais independentes, testes de regressão mínimos, riscos P0/P1/P2 e dependências para o roadmap posterior.",
     "Nenhum arquivo fora do result_file foi alterado pelo executor."
   ],
   "constraints": [
+    "Daniel está ausente. Não peça permissão, confirmação, troca de modelo, troca de esforço ou qualquer interação humana durante esta tarefa.",
+    "Mantenha exatamente a capacidade/modelo/esforço que o ambiente Codex já estiver usando. Não interrompa a tarefa para recomendar ou solicitar mudança de capacidade.",
+    "Se uma subetapa normalmente exigiria autorização humana, não execute essa ação. Escolha uma alternativa somente de leitura dentro do escopo, ou classifique a evidência como não verificável e continue os demais itens.",
+    "Se a capacidade atual limitar alguma conclusão, registre a limitação no relatório e continue; não pare para pedir troca de capacidade.",
     "Não alterar produto, scripts, testes, configuração, produção ou dados privados.",
     "Não chamar Pluggy real, Google Sheets real, WhatsApp real, OCI/SSH ou qualquer serviço externo autenticado.",
     "Não ler, imprimir nem inferir segredos. Use somente código, testes, documentação do repositório e a evidência sanitizada contida neste manifesto.",
     "Não confiar no diagnóstico do Chat: tentar refutar cada achado antes de confirmá-lo.",
     "Não propor mudança que restrinja cartões por proprietário: todos os cartões ativos da planilha familiar são intencionalmente compartilhados entre os usuários autorizados; o nome serve para identificar o cartão.",
-    "Não criar carteira digital: o Uber R$22,91 foi corretamente pago no Nubank Daniel; o ponto a auditar é a inconsistência de identidade/nome/agregação e demais semânticas."
+    "Não criar carteira digital: o Uber R$22,91 foi corretamente pago no Nubank Daniel; o ponto é a inconsistência de identidade/nome/agregação e demais semânticas.",
+    "Não declarar remoção de legado apenas por busca estática; considerar telemetria, shadows/canários, janelas de observação, fallback e rollback já documentados.",
+    "Preserve a distinção entre legado, Financial Agent v1 e novo agente/ARQ; não colapse esses sistemas na análise."
   ]
 }
