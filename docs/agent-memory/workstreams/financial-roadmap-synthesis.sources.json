@@ -1,9 +1,17 @@
 {
   "schema": "financasbot-financial-roadmap-synthesis-v1",
-  "status": "DRAFT_V2_AWAITING_USER_CONFIRMATION",
+  "status": "CANONICAL_ROADMAP_APPROVED_ROAD00_OPEN",
   "as_of": "2026-08-27",
   "snapshot_base_sha": "98c30b5548a3f3ed06747acd6818adf833d3c628",
-  "canonical_roadmap_allowed": false,
+  "canonical_roadmap_allowed": true,
+  "canonical_roadmap_path": "docs/plans/workstreams/financial-roadmap-canonical.md",
+  "canonical_normative_source": {
+    "path": "docs/plans/workstreams/financial-roadmap-draft-v2.md",
+    "blob_sha": "904d652fc1931ff5c80d6c1066ac5f57a96f5b84",
+    "user_confirmation": "CONCORDO COM O ROADMAP V2",
+    "confirmed_at": "2026-08-27",
+    "active_gate": "ROAD-00"
+  },
   "evidence_classes": [
     "USER_DECISION",
     "CURRENT_CODE",
@@ -16,6 +24,16 @@
     "OPEN"
   ],
   "mandatory_sources": [
+    {
+      "path": "docs/plans/workstreams/financial-roadmap-canonical.md",
+      "role": "canonical authority anchor after explicit user approval",
+      "evidence_class": "USER_DECISION"
+    },
+    {
+      "path": "docs/plans/workstreams/financial-roadmap-draft-v2.md",
+      "role": "complete normative roadmap content approved by the user; blob 904d652fc1931ff5c80d6c1066ac5f57a96f5b84",
+      "evidence_class": "USER_DECISION"
+    },
     {
       "path": "docs/plans/family-financial-platform-evolution-roadmap.md",
       "role": "macro historical roadmap",
@@ -44,11 +62,6 @@
     {
       "path": "docs/agent-memory/workstreams/results/FIN-ROADMAP-V1-REVIEW-20260827.md",
       "role": "Codex adversarial review; candidate d2e045d44dbc9ec3419530884e0cb3674969d0f3 on orchestration branch; verdict APROVÁVEL APÓS AJUSTES",
-      "evidence_class": "QA_GATE"
-    },
-    {
-      "path": "docs/plans/workstreams/financial-roadmap-draft-v2.md",
-      "role": "reconciled roadmap containing all ten mandatory Codex adjustments; awaiting user confirmation",
       "evidence_class": "QA_GATE"
     },
     {
@@ -131,7 +144,8 @@
     "Payment method UX must be numbered 1 Credit, 2 Debit, 3 PIX, 4 Cash with text fallback.",
     "Final roadmap must be complete/detailed, independently reviewed by Codex, then explicitly confirmed by the user.",
     "Existing shadow/canary work for legacy retirement must be preserved and reused rather than reset or duplicated without cause.",
-    "WhatsApp audio receiving/processing is currently reported as not working and must be included as an explicit roadmap correction after causal reproduction. Existing local audio tests do not prove production functionality."
+    "WhatsApp audio receiving/processing is currently reported as not working and must be included as an explicit roadmap correction after causal reproduction. Existing local audio tests do not prove production functionality.",
+    "User explicitly approved roadmap v2 on 2026-08-27; ROAD-00 is the only gate opened by that approval."
   ],
   "legacy_removal_constraints": {
     "must_preserve_existing_shadow_evidence": true,
@@ -176,14 +190,16 @@
     "Do not infer the root cause of the audio failure from unit tests; distinguish user-reported runtime failure from code-level capability.",
     "A populated billing month is not confirmed without provenance because the current writer may have projected it from closingDay.",
     "Do not call a balance current without coverage_start, coverage_end, as_of and completeness.",
-    "Keep ARQ at the delivered maximum of three tools unless a separate gate proves benefit and safety of expansion."
+    "Keep ARQ at the delivered maximum of three tools unless a separate gate proves benefit and safety of expansion.",
+    "Canonization opens only ROAD-00; later ROAD gates require their own exit/entry evidence and must not auto-advance."
   ],
   "finalization_workflow": [
     "Chat consolidates draft v1 — COMPLETE",
     "Codex independently tries to refute each phase — COMPLETE",
     "Chat records and reconciles disagreements into draft v2 — COMPLETE",
-    "User explicitly confirms draft v2 — PENDING",
-    "Only then canonical_roadmap_allowed may become true"
+    "User explicitly confirms draft v2 — COMPLETE",
+    "Canonical roadmap anchor created — COMPLETE",
+    "ROAD-00 opened — ACTIVE"
   ],
   "open_questions": [
     "Which July Phase 8/9 telemetry and flags are healthy/current on 2026-08-27?",
