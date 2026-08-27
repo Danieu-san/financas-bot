@@ -1,11 +1,11 @@
 {
   "schema": "financasbot-chat-codex-orchestration-v1",
-  "orchestration_state": "CHAT_WORKING",
-  "next_executor": "chat",
-  "task_id": "FIN-ROADMAP-V1-REVIEW-20260827",
-  "expected_base_sha": "604662928f986c428ab6a0864bd5da56f0e94f76",
+  "orchestration_state": "CODEX_READY",
+  "next_executor": "codex",
+  "task_id": "FIN-ROAD00-CLOSE-REVIEW-20260827",
+  "expected_base_sha": "c35b8aba72523b7f8187867bc688a16876c3846f",
   "task_file": "docs/agent-memory/workstreams/tasks/chat-codex-task-slot.json",
-  "candidate_sha": "d2e045d44dbc9ec3419530884e0cb3674969d0f3",
-  "result_file": "docs/agent-memory/workstreams/results/FIN-ROADMAP-V1-REVIEW-20260827.md",
-  "updated_at": "2026-08-27T16:30:05.000Z"
+  "candidate_sha": null,
+  "result_file": null,
+  "updated_at": "2026-08-27T19:45:00.000Z"
 }
