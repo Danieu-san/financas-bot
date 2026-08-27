@@ -29,5 +29,10 @@ test('instalador recusa apagar lock sem provar PID morto', () => {
     assert.match(installer, /'--app-wake-request'/);
     assert.match(installer, /'--state-path', \(Quote-Argument \$StatePath\)/);
     assert.match(installer, /StatePath deve ser um caminho relativo seguro/);
+    assert.match(installer, /Assert-WatcherRepositorySafe/);
+    assert.match(installer, /clone Git dedicado/);
+    assert.match(installer, /worktree dedicada deve estar limpa/);
+    assert.match(installer, /worktree dedicada contém caminho ignorado/);
+    assert.match(installer, /runtime do watcher não pode ficar dentro do repositório dedicado/);
     assert.doesNotMatch(installer, /chatgpt\.com\/c\/[0-9a-f-]{16,}/i);
 });

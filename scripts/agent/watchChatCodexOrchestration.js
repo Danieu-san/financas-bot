@@ -469,10 +469,10 @@ function pollOnce(options, deps = {}) {
 
         const observationUnchanged = cache.observed_hash === observedHash
             && cache.observed_state === state.orchestration_state;
-        const codeReadyAwaitingManualRetry = state.orchestration_state === 'CODEX_READY'
+        const codeReadyAwaitingRetry = state.orchestration_state === 'CODEX_READY'
             && cache.launched_hash !== observedHash
-            && !usesAppExecutor;
-        if (observationUnchanged && !codeReadyAwaitingManualRetry) {
+            && (!usesAppExecutor || cache.launch_status === 'failed:sync_error');
+        if (observationUnchanged && !codeReadyAwaitingRetry) {
             return {
                 action: appWake.action === 'accepted'
                     ? 'app_wake_accepted'
@@ -511,6 +511,7 @@ function pollOnce(options, deps = {}) {
                 `sync_failed_at=${new Date().toISOString()}\nsync_error=${error.message}\n`);
             saveCache(cachePath, {
                 ...cache,
+                launched_hash: null,
                 launch_status: 'failed:sync_error'
             }, deps.now?.() || new Date());
             throw error;

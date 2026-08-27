@@ -1,6 +1,6 @@
 # Canal permanente Chat ↔ Codex
 
-Atualizado em: 2026-08-25
+Atualizado em: 2026-08-27
 
 ## Objetivo
 
@@ -11,7 +11,7 @@ Daniel. O fechamento do gate que construiu o canal não encerra o serviço.
 
 ## Estado operacional
 
-`ORCH-02 RETORNO CODEX -> CHAT PROVADO; SECURE MCP TUNNEL CONECTADO; AUTOSTART PENDENTE`.
+`ORCH-02 CANAL BIDIRECIONAL PROVADO; RECOVERY DE ISOLAMENTO DO WATCHER EM CANDIDATO LOCAL`.
 
 ### Fronteira congelada
 
@@ -129,12 +129,35 @@ Windows não foi aplicada porque a elevação recusou a persistência sem uma
 autorização específica posterior; isso não invalida a sessão atual, mas impede
 de declarar sobrevivência a reboot.
 
+## Incidente de sincronização em 2026-08-26
+
+O Chat publicou corretamente `CODEX_READY` duas vezes. O watcher observou o
+hash remoto final, mas não acordou o Codex App porque a worktree compartilhada
+continha `.npm-cache`, `.runtime` e `tools/chat-wake-mcp/.npm-cache`. A recusa
+`failed:sync_error` foi correta pelo contrato fail-closed; o defeito foi a
+instalação apontar para uma worktree usada também durante o desenvolvimento e
+tratar a falha transitória como terminal para aquele hash.
+
+O recovery preserva a recusa de qualquer alteração inesperada e acrescenta
+duas barreiras:
+
+- o instalador aceita somente o clone dedicado em
+  `%LOCALAPPDATA%\FinancasBot\chat-codex-orchestration-repo`, limpo, sem caminhos
+  ignorados e com `.git` próprio; worktrees de desenvolvimento são recusadas;
+- `failed:sync_error` limpa apenas o latch daquele lançamento e permite nova
+  tentativa mecânica do mesmo hash no próximo ciclo, sem iniciar modelo antes
+  de a sincronização ficar limpa.
+
+Os artefatos que causaram o incidente foram preservados fora da worktree em
+`%LOCALAPPDATA%\FinancasBot\orchestration-artifacts\20260827-sync-error`.
+
 ## Próxima ação
 
-Executar somente um smoke do retorno no app definitivo. Depois, mediante
-autorização específica, instalar o watchdog no logon e validar um reinício dos
-processos. Não repetir nem alterar a ponta `Chat -> Codex`.
+Publicar e auditar o recovery, provisionar o clone dedicado, reinstalar o
+watcher e repetir uma única vez a tarefa remota ainda preservada em
+`CODEX_READY`. O smoke deve alcançar `CHAT_READY` e retornar ao Chat sem reenvio
+manual da tarefa.
 
 ## Capacidade
 
-`Codex App -> Sol -> Alto -> tornar persistente somente o retorno Codex -> Chat.`
+`Codex App -> Sol -> Alto -> instalar e provar o watcher isolado e recuperável.`

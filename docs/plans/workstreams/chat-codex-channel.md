@@ -1,6 +1,6 @@
 # Plano — canal permanente Chat ↔ Codex
 
-Status: `ORCH-02 retorno automático provado; túnel oficial conectado; autostart pendente`.
+Status: `ORCH-02 recovery do sync_error em candidato local; instalação isolada pendente`.
 
 ## Objetivo
 
@@ -29,6 +29,8 @@ sem manter modelo ocioso e sem encerrar o canal ao concluir um trabalho.
 10. [em andamento] Executar um único smoke no app definitivo.
 11. [pendente de autorização específica] Instalar watchdog no logon do Windows
     e comprovar recuperação dos processos sem iniciar modelo.
+12. [em andamento] Isolar o watcher num clone exclusivo e tornar
+    `failed:sync_error` recuperável para o mesmo hash, preservando fail-closed.
 
 O Chat editará um manifesto-slot preexistente em commit inerte e depois o
 estado em commit separado; isso respeita a limitação observada do conector sem
@@ -55,6 +57,6 @@ perder a ordenação causal.
 
 ## Próxima ação
 
-Executar um único smoke no app definitivo. Depois, com autorização específica,
-instalar e validar o watchdog local. Não alterar nem retestar o caminho
-Chat -> Codex.
+Publicar e auditar o recovery, provisionar o clone dedicado, reinstalar o
+watcher e deixar a tarefa `FIN-AUDIT-PRE-ROADMAP-RETRY-20260826` completar uma
+única vez. Confirmar `CHAT_READY` e retorno ao Chat sem reabrir o escopo.

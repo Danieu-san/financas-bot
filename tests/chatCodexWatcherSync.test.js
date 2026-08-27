@@ -300,19 +300,28 @@ test('operações Git do watcher usam o executável absoluto validado', () => {
     assert.equal(invocation.options.windowsHide, true);
 });
 
-test('falha de sincronização é terminal para o hash e não chama Codex', () => {
+test('falha de sincronização é retryable para o mesmo hash sem chamar Codex', () => {
     const item = fixture('CODEX_READY');
-    let launches = 0;
-    const deps = {
+    const queue = path.join(item.runtime, 'bridge', 'request.json');
+    fs.mkdirSync(path.dirname(queue), { recursive: true });
+    let launches = 0, syncAttempts = 0;
+    const deps = executorDeps({
         fetchRemoteState: () => item.raw,
-        syncLocalBranch: () => { throw new Error('worktree do watcher deve estar limpa'); },
+        syncLocalBranch: () => {
+            syncAttempts += 1;
+            if (syncAttempts === 1) throw new Error('worktree do watcher deve estar limpa');
+        },
         runCodex: () => { launches += 1; return 0; }
-    };
-    assert.throws(() => pollOnce(watcherOptions(item), deps), /worktree do watcher deve estar limpa/);
+    });
+    const options = watcherOptions(item, { 'app-wake-request': queue });
+    assert.throws(() => pollOnce(options, deps), /worktree do watcher deve estar limpa/);
     assert.equal(launches, 0);
-    assert.equal(readCache(path.join(item.runtime, 'watcher-state.json')).launch_status,
-        'failed:sync_error');
-    assert.equal(pollOnce(watcherOptions(item), deps).action, 'unchanged');
+    const failed = readCache(path.join(item.runtime, 'watcher-state.json'));
+    assert.equal(failed.launch_status, 'failed:sync_error');
+    assert.equal(failed.launched_hash, null);
+    assert.equal(pollOnce(options, deps).action, 'app_task_queued');
+    assert.equal(syncAttempts, 2);
+    assert.equal(launches, 0);
 });
 
 test('retry manual exige limpar launched_hash, sem alterar o estado remoto', () => {
