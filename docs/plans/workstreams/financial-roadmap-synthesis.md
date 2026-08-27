@@ -1,6 +1,6 @@
 # Plano — síntese do roadmap financeiro
 
-Status: `CONTROL_ONLY — aguardando auditoria Codex pré-roadmap`.
+Status: `DRAFT_V1 CREATED — CODEX ADVERSARIAL REVIEW NEXT`.
 
 ## Objetivo
 
@@ -13,10 +13,8 @@ Consolidar, sem perda de contexto e sem reescrever a história, o roadmap financ
 - inventariar shadows/canários e gates ainda vigentes;
 - incorporar achados atuais somente com classe de evidência explícita;
 - registrar contradições sem resolvê-las por palpite;
-- incluir a regressão relatada de áudio do WhatsApp como correção explícita do roadmap, exigindo reprodução causal antes de qualquer implementação;
-- no áudio, separar e testar as fronteiras `mensagem recebida -> download/retry -> reaquisição -> conversão -> transcrição -> retorno ao messageHandler -> processamento financeiro`;
-- preservar como evidência de código os retries/reaquisição e testes locais já existentes, sem tratá-los como prova de funcionamento real;
-- produzir `roadmap-draft-v1` somente após a auditoria independente pré-roadmap;
+- incluir a regressão relatada de áudio do WhatsApp exigindo reprodução causal;
+- preservar capacidades canônicas históricas antes de propor reconstrução;
 - submeter o draft completo a uma segunda revisão independente do Codex;
 - pedir confirmação explícita do usuário antes de tornar o roadmap canônico.
 
@@ -29,30 +27,38 @@ Consolidar, sem perda de contexto e sem reescrever a história, o roadmap financ
 - declarar status atual a partir apenas de roadmap histórico;
 - atribuir causa ao problema de áudio sem evidência causal de código/teste/log/runtime.
 
-## Fontes obrigatórias
+## Fontes obrigatórias já lidas para o draft v1
 
 1. `docs/plans/family-financial-platform-evolution-roadmap.md`.
 2. `docs/plans/family-financial-platform-step-by-step-roadmap.md`.
 3. `docs/agent-memory/workstreams/financial-conversation-architecture-review.md`.
-4. Evidências Fase 8A/8B e gates de cartão/legado já documentados.
-5. `docs/agent-memory/workstreams/results/FIN-AUDIT-PRE-ROADMAP-RETRY-20260826.md`, quando publicado.
-6. `docs/agent-memory/workstreams/financial-roadmap-synthesis.md` e seu registro estruturado de fontes.
-7. `src/handlers/audioHandler.js`, `src/handlers/messageHandler.js` e `tests/audioHandlerPrivacy.test.js` para caracterização do fluxo de áudio.
+4. Evidências Fase 8A/8B e checkpoint `phase-8-legacy-retirement`.
+5. Auditoria independente `FIN-AUDIT-PRE-ROADMAP-RETRY-20260826`, publicada no commit `ea3ad3a604ce99c580bf5d18bda2ecb365d27545` da branch de orquestração.
+6. `docs/agent-memory/workstreams/financial-roadmap-synthesis.md` e registro estruturado de fontes.
+7. `src/handlers/audioHandler.js`, `src/handlers/messageHandler.js` e testes de áudio para caracterização de capacidade, sem confundir com prova de runtime.
 
-## Gate de entrada do draft
+## Artefato atual
 
-- auditoria independente pré-roadmap publicada e lida, ou explicitamente marcada como indisponível com a lacuna preservada;
-- estado dos shadows/canários relevantes revalidado ou marcado como `UNKNOWN/OPEN`;
-- contradições registradas;
-- decisões recentes do usuário preservadas;
-- áudio registrado como problema de runtime relatado, sem causa inventada.
+`docs/plans/workstreams/financial-roadmap-draft-v1.md`
+
+Commit inicial do draft: `a894895a2b5c0d0662981c43d731584e12dc1430`.
+
+O draft contém os campos obrigatórios por fase, matrizes de problemas, shadows/canários, fonte de verdade, gates transversais, critérios globais, contradições abertas e changelog de preservação/supersessão.
+
+## Próximo gate
+
+Enviar o draft completo ao Codex em tarefa somente de leitura. Para cada `ROAD-*`, o revisor deve emitir `CONCORDO`, `DISCORDO`, `FALTA EVIDÊNCIA` ou `RISCO NÃO COBERTO`, tentando especificamente encontrar:
+
+- reconstrução indevida de capacidade já existente;
+- conflito com Fase 8/9 ou ARQ;
+- dependência circular;
+- risco de dupla contagem/source-of-truth;
+- retirada prematura de legado;
+- lacuna de teste/rollback/privacy;
+- tratamento incorreto de áudio como reimplementação em vez de regressão causal.
 
 ## Gate de saída
 
-Fluxo obrigatório:
-
 `Chat consolida -> Codex tenta refutar -> Chat reconcilia -> usuário confirma -> roadmap canônico`.
-
-A revisão Codex do roadmap deverá dizer explicitamente se concorda com a inclusão, prioridade, estratégia de diagnóstico e critérios de aceite da correção de áudio.
 
 Nenhuma implementação ou retirada de legado é autorizada por este plano.
