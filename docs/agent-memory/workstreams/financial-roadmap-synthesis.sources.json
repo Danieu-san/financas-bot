@@ -26,11 +26,11 @@
     },
     {
       "path": "docs/agent-memory/workstreams/financial-conversation-architecture-review.md",
-      "role": "ARQ-01..ARQ-06 current architecture evidence as of 2026-08-24",
+      "role": "ARQ-01..ARQ-06 architecture evidence as of 2026-08-24",
       "evidence_class": "QA_GATE"
     },
     {
-      "path": "docs/agent-memory/workstreams/results/FIN-AUDIT-PRE-ROADMAP-20260826.md",
+      "path": "docs/agent-memory/workstreams/results/FIN-AUDIT-PRE-ROADMAP-RETRY-20260826.md",
       "role": "independent Codex pre-roadmap audit",
       "evidence_class": "PENDING_AUDIT"
     },
@@ -88,6 +88,21 @@
       "path": "docs/qa/phase-8b9-whatsapp-card-consumer-characterization-gate-2026-07-15.md",
       "role": "WhatsApp card consumer characterization",
       "evidence_class": "QA_GATE"
+    },
+    {
+      "path": "src/handlers/audioHandler.js",
+      "role": "current audio download/retry/conversion/transcription path",
+      "evidence_class": "CURRENT_CODE"
+    },
+    {
+      "path": "tests/audioHandlerPrivacy.test.js",
+      "role": "current local regression coverage for audio retry, privacy, cleanup and failure handling",
+      "evidence_class": "CURRENT_CODE"
+    },
+    {
+      "path": "src/handlers/messageHandler.js",
+      "role": "current integration point that feeds successful audio transcription back into normal message processing",
+      "evidence_class": "CURRENT_CODE"
     }
   ],
   "preserved_user_decisions": [
@@ -98,7 +113,8 @@
     "Atacadao was newly added to Daniel's Pluggy connection and dynamic discovery/mapping must be verified.",
     "Payment method UX must be numbered 1 Credit, 2 Debit, 3 PIX, 4 Cash with text fallback.",
     "Final roadmap must be complete/detailed, independently reviewed by Codex, then explicitly confirmed by the user.",
-    "Existing shadow/canary work for legacy retirement must be preserved and reused rather than reset or duplicated without cause."
+    "Existing shadow/canary work for legacy retirement must be preserved and reused rather than reset or duplicated without cause.",
+    "WhatsApp audio receiving/processing is currently reported as not working and must be included as an explicit roadmap correction after causal reproduction. Existing local audio tests do not prove production functionality."
   ],
   "legacy_removal_constraints": {
     "must_preserve_existing_shadow_evidence": true,
@@ -138,7 +154,8 @@
     "No item may disappear between roadmap versions without a changelog status.",
     "Do not collapse legado, Financial Agent v1 and novo agente/ARQ into one system label.",
     "Do not mark a legacy component removable from static search alone; require runtime evidence and applicable observation window.",
-    "Do not call an evidence source current after its observation date without revalidation."
+    "Do not call an evidence source current after its observation date without revalidation.",
+    "Do not infer the root cause of the audio failure from unit tests; distinguish user-reported runtime failure from code-level capability."
   ],
   "finalization_workflow": [
     "Chat consolidates draft",
@@ -152,6 +169,7 @@
     "How should historical canonical installment schedules reconcile with current personal-sheet monthly entries?",
     "What is the precedence model between configured closing day and actual statement billing evidence?",
     "Does Pluggy discover the newly added Atacadao card dynamically or require mapping/configuration?",
-    "Which legacy consumers still have nonzero runtime usage and which observation windows are still open?"
+    "Which legacy consumers still have nonzero runtime usage and which observation windows are still open?",
+    "Where does the current real audio failure occur: WhatsApp media availability/download, message reacquisition, ffmpeg conversion, Gemini transcription, or post-transcription routing?"
   ]
 }
