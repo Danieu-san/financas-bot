@@ -216,10 +216,10 @@ function queueCodexAppWakeRequest({ branch, mode, observedHash, repoPath, reques
 }
 
 function maybeWakeCodexApp({ cache, cachePath, options, observedHash, state }, deps = {}) {
-    if (!['CODEX_READY', 'CHAT_READY'].includes(state.orchestration_state)) {
+    if (state.orchestration_state !== 'CODEX_READY') {
         return { cache, action: null };
     }
-    const mode = state.orchestration_state === 'CODEX_READY' ? 'execute' : 'return';
+    const mode = 'execute';
     const threadId = options['app-thread-id'];
     const chatUrl = options['chat-url'];
     const requestPath = options['app-wake-request'];
@@ -307,7 +307,8 @@ function buildExecutorPrompt({ branch, gitPath, observedHash, repoPath, statePat
         `Use Git somente com $env:GIT_BIN = ${quotedGit}; $env:GIT_CONFIG_COUNT = '1'; $env:GIT_CONFIG_KEY_0 = 'safe.directory'; $env:GIT_CONFIG_VALUE_0 = ${quotedRepo}.`,
         'Não acesse produção, OCI, WhatsApp, Pluggy, planilhas, .env, credenciais, sessões ou dados privados.',
         'Deixe o estado em CHAT_READY e não afirme que houve publicação remota.',
-        'Não tente acessar navegador nem enviar campainha; o watcher verificará o GitHub depois da publicação.'
+        'Não tente acessar navegador nem enviar campainha; o watcher verificará o GitHub depois da publicação.',
+        `Depois de concluir, responda nesta tarefa: ✅ Tarefa ${task.task_id} concluída. Resultado publicado no GitHub. Avise o Chat para continuar.`
     ].join('\n');
 }
 
@@ -474,11 +475,6 @@ function pollOnce(options, deps = {}) {
         const usesAppExecutor = state.orchestration_state === 'CODEX_READY'
             && Boolean(options['app-wake-request']
                 || (options['app-thread-id'] && options['chat-url']));
-        const appWake = state.orchestration_state === 'CHAT_READY'
-            ? maybeWakeCodexApp({ cache, cachePath, options, observedHash, state }, deps)
-            : { cache, action: null };
-        cache = appWake.cache;
-
         const observationUnchanged = cache.observed_hash === observedHash
             && cache.observed_state === state.orchestration_state;
         const codeReadyAwaitingRetry = state.orchestration_state === 'CODEX_READY'
@@ -486,9 +482,7 @@ function pollOnce(options, deps = {}) {
             && (!usesAppExecutor || cache.launch_status === 'failed:sync_error');
         if (observationUnchanged && !codeReadyAwaitingRetry) {
             return {
-                action: appWake.action === 'accepted'
-                    ? 'app_wake_accepted'
-                    : appWake.action === 'queued' ? 'app_wake_queued' : 'unchanged',
+                action: 'unchanged',
                 hash: observedHash,
                 state: state.orchestration_state
             };
@@ -632,20 +626,12 @@ function pollOnce(options, deps = {}) {
             observed_state: finalState.orchestration_state,
             launch_status: launchStatus
         }, deps.now?.() || new Date());
-        const finalWake = maybeWakeCodexApp({
-            cache: readCache(cachePath),
-            cachePath,
-            options,
-            observedHash: finalHash,
-            state: finalState
-        }, deps);
         return {
             action: 'launched',
             exitCode,
             hash: observedHash,
             state: state.orchestration_state,
-            finalState: finalState.orchestration_state,
-            appWake: finalWake.action
+            finalState: finalState.orchestration_state
         };
     }, deps);
 }

@@ -64,31 +64,22 @@ function assertRepoPath(value) {
 function buildWakePrompt({ branch, chatUrl, mode, observedHash, repoPath, statePath, taskId }) {
     if (!/^[0-9a-f]{64}$/i.test(observedHash || '')) throw new Error('hash de wake inválido');
     if (!/^[A-Za-z0-9._-]{1,80}$/.test(taskId || '')) throw new Error('task-id de wake inválido');
-    const safeChatUrl = assertChatUrl(chatUrl);
+    assertChatUrl(chatUrl);
     const safeStatePath = assertStatePath(statePath);
-    if (!['execute', 'return'].includes(mode)) throw new Error('mode de wake inválido');
+    if (mode !== 'execute') throw new Error('mode de wake inválido');
     const safeBranch = assertBranch(branch);
     const safeRepoPath = assertRepoPath(repoPath);
-    if (mode === 'execute') {
-        return [
-            `Execução mecânica ${taskId}.`,
-            `O watcher confirmou GitHub/CODEX_READY em ${safeStatePath} no hash de estado ${observedHash}.`,
-            `Use a worktree ${safeRepoPath} na branch ${safeBranch}.`,
-            `Confirme o hash remoto, leia AGENTS.md, ${safeStatePath} e o task_file indicado pelo estado.`,
-            'Execute somente o manifesto, respeite allowed_paths e falhe fechado diante de qualquer divergência.',
-            'Transicione para CODEX_RUNNING, produza e valide o result_file, depois transicione para CHAT_READY.',
-            'Publique somente o estado, o resultado e os caminhos explicitamente autorizados no manifesto.',
-            'Não acesse produção, WhatsApp, Pluggy, planilhas, segredos ou dados privados.',
-            'Não use Browser nesta etapa; depois de publicar CHAT_READY, termine sem outra ação.'
-        ].join(' ');
-    }
     return [
-        `Retorno mecânico ${taskId}.`,
-        `O watcher confirmou GitHub/CHAT_READY em ${safeStatePath} no hash de estado ${observedHash}.`,
-        'Use somente a ferramenta Browser do Codex App nesta tarefa.',
-        `Na conversa ${safeChatUrl}, envie exatamente: ORCH_WAKE ${taskId} ${observedHash} ${safeStatePath}`,
-        'Não leia Git, arquivos, produção, WhatsApp, Pluggy, planilhas ou dados privados.',
-        'Depois de confirmar o envio, termine sem executar outra ação.'
+        `Execução mecânica ${taskId}.`,
+        `O watcher confirmou GitHub/CODEX_READY em ${safeStatePath} no hash de estado ${observedHash}.`,
+        `Use a worktree ${safeRepoPath} na branch ${safeBranch}.`,
+        `Confirme o hash remoto, leia AGENTS.md, ${safeStatePath} e o task_file indicado pelo estado.`,
+        'Execute somente o manifesto, respeite allowed_paths e falhe fechado diante de qualquer divergência.',
+        'Transicione para CODEX_RUNNING, produza e valide o result_file, depois transicione para CHAT_READY.',
+        'Publique somente o estado, o resultado e os caminhos explicitamente autorizados no manifesto.',
+        'Não acesse produção, WhatsApp, Pluggy, planilhas, segredos ou dados privados.',
+        'Não use Browser nesta etapa.',
+        `Depois de publicar CHAT_READY, responda nesta tarefa: ✅ Tarefa ${taskId} concluída. Resultado publicado no GitHub. Avise o Chat para continuar.`
     ].join(' ');
 }
 

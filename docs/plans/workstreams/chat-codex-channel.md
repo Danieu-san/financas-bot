@@ -1,11 +1,13 @@
 # Plano — canal permanente Chat ↔ Codex
 
-Status: `ORCH-02 segundo recovery pós-NO-GO em candidato local; instalação isolada pendente`.
+Status: `ORCH-02 retorno Browser cancelado; aviso final na própria tarefa em candidato local`.
 
 ## Objetivo
 
-Converter a prova ORCH-01 em um serviço reutilizável de tarefas de repositório,
-sem manter modelo ocioso e sem encerrar o canal ao concluir um trabalho.
+Manter um serviço reutilizável de tarefas de repositório no sentido
+`Chat -> GitHub -> watcher -> Codex App`, sem modelo ocioso. Ao concluir, o
+Codex avisa Daniel na própria tarefa; Daniel aciona manualmente o Chat para ler
+o GitHub.
 
 ## Etapas
 
@@ -22,11 +24,11 @@ sem manter modelo ocioso e sem encerrar o canal ao concluir um trabalho.
 7. [concluída] Congelar o desenho funcional
    `Chat -> GitHub -> watcher -> Codex App`; o recovery posterior limita-se à
    sincronização e ao preflight da instalação operacional, sem trocar o fluxo.
-8. [concluída] Provar em PoC isolado que o widget MCP `v7` envia a campainha
-   após o turno originador e cria nova resposta no Chat sem clique.
-9. [concluída] Substituir o túnel temporário por Secure MCP Tunnel oficial,
-   mantendo o servidor local restrito a `127.0.0.1:3210` e embutindo o SDK.
-10. [em andamento] Executar um único smoke no app definitivo.
+8. [histórico; rota cancelada] O PoC MCP provou envio assistido, não autonomia
+   operacional sem confirmação presencial.
+9. [histórico; fora da rota] O Secure MCP Tunnel não participa do canal vigente.
+10. [em andamento] Auditar e provar um único ciclo sem retorno Browser, com
+    aviso padronizado na própria tarefa do Codex.
 11. [pendente de autorização específica] Instalar watchdog no logon do Windows
     e comprovar recuperação dos processos sem iniciar modelo.
 12. [em reauditoria] Isolar o watcher num clone exclusivo, validar origem,
@@ -46,8 +48,11 @@ perder a ordenação causal.
 - Codex só pode publicar estado, resultado e caminhos autorizados;
 - alterações sensíveis, extras ou destrutivas falham fechadas;
 - duas tarefas diferentes completam no mesmo canal;
-- entre tarefas, o canal volta a `CHAT_WORKING` e continua armado;
-- retorno Browser continua sendo somente campainha; GitHub é a autoridade.
+- entre tarefas, o Chat devolve o canal a `CHAT_WORKING` depois que Daniel pede
+  a leitura do resultado;
+- `CHAT_READY` não inicia Codex, Browser, MCP ou outro modelo;
+- a tarefa originada por `CODEX_READY` termina com o aviso padronizado a Daniel;
+- GitHub continua sendo a autoridade do resultado.
 
 ## Não escopo
 
@@ -59,6 +64,6 @@ perder a ordenação causal.
 
 ## Próxima ação
 
-Publicar e auditar o recovery, provisionar o clone dedicado, reinstalar o
-watcher e deixar a tarefa `FIN-AUDIT-PRE-ROADMAP-RETRY-20260826` completar uma
-única vez. Confirmar `CHAT_READY` e retorno ao Chat sem reabrir o escopo.
+Publicar e auditar o candidato. Com GO, reinstalar o watcher no clone dedicado
+e executar um único smoke marker-only, confirmando `CHAT_READY`, ausência de
+pedido de retorno e aviso final na própria tarefa do Codex.

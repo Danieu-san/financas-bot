@@ -5,13 +5,15 @@ Atualizado em: 2026-08-27
 ## Objetivo
 
 Manter um canal operacional reutilizável no qual o Chat publica tarefas
-versionadas e delimitadas no GitHub, o watcher acorda o Codex somente para um
-hash novo em `CODEX_READY`, e o resultado retorna ao Chat sem intervenção de
-Daniel. O fechamento do gate que construiu o canal não encerra o serviço.
+versionadas e delimitadas no GitHub e o watcher acorda o Codex somente para um
+hash novo em `CODEX_READY`. O Codex publica o resultado no GitHub e encerra a
+própria tarefa com um aviso padronizado para Daniel; Daniel então pede ao Chat
+que leia o resultado. O fechamento do gate que construiu o canal não encerra o
+serviço.
 
 ## Estado operacional
 
-`ORCH-02 CANAL BIDIRECIONAL PROVADO; RECOVERY DO WATCHER EM REAUDITORIA`.
+`ORCH-02 CANAL CHAT -> CODEX PRESERVADO; RETORNO BROWSER CANCELADO EM CANDIDATO LOCAL`.
 
 ### Fronteira congelada
 
@@ -19,13 +21,22 @@ O desenho funcional `Chat -> GitHub -> watcher -> Codex App` permanece
 congelado: não será substituído nem refeito sem achado causal novo. O incidente
 de 2026-08-26 abriu somente um recovery delimitado da implementação operacional
 do watcher — isolamento do clone, sincronização e preflight antes do wake — sem
-alterar o protocolo, o manifesto ou a autoridade do GitHub. O retorno
-`Codex -> Chat` também permanece funcionalmente congelado.
+alterar o protocolo, o manifesto ou a autoridade do GitHub.
+
+Em 2026-08-27, Daniel cancelou explicitamente o retorno automático
+`Codex -> Chat` pelo navegador. Os testes anteriores provaram apenas um retorno
+assistido, pois o envio exige confirmação presencial; portanto essa rota nunca
+satisfez o requisito de operação ausente. O candidato atual recusa
+`mode=return`, não enfileira wake em `CHAT_READY` e inclui no próprio prompt de
+execução o aviso final:
+
+`✅ Tarefa <task_id> concluída. Resultado publicado no GitHub. Avise o Chat para continuar.`
 
 Enquanto não há trabalho, o estado permanece `CHAT_WORKING`: o Chat possui o
 canal, mas nenhum modelo local é iniciado. Para cada trabalho, o Chat cria um
 manifesto `financasbot-chat-codex-task-v1`, publica-o com a transição a
-`CODEX_READY` e aguarda a campainha de retorno.
+`CODEX_READY` e aguarda Daniel pedir a leitura do resultado depois do aviso do
+Codex.
 
 Fluxo por tarefa:
 
@@ -58,7 +69,8 @@ deleção, staged change ou caminho adicional falham fechados.
    estado ainda estiver `CHAT_WORKING`;
 2. somente após confirmar esse commit inerte, publicar em outro commit a
    transição do estado para `CODEX_READY`, apontando ao slot;
-3. após `CHAT_READY`, ler estado, resultado e diff no GitHub;
+3. após Daniel informar que recebeu o aviso de conclusão, ler estado, resultado
+   e diff no GitHub;
 4. auditar ou solicitar novo trabalho conforme o risco;
 5. devolver o canal a `CHAT_WORKING` antes de encerrar sua resposta.
 
@@ -95,7 +107,7 @@ A auditoria desse recovery encontrou que o instalador ainda produzia
 alinhado e um teste cruzado passou a comparar o schema do instalador com a
 constante exportada pelo worker.
 
-## Prova isolada do retorno em 2026-08-25
+## Prova isolada do retorno em 2026-08-25 — evidência histórica, rota cancelada
 
 O MCP local expôs uma ação sem argumentos e um widget com mensagem fixa
 `ORCH_PLUGIN_WAKE_POC`. A versão `v7` usou nomes novos de ferramenta e recurso
@@ -115,7 +127,7 @@ habilitado no tailnet, porém o cliente Windows não sincroniza com
 `controlplane.tailscale.com`; por isso nenhum Funnel foi criado. A alternativa
 adotada foi o Secure MCP Tunnel oficial, sem exposição pública do servidor.
 
-## Endpoint definitivo em 2026-08-25
+## Endpoint criado em 2026-08-25 — fora da rota vigente
 
 O app `FinancasBot Chat Wake Definitivo` foi criado e conectado ao Secure MCP
 Tunnel oficial. O servidor permanece restrito a `127.0.0.1:3210`, expõe apenas
@@ -129,7 +141,8 @@ somente a ferramenta definitiva e o recurso novo. O processo corrente continua
 ativo fora do ciclo do Codex App. A instalação de um watchdog no logon do
 Windows não foi aplicada porque a elevação recusou a persistência sem uma
 autorização específica posterior; isso não invalida a sessão atual, mas impede
-de declarar sobrevivência a reboot.
+de declarar sobrevivência a reboot. Após a decisão de 2026-08-27, esse endpoint
+não participa mais do canal operacional; sua remoção física é limpeza separada.
 
 ## Incidente de sincronização em 2026-08-26
 
@@ -176,11 +189,12 @@ Os artefatos que causaram o incidente foram preservados fora da worktree em
 
 ## Próxima ação
 
-Publicar e auditar o recovery, provisionar o clone dedicado, reinstalar o
-watcher e repetir uma única vez a tarefa remota ainda preservada em
-`CODEX_READY`. O smoke deve alcançar `CHAT_READY` e retornar ao Chat sem reenvio
-manual da tarefa.
+Publicar e auditar o candidato que preserva somente `CODEX_READY -> Codex App`.
+Com GO, reinstalar o watcher no clone dedicado e executar um único smoke
+marker-only: a tarefa deve alcançar `CHAT_READY`, exibir o aviso padronizado na
+própria tarefa do Codex e não criar pedido `mode=return`, mensagem de navegador
+ou nova execução de modelo.
 
 ## Capacidade
 
-`Codex App -> Sol -> Alto -> instalar e provar o watcher isolado e recuperável.`
+`Codex App -> Sol -> Médio -> auditar o cancelamento do retorno Browser e o aviso final na tarefa.`

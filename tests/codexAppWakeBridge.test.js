@@ -34,7 +34,7 @@ function fixture(t) {
         observed_hash: 'a'.repeat(64),
         task_id: 'ORCH02-POC-1',
         state_path: 'docs/agent-memory/workstreams/chat-codex-channel.state.json',
-        mode: 'return',
+        mode: 'execute',
         branch: 'chat/chat-codex-orchestration-20260824',
         repo_path: 'C:\\workspace\\financas-bot',
         created_at: '2026-08-25T00:00:00.000Z'
@@ -75,7 +75,7 @@ test('ponte usa configuração protegida e processa cada hash no máximo uma vez
         observed_hash: 'b'.repeat(64),
         task_id: 'ORCH02-POC-1',
         state_path: 'docs/agent-memory/workstreams/chat-codex-channel.state.json',
-        mode: 'return', branch: 'chat/chat-codex-orchestration-20260824',
+        mode: 'execute', branch: 'chat/chat-codex-orchestration-20260824',
         repo_path: 'C:\\workspace\\financas-bot',
         created_at: '2026-08-25T00:02:00.000Z'
     }));
@@ -87,7 +87,7 @@ test('ponte usa configuração protegida e processa cada hash no máximo uma vez
         observed_hash: 'a'.repeat(64),
         task_id: 'ORCH02-POC-1',
         state_path: 'docs/agent-memory/workstreams/chat-codex-channel.state.json',
-        mode: 'return', branch: 'chat/chat-codex-orchestration-20260824',
+        mode: 'execute', branch: 'chat/chat-codex-orchestration-20260824',
         repo_path: 'C:\\workspace\\financas-bot',
         created_at: '2026-08-25T00:03:00.000Z'
     }));
@@ -134,6 +134,14 @@ test('pedido gravável não pode injetar destino, tarefa ou prompt', t => {
     assert.throws(() => processWakeRequest(paths), /schema inválido/);
 });
 
+test('ponte recusa pedido legado de retorno ao Chat', t => {
+    const paths = fixture(t);
+    const request = JSON.parse(fs.readFileSync(paths.request, 'utf8'));
+    request.mode = 'return';
+    fs.writeFileSync(paths.request, JSON.stringify(request));
+    assert.throws(() => processWakeRequest(paths), /mode inválido/);
+});
+
 test('ponte recusa pedido ou marcador idempotente por link simbólico', t => {
     const paths = fixture(t);
     const original = path.join(path.dirname(paths.request), 'original.json');
@@ -157,7 +165,7 @@ test('launcher da ponte chama helper protegido sem shell', () => {
         helperPath: 'C:\\ProgramData\\FinancasBot\\bridge\\wake.js',
         observedHash: 'b'.repeat(64),
         statePath: 'docs/agent-memory/workstreams/chat-codex-channel.state.json',
-        taskId: 'ORCH02-POC-1', mode: 'return',
+        taskId: 'ORCH02-POC-1', mode: 'execute',
         branch: 'chat/chat-codex-orchestration-20260824',
         repoPath: 'C:\\workspace\\financas-bot'
     }, {
@@ -176,7 +184,7 @@ test('launcher da ponte chama helper protegido sem shell', () => {
     assert.deepEqual(invocation.args.slice(-10), [
         '--task-id', 'ORCH02-POC-1', '--state-path',
         'docs/agent-memory/workstreams/chat-codex-channel.state.json',
-        '--mode', 'return', '--branch', 'chat/chat-codex-orchestration-20260824',
+        '--mode', 'execute', '--branch', 'chat/chat-codex-orchestration-20260824',
         '--repo-path', 'C:\\workspace\\financas-bot'
     ]);
     assert.equal(response.status, 'accepted');

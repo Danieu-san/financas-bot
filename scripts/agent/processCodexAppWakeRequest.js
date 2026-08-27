@@ -59,7 +59,7 @@ function assertRequest(value) {
         throw new Error('state_path inválido');
     }
     if (Number.isNaN(Date.parse(value.created_at || ''))) throw new Error('created_at inválido');
-    if (!['execute', 'return'].includes(value.mode)) throw new Error('mode inválido');
+    if (value.mode !== 'execute') throw new Error('mode inválido');
     if (!/^[A-Za-z0-9._/-]+$/.test(value.branch || '')
         || value.branch.startsWith('-') || value.branch.includes('..')) {
         throw new Error('branch inválida');

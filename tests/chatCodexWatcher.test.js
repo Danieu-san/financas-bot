@@ -152,6 +152,8 @@ test('prompt é local, limitado e não contém ação financeira', () => {
     assert.match(prompt, /Não execute git fetch, add, commit ou push/);
     assert.match(prompt, /watcher publicará deterministicamente/);
     assert.match(prompt, /não afirme que houve publicação remota/);
+    assert.match(prompt, /Tarefa ORCH-01 concluída\. Resultado publicado no GitHub/);
+    assert.doesNotMatch(prompt, /ORCH_WAKE|Browser/);
 });
 
 test('exit zero sem avanço falha fechado', () => {

@@ -71,7 +71,7 @@ function executorDeps(deps = {}) {
     };
 }
 
-test('CHAT_READY acorda Codex App uma vez por hash', () => {
+test('CHAT_READY não acorda Codex App nem inicia retorno pelo navegador', () => {
     const item = fixture('CHAT_READY');
     const calls = [];
     const options = watcherOptions(item, {
@@ -82,37 +82,23 @@ test('CHAT_READY acorda Codex App uma vez por hash', () => {
         fetchRemoteState: () => item.raw,
         wakeCodexApp: value => calls.push(value)
     };
-    assert.equal(pollOnce(options, deps).action, 'app_wake_accepted');
+    assert.equal(pollOnce(options, deps).action, 'observed');
     assert.equal(pollOnce(options, deps).action, 'unchanged');
-    assert.equal(calls.length, 1);
-    assert.equal(calls[0].taskId, 'ORCH-01');
+    assert.equal(calls.length, 0);
     const cache = readCache(path.join(item.runtime, 'watcher-state.json'));
-    assert.equal(cache.app_wake_status, 'accepted');
-    assert.equal(cache.app_wake_hash.length, 64);
+    assert.equal(cache.app_wake_status, null);
+    assert.equal(cache.app_wake_hash, null);
 });
 
-test('CHAT_READY enfileira hash, tarefa e estado exatos para a ponte S4U', () => {
+test('CHAT_READY não enfileira pedido de retorno para a ponte S4U', () => {
     const item = fixture('CHAT_READY');
     const queue = path.join(item.runtime, 'bridge', 'request.json');
     fs.mkdirSync(path.dirname(queue), { recursive: true });
     const options = watcherOptions(item, { 'app-wake-request': queue });
-    assert.equal(pollOnce(options, { fetchRemoteState: () => item.raw }).action,
-        'app_wake_queued');
+    assert.equal(pollOnce(options, { fetchRemoteState: () => item.raw }).action, 'observed');
     assert.equal(pollOnce(options, { fetchRemoteState: () => item.raw }).action, 'unchanged');
-    const request = JSON.parse(fs.readFileSync(queue, 'utf8'));
-    assert.deepEqual(Object.keys(request), [
-        'schema', 'observed_hash', 'task_id', 'state_path', 'mode', 'branch', 'repo_path',
-        'created_at'
-    ]);
-    assert.equal(request.schema, 'financasbot-codex-app-wake-request-v3');
-    assert.equal(request.observed_hash, stateHash(item.raw));
-    assert.equal(request.task_id, 'ORCH-01');
-    assert.equal(request.state_path,
-        'docs/agent-memory/workstreams/chat-codex-channel.state.json');
-    assert.equal(request.mode, 'return');
-    assert.equal(request.branch, 'chat/chat-codex-orchestration-20260824');
-    assert.equal(request.repo_path, item.repo);
-    assert.equal(readCache(path.join(item.runtime, 'watcher-state.json')).app_wake_status, 'queued');
+    assert.equal(fs.existsSync(queue), false);
+    assert.equal(readCache(path.join(item.runtime, 'watcher-state.json')).app_wake_hash, null);
 });
 
 test('fila da ponte exige caminho absoluto e recusa symlink', t => {
@@ -173,21 +159,21 @@ test('launcher recusa aceite IPC sem cliente do Codex App confirmado', () => {
     }), /não confirmou o cliente/);
 });
 
-test('wake falho fica terminal para o mesmo hash', () => {
-    const item = fixture('CHAT_READY');
+test('wake de execução falho fica terminal para o mesmo hash', () => {
+    const item = fixture('CODEX_READY');
     let calls = 0;
     const options = watcherOptions(item, {
         'app-thread-id': '11111111-2222-4333-8444-555555555555',
         'chat-url': 'https://chatgpt.com/c/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
     });
-    assert.throws(() => pollOnce(options, {
+    assert.throws(() => pollOnce(options, executorDeps({
         fetchRemoteState: () => item.raw,
         wakeCodexApp() { calls += 1; throw new Error('IPC indisponível'); }
-    }), /IPC indisponível/);
-    assert.equal(pollOnce(options, {
+    })), /IPC indisponível/);
+    assert.equal(pollOnce(options, executorDeps({
         fetchRemoteState: () => item.raw,
         wakeCodexApp() { calls += 1; }
-    }).action, 'unchanged');
+    })).action, 'unchanged');
     assert.equal(calls, 1);
     assert.equal(readCache(path.join(item.runtime, 'watcher-state.json')).app_wake_status, 'failed');
 });

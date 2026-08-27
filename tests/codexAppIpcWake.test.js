@@ -17,13 +17,13 @@ const statePath = 'docs/agent-memory/workstreams/chat-codex-channel.state.json';
 const branch = 'chat/chat-codex-orchestration-20260824';
 const repoPath = 'C:\\workspace\\financas-bot';
 
-test('protocolo IPC usa pipe local fixo e start-turn versão 2', () => {
+test('protocolo IPC usa pipe local fixo e inicia somente execução', () => {
     const request = buildStartTurnRequest({
         chatUrl,
         observedHash: 'a'.repeat(64),
         requestId: 'request-1',
         statePath,
-        taskId: 'ORCH-01', mode: 'return', branch, repoPath,
+        taskId: 'ORCH-01', mode: 'execute', branch, repoPath,
         threadId
     });
     assert.equal(IPC_PATH, '\\\\.\\pipe\\codex-ipc');
@@ -33,7 +33,8 @@ test('protocolo IPC usa pipe local fixo e start-turn versão 2', () => {
     assert.equal(request.params.turnStart.request.threadId, threadId);
     assert.equal(request.params.turnStart.request.input.length, 1);
     assert.match(request.params.turnStart.request.input[0].text,
-        /envie exatamente: ORCH_WAKE ORCH-01 [a-f0-9]{64} docs\/agent-memory\/workstreams\/chat-codex-channel\.state\.json/);
+        /Tarefa ORCH-01 concluída\. Resultado publicado no GitHub/);
+    assert.doesNotMatch(request.params.turnStart.request.input[0].text, /ORCH_WAKE/);
     assert.deepEqual(request.params.turnStart.context.attachments, []);
 });
 
@@ -48,17 +49,11 @@ test('codec IPC recompõe frames fragmentados e múltiplos', () => {
     ]);
 });
 
-test('prompt identifica tarefa e estado exatos sem dados privados', () => {
-    const prompt = buildWakePrompt({
+test('prompt recusa modo de retorno ao Chat', () => {
+    assert.throws(() => buildWakePrompt({
         chatUrl, observedHash: 'b'.repeat(64), statePath, taskId: 'ORCH02-POC-1',
         mode: 'return', branch, repoPath
-    });
-    assert.match(prompt, /GitHub\/CHAT_READY/);
-    assert.match(prompt, /ORCH02-POC-1/);
-    assert.match(prompt, /chat-codex-channel\.state\.json/);
-    assert.match(prompt, /Use somente a ferramenta Browser/);
-    assert.match(prompt, /Depois de confirmar o envio, termine/);
-    assert.doesNotMatch(prompt, /senha|token|\.env/i);
+    }), /mode de wake inválido/);
 });
 
 test('prompt execute entrega Git e manifesto ao App sem usar Browser', () => {
@@ -71,6 +66,7 @@ test('prompt execute entrega Git e manifesto ao App sem usar Browser', () => {
     assert.match(prompt, /allowed_paths/);
     assert.match(prompt, /Não use Browser nesta etapa/);
     assert.doesNotMatch(prompt, /ORCH_WAKE/);
+    assert.match(prompt, /Tarefa ORCH02-POC-2 concluída\. Resultado publicado no GitHub/);
 });
 
 test('validação rejeita destino externo e argumentos incompletos', () => {
