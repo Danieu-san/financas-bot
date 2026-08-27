@@ -1,10 +1,13 @@
 # Estado — ROAD-00 Baseline verificável, Golden Set e inventário total
 
 Atualizado em: 2026-08-27
-Status: `ROAD-00 00.1..00.6 COMPLETE — CANDIDATO AGUARDANDO REVISÃO INDEPENDENTE`
+Status: `ROAD-00 GO — ENCERRADO APÓS REVISÃO INDEPENDENTE`
 Branch: `chat/financial-roadmap-road00-20260827`
 Roadmap canônico: `docs/plans/workstreams/financial-roadmap-canonical.md`
 Conteúdo normativo aprovado: `docs/plans/workstreams/financial-roadmap-draft-v2.md` blob `904d652fc1931ff5c80d6c1066ac5f57a96f5b84`
+Candidato auditado: `8cb524ab48ee5dc5b9c9db1a46907fe806f00af9`
+Parecer independente: `FIN-ROAD00-CLOSE-REVIEW-20260827` — `GO ROAD-00`
+Fechamento: `docs/agent-memory/workstreams/financial-roadmap-road00-close.md`
 
 ## Objetivo
 
@@ -17,7 +20,8 @@ Criar o ponto de verdade operacional antes de qualquer correção transversal: i
 - `docs/agent-memory/workstreams/financial-roadmap-road00-telemetry-health.md` — ROAD-00.4;
 - `docs/agent-memory/workstreams/financial-roadmap-road00-schema-fixtures.json` — ROAD-00.5;
 - `docs/agent-memory/workstreams/financial-roadmap-road00-external-gaps.md` — ROAD-00.6;
-- `docs/agent-memory/workstreams/financial-roadmap-road00-close-candidate.md` — candidato para auditoria independente.
+- `docs/agent-memory/workstreams/financial-roadmap-road00-close-candidate.md` — candidato imutável;
+- `docs/agent-memory/workstreams/financial-roadmap-road00-close.md` — fechamento após GO independente.
 
 ## Estado por etapa
 
@@ -31,7 +35,7 @@ Matriz `capability -> consumer -> source -> fallback -> telemetry -> rollback` c
 
 ### ROAD-00.3 — COMPLETE
 
-Golden Set sintético/sanitizado cobre identidade de cartão, competência/fatura, antes/no/depois do fechamento, compra 6x, projeção, refund, pagamento de fatura, transferência, recorrência, saldo completo/incompleto, budget dia/ciclo, unavailable vs zero, personal_sheet, follow-up, áudio marker-only/falha e double-count. Todos os casos têm `domain`, `metric`, `operation`, `timeBasis`, `scope`, `expected_source`, `evidence_state` e `expected_side_effects`.
+Golden Set sintético/sanitizado cobre identidade de cartão, competência/fatura, antes/no/depois do fechamento, compra 6x, projeção, refund, pagamento de fatura, transferência, recorrência, saldo completo/incompleto, budget dia/ciclo, unavailable vs zero, personal_sheet, follow-up, áudio marker-only/falha e double-count.
 
 ### ROAD-00.4 — COMPLETE
 
@@ -43,7 +47,11 @@ Fixtures congelam template atual, ranges/índices de readers e view de compatibi
 
 ### ROAD-00.6 — COMPLETE
 
-Lacunas externas foram registradas para Atacadão/Pluggy, áudio real, schema real, provenance de `Mês de Cobrança`, coverage de saldo, telemetria Fase 8, `legacy_auth_utility`, dashboard, cartões, writers Open Finance e release/flags atuais. Cada lacuna foi roteada para gate futuro; nenhuma foi resolvida por inferência.
+Lacunas externas foram registradas para Atacadão/Pluggy, áudio real, schema real, provenance de `Mês de Cobrança`, coverage de saldo, telemetria Fase 8, `legacy_auth_utility`, dashboard, cartões, writers Open Finance e release/flags atuais. Nenhuma foi resolvida por inferência.
+
+## Revisão independente — COMPLETE
+
+A tarefa `FIN-ROAD00-CLOSE-REVIEW-20260827` auditou o candidato imutável `8cb524ab48ee5dc5b9c9db1a46907fe806f00af9`, tentou refutar os critérios de saída e terminou em `GO ROAD-00`, sem achados ou lacuna indispensável para o fechamento documental.
 
 ## Invariantes preservados
 
@@ -54,8 +62,7 @@ Lacunas externas foram registradas para Atacadão/Pluggy, áudio real, schema re
 - nenhuma migração de schema;
 - nenhuma retirada ou soft-disable de legado;
 - nenhum onboarding real do Atacadão;
-- nenhuma correção do áudio;
-- ROAD-K0 continua bloqueado até parecer independente.
+- nenhuma correção do áudio.
 
 ## Gate de saída
 
@@ -65,13 +72,13 @@ Lacunas externas foram registradas para Atacadão/Pluggy, áudio real, schema re
 4. fixtures de schema congeladas — `SATISFIED`;
 5. shadows/canários/flags relevantes datados ou `UNKNOWN` — `SATISFIED`;
 6. lacunas externas registradas — `SATISFIED`;
-7. revisão independente — `PENDING`;
+7. revisão independente — `SATISFIED`;
 8. nenhuma alteração funcional — `SATISFIED`.
 
 ## Próxima ação
 
-Executar uma única revisão independente do candidato ROAD-00 por hash imutável. Se o parecer for GO sem lacuna indispensável, registrar o fechamento de ROAD-00 e somente então abrir ROAD-K0. Se houver NO-GO, corrigir apenas o artefato documental afetado e reauditar.
+Abrir ROAD-K0 em workstream/branch próprios para congelar o contrato mínimo de convergência semântica. O GO de ROAD-00 não autoriza implementação funcional.
 
 ## Capacidade
 
-`Codex App -> capacidade atual -> Alto -> revisar adversarialmente o candidato ROAD-00; zero produção e zero implementação`.
+`Chat/Codex -> capacidade atual -> Alto -> abrir ROAD-K0 documental e inventariar contratos semânticos existentes, sem implementação`.
