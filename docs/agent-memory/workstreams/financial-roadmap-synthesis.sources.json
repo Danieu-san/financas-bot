@@ -1,6 +1,6 @@
 {
   "schema": "financasbot-financial-roadmap-synthesis-v1",
-  "status": "DRAFT_V1_CREATED_AWAITING_CODEX_REVIEW",
+  "status": "DRAFT_V2_AWAITING_USER_CONFIRMATION",
   "as_of": "2026-08-27",
   "snapshot_base_sha": "98c30b5548a3f3ed06747acd6818adf833d3c628",
   "canonical_roadmap_allowed": false,
@@ -11,7 +11,9 @@
     "QA_GATE",
     "HISTORICAL_PLAN",
     "PENDING_AUDIT",
-    "HYPOTHESIS"
+    "HYPOTHESIS",
+    "EXTERNAL_REQUIRED",
+    "OPEN"
   ],
   "mandatory_sources": [
     {
@@ -31,7 +33,22 @@
     },
     {
       "path": "docs/agent-memory/workstreams/results/FIN-AUDIT-PRE-ROADMAP-RETRY-20260826.md",
-      "role": "independent Codex pre-roadmap audit published on chat/chat-codex-orchestration-20260824 commit ea3ad3a604ce99c580bf5d18bda2ecb365d27545",
+      "role": "independent Codex pre-roadmap audit published on orchestration branch commit ea3ad3a604ce99c580bf5d18bda2ecb365d27545",
+      "evidence_class": "QA_GATE"
+    },
+    {
+      "path": "docs/plans/workstreams/financial-roadmap-draft-v1.md",
+      "role": "first consolidated roadmap draft submitted to adversarial review",
+      "evidence_class": "QA_GATE"
+    },
+    {
+      "path": "docs/agent-memory/workstreams/results/FIN-ROADMAP-V1-REVIEW-20260827.md",
+      "role": "Codex adversarial review; candidate d2e045d44dbc9ec3419530884e0cb3674969d0f3 on orchestration branch; verdict APROVÁVEL APÓS AJUSTES",
+      "evidence_class": "QA_GATE"
+    },
+    {
+      "path": "docs/plans/workstreams/financial-roadmap-draft-v2.md",
+      "role": "reconciled roadmap containing all ten mandatory Codex adjustments; awaiting user confirmation",
       "evidence_class": "QA_GATE"
     },
     {
@@ -96,12 +113,12 @@
     },
     {
       "path": "tests/audioHandlerPrivacy.test.js",
-      "role": "current local regression coverage for audio retry, privacy, cleanup and failure handling",
+      "role": "local regression coverage for audio retry, privacy, cleanup and failure handling",
       "evidence_class": "CURRENT_CODE"
     },
     {
       "path": "src/handlers/messageHandler.js",
-      "role": "current integration point that feeds successful audio transcription back into normal message processing",
+      "role": "integration point returning successful transcription to normal processing",
       "evidence_class": "CURRENT_CODE"
     }
   ],
@@ -124,7 +141,8 @@
     "must_have_rollback": true,
     "must_check_whatsapp_dashboard_jobs_import_maintenance_as_applicable": true,
     "physical_removal_historical_card_gate_not_before": "2026-09-12",
-    "historical_gate_can_be_overridden_only_by": "explicit superseding evidence or user-approved new gate"
+    "historical_gate_can_be_overridden_only_by": "explicit superseding evidence or user-approved new gate",
+    "phase8_phase9_execution_model": "per-domain loop: migrate consumer -> source cutover -> stability window -> remove dead fallback"
   },
   "roadmap_entry_required_fields": [
     "id",
@@ -155,21 +173,25 @@
     "Do not collapse legado, Financial Agent v1 and novo agente/ARQ into one system label.",
     "Do not mark a legacy component removable from static search alone; require runtime evidence and applicable observation window.",
     "Do not call an evidence source current after its observation date without revalidation.",
-    "Do not infer the root cause of the audio failure from unit tests; distinguish user-reported runtime failure from code-level capability."
+    "Do not infer the root cause of the audio failure from unit tests; distinguish user-reported runtime failure from code-level capability.",
+    "A populated billing month is not confirmed without provenance because the current writer may have projected it from closingDay.",
+    "Do not call a balance current without coverage_start, coverage_end, as_of and completeness.",
+    "Keep ARQ at the delivered maximum of three tools unless a separate gate proves benefit and safety of expansion."
   ],
   "finalization_workflow": [
     "Chat consolidates draft v1 — COMPLETE",
-    "Codex independently tries to refute each phase — PENDING",
-    "Chat records and reconciles disagreements — PENDING",
-    "User explicitly confirms — PENDING",
+    "Codex independently tries to refute each phase — COMPLETE",
+    "Chat records and reconciles disagreements into draft v2 — COMPLETE",
+    "User explicitly confirms draft v2 — PENDING",
     "Only then canonical_roadmap_allowed may become true"
   ],
   "open_questions": [
-    "Which July Phase 8/9 statuses are still current in August runtime?",
-    "How should historical canonical installment schedules reconcile with current personal-sheet monthly entries?",
-    "What is the precedence model between configured closing day and actual statement billing evidence?",
-    "Does Pluggy discover the newly added Atacadao card dynamically or require mapping/configuration?",
-    "Which legacy consumers still have nonzero runtime usage and which observation windows are still open?",
-    "Where does the current real audio failure occur: WhatsApp media availability/download, message reacquisition, ffmpeg conversion, Gemini transcription, or post-transcription routing?"
+    "Which July Phase 8/9 telemetry and flags are healthy/current on 2026-08-27?",
+    "What provenance do historical billing-month rows actually have?",
+    "What is the authorized real mapping for Atacadao Pluggy -> alias -> card_id -> closing/due configuration?",
+    "Which personal sheets still have old headers in runtime?",
+    "Where does the current real audio failure occur?",
+    "Does each financial account have enough cumulative coverage for an as-of balance?",
+    "What is the current state of writer/Open Finance proposal gates after the historical documents used in review?"
   ]
 }
