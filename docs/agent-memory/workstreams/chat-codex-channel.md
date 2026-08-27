@@ -146,7 +146,10 @@ duas barreiras:
 - o instalador aceita somente o clone dedicado em
   `%LOCALAPPDATA%\FinancasBot\chat-codex-orchestration-repo`, limpo, sem caminhos
   ignorados e com `.git` próprio; worktrees de desenvolvimento são recusadas;
-  origem, branch e revisão são conferidas contra o remoto antes da instalação;
+  origem, branch operacional fixa e revisão são conferidas contra o remoto
+  antes da instalação; a branch não é parâmetro do chamador;
+  o runtime é canonicalizado fisicamente, inclusive através de junctions, e
+  precisa permanecer fora do clone;
 - `failed:sync_error` limpa apenas o latch daquele lançamento e permite nova
   tentativa mecânica do mesmo hash no próximo ciclo, sem iniciar modelo antes
   de a sincronização ficar limpa;
@@ -158,7 +161,15 @@ O primeiro candidato deste recovery recebeu `NO-GO` porque o modo App ainda não
 repetia a verificação de caminhos ignorados antes do wake. O recovery atual
 fecha essa lacuna e substitui a prova textual do instalador por testes causais
 com clones Git temporários, incluindo worktree vinculada, origem divergente,
-revisão atrasada, untracked e ignored.
+revisão atrasada, untracked, ignored, runtime interno/junction, branch
+divergente e watcher ausente.
+
+O segundo candidato, `7b3c4d5af97393089ff652fa4b6604bc74855206`,
+fechou o preflight App, mas recebeu `NO-GO` porque a branch ainda era parâmetro
+do instalador, o runtime era comparado apenas lexicalmente e faltavam negativos
+causais dessas fronteiras. O recovery atual remove o parâmetro de branch,
+canonicaliza o runtime através do filesystem e acrescenta essas provas sem
+alterar o protocolo do canal.
 
 Os artefatos que causaram o incidente foram preservados fora da worktree em
 `%LOCALAPPDATA%\FinancasBot\orchestration-artifacts\20260827-sync-error`.

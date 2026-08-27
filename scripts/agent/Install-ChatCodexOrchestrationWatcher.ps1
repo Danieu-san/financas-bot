@@ -2,7 +2,6 @@ param(
     [ValidateSet('Install', 'Remove', 'RunNow', 'Status')]
     [string]$Action = 'Status',
     [string]$RepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
-    [string]$Branch = 'chat/chat-codex-orchestration-20260824',
     [string]$TaskName = 'FinancasBot-ChatCodex-Orchestration',
     [string]$RunAsUser,
     [string]$AppThreadId,
@@ -40,6 +39,7 @@ $expectedRepositoryRoot = [IO.Path]::GetFullPath((Join-Path $interactiveProfile.
 $watcher = Join-Path $RepositoryRoot 'scripts\agent\watchChatCodexOrchestration.js'
 $repositoryValidator = Join-Path $PSScriptRoot 'validateChatCodexWatcherRepository.js'
 $expectedOrigin = 'https://github.com/Danieu-san/financas-bot.git'
+$branch = 'chat/chat-codex-orchestration-20260824'
 
 function Assert-OrchestrationProfileSafe {
     if (-not (Test-Path -LiteralPath $profilePath -PathType Leaf)) { return }
@@ -80,7 +80,7 @@ function Quote-Argument([string]$Value) {
 $arguments = @(
     (Quote-Argument $watcher),
     '--repo', (Quote-Argument $RepositoryRoot),
-    '--branch', (Quote-Argument $Branch),
+    '--branch', (Quote-Argument $branch),
     '--codex', (Quote-Argument $codex),
     '--git', (Quote-Argument $git),
     '--powershell', (Quote-Argument $powershell),
@@ -101,7 +101,7 @@ function Assert-WatcherRepositorySafe {
         '--expected-repo' $expectedRepositoryRoot `
         '--runtime' $runtime `
         '--git' $git `
-        '--branch' $Branch `
+        '--branch' $branch `
         '--expected-origin' $expectedOrigin 2>&1
     if ($LASTEXITCODE -ne 0) {
         throw "Clone dedicado recusado: $($validationOutput -join ' ')"

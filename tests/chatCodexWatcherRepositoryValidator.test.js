@@ -105,3 +105,41 @@ test('validador recusa linked worktree, origem divergente e revisão desatualiza
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /revisão local não corresponde/);
 });
+
+test('validador ancora caminho, runtime físico, branch e identidade do watcher', t => {
+    const item = fixture();
+    t.after(() => fs.rmSync(item.root, { recursive: true, force: true }));
+
+    let result = validate(item, ['--expected-repo', item.source]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /clone Git dedicado/);
+
+    const internalRuntime = path.join(item.dedicated, 'internal-runtime');
+    fs.mkdirSync(internalRuntime);
+    result = validate(item, ['--runtime', internalRuntime]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /runtime do watcher não pode ficar dentro/);
+    fs.rmSync(internalRuntime, { recursive: true });
+
+    fs.rmSync(item.runtime, { recursive: true });
+    fs.symlinkSync(path.join(item.dedicated, '.git'), item.runtime, 'junction');
+    result = validate(item);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /runtime do watcher não pode ficar dentro/);
+    fs.rmSync(item.runtime, { recursive: true });
+    fs.mkdirSync(item.runtime);
+
+    result = validate(item, ['--branch', 'chat/unauthorized']);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /branch local divergente/);
+
+    fs.rmSync(path.join(item.source, 'scripts', 'agent',
+        'watchChatCodexOrchestration.js'));
+    git(item.source, ['add', '-u']);
+    git(item.source, ['commit', '-m', 'remove watcher']);
+    git(item.source, ['push', item.origin, 'chat/test']);
+    git(item.dedicated, ['pull', '--ff-only']);
+    result = validate(item);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /Watcher ausente ou inválido/);
+});

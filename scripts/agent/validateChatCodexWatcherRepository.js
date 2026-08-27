@@ -35,6 +35,19 @@ function realFile(value, name) {
     return resolved;
 }
 
+function realPathAllowMissing(value, name) {
+    if (!path.isAbsolute(value)) throw new Error(`${name} deve ser absoluto`);
+    let cursor = path.resolve(value);
+    const suffix = [];
+    while (!fs.existsSync(cursor)) {
+        const parent = path.dirname(cursor);
+        if (parent === cursor) throw new Error(`${name} não possui ancestral existente`);
+        suffix.unshift(path.basename(cursor));
+        cursor = parent;
+    }
+    return path.join(fs.realpathSync(cursor), ...suffix);
+}
+
 function runGit(gitPath, repo, args) {
     const result = spawnSync(gitPath, ['-c', `safe.directory=${repo}`, '-C', repo, ...args], {
         encoding: 'utf8', windowsHide: true, timeout: 60_000
@@ -57,9 +70,7 @@ function normalizeOrigin(value) {
 function validateRepository(options) {
     const repo = realDirectory(required(options, 'repo'), 'repo');
     const expectedRepo = realDirectory(required(options, 'expected-repo'), 'expected-repo');
-    const runtimeValue = required(options, 'runtime');
-    if (!path.isAbsolute(runtimeValue)) throw new Error('runtime deve ser absoluto');
-    const runtime = path.resolve(runtimeValue);
+    const runtime = realPathAllowMissing(required(options, 'runtime'), 'runtime');
     const gitPath = realFile(required(options, 'git'), 'git');
     const branch = required(options, 'branch');
     const expectedOrigin = required(options, 'expected-origin');

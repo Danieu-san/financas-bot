@@ -1,6 +1,6 @@
 # Plano — canal permanente Chat ↔ Codex
 
-Status: `ORCH-02 recovery pós-NO-GO em reauditoria; instalação isolada pendente`.
+Status: `ORCH-02 segundo recovery pós-NO-GO em candidato local; instalação isolada pendente`.
 
 ## Objetivo
 
@@ -30,7 +30,7 @@ sem manter modelo ocioso e sem encerrar o canal ao concluir um trabalho.
 11. [pendente de autorização específica] Instalar watchdog no logon do Windows
     e comprovar recuperação dos processos sem iniciar modelo.
 12. [em reauditoria] Isolar o watcher num clone exclusivo, validar origem,
-    branch e revisão, tornar `failed:sync_error` recuperável para o mesmo hash e
+    branch fixa, revisão e runtime físico, tornar `failed:sync_error` recuperável e
     repetir o preflight de tracked/untracked/ignored imediatamente antes do App
     ou CLI.
 

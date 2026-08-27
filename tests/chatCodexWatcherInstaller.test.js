@@ -34,5 +34,7 @@ test('instalador recusa apagar lock sem provar PID morto', () => {
     assert.match(installer, /validateChatCodexWatcherRepository\.js/);
     assert.match(installer, /'--git' \$git/);
     assert.match(installer, /--expected-origin/);
+    assert.match(installer, /\$branch = 'chat\/chat-codex-orchestration-20260824'/);
+    assert.doesNotMatch(installer, /\[string\]\$Branch/);
     assert.doesNotMatch(installer, /chatgpt\.com\/c\/[0-9a-f-]{16,}/i);
 });
