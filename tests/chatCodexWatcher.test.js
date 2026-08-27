@@ -110,7 +110,7 @@ test('lock existente impede execução concorrente', () => {
     });
 });
 
-test('lock de PID morto é recuperado', () => {
+test('lock de PID morto falha fechado até limpeza pelo instalador', () => {
     const item = fixture();
     const cachePath = path.join(item.runtime, 'watcher-state.json');
     fs.mkdirSync(item.runtime);
@@ -119,13 +119,12 @@ test('lock de PID morto é recuperado', () => {
         created_at: '2026-08-24T00:00:00.000Z'
     }));
     let executions = 0;
-    const result = withWatcherLock(cachePath, () => {
-        executions += 1;
-        return { action: 'recovered' };
-    }, { processIsAlive: () => false });
-    assert.deepEqual(result, { action: 'recovered' });
-    assert.equal(executions, 1);
-    assert.equal(fs.existsSync(`${cachePath}.lock`), false);
+    const result = withWatcherLock(cachePath, () => { executions += 1; }, {
+        processIsAlive: () => false
+    });
+    assert.deepEqual(result, { action: 'already_running' });
+    assert.equal(executions, 0);
+    assert.equal(fs.existsSync(`${cachePath}.lock`), true);
 });
 
 test('wake App não relança enquanto o mesmo CODEX_READY permanece remoto', () => {

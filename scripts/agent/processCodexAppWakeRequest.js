@@ -122,29 +122,16 @@ function processIsAlive(pid) {
 function withProcessLock(lockPath, callback, deps = {}) {
     fs.mkdirSync(path.dirname(lockPath), { recursive: true });
     let descriptor;
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-        try {
-            descriptor = fs.openSync(lockPath, 'wx');
-            fs.writeFileSync(descriptor, JSON.stringify({
-                pid: process.pid,
-                created_at: new Date().toISOString()
-            }));
-            break;
-        } catch (error) {
-            if (error.code !== 'EEXIST') throw error;
-            let existing;
-            try {
-                existing = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
-            } catch {
-                return { action: 'already_running' };
-            }
-            const validPid = Number.isSafeInteger(existing?.pid) && existing.pid > 0;
-            const alive = validPid && (deps.processIsAlive || processIsAlive)(existing.pid);
-            if (alive || !validPid || attempt > 0) return { action: 'already_running' };
-            fs.rmSync(lockPath, { force: true });
-        }
+    try {
+        descriptor = fs.openSync(lockPath, 'wx');
+        fs.writeFileSync(descriptor, JSON.stringify({
+            pid: process.pid,
+            created_at: new Date().toISOString()
+        }));
+    } catch (error) {
+        if (error.code === 'EEXIST') return { action: 'already_running' };
+        throw error;
     }
-    if (descriptor === undefined) return { action: 'already_running' };
     try {
         return callback();
     } finally {

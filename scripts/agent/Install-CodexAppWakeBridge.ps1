@@ -17,6 +17,7 @@ $statePath = Join-Path $bridgeRoot 'state'
 $configPath = Join-Path $bridgeRoot 'config.json'
 $requestPath = Join-Path $inboxPath 'request.json'
 $resultPath = Join-Path $statePath 'result.json'
+$lockPath = "$resultPath.lock"
 $workerSource = Join-Path $PSScriptRoot 'processCodexAppWakeRequest.js'
 $helperSource = Join-Path $PSScriptRoot 'wakeCodexAppViaIpc.js'
 $stateContractSource = Join-Path $PSScriptRoot 'manageChatCodexOrchestration.js'
@@ -56,13 +57,16 @@ function New-AccessRule([string]$Identity, [Security.AccessControl.FileSystemRig
     )
 }
 
-function Set-BridgeAcl([string]$Path, [bool]$WriterCanModify) {
+function Set-BridgeAcl([string]$Path, [string]$AppRights, [string]$WriterRights) {
     $acl = [Security.AccessControl.DirectorySecurity]::new()
     $acl.SetAccessRuleProtection($true, $false)
-    [void]$acl.AddAccessRule((New-AccessRule $AppUser 'FullControl'))
+    $administrators = ([Security.Principal.SecurityIdentifier]'S-1-5-32-544').Translate(
+        [Security.Principal.NTAccount]
+    ).Value
+    [void]$acl.AddAccessRule((New-AccessRule $AppUser $AppRights))
     [void]$acl.AddAccessRule((New-AccessRule 'NT AUTHORITY\SYSTEM' 'FullControl'))
-    $writerRights = if ($WriterCanModify) { 'Modify' } else { 'ReadAndExecute' }
-    [void]$acl.AddAccessRule((New-AccessRule $RequestWriterUser $writerRights))
+    [void]$acl.AddAccessRule((New-AccessRule $administrators 'FullControl'))
+    [void]$acl.AddAccessRule((New-AccessRule $RequestWriterUser $WriterRights))
     Set-Acl -LiteralPath $Path -AclObject $acl
 }
 
@@ -92,6 +96,24 @@ function Assert-TaskIdle {
     }
 }
 
+function Assert-BridgeLifecycleSafe {
+    Assert-TaskIdle
+    if (-not (Test-Path -LiteralPath $lockPath -PathType Leaf)) { return }
+    try {
+        $lock = Get-Content -LiteralPath $lockPath -Raw | ConvertFrom-Json -ErrorAction Stop
+        $lockPid = [int]$lock.pid
+    } catch {
+        throw "Lock da ponte malformado em $lockPath; remocao automatica recusada."
+    }
+    if ($lockPid -le 0) {
+        throw "Lock da ponte sem PID valido em $lockPath; remocao automatica recusada."
+    }
+    if (Get-Process -Id $lockPid -ErrorAction SilentlyContinue) {
+        throw "Lock da ponte pertence ao processo vivo $lockPid; remocao automatica recusada."
+    }
+    Remove-Item -LiteralPath $lockPath -Force
+}
+
 function Quote-Argument([string]$Value) {
     if ($Value.Contains('"')) { throw 'Argumento contem aspas nao suportadas.' }
     return '"' + $Value + '"'
@@ -101,7 +123,7 @@ switch ($Action) {
     'Install' {
         Assert-Administrator
         Assert-Inputs
-        Assert-TaskIdle
+        Assert-BridgeLifecycleSafe
         foreach ($path in @($bridgeRoot, $binPath, $inboxPath, $statePath)) {
             [void](New-Item -ItemType Directory -Path $path -Force)
         }
@@ -119,10 +141,10 @@ switch ($Action) {
             state_path = $operationalStatePath
         } | ConvertTo-Json
         [IO.File]::WriteAllText($configPath, "$config`n", [Text.UTF8Encoding]::new($false))
-        Set-BridgeAcl $bridgeRoot $false
-        Set-BridgeAcl $binPath $false
-        Set-BridgeAcl $inboxPath $true
-        Set-BridgeAcl $statePath $false
+        Set-BridgeAcl $bridgeRoot 'ReadAndExecute' 'ReadAndExecute'
+        Set-BridgeAcl $binPath 'ReadAndExecute' 'ReadAndExecute'
+        Set-BridgeAcl $inboxPath 'Modify' 'Modify'
+        Set-BridgeAcl $statePath 'Modify' 'ReadAndExecute'
 
         $arguments = @(
             (Quote-Argument $workerInstalled), '--config', (Quote-Argument $configPath),
@@ -159,7 +181,7 @@ switch ($Action) {
     }
     'Remove' {
         Assert-Administrator
-        Assert-TaskIdle
+        Assert-BridgeLifecycleSafe
         if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) {
             Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
         }

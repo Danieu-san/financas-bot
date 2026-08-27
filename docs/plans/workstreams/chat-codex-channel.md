@@ -1,6 +1,6 @@
 # Plano — canal permanente Chat ↔ Codex
 
-Status: `ORCH-02 recovery App-only em candidato local após NO-GO independente`.
+Status: `ORCH-02 segundo recovery App-only em validação após NO-GO independente`.
 
 ## Objetivo
 
@@ -26,10 +26,12 @@ alegar que o push foi confirmado.
 8. [histórico; rota cancelada] O PoC MCP provou envio assistido, não autonomia
    operacional sem confirmação presencial.
 9. [histórico; fora da rota] O Secure MCP Tunnel não participa do canal vigente.
-10. [candidato aguardando auditoria] Primeiro candidato recebeu NO-GO; o
-    recovery fecha aviso não causal, bypass do request local, fallback CLI e
-    corrida interprocesso. Bateria causal completa `64/64` verde; falta
-    reauditar um único hash imutável.
+10. [em recovery] O candidato `6f9a5efd...` recebeu NO-GO: restavam modo App
+    direto, ACL agregável para `FullControl`, reclaim ABA de locks e state path
+    configurável. O segundo recovery remove o bypass direto, aplica privilégio
+    mínimo mesmo com a mesma conta, deixa locks obsoletos fail-closed e fixa o
+    state path. Baterias causal `43/43` e ampla `63/63` estão verdes; faltam
+    publicação e uma única reauditoria.
 11. [pendente de autorização específica] Instalar watchdog no logon do Windows
     e comprovar recuperação dos processos sem iniciar modelo.
 12. [concluída] Isolar o watcher num clone exclusivo, validar origem,
@@ -68,6 +70,6 @@ perder a ordenação causal.
 
 ## Próxima ação
 
-Publicar e reauditar o recovery. Com GO, reinstalar o watcher no clone dedicado
+Concluir, publicar e reauditar o segundo recovery. Com GO, reinstalar o watcher no clone dedicado
 e executar um único smoke marker-only, confirmando `CHAT_READY`, ausência de
 pedido de retorno e CLI, e aviso final não afirmativo na tarefa do Codex.

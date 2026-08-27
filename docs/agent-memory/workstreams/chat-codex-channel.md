@@ -13,7 +13,7 @@ serviço.
 
 ## Estado operacional
 
-`ORCH-02 RECOVERY APP-ONLY EM CANDIDATO LOCAL APÓS NO-GO INDEPENDENTE`.
+`ORCH-02 SEGUNDO RECOVERY APP-ONLY EM VALIDAÇÃO LOCAL APÓS NO-GO INDEPENDENTE`.
 
 ### Fronteira congelada
 
@@ -169,14 +169,27 @@ O recovery App-only posterior passou em `64/64` testes herméticos. Ele remove
 o caminho executável do CLI, reduz o request local a dados não autoritativos,
 revalida hash e `CODEX_READY` no remoto a partir da configuração protegida,
 serializa workers concorrentes e terminaliza pedidos legados de retorno. Esse
-resultado permanece candidato até a auditoria independente do novo hash.
+resultado foi publicado em `6f9a5efd9c682e23004c84185607368806bab953` e
+recebeu `NO-GO` independente. O parecer fechou aviso, request, CLI e retorno
+legado, mas encontrou quatro lacunas: modo App direto ainda instalável, ACL que
+virava `FullControl` quando App e writer eram a mesma conta, reclaim concorrente
+de lock sujeito a ABA e state path ainda configurável no watcher.
+
+O segundo recovery remove completamente o modo direto e aceita somente a ponte
+endurecida; fixa o mesmo state path nos dois instaladores; limita App e writer a
+leitura em raiz/bin e a `Modify` apenas onde cada processo escreve; e proíbe
+reclaim automático de lock pelos workers. Lock obsoleto agora falha fechado e
+só pode ser limpo pelo instalador depois de provar tarefa parada e PID morto. A
+bateria causal afetada passou em `43/43` e a suíte hermética ampla final passou
+em `63/63`; o workflow e `git diff --check` também estão verdes.
 
 Os artefatos que causaram o incidente foram preservados fora da worktree em
 `%LOCALAPPDATA%\FinancasBot\orchestration-artifacts\20260827-sync-error`.
 
 ## Próxima ação
 
-Publicar e reauditar o recovery que preserva somente `CODEX_READY -> Codex App`.
+Concluir a suíte ampla, publicar e reauditar o segundo recovery que preserva
+somente `CODEX_READY -> ponte endurecida -> Codex App`.
 Com GO, reinstalar o watcher no clone dedicado e executar um único smoke
 marker-only: a tarefa deve alcançar `CHAT_READY`, exibir o aviso não afirmativo
 na própria tarefa do Codex e não criar pedido `mode=return`, mensagem de
@@ -184,4 +197,4 @@ navegador ou execução CLI.
 
 ## Capacidade
 
-`Chat -> Sol -> Alto -> reauditar o recovery App-only e suas garantias causais.`
+`Codex -> Sol -> Alto -> fechar o candidato e pedir uma única reauditoria por hash.`

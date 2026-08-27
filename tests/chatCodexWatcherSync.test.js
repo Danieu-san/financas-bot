@@ -12,8 +12,7 @@ const {
     queueCodexAppWakeRequest,
     readCache,
     runGit,
-    syncLocalBranch,
-    wakeCodexApp
+    syncLocalBranch
 } = require('../scripts/agent/watchChatCodexOrchestration');
 
 function fixture(state = 'CHAT_WORKING') {
@@ -71,25 +70,6 @@ function executorDeps(deps = {}) {
     };
 }
 
-test('CHAT_READY não acorda Codex App nem inicia retorno pelo navegador', () => {
-    const item = fixture('CHAT_READY');
-    const calls = [];
-    const options = watcherOptions(item, {
-        'app-thread-id': '11111111-2222-4333-8444-555555555555',
-        'chat-url': 'https://chatgpt.com/c/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
-    });
-    const deps = {
-        fetchRemoteState: () => item.raw,
-        wakeCodexApp: value => calls.push(value)
-    };
-    assert.equal(pollOnce(options, deps).action, 'observed');
-    assert.equal(pollOnce(options, deps).action, 'unchanged');
-    assert.equal(calls.length, 0);
-    const cache = readCache(path.join(item.runtime, 'watcher-state.json'));
-    assert.equal(cache.app_wake_status, null);
-    assert.equal(cache.app_wake_hash, null);
-});
-
 test('CHAT_READY não enfileira pedido de retorno para a ponte S4U', () => {
     const item = fixture('CHAT_READY');
     const queue = path.join(item.runtime, 'bridge', 'request.json');
@@ -121,61 +101,6 @@ test('fila da ponte exige caminho absoluto e recusa symlink', t => {
         observedHash: 'a'.repeat(64), requestPath: target,
         statePath: 'docs/agent-memory/workstreams/channel.state.json', taskId: 'ORCH-01'
     }), /link simbólico/);
-});
-
-test('launcher do wake chama helper Node sem shell', () => {
-    let invocation;
-    const result = wakeCodexApp({
-        chatUrl: 'https://chatgpt.com/c/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
-        observedHash: 'a'.repeat(64),
-        statePath: 'docs/agent-memory/workstreams/chat-codex-channel.state.json',
-        taskId: 'ORCH-01',
-        threadId: '11111111-2222-4333-8444-555555555555'
-    }, {
-        spawnSync(command, args, options) {
-            invocation = { command, args, options };
-            return {
-                status: 0,
-                stdout: '{"status":"accepted","handledByClientId":"99999999-8888-4777-8666-555555555555"}\n',
-                stderr: ''
-            };
-        }
-    });
-    assert.equal(invocation.command, process.execPath);
-    assert.match(invocation.args[0], /wakeCodexAppViaIpc\.js$/);
-    assert.equal(invocation.options.windowsHide, true);
-    assert.equal(result.status, 'accepted');
-});
-
-test('launcher recusa aceite IPC sem cliente do Codex App confirmado', () => {
-    assert.throws(() => wakeCodexApp({
-        chatUrl: 'https://chatgpt.com/c/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
-        observedHash: 'a'.repeat(64),
-        statePath: 'docs/agent-memory/workstreams/chat-codex-channel.state.json',
-        taskId: 'ORCH-01',
-        threadId: '11111111-2222-4333-8444-555555555555'
-    }, {
-        spawnSync: () => ({ status: 0, stdout: '{"status":"accepted"}\n', stderr: '' })
-    }), /não confirmou o cliente/);
-});
-
-test('wake de execução falho fica terminal para o mesmo hash', () => {
-    const item = fixture('CODEX_READY');
-    let calls = 0;
-    const options = watcherOptions(item, {
-        'app-thread-id': '11111111-2222-4333-8444-555555555555',
-        'chat-url': 'https://chatgpt.com/c/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
-    });
-    assert.throws(() => pollOnce(options, executorDeps({
-        fetchRemoteState: () => item.raw,
-        wakeCodexApp() { calls += 1; throw new Error('IPC indisponível'); }
-    })), /IPC indisponível/);
-    assert.equal(pollOnce(options, executorDeps({
-        fetchRemoteState: () => item.raw,
-        wakeCodexApp() { calls += 1; }
-    })).action, 'unchanged');
-    assert.equal(calls, 1);
-    assert.equal(readCache(path.join(item.runtime, 'watcher-state.json')).app_wake_status, 'failed');
 });
 
 test('hash novo de CODEX_READY permite novo disparo', () => {

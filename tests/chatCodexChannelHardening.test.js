@@ -6,13 +6,17 @@ const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
 const { serializeState, stateHash } = require('../scripts/agent/manageChatCodexOrchestration');
-const { pollOnce } = require('../scripts/agent/watchChatCodexOrchestration');
+const {
+    pollOnce,
+    withWatcherLock
+} = require('../scripts/agent/watchChatCodexOrchestration');
 const { buildWakePrompt } = require('../scripts/agent/wakeCodexAppViaIpc');
 const {
     CONFIG_SCHEMA,
     REQUEST_SCHEMA,
     LEGACY_REQUEST_SCHEMA,
-    processWakeRequest
+    processWakeRequest,
+    withProcessLock
 } = require('../scripts/agent/processCodexAppWakeRequest');
 
 function remoteState(taskId = 'ORCH02-HARDENING') {
@@ -171,4 +175,51 @@ test('pedido legado mode=return é terminalizado e removido sem wake', t => {
     const store = JSON.parse(fs.readFileSync(paths.result, 'utf8'));
     assert.equal(store.records[0].status, 'failed');
     assert.equal(store.records[0].error_code, 'LEGACY_RETURN_REJECTED');
+});
+
+test('todo CODEX_READY usa exclusivamente a ponte endurecida', () => {
+    const watcher = fs.readFileSync(path.join(
+        __dirname, '..', 'scripts', 'agent', 'watchChatCodexOrchestration.js'
+    ), 'utf8');
+    const installer = fs.readFileSync(path.join(
+        __dirname, '..', 'scripts', 'agent', 'Install-ChatCodexOrchestrationWatcher.ps1'
+    ), 'utf8');
+    assert.doesNotMatch(watcher, /function wakeCodexApp|app-thread-id|chat-url/);
+    assert.doesNotMatch(installer, /AppThreadId|ChatUrl|--app-thread-id|--chat-url/);
+    assert.match(installer, /AppWakeRequestPath/);
+    assert.match(installer, /A instalacao exige AppWakeRequestPath/);
+});
+
+test('ACL mantém bin e config somente leitura mesmo quando App e writer são a mesma conta', () => {
+    const installer = fs.readFileSync(path.join(
+        __dirname, '..', 'scripts', 'agent', 'Install-CodexAppWakeBridge.ps1'
+    ), 'utf8');
+    assert.doesNotMatch(installer, /New-AccessRule \$AppUser 'FullControl'/);
+    assert.match(installer, /Set-BridgeAcl \$bridgeRoot 'ReadAndExecute'/);
+    assert.match(installer, /Set-BridgeAcl \$binPath 'ReadAndExecute'/);
+    assert.match(installer, /Set-BridgeAcl \$inboxPath 'Modify'/);
+    assert.match(installer, /Set-BridgeAcl \$statePath 'Modify'/);
+});
+
+test('locks obsoletos falham fechados sem reclaim ABA automático', t => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'orch-stale-lock-'));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const bridgeLock = path.join(root, 'bridge.lock');
+    const watcherCache = path.join(root, 'watcher-state.json');
+    fs.writeFileSync(bridgeLock, JSON.stringify({
+        pid: 999999, created_at: '2026-08-27T00:00:00.000Z'
+    }));
+    fs.writeFileSync(`${watcherCache}.lock`, JSON.stringify({
+        pid: 999999, created_at: '2026-08-27T00:00:00.000Z'
+    }));
+    let executions = 0;
+    assert.deepEqual(withProcessLock(bridgeLock, () => { executions += 1; }, {
+        processIsAlive: () => false
+    }), { action: 'already_running' });
+    assert.deepEqual(withWatcherLock(watcherCache, () => { executions += 1; }, {
+        processIsAlive: () => false
+    }), { action: 'already_running' });
+    assert.equal(executions, 0);
+    assert.equal(fs.existsSync(bridgeLock), true);
+    assert.equal(fs.existsSync(`${watcherCache}.lock`), true);
 });

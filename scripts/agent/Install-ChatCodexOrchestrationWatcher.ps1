@@ -4,10 +4,7 @@ param(
     [string]$RepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
     [string]$TaskName = 'FinancasBot-ChatCodex-Orchestration',
     [string]$RunAsUser,
-    [string]$AppThreadId,
-    [string]$ChatUrl,
-    [string]$AppWakeRequestPath,
-    [string]$StatePath = 'docs/agent-memory/workstreams/chat-codex-channel.state.json'
+    [string]$AppWakeRequestPath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -31,6 +28,7 @@ $watcher = Join-Path $RepositoryRoot 'scripts\agent\watchChatCodexOrchestration.
 $repositoryValidator = Join-Path $PSScriptRoot 'validateChatCodexWatcherRepository.js'
 $expectedOrigin = 'https://github.com/Danieu-san/financas-bot.git'
 $branch = 'chat/chat-codex-orchestration-20260824'
+$statePath = 'docs/agent-memory/workstreams/chat-codex-channel.state.json'
 
 function Assert-WatcherLifecycleSafe {
     $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
@@ -66,12 +64,8 @@ $arguments = @(
     '--branch', (Quote-Argument $branch),
     '--git', (Quote-Argument $git),
     '--runtime', (Quote-Argument $runtime),
-    '--state-path', (Quote-Argument $StatePath)
+    '--state-path', (Quote-Argument $statePath)
 )
-if ($StatePath -notmatch '^[A-Za-z0-9._/-]+$' -or
-    $StatePath.Contains('..') -or [System.IO.Path]::IsPathRooted($StatePath)) {
-    throw 'StatePath deve ser um caminho relativo seguro.'
-}
 
 function Assert-WatcherRepositorySafe {
     if (-not (Test-Path -LiteralPath $repositoryValidator -PathType Leaf)) {
@@ -88,32 +82,8 @@ function Assert-WatcherRepositorySafe {
         throw "Clone dedicado recusado: $($validationOutput -join ' ')"
     }
 }
-if ([bool]$AppThreadId -xor [bool]$ChatUrl) {
-    throw 'AppThreadId e ChatUrl devem ser informados juntos.'
-}
-if ($AppWakeRequestPath -and ($AppThreadId -or $ChatUrl)) {
-    throw 'AppWakeRequestPath e exclusivo de AppThreadId/ChatUrl.'
-}
-if ($Action -eq 'Install' -and -not $AppWakeRequestPath -and -not ($AppThreadId -and $ChatUrl)) {
-    throw 'A instalacao exige executor Codex App; informe AppWakeRequestPath ou AppThreadId/ChatUrl.'
-}
-if ($AppThreadId -and $ChatUrl) {
-    if ($AppThreadId -notmatch '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$') {
-        throw 'AppThreadId invalido.'
-    }
-    $parsedChatUrl = $null
-    if (-not [Uri]::TryCreate($ChatUrl, [UriKind]::Absolute, [ref]$parsedChatUrl) -or
-        $parsedChatUrl.Scheme -ne 'https' -or
-        $parsedChatUrl.Host -ne 'chatgpt.com' -or
-        $parsedChatUrl.Query -or
-        $parsedChatUrl.Fragment -or
-        $parsedChatUrl.AbsolutePath -notmatch '^/(?:g/[^/]+/)?c/[0-9a-fA-F-]+/?$') {
-        throw 'ChatUrl deve apontar para uma conversa HTTPS do chatgpt.com.'
-    }
-    $arguments += @(
-        '--app-thread-id', (Quote-Argument $AppThreadId),
-        '--chat-url', (Quote-Argument $ChatUrl)
-    )
+if ($Action -eq 'Install' -and -not $AppWakeRequestPath) {
+    throw 'A instalacao exige AppWakeRequestPath.'
 }
 if ($AppWakeRequestPath) {
     if (-not [System.IO.Path]::IsPathRooted($AppWakeRequestPath)) {

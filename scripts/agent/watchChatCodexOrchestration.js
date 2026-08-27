@@ -125,66 +125,22 @@ function withWatcherLock(cachePath, callback, deps = {}) {
     fs.mkdirSync(path.dirname(cachePath), { recursive: true });
     const lockPath = `${cachePath}.lock`;
     let descriptor;
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-        try {
-            descriptor = fs.openSync(lockPath, 'wx');
-            fs.writeFileSync(descriptor, JSON.stringify({
-                pid: process.pid,
-                created_at: new Date().toISOString()
-            }));
-            break;
-        } catch (error) {
-            if (error.code !== 'EEXIST') throw error;
-            let existing;
-            try {
-                existing = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
-            } catch {
-                return { action: 'already_running' };
-            }
-            const validPid = Number.isSafeInteger(existing?.pid) && existing.pid > 0;
-            const alive = validPid && (deps.processIsAlive || processIsAlive)(existing.pid);
-            if (alive || !validPid || attempt > 0) return { action: 'already_running' };
-            fs.rmSync(lockPath, { force: true });
-        }
+    try {
+        descriptor = fs.openSync(lockPath, 'wx');
+        fs.writeFileSync(descriptor, JSON.stringify({
+            pid: process.pid,
+            created_at: new Date().toISOString()
+        }));
+    } catch (error) {
+        if (error.code === 'EEXIST') return { action: 'already_running' };
+        throw error;
     }
-    if (descriptor === undefined) return { action: 'already_running' };
     try {
         return callback();
     } finally {
         fs.closeSync(descriptor);
         fs.rmSync(lockPath, { force: true });
     }
-}
-
-function wakeCodexApp({ branch, chatUrl, mode, observedHash, repoPath, statePath, taskId, threadId }, deps = {}) {
-    const spawn = deps.spawnSync || spawnSync;
-    const helper = path.join(__dirname, 'wakeCodexAppViaIpc.js');
-    const result = spawn(process.execPath, [
-        helper,
-        '--thread-id', threadId,
-        '--chat-url', chatUrl,
-        '--hash', observedHash,
-        '--task-id', taskId,
-        '--state-path', statePath,
-        '--mode', mode,
-        '--branch', branch,
-        '--repo-path', repoPath
-    ], {
-        encoding: 'utf8',
-        windowsHide: true,
-        timeout: 15_000
-    });
-    if (result.error) throw result.error;
-    if (result.status !== 0) {
-        throw new Error(`Codex App wake falhou: ${(result.stderr || '').trim() || result.status}`);
-    }
-    const response = JSON.parse(result.stdout);
-    if (response.status !== 'accepted') throw new Error('Codex App não aceitou o wake');
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-        .test(response.handledByClientId || '')) {
-        throw new Error('wake IPC não confirmou o cliente do Codex App');
-    }
-    return response;
 }
 
 function queueCodexAppWakeRequest({ mode, observedHash, requestPath }, deps = {}) {
@@ -212,16 +168,8 @@ function maybeWakeCodexApp({ cache, cachePath, options, observedHash, state }, d
         return { cache, action: null };
     }
     const mode = 'execute';
-    const threadId = options['app-thread-id'];
-    const chatUrl = options['chat-url'];
     const requestPath = options['app-wake-request'];
-    if (requestPath && (threadId || chatUrl)) {
-        throw new Error('app-wake-request é exclusivo de app-thread-id/chat-url');
-    }
-    if (!threadId && !chatUrl && !requestPath) return { cache, action: null };
-    if (!requestPath && (!threadId || !chatUrl)) {
-        throw new Error('app-thread-id e chat-url devem ser informados juntos');
-    }
+    if (!requestPath) return { cache, action: null };
     if (cache.app_wake_hash === observedHash) return { cache, action: 'already_dispatched' };
 
     let nextCache = saveCache(cachePath, {
@@ -233,26 +181,12 @@ function maybeWakeCodexApp({ cache, cachePath, options, observedHash, state }, d
     }, deps.now?.() || new Date());
     let dispatchStatus;
     try {
-        if (requestPath) {
-            (deps.queueCodexAppWakeRequest || queueCodexAppWakeRequest)({
-                observedHash,
-                mode,
-                requestPath
-            }, deps);
-            dispatchStatus = 'queued';
-        } else {
-            (deps.wakeCodexApp || wakeCodexApp)({
-                chatUrl,
-                branch: options.branch || DEFAULT_BRANCH,
-                mode,
-                observedHash,
-                repoPath: options.repo,
-                statePath: options['state-path'] || DEFAULT_STATE_PATH,
-                taskId: state.task_id,
-                threadId
-            }, deps);
-            dispatchStatus = 'accepted';
-        }
+        (deps.queueCodexAppWakeRequest || queueCodexAppWakeRequest)({
+            observedHash,
+            mode,
+            requestPath
+        }, deps);
+        dispatchStatus = 'queued';
     } catch (error) {
         nextCache = saveCache(cachePath, {
             ...nextCache,
@@ -384,8 +318,7 @@ function pollOnce(options, deps = {}) {
         let cache = readCache(cachePath);
 
         const usesAppExecutor = state.orchestration_state === 'CODEX_READY'
-            && Boolean(options['app-wake-request']
-                || (options['app-thread-id'] && options['chat-url']));
+            && Boolean(options['app-wake-request']);
         const observationUnchanged = cache.observed_hash === observedHash
             && cache.observed_state === state.orchestration_state;
         const codeReadyAwaitingRetry = state.orchestration_state === 'CODEX_READY'
@@ -467,8 +400,7 @@ function pollOnce(options, deps = {}) {
             cache: readCache(cachePath), cachePath, options, observedHash, state
         }, deps);
         return {
-            action: executionWake.action === 'accepted'
-                ? 'app_task_accepted' : 'app_task_queued',
+            action: 'app_task_queued',
             hash: observedHash,
             state: state.orchestration_state
         };
@@ -518,6 +450,5 @@ module.exports = {
     saveCache,
     processIsAlive,
     syncLocalBranch,
-    wakeCodexApp,
     withWatcherLock
 };
