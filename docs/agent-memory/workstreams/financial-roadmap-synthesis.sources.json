@@ -1,8 +1,8 @@
 {
   "schema": "financasbot-financial-roadmap-synthesis-v1",
-  "status": "CONTROL_ONLY",
-  "as_of": "2026-08-26",
-  "snapshot_base_sha": "8c93e1edd5b8c9b98055cfc6ca4283c2932de96b",
+  "status": "DRAFT_V1_CREATED_AWAITING_CODEX_REVIEW",
+  "as_of": "2026-08-27",
+  "snapshot_base_sha": "98c30b5548a3f3ed06747acd6818adf833d3c628",
   "canonical_roadmap_allowed": false,
   "evidence_classes": [
     "USER_DECISION",
@@ -31,8 +31,8 @@
     },
     {
       "path": "docs/agent-memory/workstreams/results/FIN-AUDIT-PRE-ROADMAP-RETRY-20260826.md",
-      "role": "independent Codex pre-roadmap audit",
-      "evidence_class": "PENDING_AUDIT"
+      "role": "independent Codex pre-roadmap audit published on chat/chat-codex-orchestration-20260824 commit ea3ad3a604ce99c580bf5d18bda2ecb365d27545",
+      "evidence_class": "QA_GATE"
     },
     {
       "path": "docs/qa/phase-8a-legacy-inventory-audit-2026-07-14.md",
@@ -158,10 +158,10 @@
     "Do not infer the root cause of the audio failure from unit tests; distinguish user-reported runtime failure from code-level capability."
   ],
   "finalization_workflow": [
-    "Chat consolidates draft",
-    "Codex independently tries to refute each phase",
-    "Chat records and reconciles disagreements",
-    "User explicitly confirms",
+    "Chat consolidates draft v1 — COMPLETE",
+    "Codex independently tries to refute each phase — PENDING",
+    "Chat records and reconciles disagreements — PENDING",
+    "User explicitly confirms — PENDING",
     "Only then canonical_roadmap_allowed may become true"
   ],
   "open_questions": [
