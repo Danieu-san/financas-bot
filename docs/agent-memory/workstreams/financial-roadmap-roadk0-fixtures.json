@@ -1,0 +1,142 @@
+{
+  "schema": "financasbot-financial-semantic-convergence-fixtures-v1",
+  "status": "FROZEN_DOCUMENTAL",
+  "cases": [
+    {
+      "id": "K0-01-card-identity-label-variant",
+      "domain": "cards",
+      "operation": "sum",
+      "time_basis": "billing_month",
+      "input": {"card_id": "card-alpha", "labels": ["Card Alpha", "Cartao Card Alpha"]},
+      "expected": {"identity_key": "card-alpha", "groups": 1, "evidence_state": "confirmed"}
+    },
+    {
+      "id": "K0-02-unavailable-is-not-zero",
+      "domain": "expenses",
+      "operation": "sum",
+      "time_basis": "transaction_date",
+      "input": {"source_health": "unavailable"},
+      "expected": {"evidence_state": "unavailable", "may_claim_zero": false}
+    },
+    {
+      "id": "K0-03-empty-complete-may-prove-none",
+      "domain": "expenses",
+      "operation": "list",
+      "time_basis": "transaction_date",
+      "input": {"coverage": {"completeness": "complete", "item_count": 0}},
+      "expected": {"evidence_state": "confirmed", "may_claim_empty": true}
+    },
+    {
+      "id": "K0-04-empty-partial-cannot-prove-none",
+      "domain": "expenses",
+      "operation": "list",
+      "time_basis": "transaction_date",
+      "input": {"coverage": {"completeness": "partial", "item_count": 0}},
+      "expected": {"evidence_state": "incomplete", "may_claim_empty": false}
+    },
+    {
+      "id": "K0-05-installment-purchase-vs-billing-occurrences",
+      "domain": "cards",
+      "operation": "sum",
+      "input": {"purchase_total_cents": 60000, "installments": [10000,10000,10000,10000,10000,10000]},
+      "expected": {
+        "transaction_date": {"value_cents": 60000, "contribution": "purchase_once"},
+        "billing_month": {"value_cents_per_occurrence": 10000, "contribution": "occurrence_only"},
+        "never_sum_purchase_and_occurrences_same_metric": true
+      }
+    },
+    {
+      "id": "K0-06-invoice-payment-neutral",
+      "domain": "cards",
+      "operation": "sum",
+      "time_basis": "settlement_date",
+      "input": {"purchase_cents": 25000, "invoice_payment_cents": 25000},
+      "expected": {"consumption_cents": 25000, "additional_consumption_from_payment_cents": 0}
+    },
+    {
+      "id": "K0-07-internal-transfer-neutral",
+      "domain": "transfers",
+      "operation": "sum",
+      "time_basis": "settlement_date",
+      "input": {"amount_cents": 15000, "origin_owned": true, "destination_owned": true},
+      "expected": {"income_impact_cents": 0, "expense_impact_cents": 0, "evidence_state": "confirmed"}
+    },
+    {
+      "id": "K0-08-refund-linked-compensates-original",
+      "domain": "expenses",
+      "operation": "sum",
+      "time_basis": "transaction_date",
+      "input": {"original_cents": 30000, "refund_cents": 10000, "link_verified": true},
+      "expected": {"net_expense_cents": 20000, "refund_as_income": false, "evidence_state": "confirmed"}
+    },
+    {
+      "id": "K0-09-refund-unlinked-is-not-income",
+      "domain": "expenses",
+      "operation": "sum",
+      "time_basis": "transaction_date",
+      "input": {"refund_cents": 10000, "link_verified": false},
+      "expected": {"refund_as_income": false, "evidence_state": "incomplete"}
+    },
+    {
+      "id": "K0-10-balance-complete-as-of",
+      "domain": "accounts",
+      "operation": "sum",
+      "time_basis": "as_of",
+      "input": {"opening_cents": 100000, "movements_cents": -25000, "coverage": {"completeness": "complete", "as_of": "2026-08-27"}},
+      "expected": {"balance_cents": 75000, "evidence_state": "confirmed"}
+    },
+    {
+      "id": "K0-11-balance-partial-is-incomplete",
+      "domain": "accounts",
+      "operation": "sum",
+      "time_basis": "as_of",
+      "input": {"movements_cents": 10000, "coverage": {"completeness": "partial", "coverage_start": "2026-08-01", "as_of": "2026-08-27"}},
+      "expected": {"absolute_balance_allowed": false, "evidence_state": "incomplete"}
+    },
+    {
+      "id": "K0-12-budget-cycle-not-daily",
+      "domain": "budget",
+      "operation": "sum",
+      "time_basis": "transaction_date",
+      "period": {"type": "cycle"},
+      "input": {"spent_cycle_cents": 90000, "spent_today_cents": 12000},
+      "expected": {"sum_cents": 90000, "daily_value_must_not_replace_cycle": true}
+    },
+    {
+      "id": "K0-13-recurring-rule-vs-settlement",
+      "domain": "bills",
+      "operation": "list",
+      "time_basis": "due_date",
+      "input": {"rule_exists": true, "future_occurrence": true, "settlement_observed": false},
+      "expected": {"future_state": "projected", "confirmed_settlement": false, "double_count": false}
+    },
+    {
+      "id": "K0-14-personal-sheet-fail-closed",
+      "domain": "dashboard",
+      "operation": "detail",
+      "time_basis": "transaction_date",
+      "input": {"personal_sheet_context_authorized": false},
+      "expected": {"evidence_state": "unavailable", "fallback_to_other_owner_allowed": false}
+    },
+    {
+      "id": "K0-15-legacy-time-basis-aliases",
+      "domain": "cards",
+      "operation": "detail",
+      "input": {"legacy_values": ["purchase_date", "current_state", "budget_cycle", "context", "none"]},
+      "expected": {
+        "purchase_date": "transaction_date",
+        "current_state": "as_of",
+        "budget_cycle": "period.type=cycle",
+        "context": "must_resolve_before_final_answer",
+        "none": "must_resolve_when_material"
+      }
+    },
+    {
+      "id": "K0-16-writer-idempotent-replay",
+      "domain": "writer",
+      "operation": "commit",
+      "input": {"same_operation_key": true, "same_preview_version": true},
+      "expected": {"duplicate_financial_effect": false, "receipt_required": true}
+    }
+  ]
+}
