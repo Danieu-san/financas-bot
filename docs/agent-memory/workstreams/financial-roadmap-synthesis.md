@@ -74,12 +74,23 @@ Estado documentado em 2026-08-24 que deve ser tratado como evidência versionada
 - canário foi restaurado para `off`;
 - writer, retirada do legado e expansão de escopo continuaram fora do objetivo ARQ-06.
 
+### Fluxo de áudio
+
+Evidência atual de código que precisa ser confrontada com o relato real de falha:
+
+- `src/handlers/audioHandler.js` contém retry limitado de download, tentativa de habilitar auto-download, reaquisição da mensagem, conversão OGG->MP3 e transcrição;
+- `tests/audioHandlerPrivacy.test.js` cobre sucesso, falha de transcrição, retry/reaquisição, exaustão de download e limpeza/privacidade;
+- `src/handlers/messageHandler.js` chama `handleAudio(msg)` e substitui `msg.body` pelo texto transcrito quando há sucesso.
+
+Isso NÃO prova que áudio funciona em produção. O usuário relatou em 2026-08-26 que o recebimento/processamento de áudio do bot não está funcionando. Até reprodução e diagnóstico, classificar como `USER_DECISION + PENDING_AUDIT`, não como causa raiz confirmada.
+
 ### Auditoria independente pré-roadmap em andamento
 
-Tarefa: `FIN-AUDIT-PRE-ROADMAP-20260826`
-Nome da conversa/tarefa Codex: `FinançasBot — Auditoria independente pré-roadmap — 2026-08-26`
+Tentativa original: `FIN-AUDIT-PRE-ROADMAP-20260826`.
+Retry atual: `FIN-AUDIT-PRE-ROADMAP-RETRY-20260826`.
+Nome da conversa/tarefa Codex: `FinançasBot — Auditoria independente pré-roadmap — RETRY 2026-08-26`.
 Resultado esperado:
-`docs/agent-memory/workstreams/results/FIN-AUDIT-PRE-ROADMAP-20260826.md`
+`docs/agent-memory/workstreams/results/FIN-AUDIT-PRE-ROADMAP-RETRY-20260826.md`.
 
 Até esse resultado existir e ser lido, os 17 achados enviados ao Codex permanecem `PENDING_AUDIT`, mesmo quando o Chat já encontrou evidência forte.
 
@@ -96,6 +107,7 @@ Estas decisões não devem ser revertidas por inferência posterior:
 7. Forma de pagamento no fluxo deve virar lista numerada: `1 Crédito`, `2 Débito`, `3 PIX`, `4 Dinheiro`, preservando texto como fallback.
 8. O novo roadmap deve ser completo e detalhado, e só poderá virar canônico após revisão independente do Codex e confirmação explícita do usuário.
 9. Trabalhos já existentes em shadow/canary para retirada de partes do legado devem ser reutilizados; não duplicar esforço nem resetar contadores/janelas sem causa.
+10. O recebimento/processamento de mensagens de áudio do WhatsApp está atualmente relatado como não funcional e deve entrar no roadmap como correção explícita, precedida por reprodução causal e auditoria para distinguir download, reaquisição, conversão, transcrição, roteamento e integração pós-transcrição.
 
 ## Inventário mínimo de shadows/canários a revalidar antes do roadmap final
 
@@ -200,7 +212,8 @@ A revisão Codex deve listar explicitamente `CONCORDO`, `DISCORDO`, `FALTA EVID�
 - Parcelamentos precisam reconciliar o cronograma canônico histórico (Fase 3E) com a planilha atual e com os achados de `Lançamentos Cartão`/`Parcelamentos`.
 - Fechamento configurado versus fechamento real observado precisa de política de precedência temporal.
 - O roadmap final deve incorporar os bugs atuais da planilha/código sem apagar capacidades canônicas já implementadas anteriormente.
+- O fluxo de áudio precisa ser reproduzido ponta a ponta: identificar se a falha atual ocorre antes do download, na reaquisição da mídia, no ffmpeg, na transcrição Gemini, no retorno ao `messageHandler` ou depois da transcrição. Testes existentes são evidência de cobertura local, não de funcionamento real.
 
 ## Próximo passo
 
-Aguardar o relatório `FIN-AUDIT-PRE-ROADMAP-20260826`, confrontá-lo com este registro, revisar as evidências de Fase 8 e ARQ e só então produzir `roadmap-draft-v1`. Nenhuma correção de produto ou remoção de legado é autorizada por este arquivo.
+Confrontar a auditoria Codex pré-roadmap quando publicada, revisar as evidências de Fase 8 e ARQ, incluir o diagnóstico de áudio e só então produzir `roadmap-draft-v1`. Nenhuma correção de produto ou remoção de legado é autorizada por este arquivo.
