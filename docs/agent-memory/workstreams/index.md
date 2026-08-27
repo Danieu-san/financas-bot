@@ -15,7 +15,7 @@ Cada conversa/worktree trabalha em um objetivo e preserva seu próprio estado.
 | `open-finance-proactive-alert-recovery` | Gate 42 candidato; ciclo clonado GO | `open-finance-proactive-alert-recovery.md` | `../../plans/workstreams/open-finance-proactive-alert-recovery.md` | auditoria por hash; deploy somente apos GO |
 | `financial-conversation-architecture-review` | ARQ-01..06 GO; ARQ-06 fechado em produção controlada, canário `off` | `financial-conversation-architecture-review.md` | `../../plans/workstreams/financial-conversation-architecture-review.md` | smoke base+follow-up concluído; zero writer; evolução seguinte exige objetivo próprio |
 | `chat-codex-orchestration` | ORCH-01 FINISHED — GO técnico local | `chat-codex-orchestration.md` | `../../plans/workstreams/chat-codex-orchestration.md` | GitHub autoritativo; ponte local sem bot, produção ou dados reais |
-| `chat-codex-channel` | ORCH-02 retorno Browser cancelado; aviso na tarefa em candidato local | `chat-codex-channel.md` | `../../plans/workstreams/chat-codex-channel.md` | Chat acorda Codex; conclusão fica no GitHub e avisa Daniel na própria tarefa |
+| `chat-codex-channel` | ORCH-02 recovery App-only em candidato local após NO-GO | `chat-codex-channel.md` | `../../plans/workstreams/chat-codex-channel.md` | App obrigatório; ponte revalida GitHub; conclusão pede verificação manual |
 
 Se dois workstreams puderem escrever simultaneamente, usar branches/worktrees
 distintas. Atualizar somente a própria linha e seus arquivos.

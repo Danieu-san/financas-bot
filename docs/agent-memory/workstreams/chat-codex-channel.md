@@ -13,7 +13,7 @@ serviço.
 
 ## Estado operacional
 
-`ORCH-02 CANAL CHAT -> CODEX PRESERVADO; RETORNO BROWSER CANCELADO EM CANDIDATO LOCAL`.
+`ORCH-02 RECOVERY APP-ONLY EM CANDIDATO LOCAL APÓS NO-GO INDEPENDENTE`.
 
 ### Fronteira congelada
 
@@ -26,11 +26,19 @@ alterar o protocolo, o manifesto ou a autoridade do GitHub.
 Em 2026-08-27, Daniel cancelou explicitamente o retorno automático
 `Codex -> Chat` pelo navegador. Os testes anteriores provaram apenas um retorno
 assistido, pois o envio exige confirmação presencial; portanto essa rota nunca
-satisfez o requisito de operação ausente. O candidato atual recusa
-`mode=return`, não enfileira wake em `CHAT_READY` e inclui no próprio prompt de
-execução o aviso final:
+satisfez o requisito de operação ausente. O primeiro candidato recusava
+`mode=return` e não enfileirava wake em `CHAT_READY`, mas a auditoria
+independente encontrou quatro lacunas causais: aviso que alegava publicação
+remota sem prova, fallback CLI, confiança em campos graváveis do request e
+corrida entre workers da ponte.
 
-`✅ Tarefa <task_id> concluída. Resultado publicado no GitHub. Avise o Chat para continuar.`
+O recovery atual exige Codex App e falha fechado sem ele; reduz o request v4 a
+hash, modo e data; deriva clone, Git, branch e state path da configuração
+protegida; deriva task_id do estado remoto revalidado; exige no GitHub o mesmo
+SHA-256 e `CODEX_READY` antes do IPC; protege o wake com lock interprocesso; e
+terminaliza/remove pedidos legados `mode=return`. O aviso final não afirma push:
+
+`✅ Tarefa <task_id> encerrada. Peça ao Chat para verificar o resultado no GitHub.`
 
 Enquanto não há trabalho, o estado permanece `CHAT_WORKING`: o Chat possui o
 canal, mas nenhum modelo local é iniciado. Para cada trabalho, o Chat cria um
@@ -57,9 +65,9 @@ O manifesto JSON contém somente:
   `docs/agent-memory/workstreams/results/`;
 - validações e restrições textuais.
 
-O executor não pode alterar o manifesto, o canal, scripts de agente, GitHub
-Actions, instruções do agente, segredos, sessões ou dados privados. O watcher
-publica somente o estado e os caminhos exatos autorizados; rename, cópia,
+O executor não pode alterar o manifesto, scripts de agente, GitHub Actions,
+instruções do agente, segredos, sessões ou dados privados. O Codex App publica
+somente o estado, o resultado e os caminhos exatos autorizados; rename, cópia,
 deleção, staged change ou caminho adicional falham fechados.
 
 ## Responsabilidade do Chat
@@ -109,40 +117,13 @@ constante exportada pelo worker.
 
 ## Prova isolada do retorno em 2026-08-25 — evidência histórica, rota cancelada
 
-O MCP local expôs uma ação sem argumentos e um widget com mensagem fixa
-`ORCH_PLUGIN_WAKE_POC`. A versão `v7` usou nomes novos de ferramenta e recurso
-para impedir reutilização do snapshot congelado do app anterior.
-
-Evidência causal observada numa única tentativa, sem clique no widget:
-
-- o Chat executou `open_chat_wake_poc_v7` uma vez;
-- o widget aguardou 15 segundos para o turno originador encerrar;
-- o widget exibiu `Wake enviado` com a mensagem fixa;
-- o Chat produziu uma nova resposta contendo `ORCH_PLUGIN_WAKE_POC` e registrou
-  o wake às `12:32:55` no fuso de Brasília;
-- o caminho de ida, watcher, launcher e manifesto não foram alterados.
-
-O endpoint usado nessa prova era temporário. Tailscale HTTPS foi
-habilitado no tailnet, porém o cliente Windows não sincroniza com
-`controlplane.tailscale.com`; por isso nenhum Funnel foi criado. A alternativa
-adotada foi o Secure MCP Tunnel oficial, sem exposição pública do servidor.
+O PoC MCP local demonstrou apenas retorno assistido ao Chat. Como exigia
+confirmação presencial, não atende operação ausente e foi retirado da rota.
 
 ## Endpoint criado em 2026-08-25 — fora da rota vigente
 
-O app `FinancasBot Chat Wake Definitivo` foi criado e conectado ao Secure MCP
-Tunnel oficial. O servidor permanece restrito a `127.0.0.1:3210`, expõe apenas
-`open_financasbot_chat_wake` e entrega o SDK do componente embutido no próprio
-recurso `ui://financasbot/chat-wake-definitive-v1.html`. Não há dependência do
-Cloudflare Quick Tunnel nem carregamento de JavaScript por endereço local no
-iframe do Chat.
-
-O runtime do túnel foi reiniciado e ficou `ready`; o smoke MCP local confirmou
-somente a ferramenta definitiva e o recurso novo. O processo corrente continua
-ativo fora do ciclo do Codex App. A instalação de um watchdog no logon do
-Windows não foi aplicada porque a elevação recusou a persistência sem uma
-autorização específica posterior; isso não invalida a sessão atual, mas impede
-de declarar sobrevivência a reboot. Após a decisão de 2026-08-27, esse endpoint
-não participa mais do canal operacional; sua remoção física é limpeza separada.
+O Secure MCP Tunnel provado anteriormente não participa mais do canal
+operacional. Sua eventual remoção física é limpeza separada.
 
 ## Incidente de sincronização em 2026-08-26
 
@@ -166,9 +147,9 @@ duas barreiras:
 - `failed:sync_error` limpa apenas o latch daquele lançamento e permite nova
   tentativa mecânica do mesmo hash no próximo ciclo, sem iniciar modelo antes
   de a sincronização ficar limpa;
-- um segundo preflight mecânico, imediatamente antes do despacho tanto ao App
-  quanto ao CLI, recusa mudanças rastreadas, não rastreadas e ignoradas que
-  tenham surgido depois da sincronização.
+- um segundo preflight mecânico, imediatamente antes do despacho ao App, recusa
+  mudanças rastreadas, não rastreadas e ignoradas que tenham surgido depois da
+  sincronização.
 
 O primeiro candidato deste recovery recebeu `NO-GO` porque o modo App ainda não
 repetia a verificação de caminhos ignorados antes do wake. O recovery atual
@@ -184,17 +165,23 @@ causais dessas fronteiras. O recovery atual remove o parâmetro de branch,
 canonicaliza o runtime através do filesystem e acrescenta essas provas sem
 alterar o protocolo do canal.
 
+O recovery App-only posterior passou em `64/64` testes herméticos. Ele remove
+o caminho executável do CLI, reduz o request local a dados não autoritativos,
+revalida hash e `CODEX_READY` no remoto a partir da configuração protegida,
+serializa workers concorrentes e terminaliza pedidos legados de retorno. Esse
+resultado permanece candidato até a auditoria independente do novo hash.
+
 Os artefatos que causaram o incidente foram preservados fora da worktree em
 `%LOCALAPPDATA%\FinancasBot\orchestration-artifacts\20260827-sync-error`.
 
 ## Próxima ação
 
-Publicar e auditar o candidato que preserva somente `CODEX_READY -> Codex App`.
+Publicar e reauditar o recovery que preserva somente `CODEX_READY -> Codex App`.
 Com GO, reinstalar o watcher no clone dedicado e executar um único smoke
-marker-only: a tarefa deve alcançar `CHAT_READY`, exibir o aviso padronizado na
-própria tarefa do Codex e não criar pedido `mode=return`, mensagem de navegador
-ou nova execução de modelo.
+marker-only: a tarefa deve alcançar `CHAT_READY`, exibir o aviso não afirmativo
+na própria tarefa do Codex e não criar pedido `mode=return`, mensagem de
+navegador ou execução CLI.
 
 ## Capacidade
 
-`Codex App -> Sol -> Médio -> auditar o cancelamento do retorno Browser e o aviso final na tarefa.`
+`Chat -> Sol -> Alto -> reauditar o recovery App-only e suas garantias causais.`

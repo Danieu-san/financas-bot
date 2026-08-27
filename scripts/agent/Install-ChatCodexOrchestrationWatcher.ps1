@@ -13,7 +13,6 @@ param(
 $ErrorActionPreference = 'Stop'
 $node = (Get-Command node -ErrorAction Stop).Source
 $git = (Get-Command git -ErrorAction Stop).Source
-$powershell = (Get-Command powershell.exe -ErrorAction Stop).Source
 
 if (-not $RunAsUser) {
     $RunAsUser = (Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).UserName
@@ -24,30 +23,14 @@ $interactiveProfile = Get-CimInstance Win32_UserProfile -ErrorAction Stop |
     Where-Object { $_.Loaded -and (Split-Path $_.LocalPath -Leaf) -eq $accountName } |
     Select-Object -First 1
 if (-not $interactiveProfile) { throw "Perfil carregado nao encontrado para $RunAsUser." }
-$codexPackage = Join-Path $interactiveProfile.LocalPath 'AppData\Roaming\npm\node_modules\@openai\codex'
-$codexCandidates = @(Get-ChildItem -LiteralPath $codexPackage -Recurse -Filter 'codex.exe' -File -ErrorAction Stop)
-if ($codexCandidates.Count -ne 1) {
-    throw "Esperado exatamente um Codex nativo para $RunAsUser; encontrados $($codexCandidates.Count)."
-}
-$codex = $codexCandidates[0].FullName
 $runtime = Join-Path $interactiveProfile.LocalPath 'AppData\Local\FinancasBot\chat-codex-orchestration'
 $lockPath = Join-Path $runtime 'watcher-state.json.lock'
-$profilePath = Join-Path $interactiveProfile.LocalPath '.codex\chat-codex-orchestration.config.toml'
-$profileContent = "[windows]`nsandbox = `"unelevated`"`n"
 $expectedRepositoryRoot = [IO.Path]::GetFullPath((Join-Path $interactiveProfile.LocalPath `
     'AppData\Local\FinancasBot\chat-codex-orchestration-repo')).TrimEnd('\')
 $watcher = Join-Path $RepositoryRoot 'scripts\agent\watchChatCodexOrchestration.js'
 $repositoryValidator = Join-Path $PSScriptRoot 'validateChatCodexWatcherRepository.js'
 $expectedOrigin = 'https://github.com/Danieu-san/financas-bot.git'
 $branch = 'chat/chat-codex-orchestration-20260824'
-
-function Assert-OrchestrationProfileSafe {
-    if (-not (Test-Path -LiteralPath $profilePath -PathType Leaf)) { return }
-    $actual = (Get-Content -LiteralPath $profilePath -Raw).Replace("`r`n", "`n")
-    if ($actual -ne $profileContent) {
-        throw "Perfil existente nao pertence a este instalador: $profilePath"
-    }
-}
 
 function Assert-WatcherLifecycleSafe {
     $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
@@ -81,9 +64,7 @@ $arguments = @(
     (Quote-Argument $watcher),
     '--repo', (Quote-Argument $RepositoryRoot),
     '--branch', (Quote-Argument $branch),
-    '--codex', (Quote-Argument $codex),
     '--git', (Quote-Argument $git),
-    '--powershell', (Quote-Argument $powershell),
     '--runtime', (Quote-Argument $runtime),
     '--state-path', (Quote-Argument $StatePath)
 )
@@ -112,6 +93,9 @@ if ([bool]$AppThreadId -xor [bool]$ChatUrl) {
 }
 if ($AppWakeRequestPath -and ($AppThreadId -or $ChatUrl)) {
     throw 'AppWakeRequestPath e exclusivo de AppThreadId/ChatUrl.'
+}
+if ($Action -eq 'Install' -and -not $AppWakeRequestPath -and -not ($AppThreadId -and $ChatUrl)) {
+    throw 'A instalacao exige executor Codex App; informe AppWakeRequestPath ou AppThreadId/ChatUrl.'
 }
 if ($AppThreadId -and $ChatUrl) {
     if ($AppThreadId -notmatch '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$') {
@@ -146,10 +130,7 @@ $arguments = $arguments -join ' '
 switch ($Action) {
     'Install' {
         Assert-WatcherLifecycleSafe
-        Assert-OrchestrationProfileSafe
         Assert-WatcherRepositorySafe
-        $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
-        [System.IO.File]::WriteAllText($profilePath, $profileContent, $utf8NoBom)
         $taskAction = New-ScheduledTaskAction -Execute $node -Argument $arguments
         $triggerParameters = @{
             Once = $true
@@ -185,12 +166,8 @@ switch ($Action) {
     }
     'Remove' {
         Assert-WatcherLifecycleSafe
-        Assert-OrchestrationProfileSafe
         if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) {
             Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
-        }
-        if (Test-Path -LiteralPath $profilePath -PathType Leaf) {
-            Remove-Item -LiteralPath $profilePath -Force
         }
         Write-Output "REMOVED $TaskName"
     }

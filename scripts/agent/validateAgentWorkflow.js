@@ -22,7 +22,7 @@ const checks = [
     ['docs/plans/workstreams/chat-codex-channel.md', 8 * 1024, ['ORCH-02', 'canal permanente', 'Critérios de GO']],
     ['docs/agent-memory/workstreams/chat-codex-channel.state.json', 4 * 1024, ['financasbot-chat-codex-orchestration-v1', 'orchestration_state', 'next_executor', 'task_id']],
     ['scripts/agent/manageChatCodexOrchestration.js', 24 * 1024, ['financasbot-chat-codex-orchestration-v1', 'CHAT_WORKING', 'CODEX_READY', 'writeAtomically', 'stateHash']],
-    ['scripts/agent/watchChatCodexOrchestration.js', 28 * 1024, ['financasbot-chat-codex-watcher-v1', 'CODEX_READY', 'unchanged', 'runCodex']],
+    ['scripts/agent/watchChatCodexOrchestration.js', 28 * 1024, ['financasbot-chat-codex-watcher-v1', 'CODEX_READY', 'unchanged', 'executor Codex App obrigatório']],
     ['scripts/agent/chatCodexTaskContract.js', 16 * 1024, ['financasbot-chat-codex-task-v1', 'allowed_paths', 'result_file']],
     ['scripts/agent/Install-ChatCodexOrchestrationWatcher.ps1', 12 * 1024, ['FinancasBot-ChatCodex-Orchestration', 'IgnoreNew', 'Interactive', 'RunNow']],
     ['tests/chatCodexWatcher.test.js', 14 * 1024, ['poll inalterado não desperta executor', 'CODEX_READY novo dispara exatamente uma vez', 'lock existente impede execução concorrente']],

@@ -181,14 +181,15 @@ test('wake de execução falho fica terminal para o mesmo hash', () => {
 test('hash novo de CODEX_READY permite novo disparo', () => {
     const item = fixture('CODEX_READY');
     let raw = item.raw, launches = 0;
+    const queue = path.join(item.runtime, 'bridge', 'request.json');
     const deps = executorDeps({
         fetchRemoteState: () => raw,
-        runCodex: () => { launches += 1; raw = withState(raw, 'CHAT_READY'); return 0; },
-        publishLocalResult: () => {}
+        queueCodexAppWakeRequest: () => { launches += 1; }
     });
-    pollOnce(watcherOptions(item), deps);
+    pollOnce(watcherOptions(item, { 'app-wake-request': queue }), deps);
     raw = withState(raw, 'CODEX_READY', '2026-08-24T00:03:00.000Z');
-    assert.equal(pollOnce(watcherOptions(item), deps).action, 'launched');
+    assert.equal(pollOnce(watcherOptions(item, { 'app-wake-request': queue }), deps).action,
+        'app_task_queued');
     assert.equal(launches, 2);
 });
 
@@ -206,7 +207,9 @@ test('CODEX_READY validado acorda App e não chama CLI', () => {
     const request = JSON.parse(fs.readFileSync(queue, 'utf8'));
     assert.equal(request.mode, 'execute');
     assert.equal(request.observed_hash, stateHash(item.raw));
-    assert.equal(request.repo_path, item.repo);
+    assert.deepEqual(Object.keys(request).sort(), [
+        'created_at', 'mode', 'observed_hash', 'schema'
+    ]);
 });
 
 test('CODEX_READY no modo App repete preflight de tracked, untracked e ignored', () => {
@@ -238,6 +241,7 @@ test('CODEX_READY no modo App repete preflight de tracked, untracked e ignored',
 test('canal reutiliza CHAT_WORKING entre duas tarefas distintas', () => {
     const item = fixture('CODEX_READY');
     let raw = item.raw, launches = 0;
+    const queue = path.join(item.runtime, 'bridge', 'request.json');
     const deps = executorDeps({
         fetchRemoteState: () => raw,
         loadTaskDefinition: (_repo, _file, taskId) => ({
@@ -245,21 +249,19 @@ test('canal reutiliza CHAT_WORKING entre duas tarefas distintas', () => {
             allowed_paths: ['docs/result.md'], result_file: 'docs/result.md',
             validation: ['teste'], constraints: ['sem produção']
         }),
-        runCodex: ({ prompt }) => {
+        queueCodexAppWakeRequest: () => {
             launches += 1;
-            assert.match(prompt, new RegExp(`executar JOB-${launches}`));
-            raw = withState(raw, 'CHAT_READY');
-            return 0;
-        },
-        publishLocalResult: () => {}
+        }
     });
     let value = JSON.parse(raw);
     value.task_id = 'JOB-1';
     raw = serializeState(value);
-    assert.equal(pollOnce(watcherOptions(item), deps).action, 'launched');
+    assert.equal(pollOnce(watcherOptions(item, { 'app-wake-request': queue }), deps).action,
+        'app_task_queued');
 
     raw = withState(raw, 'CHAT_WORKING', '2026-08-24T00:03:00.000Z');
-    assert.equal(pollOnce(watcherOptions(item), deps).state, 'CHAT_WORKING');
+    assert.equal(pollOnce(watcherOptions(item, { 'app-wake-request': queue }), deps).state,
+        'CHAT_WORKING');
     value = JSON.parse(raw);
     value.task_id = 'JOB-2';
     value.orchestration_state = 'CODEX_READY';
@@ -267,7 +269,8 @@ test('canal reutiliza CHAT_WORKING entre duas tarefas distintas', () => {
     value.result_file = null;
     value.updated_at = '2026-08-24T00:04:00.000Z';
     raw = serializeState(value);
-    assert.equal(pollOnce(watcherOptions(item), deps).action, 'launched');
+    assert.equal(pollOnce(watcherOptions(item, { 'app-wake-request': queue }), deps).action,
+        'app_task_queued');
     assert.equal(launches, 2);
 });
 
@@ -343,11 +346,11 @@ test('falha de sincronização é retryable para o mesmo hash sem chamar Codex',
 
 test('retry manual exige limpar launched_hash, sem alterar o estado remoto', () => {
     const item = fixture('CODEX_READY');
-    let launches = 0, raw = item.raw;
+    let launches = 0;
+    const queue = path.join(item.runtime, 'bridge', 'request.json');
     const deps = executorDeps({
-        fetchRemoteState: () => raw,
-        runCodex: () => { launches += 1; raw = withState(raw, 'CHAT_READY'); return 0; },
-        publishLocalResult: () => {}
+        fetchRemoteState: () => item.raw,
+        queueCodexAppWakeRequest: () => { launches += 1; }
     });
     const cachePath = path.join(item.runtime, 'watcher-state.json');
     fs.mkdirSync(item.runtime, { recursive: true });
@@ -358,6 +361,7 @@ test('retry manual exige limpar launched_hash, sem alterar o estado remoto', () 
         launched_hash: null,
         launch_status: null
     }));
-    assert.equal(pollOnce(watcherOptions(item), deps).action, 'launched');
+    assert.equal(pollOnce(watcherOptions(item, { 'app-wake-request': queue }), deps).action,
+        'app_task_queued');
     assert.equal(launches, 1);
 });

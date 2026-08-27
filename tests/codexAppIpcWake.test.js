@@ -33,7 +33,9 @@ test('protocolo IPC usa pipe local fixo e inicia somente execução', () => {
     assert.equal(request.params.turnStart.request.threadId, threadId);
     assert.equal(request.params.turnStart.request.input.length, 1);
     assert.match(request.params.turnStart.request.input[0].text,
-        /Tarefa ORCH-01 concluída\. Resultado publicado no GitHub/);
+        /Tarefa ORCH-01 encerrada\. Peça ao Chat para verificar o resultado no GitHub/);
+    assert.doesNotMatch(request.params.turnStart.request.input[0].text,
+        /Resultado publicado no GitHub/);
     assert.doesNotMatch(request.params.turnStart.request.input[0].text, /ORCH_WAKE/);
     assert.deepEqual(request.params.turnStart.context.attachments, []);
 });
@@ -66,7 +68,9 @@ test('prompt execute entrega Git e manifesto ao App sem usar Browser', () => {
     assert.match(prompt, /allowed_paths/);
     assert.match(prompt, /Não use Browser nesta etapa/);
     assert.doesNotMatch(prompt, /ORCH_WAKE/);
-    assert.match(prompt, /Tarefa ORCH02-POC-2 concluída\. Resultado publicado no GitHub/);
+    assert.match(prompt,
+        /Tarefa ORCH02-POC-2 encerrada\. Peça ao Chat para verificar o resultado no GitHub/);
+    assert.doesNotMatch(prompt, /Resultado publicado no GitHub/);
 });
 
 test('validação rejeita destino externo e argumentos incompletos', () => {

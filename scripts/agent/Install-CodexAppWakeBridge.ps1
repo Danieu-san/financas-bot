@@ -5,7 +5,8 @@ param(
     [string]$AppUser,
     [string]$RequestWriterUser,
     [string]$AppThreadId,
-    [string]$ChatUrl
+    [string]$ChatUrl,
+    [string]$RepoPath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -18,9 +19,14 @@ $requestPath = Join-Path $inboxPath 'request.json'
 $resultPath = Join-Path $statePath 'result.json'
 $workerSource = Join-Path $PSScriptRoot 'processCodexAppWakeRequest.js'
 $helperSource = Join-Path $PSScriptRoot 'wakeCodexAppViaIpc.js'
+$stateContractSource = Join-Path $PSScriptRoot 'manageChatCodexOrchestration.js'
 $workerInstalled = Join-Path $binPath 'processCodexAppWakeRequest.js'
 $helperInstalled = Join-Path $binPath 'wakeCodexAppViaIpc.js'
+$stateContractInstalled = Join-Path $binPath 'manageChatCodexOrchestration.js'
+$operationalBranch = 'chat/chat-codex-orchestration-20260824'
+$operationalStatePath = 'docs/agent-memory/workstreams/chat-codex-channel.state.json'
 $node = (Get-Command node.exe -ErrorAction Stop).Source
+$git = (Get-Command git.exe -ErrorAction Stop).Source
 
 function Assert-Administrator {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -66,6 +72,10 @@ function Assert-Inputs {
     if ($AppThreadId -notmatch '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$') {
         throw 'AppThreadId invalido.'
     }
+    if (-not $RepoPath -or -not [IO.Path]::IsPathFullyQualified($RepoPath) -or
+        -not (Test-Path -LiteralPath $RepoPath -PathType Container)) {
+        throw 'RepoPath deve apontar para o clone dedicado existente.'
+    }
     $parsed = $null
     if (-not [Uri]::TryCreate($ChatUrl, [UriKind]::Absolute, [ref]$parsed) -or
         $parsed.Scheme -ne 'https' -or $parsed.Host -ne 'chatgpt.com' -or
@@ -97,10 +107,16 @@ switch ($Action) {
         }
         Copy-Item -LiteralPath $workerSource -Destination $workerInstalled -Force
         Copy-Item -LiteralPath $helperSource -Destination $helperInstalled -Force
+        Copy-Item -LiteralPath $stateContractSource -Destination $stateContractInstalled -Force
+        $protectedRepoPath = (Resolve-Path -LiteralPath $RepoPath).Path
         $config = [ordered]@{
-            schema = 'financasbot-codex-app-wake-bridge-config-v2'
+            schema = 'financasbot-codex-app-wake-bridge-config-v3'
             thread_id = $AppThreadId
             chat_url = $ChatUrl
+            repo_path = $protectedRepoPath
+            git_path = $git
+            branch = $operationalBranch
+            state_path = $operationalStatePath
         } | ConvertTo-Json
         [IO.File]::WriteAllText($configPath, "$config`n", [Text.UTF8Encoding]::new($false))
         Set-BridgeAcl $bridgeRoot $false

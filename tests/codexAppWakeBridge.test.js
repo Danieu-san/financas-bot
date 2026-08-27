@@ -27,25 +27,37 @@ function fixture(t) {
     fs.writeFileSync(paths.config, JSON.stringify({
         schema: CONFIG_SCHEMA,
         thread_id: '11111111-2222-4333-8444-555555555555',
-        chat_url: 'https://chatgpt.com/c/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
+        chat_url: 'https://chatgpt.com/c/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
+        repo_path: 'C:\\workspace\\financas-bot',
+        git_path: 'C:\\Program Files\\Git\\cmd\\git.exe',
+        branch: 'chat/chat-codex-orchestration-20260824',
+        state_path: 'docs/agent-memory/workstreams/chat-codex-channel.state.json'
     }));
     fs.writeFileSync(paths.request, JSON.stringify({
         schema: REQUEST_SCHEMA,
         observed_hash: 'a'.repeat(64),
-        task_id: 'ORCH02-POC-1',
-        state_path: 'docs/agent-memory/workstreams/chat-codex-channel.state.json',
         mode: 'execute',
-        branch: 'chat/chat-codex-orchestration-20260824',
-        repo_path: 'C:\\workspace\\financas-bot',
         created_at: '2026-08-25T00:00:00.000Z'
     }));
     return paths;
 }
 
+function verifiedDeps(deps = {}) {
+    return {
+        verifyRemoteWakeRequest: () => ({
+            repoPath: 'C:\\workspace\\financas-bot',
+            branch: 'chat/chat-codex-orchestration-20260824',
+            statePath: 'docs/agent-memory/workstreams/chat-codex-channel.state.json',
+            taskId: 'ORCH02-POC-1'
+        }),
+        ...deps
+    };
+}
+
 test('ponte usa configuração protegida e processa cada hash no máximo uma vez', t => {
     const paths = fixture(t);
     let calls = 0;
-    const deps = {
+    const deps = verifiedDeps({
         now: () => new Date('2026-08-25T00:01:00.000Z'),
         invokeWake({ config, observedHash, statePath, taskId }) {
             calls += 1;
@@ -55,7 +67,7 @@ test('ponte usa configuração protegida e processa cada hash no máximo uma vez
             assert.equal(statePath, 'docs/agent-memory/workstreams/chat-codex-channel.state.json');
             return { status: 'accepted', handledByClientId: '99999999-8888-4777-8666-555555555555' };
         }
-    };
+    });
     assert.equal(processWakeRequest(paths, deps).action, 'accepted');
     assert.deepEqual(JSON.parse(fs.readFileSync(paths.result, 'utf8')), {
         schema: RESULT_SCHEMA,
@@ -73,10 +85,7 @@ test('ponte usa configuração protegida e processa cada hash no máximo uma vez
     fs.writeFileSync(paths.request, JSON.stringify({
         schema: REQUEST_SCHEMA,
         observed_hash: 'b'.repeat(64),
-        task_id: 'ORCH02-POC-1',
-        state_path: 'docs/agent-memory/workstreams/chat-codex-channel.state.json',
-        mode: 'execute', branch: 'chat/chat-codex-orchestration-20260824',
-        repo_path: 'C:\\workspace\\financas-bot',
+        mode: 'execute',
         created_at: '2026-08-25T00:02:00.000Z'
     }));
     assert.equal(processWakeRequest(paths, deps).action, 'accepted');
@@ -85,10 +94,7 @@ test('ponte usa configuração protegida e processa cada hash no máximo uma vez
     fs.writeFileSync(paths.request, JSON.stringify({
         schema: REQUEST_SCHEMA,
         observed_hash: 'a'.repeat(64),
-        task_id: 'ORCH02-POC-1',
-        state_path: 'docs/agent-memory/workstreams/chat-codex-channel.state.json',
-        mode: 'execute', branch: 'chat/chat-codex-orchestration-20260824',
-        repo_path: 'C:\\workspace\\financas-bot',
+        mode: 'execute',
         created_at: '2026-08-25T00:03:00.000Z'
     }));
     assert.equal(processWakeRequest(paths, deps).action, 'already_processed');
@@ -98,9 +104,9 @@ test('ponte usa configuração protegida e processa cada hash no máximo uma vez
 test('falha fica terminal para o mesmo hash sem duplicar campainha', t => {
     const paths = fixture(t);
     let calls = 0;
-    const deps = {
+    const deps = verifiedDeps({
         invokeWake() { calls += 1; throw new Error('pipe indisponível'); }
-    };
+    });
     assert.throws(() => processWakeRequest(paths, deps), /pipe indisponível/);
     const result = JSON.parse(fs.readFileSync(paths.result, 'utf8'));
     assert.equal(result.records[0].status, 'failed');
@@ -120,9 +126,9 @@ test('marcador legado preserva o hash já terminal durante a migração', t => {
         error_code: null
     }));
     let calls = 0;
-    assert.equal(processWakeRequest(paths, {
+    assert.equal(processWakeRequest(paths, verifiedDeps({
         invokeWake() { calls += 1; }
-    }).action, 'already_processed');
+    })).action, 'already_processed');
     assert.equal(calls, 0);
 });
 
@@ -134,12 +140,13 @@ test('pedido gravável não pode injetar destino, tarefa ou prompt', t => {
     assert.throws(() => processWakeRequest(paths), /schema inválido/);
 });
 
-test('ponte recusa pedido legado de retorno ao Chat', t => {
+test('ponte terminaliza pedido legado de retorno ao Chat', t => {
     const paths = fixture(t);
     const request = JSON.parse(fs.readFileSync(paths.request, 'utf8'));
     request.mode = 'return';
     fs.writeFileSync(paths.request, JSON.stringify(request));
-    assert.throws(() => processWakeRequest(paths), /mode inválido/);
+    assert.equal(processWakeRequest(paths).action, 'legacy_return_rejected');
+    assert.equal(fs.existsSync(paths.request), false);
 });
 
 test('ponte recusa pedido ou marcador idempotente por link simbólico', t => {
@@ -202,6 +209,7 @@ test('instalador usa S4U limitado e executa somente cópia protegida em ProgramD
     assert.match(installer, /Set-BridgeAcl \$statePath \$false/);
     assert.match(installer, /Copy-Item -LiteralPath \$workerSource -Destination \$workerInstalled/);
     assert.match(installer, /Copy-Item -LiteralPath \$helperSource -Destination \$helperInstalled/);
+    assert.match(installer, /Copy-Item -LiteralPath \$stateContractSource -Destination \$stateContractInstalled/);
     assert.doesNotMatch(installer, /RunLevel Highest|NT AUTHORITY\\SYSTEM.*Principal/);
     assert.match(installer, /raiz da ponte inesperada/);
     const installedSchema = installer.match(
@@ -209,4 +217,8 @@ test('instalador usa S4U limitado e executa somente cópia protegida em ProgramD
     )?.[1];
     assert.equal(installedSchema, CONFIG_SCHEMA,
         'schema gravado pelo instalador deve ser o aceito pelo worker');
+    assert.match(installer, /repo_path = \$protectedRepoPath/);
+    assert.match(installer, /git_path = \$git/);
+    assert.match(installer, /branch = \$operationalBranch/);
+    assert.match(installer, /state_path = \$operationalStatePath/);
 });

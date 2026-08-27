@@ -9,7 +9,7 @@ const { loadTaskDefinition } = require('./chatCodexTaskContract');
 const CACHE_SCHEMA = 'financasbot-chat-codex-watcher-v1';
 const DEFAULT_BRANCH = 'chat/chat-codex-orchestration-20260824';
 const DEFAULT_STATE_PATH = 'docs/agent-memory/workstreams/chat-codex-channel.state.json';
-const WAKE_REQUEST_SCHEMA = 'financasbot-codex-app-wake-request-v3';
+const WAKE_REQUEST_SCHEMA = 'financasbot-codex-app-wake-request-v4';
 
 function parseArgs(argv) {
     const options = {};
@@ -156,10 +156,6 @@ function withWatcherLock(cachePath, callback, deps = {}) {
     }
 }
 
-function quotePowerShellLiteral(value) {
-    return `'${value.replaceAll("'", "''")}'`;
-}
-
 function wakeCodexApp({ branch, chatUrl, mode, observedHash, repoPath, statePath, taskId, threadId }, deps = {}) {
     const spawn = deps.spawnSync || spawnSync;
     const helper = path.join(__dirname, 'wakeCodexAppViaIpc.js');
@@ -191,7 +187,7 @@ function wakeCodexApp({ branch, chatUrl, mode, observedHash, repoPath, statePath
     return response;
 }
 
-function queueCodexAppWakeRequest({ branch, mode, observedHash, repoPath, requestPath, statePath, taskId }, deps = {}) {
+function queueCodexAppWakeRequest({ mode, observedHash, requestPath }, deps = {}) {
     if (!path.isAbsolute(requestPath)) throw new Error('app-wake-request deve ser absoluto');
     const parent = fs.realpathSync(path.dirname(requestPath));
     if (!fs.statSync(parent).isDirectory()) {
@@ -205,11 +201,7 @@ function queueCodexAppWakeRequest({ branch, mode, observedHash, repoPath, reques
     writeAtomically(target, `${JSON.stringify({
         schema: WAKE_REQUEST_SCHEMA,
         observed_hash: observedHash,
-        task_id: taskId,
-        state_path: statePath,
         mode,
-        branch,
-        repo_path: repoPath,
         created_at: now.toISOString()
     }, null, 2)}\n`);
     return { status: 'queued', requestPath: target };
@@ -244,12 +236,8 @@ function maybeWakeCodexApp({ cache, cachePath, options, observedHash, state }, d
         if (requestPath) {
             (deps.queueCodexAppWakeRequest || queueCodexAppWakeRequest)({
                 observedHash,
-                branch: options.branch || DEFAULT_BRANCH,
                 mode,
-                repoPath: options.repo,
-                requestPath,
-                statePath: options['state-path'] || DEFAULT_STATE_PATH,
-                taskId: state.task_id
+                requestPath
             }, deps);
             dispatchStatus = 'queued';
         } else {
@@ -277,39 +265,6 @@ function maybeWakeCodexApp({ cache, cachePath, options, observedHash, state }, d
         app_wake_status: dispatchStatus
     }, deps.now?.() || new Date());
     return { cache: nextCache, action: dispatchStatus };
-}
-
-function buildExecutorPrompt({ branch, gitPath, observedHash, repoPath, statePath, task, taskFile }) {
-    const quotedGit = quotePowerShellLiteral(gitPath);
-    const quotedRepo = quotePowerShellLiteral(repoPath.replaceAll('\\', '/'));
-    return [
-        'Execute uma tarefa versionada do canal permanente Chat -> Codex.',
-        `Branch remota: ${branch}.`,
-        `Task: ${task.task_id}. Hash mecânico observado: ${observedHash}.`,
-        'O hash mecânico é o SHA-256 dos bytes serializados do arquivo JSON de estado; não é SHA de commit nem FETCH_HEAD.',
-        'O watcher já confirmou que o estado remoto continua CODEX_READY e que o SHA-256 do JSON remoto é exatamente o hash mecânico observado.',
-        `Leia AGENTS.md, ${taskFile} e somente os required_files abaixo:`,
-        ...task.required_files.map(file => `- ${file}`),
-        `Objetivo: ${task.objective}`,
-        'Modifique somente estes caminhos exatos:',
-        ...task.allowed_paths.map(file => `- ${file}`),
-        'Validações exigidas:',
-        ...task.validation.map(item => `- ${item}`),
-        'Restrições adicionais:',
-        ...task.constraints.map(item => `- ${item}`),
-        'Sequência obrigatória:',
-        `1. node scripts/agent/manageChatCodexOrchestration.js transition --file ${statePath} --to CODEX_RUNNING --expected-state-hash ${observedHash}`,
-        '2. execute o objetivo e as validações, sem ampliar o escopo.',
-        `3. registre resultado, evidências e pendências em ${task.result_file}.`,
-        `4. calcule o hash atual e transicione ${statePath} para CHAT_READY com --result-file ${task.result_file}.`,
-        'Se qualquer comando falhar, falhe fechado: pare sem tentar recovery ou alternativa.',
-        'Não execute git fetch, add, commit ou push; o watcher publicará deterministicamente somente os arquivos autorizados após validar seu resultado.',
-        `Use Git somente com $env:GIT_BIN = ${quotedGit}; $env:GIT_CONFIG_COUNT = '1'; $env:GIT_CONFIG_KEY_0 = 'safe.directory'; $env:GIT_CONFIG_VALUE_0 = ${quotedRepo}.`,
-        'Não acesse produção, OCI, WhatsApp, Pluggy, planilhas, .env, credenciais, sessões ou dados privados.',
-        'Deixe o estado em CHAT_READY e não afirme que houve publicação remota.',
-        'Não tente acessar navegador nem enviar campainha; o watcher verificará o GitHub depois da publicação.',
-        `Depois de concluir, responda nesta tarefa: ✅ Tarefa ${task.task_id} concluída. Resultado publicado no GitHub. Avise o Chat para continuar.`
-    ].join('\n');
 }
 
 function parsePorcelainPaths(raw) {
@@ -407,55 +362,11 @@ function publishLocalResult({ repoPath, branch, statePath, observedHash, initial
     git(repoPath, ['push', 'origin', `HEAD:refs/heads/${branch}`], deps);
 }
 
-function runCodex({ codexPath, gitPath, powershellPath, repoPath, prompt, logPath }, deps = {}) {
-    const spawn = deps.spawnSync || spawnSync;
-    assertNoIgnoredPaths(repoPath, deps);
-    const commonArgs = [
-        '--profile', 'chat-codex-orchestration',
-        'exec', '--ephemeral', '--sandbox', 'workspace-write',
-        '-m', 'gpt-5.4-mini', '-c', 'model_reasoning_effort="medium"', '-C', repoPath, '-'
-    ];
-    const extension = path.extname(codexPath).toLowerCase();
-    const command = extension === '.ps1' ? powershellPath : codexPath;
-    const args = extension === '.ps1'
-        ? ['-NoLogo', '-NoProfile', '-NonInteractive', '-File', codexPath, ...commonArgs]
-        : commonArgs;
-    fs.mkdirSync(path.dirname(logPath), { recursive: true });
-    fs.writeFileSync(logPath, `started_at=${new Date().toISOString()}\n`);
-    const logDescriptor = fs.openSync(logPath, 'a');
-    let result;
-    try {
-        result = spawn(command, args, {
-            input: prompt,
-            stdio: ['pipe', logDescriptor, logDescriptor],
-            windowsHide: true,
-            env: {
-                ...process.env,
-                GIT_BIN: gitPath,
-                GIT_CONFIG_COUNT: '1',
-                GIT_CONFIG_KEY_0: 'safe.directory',
-                GIT_CONFIG_VALUE_0: repoPath.replaceAll('\\', '/')
-            },
-            timeout: 10 * 60_000
-        });
-    } finally {
-        fs.closeSync(logDescriptor);
-    }
-    assertNoIgnoredPaths(repoPath, deps);
-    fs.appendFileSync(logPath, `\nstatus=${result.status}\n`);
-    if (result.error) throw result.error;
-    return result.status ?? 1;
-}
-
 function pollOnce(options, deps = {}) {
     const repoPath = assertAbsoluteExistingDirectory(options.repo, 'repo');
     const runtimePath = path.resolve(options.runtime);
-    const codexPath = assertAbsoluteExistingFile(options.codex, 'codex');
     const gitPath = assertAbsoluteExistingFile(options.git, 'git');
     const gitDeps = { ...deps, gitCommand: gitPath };
-    const powershellPath = path.extname(codexPath).toLowerCase() === '.ps1'
-        ? assertAbsoluteExistingFile(options.powershell, 'powershell')
-        : null;
     const branch = options.branch || DEFAULT_BRANCH;
     const statePath = options['state-path'] || DEFAULT_STATE_PATH;
     if (!/^[A-Za-z0-9._/-]+$/.test(branch) || branch.startsWith('-') || branch.includes('..')) {
@@ -478,8 +389,7 @@ function pollOnce(options, deps = {}) {
         const observationUnchanged = cache.observed_hash === observedHash
             && cache.observed_state === state.orchestration_state;
         const codeReadyAwaitingRetry = state.orchestration_state === 'CODEX_READY'
-            && cache.launched_hash !== observedHash
-            && (!usesAppExecutor || cache.launch_status === 'failed:sync_error');
+            && cache.launched_hash !== observedHash;
         if (observationUnchanged && !codeReadyAwaitingRetry) {
             return {
                 action: 'unchanged',
@@ -546,92 +456,21 @@ function pollOnce(options, deps = {}) {
             }, deps.now?.() || new Date());
             throw error;
         }
-        if (usesAppExecutor) {
-            const executionWake = maybeWakeCodexApp({
-                cache: readCache(cachePath), cachePath, options, observedHash, state
-            }, deps);
-            return {
-                action: executionWake.action === 'accepted'
-                    ? 'app_task_accepted' : 'app_task_queued',
-                hash: observedHash,
-                state: state.orchestration_state
-            };
-        }
-        const prompt = buildExecutorPrompt({
-            branch, gitPath, observedHash, repoPath, statePath,
-            task, taskFile: state.task_file
-        });
-        let exitCode;
-        try {
-            exitCode = (deps.runCodex || runCodex)({
-                codexPath,
-                gitPath,
-                powershellPath,
-                repoPath,
-                prompt,
-                logPath
-            }, gitDeps);
-        } catch (error) {
+        if (!usesAppExecutor) {
             saveCache(cachePath, {
                 ...cache,
-                launch_status: 'failed:error'
+                launch_status: 'failed:app_required'
             }, deps.now?.() || new Date());
-            throw error;
+            throw new Error('executor Codex App obrigatório para CODEX_READY');
         }
-
-        if (exitCode === 0) {
-            try {
-                (deps.publishLocalResult || publishLocalResult)({
-                    repoPath,
-                    branch,
-                    statePath,
-                    observedHash,
-                    initialState: state,
-                    task
-                }, gitDeps);
-            } catch (error) {
-                saveCache(cachePath, {
-                    ...cache,
-                    launch_status: 'failed:publish_error'
-                }, deps.now?.() || new Date());
-                throw error;
-            }
-        }
-
-        let finalRaw;
-        try {
-            finalRaw = (deps.fetchRemoteState || fetchRemoteState)(
-                repoPath, branch, statePath, gitDeps
-            );
-        } catch (error) {
-            saveCache(cachePath, {
-                ...cache,
-                launch_status: 'failed:verification_error'
-            }, deps.now?.() || new Date());
-            throw error;
-        }
-        const finalState = parseState(finalRaw);
-        const finalHash = stateHash(finalRaw);
-        const reachedChatReady = exitCode === 0
-            && finalState.orchestration_state === 'CHAT_READY'
-            && finalState.task_id === state.task_id;
-        const launchStatus = reachedChatReady
-            ? 'succeeded'
-            : exitCode === 0
-                ? 'failed:state_not_advanced'
-                : `failed:${exitCode}`;
-        saveCache(cachePath, {
-            ...cache,
-            observed_hash: finalHash,
-            observed_state: finalState.orchestration_state,
-            launch_status: launchStatus
-        }, deps.now?.() || new Date());
+        const executionWake = maybeWakeCodexApp({
+            cache: readCache(cachePath), cachePath, options, observedHash, state
+        }, deps);
         return {
-            action: 'launched',
-            exitCode,
+            action: executionWake.action === 'accepted'
+                ? 'app_task_accepted' : 'app_task_queued',
             hash: observedHash,
-            state: state.orchestration_state,
-            finalState: finalState.orchestration_state
+            state: state.orchestration_state
         };
     }, deps);
 }
@@ -663,7 +502,6 @@ module.exports = {
     DEFAULT_BRANCH,
     DEFAULT_STATE_PATH,
     WAKE_REQUEST_SCHEMA,
-    buildExecutorPrompt,
     loadTaskDefinition,
     maybeWakeCodexApp,
     assertNoIgnoredPaths,
@@ -676,7 +514,6 @@ module.exports = {
     publishLocalResult,
     queueCodexAppWakeRequest,
     readCache,
-    runCodex,
     runGit,
     saveCache,
     processIsAlive,

@@ -7,12 +7,10 @@ const path = require('node:path');
 const test = require('node:test');
 const { serializeState } = require('../scripts/agent/manageChatCodexOrchestration');
 const {
-    buildExecutorPrompt,
     parsePorcelainPaths,
     pollOnce,
     publishLocalResult,
     readCache,
-    runCodex,
     withWatcherLock
 } = require('../scripts/agent/watchChatCodexOrchestration');
 
@@ -88,26 +86,18 @@ test('poll inalterado não desperta executor', () => {
 });
 test('CODEX_READY novo dispara exatamente uma vez', () => {
     const item = fixture('CODEX_READY');
-    let launches = 0;
-    let raw = item.raw;
+    const requestPath = path.join(item.runtime, 'bridge', 'request.json');
+    fs.mkdirSync(path.dirname(requestPath), { recursive: true });
     const deps = {
-        fetchRemoteState: () => raw,
-        runCodex: ({ prompt }) => {
-            launches += 1;
-            assert.match(prompt, /ORCH-01/);
-            assert.doesNotMatch(prompt, /produção.*alter/i);
-            raw = withState(raw, 'CHAT_READY');
-            return 0;
-        },
-        publishLocalResult: () => {}
+        fetchRemoteState: () => item.raw
     };
-    const options = watcherOptions(item);
-    assert.equal(pollOnce(options, executorDeps(deps)).action, 'launched');
+    const options = watcherOptions(item, { 'app-wake-request': requestPath });
+    assert.equal(pollOnce(options, executorDeps(deps)).action, 'app_task_queued');
     assert.equal(pollOnce(options, executorDeps(deps)).action, 'unchanged');
-    assert.equal(launches, 1);
+    assert.equal(JSON.parse(fs.readFileSync(requestPath, 'utf8')).mode, 'execute');
     const cache = readCache(path.join(item.runtime, 'watcher-state.json'));
-    assert.equal(cache.launch_status, 'succeeded');
-    assert.equal(cache.observed_state, 'CHAT_READY');
+    assert.equal(cache.app_wake_status, 'queued');
+    assert.equal(cache.observed_state, 'CODEX_READY');
 });
 
 test('lock existente impede execução concorrente', () => {
@@ -138,40 +128,16 @@ test('lock de PID morto é recuperado', () => {
     assert.equal(fs.existsSync(`${cachePath}.lock`), false);
 });
 
-test('prompt é local, limitado e não contém ação financeira', () => {
-    const prompt = buildExecutorPrompt({
-        branch:'x',gitPath:'g',observedHash:'b'.repeat(64),repoPath:'r',
-        statePath:'docs/state.json',taskFile:'docs/task.json',task:taskFixture()
-    });
-    assert.match(prompt, /tarefa versionada/);
-    assert.match(prompt, /falhe fechado/);
-    assert.match(prompt, /Não acesse produção/);
-    assert.match(prompt, /CHAT_READY/);
-    assert.match(prompt, /SHA-256 dos bytes serializados/);
-    assert.match(prompt, /não é SHA de commit nem FETCH_HEAD/);
-    assert.match(prompt, /Não execute git fetch, add, commit ou push/);
-    assert.match(prompt, /watcher publicará deterministicamente/);
-    assert.match(prompt, /não afirme que houve publicação remota/);
-    assert.match(prompt, /Tarefa ORCH-01 concluída\. Resultado publicado no GitHub/);
-    assert.doesNotMatch(prompt, /ORCH_WAKE|Browser/);
-});
-
-test('exit zero sem avanço falha fechado', () => {
+test('wake App não relança enquanto o mesmo CODEX_READY permanece remoto', () => {
     const item = fixture('CODEX_READY');
-    let launches = 0;
+    const requestPath = path.join(item.runtime, 'bridge', 'request.json');
+    fs.mkdirSync(path.dirname(requestPath), { recursive: true });
     const deps = {
-        fetchRemoteState: () => item.raw,
-        runCodex: () => { launches += 1; return 0; },
-        publishLocalResult: () => {}
+        fetchRemoteState: () => item.raw
     };
-    const options = watcherOptions(item);
-    const result = pollOnce(options, executorDeps(deps));
-    assert.equal(result.action, 'launched');
-    assert.equal(result.finalState, 'CODEX_READY');
-    assert.equal(readCache(path.join(item.runtime, 'watcher-state.json')).launch_status,
-        'failed:state_not_advanced');
+    const options = watcherOptions(item, { 'app-wake-request': requestPath });
+    assert.equal(pollOnce(options, executorDeps(deps)).action, 'app_task_queued');
     assert.equal(pollOnce(options, executorDeps(deps)).action, 'unchanged');
-    assert.equal(launches, 1);
 });
 
 test('tarefa inválida falha antes de iniciar Codex e fica terminal no cache', () => {
@@ -262,73 +228,6 @@ test('rejeita status inseguro', () => {
     }
 });
 
-test('falha do publicador é persistida sem falso sucesso', () => {
-    const item = fixture('CODEX_READY');
-    const deps = {
-        fetchRemoteState: () => item.raw,
-        runCodex: () => 0,
-        publishLocalResult: () => { throw new Error('push recusado'); }
-    };
-    assert.throws(() => pollOnce(watcherOptions(item), executorDeps(deps)), /push recusado/);
-    assert.equal(readCache(path.join(item.runtime, 'watcher-state.json')).launch_status,
-        'failed:publish_error');
-});
-
-test('launcher PowerShell é fixo e sem shell', () => {
-    const item = fixture();
-    let invocation;
-    const status = runCodex({
-        codexPath: item.codex,
-        gitPath: item.git,
-        powershellPath: item.powershell,
-        repoPath: item.repo,
-        prompt: 'no-op',
-        logPath: path.join(item.runtime, 'run.log')
-    }, {
-        listIgnoredPaths: () => new Set(),
-        spawnSync(command, args, options) {
-            invocation = { command, args, options };
-            return { status: 0, stdout: 'ok', stderr: '' };
-        }
-    });
-    assert.equal(status, 0);
-    assert.equal(invocation.command, item.powershell);
-    assert.equal(invocation.options.input, 'no-op');
-    assert.equal(invocation.options.windowsHide, true);
-    assert.equal(invocation.args.includes('--full-auto'), false);
-    assert.equal(invocation.args.includes('workspace-write'), true);
-    assert.equal(invocation.args.includes('gpt-5.4-mini'), true);
-    assert.equal(invocation.args.includes('gpt-5.4'), false);
-    assert.equal(invocation.args.includes('gpt-5.6-sol'), false);
-    assert.equal(invocation.args.at(-1), '-');
-});
-
-test('launcher nativo é direto e sem shell', () => {
-    const item = fixture();
-    const nativeCodex = path.join(item.root, 'codex.exe');
-    fs.writeFileSync(nativeCodex, 'fixture\n');
-    let invocation;
-    const status = runCodex({
-        codexPath: nativeCodex,
-        gitPath: item.git,
-        powershellPath: item.powershell,
-        repoPath: item.repo,
-        prompt: 'no-op',
-        logPath: path.join(item.runtime, 'native.log')
-    }, {
-        listIgnoredPaths: () => new Set(),
-        spawnSync(command, args, options) {
-            invocation = { command, args, options };
-            return { status: 0, stdout: 'ok', stderr: '' };
-        }
-    });
-    assert.equal(status, 0);
-    assert.equal(invocation.command, nativeCodex);
-    assert.equal(invocation.args.slice(0, 3).join('|'), '--profile|chat-codex-orchestration|exec');
-    assert.equal(invocation.options.input, 'no-op');
-    assert.equal(invocation.args.at(-1), '-');
-});
-
 test('branch iniciada por hífen falha antes de chamar Git ou Codex', () => {
     const item = fixture('CODEX_READY');
     let fetched = false;
@@ -339,19 +238,5 @@ test('branch iniciada por hífen falha antes de chamar Git ou Codex', () => {
         runCodex() { assert.fail('não deveria chamar Codex'); }
     }), /branch inválida/);
     assert.equal(fetched, false);
-});
-
-test('falha de spawn é persistida e o mesmo hash não relança', () => {
-    const item = fixture('CODEX_READY');
-    let launches = 0;
-    const deps = {
-        fetchRemoteState: () => item.raw,
-        runCodex: () => { launches += 1; throw new Error('spawn falhou'); }
-    };
-    assert.throws(() => pollOnce(watcherOptions(item), executorDeps(deps)), /spawn falhou/);
-    const cachePath = path.join(item.runtime, 'watcher-state.json');
-    assert.equal(readCache(cachePath).launch_status, 'failed:error');
-    assert.equal(pollOnce(watcherOptions(item), executorDeps(deps)).action, 'unchanged');
-    assert.equal(launches, 1);
 });
 

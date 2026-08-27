@@ -9,9 +9,7 @@ test('instalador recusa apagar lock sem provar PID morto', () => {
     const installer = fs.readFileSync(path.join(
         __dirname, '..', 'scripts', 'agent', 'Install-ChatCodexOrchestrationWatcher.ps1'
     ), 'utf8');
-    assert.match(installer, /Get-Command powershell\.exe -ErrorAction Stop/);
-    assert.match(installer, /Get-ChildItem[\s\S]*?-Filter 'codex\.exe'/);
-    assert.doesNotMatch(installer, /AppData\\Roaming\\npm\\codex\.ps1/);
+    assert.doesNotMatch(installer, /Get-Command powershell\.exe|codex\.exe|codex\.ps1/);
     assert.match(installer, /if \(\$task -and \$task\.State -eq 'Running'\)/);
     assert.match(installer, /ConvertFrom-Json -ErrorAction Stop/);
     assert.match(installer, /Get-Process -Id \$lockPid -ErrorAction SilentlyContinue/);
@@ -26,6 +24,7 @@ test('instalador recusa apagar lock sem provar PID morto', () => {
     assert.match(installer, /'--app-thread-id'/);
     assert.match(installer, /'--chat-url'/);
     assert.match(installer, /AppWakeRequestPath e exclusivo/);
+    assert.match(installer, /A instalacao exige executor Codex App/);
     assert.match(installer, /'--app-wake-request'/);
     assert.match(installer, /'--state-path', \(Quote-Argument \$StatePath\)/);
     assert.match(installer, /StatePath deve ser um caminho relativo seguro/);

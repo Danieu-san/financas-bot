@@ -79,7 +79,8 @@ function buildWakePrompt({ branch, chatUrl, mode, observedHash, repoPath, stateP
         'Publique somente o estado, o resultado e os caminhos explicitamente autorizados no manifesto.',
         'Não acesse produção, WhatsApp, Pluggy, planilhas, segredos ou dados privados.',
         'Não use Browser nesta etapa.',
-        `Depois de publicar CHAT_READY, responda nesta tarefa: ✅ Tarefa ${taskId} concluída. Resultado publicado no GitHub. Avise o Chat para continuar.`
+        'Não afirme que houve publicação remota; o Chat fará essa verificação de forma independente.',
+        `Depois de encerrar a execução, responda nesta tarefa: ✅ Tarefa ${taskId} encerrada. Peça ao Chat para verificar o resultado no GitHub.`
     ].join(' ');
 }
 
