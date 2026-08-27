@@ -1,107 +1,48 @@
 # Plano — ROAD-00 Baseline verificável, Golden Set e inventário total
 
-Status: `OPEN — SOMENTE BASELINE/INVENTÁRIO`
+Status: `GO — ENCERRADO`
 Data: 2026-08-27
 Branch: `chat/financial-roadmap-road00-20260827`
 Roadmap canônico: `docs/plans/workstreams/financial-roadmap-canonical.md`
+Candidato auditado: `8cb524ab48ee5dc5b9c9db1a46907fe806f00af9`
+Parecer independente: `FIN-ROAD00-CLOSE-REVIEW-20260827` — `GO ROAD-00`
 
 ## Objetivo
 
 Criar uma base operacional verificável para todo o roadmap, impedindo que fases posteriores dependam de memória de conversa, status histórico desatualizado, falso zero de telemetria ou suposição sobre qual fonte/consumer está ativo.
 
-## Princípios
+## Princípios preservados
 
 1. Estado histórico não é estado atual sem revalidação.
 2. `UNKNOWN` é aceitável; inventar estado não é.
 3. Ausência de evento não significa uso zero sem heartbeat/retention/rotation saudáveis.
 4. Nenhum dado privado ou segredo entra nos artefatos.
-5. Nenhuma correção funcional é necessária para fechar ROAD-00.
-6. O roadmap v2 é normativo; ROAD-00 não altera sua ordem/semântica.
+5. Nenhuma correção funcional foi necessária para fechar ROAD-00.
+6. O roadmap v2 permaneceu normativo; ROAD-00 não alterou sua ordem/semântica.
 
-## Etapas
+## Etapas concluídas
 
-### 00.1 Snapshot e autoridade
-- registrar branch e HEAD usados por cada leitura;
-- apontar roadmap canônico e blob normativo aprovado;
-- identificar releases/checkpoints históricos relevantes;
-- classificar fonte de evidência como `CURRENT_CODE`, `QA_GATE`, `PRODUCTION_EVIDENCE`, `HISTORICAL_PLAN`, `EXTERNAL_REQUIRED` ou `OPEN`.
-
-### 00.2 Inventário de capacidades e consumidores
-Montar matriz versionada com, no mínimo:
-- capacidade/domínio;
-- consumer (`WhatsApp`, dashboard, job, importação, manutenção, Open Finance, writer);
-- fonte primária observada/esperada;
-- fallback;
-- flag/modo;
-- telemetria e heartbeat;
-- rollback;
-- último gate/evidência datada;
-- status atual `VERIFIED`, `STALE`, `UNKNOWN` ou `NOT_APPLICABLE`.
-
-### 00.3 Golden Set sanitizado
-Cobrir pelo menos:
-- identidade `card_id` vs labels;
-- fatura por competência;
-- compra antes/no/depois do fechamento;
-- compra parcelada 6x;
-- projeção vs realizado;
-- refund/estorno;
-- pagamento de fatura;
-- transferência interna;
-- recorrência;
-- saldo multi-mês e cobertura incompleta;
-- budget diário vs ciclo;
-- fonte indisponível vs zero;
-- personal_sheet;
-- follow-up;
-- áudio marker-only.
-
-Cada caso deve registrar `domain`, `metric`, `operation`, `timeBasis`, `scope`, `expected source`, `evidence state` e `expected side effects`.
-
-### 00.4 Telemetria Fase 8
-- revalidar heartbeat, retenção e rotação antes de aproveitar janela histórica;
-- considerar arquivos rotacionados/backups quando aplicável;
-- classificar `HEALTHY`, `STALE`, `BROKEN` ou `UNKNOWN`;
-- carregar separadamente `legacy_auth_utility`, cartões e dashboard;
-- não declarar candidato à remoção dentro de ROAD-00.
-
-### 00.5 Fixtures de schema
-- congelar versões conhecidas de `Saídas`, `Entradas`, `Lançamentos Cartão`, `Cartões`, `Contas Financeiras` e demais abas relevantes;
-- distinguir template atual de planilha real antiga ainda não verificada;
-- não migrar nada nesta fase.
-
-### 00.6 Lacunas externas
-Registrar sem resolver por inferência:
-- vínculo Atacadão Pluggy -> alias -> `card_id` -> closing/due;
-- fronteira causal do áudio real;
-- quais planilhas pessoais ainda possuem headers antigos;
-- provenance histórico de `Mês de Cobrança`;
-- cobertura cumulativa suficiente para saldo `as_of`;
-- estado atual de gates de writer/Open Finance posteriores às evidências históricas disponíveis.
-
-## Validação
-
-- Golden Set revisável e sem dados sensíveis;
-- inventário sem consumer crítico omitido;
-- falso zero explicitamente testado;
-- nenhuma mutação financeira;
-- nenhuma flag/deploy/restart;
-- nenhuma remoção de legado;
-- qualquer lacuna não verificável marcada `UNKNOWN/EXTERNAL_REQUIRED`.
+- `00.1 Snapshot e autoridade` — concluída;
+- `00.2 Inventário de capacidades e consumidores` — concluída;
+- `00.3 Golden Set sanitizado` — concluída;
+- `00.4 Telemetria Fase 8` — concluída com `UNKNOWN/STALE` quando não havia runtime atual;
+- `00.5 Fixtures de schema` — concluída sem migração;
+- `00.6 Lacunas externas` — concluída sem inferência;
+- revisão independente — concluída em `GO ROAD-00`.
 
 ## Gate de saída
 
-GO de ROAD-00 exige simultaneamente:
+GO de ROAD-00 exigia simultaneamente:
 
-1. matriz de autoridade e consumers completa;
-2. Golden Set versionado;
-3. telemetria Fase 8 classificada com saúde datada;
-4. fixtures de schema congeladas;
-5. shadows/canários/flags relevantes com status datado ou `UNKNOWN` explícito;
-6. lacunas externas registradas;
-7. revisão independente do artefato ROAD-00 antes de abrir ROAD-K0;
-8. nenhuma alteração funcional de produto durante o gate.
+1. matriz de autoridade e consumers completa — `SATISFEITO`;
+2. Golden Set versionado — `SATISFEITO`;
+3. telemetria Fase 8 classificada com saúde datada — `SATISFEITO`;
+4. fixtures de schema congeladas — `SATISFEITO`;
+5. shadows/canários/flags relevantes com status datado ou `UNKNOWN` explícito — `SATISFEITO`;
+6. lacunas externas registradas — `SATISFEITO`;
+7. revisão independente do artefato ROAD-00 antes de abrir ROAD-K0 — `SATISFEITO`;
+8. nenhuma alteração funcional de produto durante o gate — `SATISFEITO`.
 
-## Não escopo
+## Alcance do GO
 
-ROAD-00 não implementa ROAD-K0, não corrige áudio, não muda schema, não integra Atacadão, não promove ARQ, não cria writer e não remove legado.
+ROAD-K0 pode ser aberto documentalmente para congelar o contrato mínimo de convergência semântica comum. Este fechamento não autoriza implementação, deploy, acesso a produção, mudança de flag, escrita financeira, migração de schema, integração real do Atacadão, correção de áudio ou retirada de legado.
