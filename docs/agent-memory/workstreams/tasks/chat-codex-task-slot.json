@@ -1,46 +1,45 @@
 {
   "schema": "financasbot-chat-codex-task-v1",
-  "task_id": "FIN-ROAD00-CLOSE-REVIEW-20260827",
-  "objective": "NOME DA CONVERSA/TAREFA NO CODEX: 'FinançasBot — Revisão independente de fechamento ROAD-00 — 2026-08-27'. Faça uma auditoria defensiva, independente e somente de leitura do pacote docs/agent-memory/workstreams/review-inputs/FIN-ROAD00-CLOSE-REVIEW-20260827.md e das fontes requeridas. O alvo imutável do ROAD-00 é 8cb524ab48ee5dc5b9c9db1a46907fe806f00af9. Tente refutar o fechamento antes de concordar. Verifique se 00.1..00.6 satisfazem o plano ROAD-00 sem depender de produção: inventário/consumers inclusive writers, Golden Set mínimo e semântica zero vs unavailable/projected/confirmed/incomplete, classificação da telemetria Fase 8 sem falso zero, fixtures de schema sem confundir template/adapter/schema real, shadows/canários preservados e gaps externos honestamente UNKNOWN/EXTERNAL_REQUIRED. Dê atenção especial à afirmação de que ROAD-00.4 pode fechar com runtime atual UNKNOWN desde que nenhuma janela histórica seja reutilizada para retirement. Procure qualquer consumer ou writer omitido, caso Golden Set obrigatório ausente, dependência circular, estado promovido sem evidência ou razão técnica para impedir ROAD-K0. Não implemente nada. Entregue achados por severidade, lacunas indispensáveis, matriz dos oito critérios de saída e veredito final exato: GO ROAD-00 ou NO-GO ROAD-00. Se GO, diga explicitamente que ROAD-K0 pode ser aberto documentalmente, sem autorizar produto/produção.",
+  "task_id": "FIN-ROAD01-CARD-ID-IMPL-20260827",
+  "objective": "NOME DA TAREFA NO CODEX: 'FinançasBot — Implementação ROAD-01.2 identidade estável de cartão — 2026-08-27'. Produza um candidato de implementação estritamente delimitado para ROAD-01.2 conforme o brief sanitizado requerido. O objetivo é eliminar dependência contábil de labels no writer/resumo de cartão, fazer card_id vencer IDs derivados, persistir display canônico separado da rota legacy e agregar Faturas por identidade estável + competência, preservando fallback legível para linhas antigas sem card_id. Não altere fechamento, competência, parcelamento além da identidade, titularidade/autorização, subcategoria, saldo, budget, áudio, Open Finance ou produto adjacente. O clone do canal está na branch operacional; não faça checkout/fetch/commit/push. Trabalhe apenas nos allowed_paths e entregue o resultado para o Chat reconciliar na branch de produto após retorno. Faça revisão adversarial antes da edição, menor patch causal, testes focais e bateria causal; suíte ampla somente no candidato estável conforme AGENTS.md. Se qualquer blob-base listado no brief divergir, falhe fechado sem implementar.",
   "required_files": [
     "docs/agent-memory/README.md",
-    "docs/agent-memory/workstreams/review-inputs/FIN-ROAD00-CLOSE-REVIEW-20260827.md",
-    "docs/plans/workstreams/financial-roadmap-draft-v1.md",
-    "docs/agent-memory/workstreams/phase-8-legacy-retirement.md",
-    "docs/agent-memory/workstreams/financial-conversation-architecture-review.md",
+    "docs/agent-memory/workstreams/review-inputs/FIN-ROAD01-CARD-ID-IMPL-20260827.md",
     "src/handlers/messageHandler.js",
-    "src/handlers/audioHandler.js",
-    "src/services/userSpreadsheetService.js",
     "src/services/google.js",
-    "src/services/readModelService.js",
-    "src/services/userSheetAnalyticsService.js",
-    "src/telemetry/legacyUsageTelemetry.js",
-    "src/jobs/scheduler.js",
-    "src/plans/projectedPlanWriteRuntime.js",
-    "src/plans/projectedPlanWriteService.js",
-    "src/config/financialIterativeCanaryRuntimeConfig.js",
-    "src/openFinance/openFinanceRuntimeReconciliation.js"
+    "src/services/userSpreadsheetService.js",
+    "src/config/constants.js",
+    "tests/userSpreadsheetService.test.js",
+    "tests/unit.test.js",
+    "package.json"
   ],
   "allowed_paths": [
-    "docs/agent-memory/workstreams/results/FIN-ROAD00-CLOSE-REVIEW-20260827.md"
+    "src/handlers/messageHandler.js",
+    "src/services/google.js",
+    "src/services/userSpreadsheetService.js",
+    "tests/userSpreadsheetService.test.js",
+    "tests/unit.test.js",
+    "tests/road01CardIdentity.test.js",
+    "docs/agent-memory/workstreams/results/FIN-ROAD01-CARD-ID-IMPL-20260827.md"
   ],
-  "result_file": "docs/agent-memory/workstreams/results/FIN-ROAD00-CLOSE-REVIEW-20260827.md",
+  "result_file": "docs/agent-memory/workstreams/results/FIN-ROAD01-CARD-ID-IMPL-20260827.md",
   "validation": [
-    "O resultado começa identificando a tarefa como FinançasBot — Revisão independente de fechamento ROAD-00 — 2026-08-27.",
-    "O relatório tenta refutar explicitamente os critérios de saída de ROAD-00 antes de concluir.",
-    "O relatório contém uma matriz dos oito critérios de saída com SATISFEITO, NÃO SATISFEITO ou FALTA EVIDÊNCIA.",
-    "O relatório revisa consumidores mutáveis, Golden Set, falso zero da Fase 8, schema fixtures, shadows/canários e lacunas externas.",
-    "O relatório trata separadamente a questão de runtime UNKNOWN na telemetria e diz se isso impede ou não o fechamento documental.",
-    "O relatório termina exatamente com GO ROAD-00 ou NO-GO ROAD-00 e, se GO, esclarece que isso não autoriza produção ou implementação.",
-    "Nenhum arquivo fora do result_file foi alterado pelo executor."
+    "O executor confirma no relatório que os quatro blobs-base do brief coincidem antes da implementação ou falha fechado.",
+    "cardInfo.cardId explícito vence qualquer slug/ID derivado de label.",
+    "O writer personal-sheet persiste G=card_id canônico e H=display canônico mesmo quando a rota interna usa nome legacy de aba.",
+    "O adapter Google preserva compatibilidade para caller legacy sem display explícito e não perde user_id nem relation note.",
+    "Faturas agregam por identidade estável + competência; variação de label para o mesmo card_id não fragmenta a fatura.",
+    "Linha antiga sem card_id continua contabilizável por chave legacy e labels distintos não são fundidos entre si.",
+    "Nenhuma regra de titular exclusivo é introduzida e rotas central/legacy versus personal sheet permanecem separadas.",
+    "O relatório lista arquivos alterados, comandos/testes, contagens, riscos residuais e termina declarando READY_FOR_CHAT_AUDIT ou BLOCKED."
   ],
   "constraints": [
-    "Não alterar produto, scripts, testes, configuração, flags, produção ou dados privados.",
-    "Não chamar OCI/SSH, WhatsApp real, Google Sheets real, Pluggy real ou qualquer serviço autenticado.",
-    "Não ler, imprimir nem inferir segredos; use somente required_files e o pacote sanitizado.",
-    "Não tratar ausência de evento como zero e não autorizar retirada de legado.",
-    "Não exigir que gaps externos sejam resolvidos dentro do ROAD-00 se o plano permite UNKNOWN/EXTERNAL_REQUIRED; julgue apenas se foram registrados corretamente.",
-    "Não confiar no parecer do Chat; procurar contraexemplos no código e nos checkpoints disponíveis.",
-    "Não pedir troca de modelo, esforço, autorização ou interação humana. Se algo externo for necessário, marque FALTA EVIDÊNCIA e continue a auditoria estática."
+    "Não acessar produção, OCI/SSH, WhatsApp real, Google Sheets real, Pluggy real, navegador, segredos, sessões, .env ou dados privados.",
+    "Não fazer checkout, fetch, add, commit ou push; o watcher publica somente os caminhos autorizados.",
+    "Não alterar purchaseDate > closingDay, billing provenance, future installments, refund semantics, saldo, budget, áudio, Open Finance ou ROAD-02/03/AUDIO.",
+    "Não fazer backfill, migração de dados, deploy, restart, flags ou retirada de legado/canários.",
+    "Não modificar autorização/titularidade: cartões ativos continuam compartilhados entre usuários autorizados da família.",
+    "Não ampliar allowed_paths; se faltar um arquivo necessário, registre BLOCKED no result_file em vez de contornar a fronteira.",
+    "Não pedir troca de modelo, esforço, autorização ou interação humana."
   ]
 }
