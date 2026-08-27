@@ -1,6 +1,6 @@
 # Plano — canal permanente Chat ↔ Codex
 
-Status: `ORCH-02 recovery do sync_error em candidato local; instalação isolada pendente`.
+Status: `ORCH-02 recovery pós-NO-GO em reauditoria; instalação isolada pendente`.
 
 ## Objetivo
 
@@ -19,9 +19,9 @@ sem manter modelo ocioso e sem encerrar o canal ao concluir um trabalho.
 6. [em andamento] Tarefa 1 publicou `CHAT_READY`; campainha state-aware pronta;
    NO-GO de incompatibilidade config-v1/v2 corrigido; reauditar e executar a
    tarefa 2.
-7. [concluída] Congelar como funcional o caminho
-   `Chat -> GitHub -> watcher -> Codex App`; ele não pertence ao recovery do
-   retorno.
+7. [concluída] Congelar o desenho funcional
+   `Chat -> GitHub -> watcher -> Codex App`; o recovery posterior limita-se à
+   sincronização e ao preflight da instalação operacional, sem trocar o fluxo.
 8. [concluída] Provar em PoC isolado que o widget MCP `v7` envia a campainha
    após o turno originador e cria nova resposta no Chat sem clique.
 9. [concluída] Substituir o túnel temporário por Secure MCP Tunnel oficial,
@@ -29,8 +29,10 @@ sem manter modelo ocioso e sem encerrar o canal ao concluir um trabalho.
 10. [em andamento] Executar um único smoke no app definitivo.
 11. [pendente de autorização específica] Instalar watchdog no logon do Windows
     e comprovar recuperação dos processos sem iniciar modelo.
-12. [em andamento] Isolar o watcher num clone exclusivo e tornar
-    `failed:sync_error` recuperável para o mesmo hash, preservando fail-closed.
+12. [em reauditoria] Isolar o watcher num clone exclusivo, validar origem,
+    branch e revisão, tornar `failed:sync_error` recuperável para o mesmo hash e
+    repetir o preflight de tracked/untracked/ignored imediatamente antes do App
+    ou CLI.
 
 O Chat editará um manifesto-slot preexistente em commit inerte e depois o
 estado em commit separado; isso respeita a limitação observada do conector sem

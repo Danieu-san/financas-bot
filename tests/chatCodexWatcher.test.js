@@ -64,7 +64,13 @@ function taskFixture() {
 }
 
 function executorDeps(deps = {}) {
-    return { syncLocalBranch: () => {}, loadTaskDefinition: () => taskFixture(), ...deps };
+    return {
+        syncLocalBranch: () => {},
+        listWorktreeEntries: () => [],
+        listIgnoredPaths: () => new Set(),
+        loadTaskDefinition: () => taskFixture(),
+        ...deps
+    };
 }
 
 test('poll inalterado não desperta executor', () => {

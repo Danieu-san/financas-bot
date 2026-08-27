@@ -38,6 +38,8 @@ $profileContent = "[windows]`nsandbox = `"unelevated`"`n"
 $expectedRepositoryRoot = [IO.Path]::GetFullPath((Join-Path $interactiveProfile.LocalPath `
     'AppData\Local\FinancasBot\chat-codex-orchestration-repo')).TrimEnd('\')
 $watcher = Join-Path $RepositoryRoot 'scripts\agent\watchChatCodexOrchestration.js'
+$repositoryValidator = Join-Path $PSScriptRoot 'validateChatCodexWatcherRepository.js'
+$expectedOrigin = 'https://github.com/Danieu-san/financas-bot.git'
 
 function Assert-OrchestrationProfileSafe {
     if (-not (Test-Path -LiteralPath $profilePath -PathType Leaf)) { return }
@@ -90,47 +92,19 @@ if ($StatePath -notmatch '^[A-Za-z0-9._/-]+$' -or
     throw 'StatePath deve ser um caminho relativo seguro.'
 }
 
-function Invoke-WatcherGit([string[]]$GitArguments) {
-    $output = & $git -c "safe.directory=$RepositoryRoot" -C $RepositoryRoot @GitArguments
-    if ($LASTEXITCODE -ne 0) {
-        throw "git $($GitArguments[0]) falhou ao validar o clone dedicado."
-    }
-    return ($output -join "`n")
-}
-
 function Assert-WatcherRepositorySafe {
-    $resolvedRepository = [IO.Path]::GetFullPath(
-        (Resolve-Path -LiteralPath $RepositoryRoot -ErrorAction Stop).Path
-    ).TrimEnd('\')
-    if (-not $resolvedRepository.Equals(
-        $expectedRepositoryRoot, [StringComparison]::OrdinalIgnoreCase
-    )) {
-        throw "RepositoryRoot deve usar o clone Git dedicado: $expectedRepositoryRoot"
+    if (-not (Test-Path -LiteralPath $repositoryValidator -PathType Leaf)) {
+        throw "Validador do clone dedicado ausente: $repositoryValidator"
     }
-    $gitMetadata = Join-Path $resolvedRepository '.git'
-    if (-not (Test-Path -LiteralPath $gitMetadata -PathType Container)) {
-        throw 'RepositoryRoot deve ser um clone Git dedicado, não uma worktree de desenvolvimento.'
-    }
-
-    $resolvedRuntime = [IO.Path]::GetFullPath($runtime).TrimEnd('\')
-    if ($resolvedRuntime.StartsWith(
-        $resolvedRepository + '\', [StringComparison]::OrdinalIgnoreCase
-    )) {
-        throw 'O runtime do watcher não pode ficar dentro do repositório dedicado.'
-    }
-
-    $status = Invoke-WatcherGit @('status', '--porcelain=v1', '--untracked-files=all')
-    if ($status) {
-        throw 'A worktree dedicada deve estar limpa antes da instalação.'
-    }
-    $ignored = Invoke-WatcherGit @(
-        'ls-files', '--others', '--ignored', '--exclude-standard'
-    )
-    if ($ignored) {
-        throw 'A worktree dedicada contém caminho ignorado; instalação recusada.'
-    }
-    if (-not (Test-Path -LiteralPath $watcher -PathType Leaf)) {
-        throw "Watcher ausente no clone dedicado: $watcher"
+    $validationOutput = & $node $repositoryValidator `
+        '--repo' $RepositoryRoot `
+        '--expected-repo' $expectedRepositoryRoot `
+        '--runtime' $runtime `
+        '--git' $git `
+        '--branch' $Branch `
+        '--expected-origin' $expectedOrigin 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "Clone dedicado recusado: $($validationOutput -join ' ')"
     }
 }
 if ([bool]$AppThreadId -xor [bool]$ChatUrl) {

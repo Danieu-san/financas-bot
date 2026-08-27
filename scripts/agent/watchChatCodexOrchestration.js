@@ -9,7 +9,6 @@ const { loadTaskDefinition } = require('./chatCodexTaskContract');
 const CACHE_SCHEMA = 'financasbot-chat-codex-watcher-v1';
 const DEFAULT_BRANCH = 'chat/chat-codex-orchestration-20260824';
 const DEFAULT_STATE_PATH = 'docs/agent-memory/workstreams/chat-codex-channel.state.json';
-const DEFAULT_PLAN_PATH = 'docs/plans/workstreams/chat-codex-orchestration.md';
 const WAKE_REQUEST_SCHEMA = 'financasbot-codex-app-wake-request-v3';
 
 function parseArgs(argv) {
@@ -61,10 +60,7 @@ function fetchRemoteState(repoPath, branch, statePath, deps = {}) {
 
 function syncLocalBranch({ repoPath, branch, statePath, observedHash }, deps = {}) {
     const git = deps.runGit || runGit;
-    const before = git(repoPath, [
-        'status', '--porcelain=v1', '--untracked-files=all'
-    ], deps).trim();
-    if (before) throw new Error('worktree do watcher deve estar limpa antes da sincronização');
+    assertWatcherWorktreeClean(repoPath, deps);
 
     const currentBranch = git(repoPath, ['branch', '--show-current'], deps).trim();
     if (currentBranch !== branch) {
@@ -72,6 +68,7 @@ function syncLocalBranch({ repoPath, branch, statePath, observedHash }, deps = {
     }
 
     git(repoPath, ['merge', '--ff-only', 'FETCH_HEAD'], deps);
+    assertWatcherWorktreeClean(repoPath, deps);
     const localPath = path.join(repoPath, ...statePath.split('/'));
     const localRaw = fs.readFileSync(localPath, 'utf8');
     parseState(localRaw);
@@ -335,10 +332,25 @@ function listIgnoredPaths(repoPath, deps = {}) {
     return new Set(raw.split('\0').filter(Boolean).map(filePath => filePath.replaceAll('\\', '/')));
 }
 
+function listWorktreeEntries(repoPath, deps = {}) {
+    const git = deps.runGit || runGit;
+    const raw = git(repoPath, ['status', '--porcelain=v1', '--untracked-files=all'], deps);
+    return raw.split(/\r?\n/).filter(Boolean);
+}
+
 function assertNoIgnoredPaths(repoPath, deps = {}) {
     const ignored = (deps.listIgnoredPaths || listIgnoredPaths)(repoPath, deps);
     const first = ignored.values().next().value;
     if (first) throw new Error(`worktree contém caminho ignorado: ${first}`);
+}
+
+function assertWatcherWorktreeClean(repoPath, deps = {}) {
+    const entries = (deps.listWorktreeEntries || listWorktreeEntries)(repoPath, deps);
+    const first = entries.values().next().value;
+    if (first) {
+        throw new Error(`worktree do watcher deve estar limpa antes da execução: ${first}`);
+    }
+    assertNoIgnoredPaths(repoPath, deps);
 }
 
 function publishLocalResult({ repoPath, branch, statePath, observedHash, initialState, task }, deps = {}) {
@@ -528,6 +540,18 @@ function pollOnce(options, deps = {}) {
             }, deps.now?.() || new Date());
             throw error;
         }
+        try {
+            assertWatcherWorktreeClean(repoPath, gitDeps);
+        } catch (error) {
+            fs.mkdirSync(path.dirname(logPath), { recursive: true });
+            fs.writeFileSync(logPath, `pre_dispatch_error=${error.message}\n`);
+            saveCache(cachePath, {
+                ...cache,
+                launched_hash: null,
+                launch_status: 'failed:sync_error'
+            }, deps.now?.() || new Date());
+            throw error;
+        }
         if (usesAppExecutor) {
             const executionWake = maybeWakeCodexApp({
                 cache: readCache(cachePath), cachePath, options, observedHash, state
@@ -651,13 +675,13 @@ if (require.main === module) {
 module.exports = {
     CACHE_SCHEMA,
     DEFAULT_BRANCH,
-    DEFAULT_PLAN_PATH,
     DEFAULT_STATE_PATH,
     WAKE_REQUEST_SCHEMA,
     buildExecutorPrompt,
     loadTaskDefinition,
     maybeWakeCodexApp,
     assertNoIgnoredPaths,
+    assertWatcherWorktreeClean,
     listIgnoredPaths,
     defaultCache,
     fetchRemoteState,

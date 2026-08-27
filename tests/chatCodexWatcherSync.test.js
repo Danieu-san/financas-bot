@@ -60,6 +60,8 @@ function watcherOptions(item, extra = {}) {
 function executorDeps(deps = {}) {
     return {
         syncLocalBranch: () => {},
+        listWorktreeEntries: () => [],
+        listIgnoredPaths: () => new Set(),
         loadTaskDefinition: () => ({
             task_id: 'ORCH-01', objective: 'fixture', required_files: [],
             allowed_paths: ['docs/result.md'], result_file: 'docs/result.md',
@@ -221,6 +223,32 @@ test('CODEX_READY validado acorda App e não chama CLI', () => {
     assert.equal(request.repo_path, item.repo);
 });
 
+test('CODEX_READY no modo App repete preflight de tracked, untracked e ignored', () => {
+    const cases = [
+        { entries: [' M tracked.txt'], ignored: [], error: /worktree .* limpa/ },
+        { entries: ['?? untracked.txt'], ignored: [], error: /worktree .* limpa/ },
+        { entries: [], ignored: ['.runtime/private-cache'], error: /caminho ignorado/ }
+    ];
+    for (const scenario of cases) {
+        const item = fixture('CODEX_READY');
+        const queue = path.join(item.runtime, 'bridge', 'request.json');
+        fs.mkdirSync(path.dirname(queue), { recursive: true });
+        let cliCalls = 0;
+        const options = watcherOptions(item, { 'app-wake-request': queue });
+        assert.throws(() => pollOnce(options, executorDeps({
+            fetchRemoteState: () => item.raw,
+            listWorktreeEntries: () => scenario.entries,
+            listIgnoredPaths: () => new Set(scenario.ignored),
+            runCodex: () => { cliCalls += 1; return 0; }
+        })), scenario.error);
+        assert.equal(cliCalls, 0);
+        assert.equal(fs.existsSync(queue), false);
+        const cache = readCache(path.join(item.runtime, 'watcher-state.json'));
+        assert.equal(cache.launch_status, 'failed:sync_error');
+        assert.equal(cache.launched_hash, null);
+    }
+});
+
 test('canal reutiliza CHAT_WORKING entre duas tarefas distintas', () => {
     const item = fixture('CODEX_READY');
     let raw = item.raw, launches = 0;
@@ -279,8 +307,11 @@ test('sincronização exige worktree limpa, branch exata e fast-forward do FETCH
     assert.equal(result, item.raw);
     assert.deepEqual(commands, [
         ['status', '--porcelain=v1', '--untracked-files=all'],
+        ['ls-files', '-z', '--others', '--ignored', '--exclude-standard'],
         ['branch', '--show-current'],
-        ['merge', '--ff-only', 'FETCH_HEAD']
+        ['merge', '--ff-only', 'FETCH_HEAD'],
+        ['status', '--porcelain=v1', '--untracked-files=all'],
+        ['ls-files', '-z', '--others', '--ignored', '--exclude-standard']
     ]);
 });
 

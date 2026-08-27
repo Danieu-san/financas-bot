@@ -11,14 +11,16 @@ Daniel. O fechamento do gate que construiu o canal não encerra o serviço.
 
 ## Estado operacional
 
-`ORCH-02 CANAL BIDIRECIONAL PROVADO; RECOVERY DE ISOLAMENTO DO WATCHER EM CANDIDATO LOCAL`.
+`ORCH-02 CANAL BIDIRECIONAL PROVADO; RECOVERY DO WATCHER EM REAUDITORIA`.
 
 ### Fronteira congelada
 
-O caminho `Chat -> GitHub -> watcher -> Codex App` já foi provado e não faz
-parte do recovery atual. Nenhuma tentativa de corrigir o retorno pode alterar,
-substituir ou repetir essa ponta sem um achado causal novo e autorização
-específica. O único escopo aberto é `Codex -> Chat`.
+O desenho funcional `Chat -> GitHub -> watcher -> Codex App` permanece
+congelado: não será substituído nem refeito sem achado causal novo. O incidente
+de 2026-08-26 abriu somente um recovery delimitado da implementação operacional
+do watcher — isolamento do clone, sincronização e preflight antes do wake — sem
+alterar o protocolo, o manifesto ou a autoridade do GitHub. O retorno
+`Codex -> Chat` também permanece funcionalmente congelado.
 
 Enquanto não há trabalho, o estado permanece `CHAT_WORKING`: o Chat possui o
 canal, mas nenhum modelo local é iniciado. Para cada trabalho, o Chat cria um
@@ -144,9 +146,19 @@ duas barreiras:
 - o instalador aceita somente o clone dedicado em
   `%LOCALAPPDATA%\FinancasBot\chat-codex-orchestration-repo`, limpo, sem caminhos
   ignorados e com `.git` próprio; worktrees de desenvolvimento são recusadas;
+  origem, branch e revisão são conferidas contra o remoto antes da instalação;
 - `failed:sync_error` limpa apenas o latch daquele lançamento e permite nova
   tentativa mecânica do mesmo hash no próximo ciclo, sem iniciar modelo antes
-  de a sincronização ficar limpa.
+  de a sincronização ficar limpa;
+- um segundo preflight mecânico, imediatamente antes do despacho tanto ao App
+  quanto ao CLI, recusa mudanças rastreadas, não rastreadas e ignoradas que
+  tenham surgido depois da sincronização.
+
+O primeiro candidato deste recovery recebeu `NO-GO` porque o modo App ainda não
+repetia a verificação de caminhos ignorados antes do wake. O recovery atual
+fecha essa lacuna e substitui a prova textual do instalador por testes causais
+com clones Git temporários, incluindo worktree vinculada, origem divergente,
+revisão atrasada, untracked e ignored.
 
 Os artefatos que causaram o incidente foram preservados fora da worktree em
 `%LOCALAPPDATA%\FinancasBot\orchestration-artifacts\20260827-sync-error`.
