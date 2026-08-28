@@ -100,7 +100,9 @@ test('invoice formula mirrors canonical/legacy identity split and resolves frien
     assert.match(formula, /legacy:/);
     assert.match(formula, /'Lançamentos Cartão'!G2:G/);
     assert.match(formula, /'Lançamentos Cartão'!H2:H/);
-    assert.match(formula, /'Cartões'!A:B/);
+    assert.match(formula, /'Cartões'!A2:A/);
+    assert.match(formula, /'Cartões'!B2:B/);
+    assert.match(formula, /FILTER\(/);
     assert.match(formula, /group by Col1, Col2/);
     assert.doesNotMatch(formula, /where Col5 is not null and 'Lançamentos Cartão'!G/);
 });
