@@ -128,10 +128,15 @@ function summarizeCardInvoiceRows(rows = [], cardRows = []) {
 
 function buildInvoiceSummaryFormula() {
     const headers = 'HSTACK("Cartão";"Mês de Cobrança";"Total da Fatura";"Parcelas Lançadas";"Primeira Compra";"Última Compra")';
-    const source = "HSTACK(ARRAYFORMULA(IF('Lançamentos Cartão'!G2:G<>\"\";\"id:\"&'Lançamentos Cartão'!G2:G;IF('Lançamentos Cartão'!H2:H<>\"\";\"legacy:\"&'Lançamentos Cartão'!H2:H;\"\")));'Lançamentos Cartão'!F2:F;'Lançamentos Cartão'!D2:D;'Lançamentos Cartão'!A2:A;'Lançamentos Cartão'!J2:J)";
+    const source = "HSTACK(ARRAYFORMULA(IF(TRIM('Lançamentos Cartão'!G2:G)<>\"\";\"id:\"&TRIM('Lançamentos Cartão'!G2:G);IF(TRIM('Lançamentos Cartão'!H2:H)<>\"\";\"legacy:\"&TRIM('Lançamentos Cartão'!H2:H);\"\")));'Lançamentos Cartão'!F2:F;'Lançamentos Cartão'!D2:D;'Lançamentos Cartão'!A2:A;'Lançamentos Cartão'!J2:J)";
     const query = `DROP(QUERY(${source};"select Col1, Col2, sum(Col3), count(Col3), min(Col4), max(Col4) where Col5 is not null and Col1 is not null group by Col1, Col2 label Col1 '', Col2 '', sum(Col3) '', count(Col3) '', min(Col4) '', max(Col4) ''";0);1)`;
-    const display = "ARRAYFORMULA(IF(LEFT(keys;3)=\"id:\";IFNA(VLOOKUP(MID(keys;4;999);'Cartões'!A:B;2;FALSE);IFNA(VLOOKUP(MID(keys;4;999);HSTACK('Lançamentos Cartão'!G2:G;'Lançamentos Cartão'!H2:H);2;FALSE);MID(keys;4;999)));REGEXREPLACE(keys;\"^legacy:\";\"\")))";
-    return `=IFERROR(LET(q;${query};keys;CHOOSECOLS(q;1);display;${display};VSTACK(${headers};HSTACK(display;CHOOSECOLS(q;2;3;4;5;6))));${headers})`;
+    const catalogSource = "HSTACK(ARRAYFORMULA(TRIM('Cartões'!A2:A));'Cartões'!B2:B)";
+    const rowSource = "HSTACK(ARRAYFORMULA(TRIM('Lançamentos Cartão'!G2:G));'Lançamentos Cartão'!H2:H)";
+    const ids = 'ARRAYFORMULA(IF(LEFT(keys;3)="id:";MID(keys;4;999);""))';
+    const catalogDisplay = `ARRAYFORMULA(IFNA(VLOOKUP(ids;${catalogSource};2;FALSE);""))`;
+    const rowDisplay = `ARRAYFORMULA(IFNA(VLOOKUP(ids;${rowSource};2;FALSE);""))`;
+    const display = 'ARRAYFORMULA(IF(LEFT(keys;3)="id:";IF(catalogDisplay<>"";catalogDisplay;IF(rowDisplay<>"";rowDisplay;ids));REGEXREPLACE(keys;"^legacy:";"")))';
+    return `=IFERROR(LET(q;${query};keys;CHOOSECOLS(q;1);ids;${ids};catalogDisplay;${catalogDisplay};rowDisplay;${rowDisplay};display;${display};VSTACK(${headers};HSTACK(display;CHOOSECOLS(q;2;3;4;5;6))));${headers})`;
 }
 
 module.exports = {
