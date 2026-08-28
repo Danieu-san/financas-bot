@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('Install', 'Remove', 'RunNow', 'Status')]
+    [ValidateSet('Install', 'Remove', 'RunNow', 'Status', 'Repair')]
     [string]$Action = 'Status',
     [string]$TaskName = 'FinancasBot-CodexApp-Wake-Bridge',
     [string]$AppUser,
@@ -75,6 +75,30 @@ function Assert-Inputs {
     }
 }
 
+function Assert-InstalledBridgeConfig {
+    if (-not (Test-Path -LiteralPath $configPath -PathType Leaf)) {
+        throw "Configuracao instalada ausente: $configPath"
+    }
+    try {
+        $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json -ErrorAction Stop
+    } catch {
+        throw "Configuracao instalada invalida: $configPath"
+    }
+    if ($config.schema -ne 'financasbot-codex-app-wake-bridge-config-v2') {
+        throw "Schema instalado inesperado: $($config.schema)"
+    }
+    if ($config.thread_id -notmatch '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$') {
+        throw 'thread_id instalado invalido.'
+    }
+    $parsed = $null
+    if (-not [Uri]::TryCreate([string]$config.chat_url, [UriKind]::Absolute, [ref]$parsed) -or
+        $parsed.Scheme -ne 'https' -or $parsed.Host -ne 'chatgpt.com' -or
+        $parsed.Query -or $parsed.Fragment -or
+        $parsed.AbsolutePath -notmatch '^/(?:g/[^/]+/)?c/[0-9a-fA-F-]+/?$') {
+        throw 'chat_url instalada invalida.'
+    }
+}
+
 function Assert-TaskIdle {
     $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
     if ($task -and $task.State -eq 'Running') {
@@ -140,6 +164,25 @@ switch ($Action) {
         }
         Register-ScheduledTask @registerParameters | Out-Null
         [pscustomobject]@{ Status = 'INSTALLED'; TaskName = $TaskName; RequestPath = $requestPath }
+    }
+    'Repair' {
+        Assert-Administrator
+        Assert-TaskIdle
+        $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+        if (-not $task) { throw "Ponte nao instalada: $TaskName" }
+        Assert-InstalledBridgeConfig
+        if (-not (Test-Path -LiteralPath $binPath -PathType Container)) {
+            throw "Diretorio protegido da ponte ausente: $binPath"
+        }
+        Copy-Item -LiteralPath $workerSource -Destination $workerInstalled -Force
+        Copy-Item -LiteralPath $helperSource -Destination $helperInstalled -Force
+        Start-ScheduledTask -TaskName $TaskName
+        [pscustomobject]@{
+            Status = 'REPAIRED_AND_STARTED'
+            TaskName = $TaskName
+            RequestPath = $requestPath
+            ResultPath = $resultPath
+        }
     }
     'Remove' {
         Assert-Administrator
