@@ -8,8 +8,10 @@ const test = require('node:test');
 const {
     CONFIG_SCHEMA,
     LEGACY_RESULT_SCHEMA,
+    PREVIOUS_RESULT_SCHEMA,
     REQUEST_SCHEMA,
     RESULT_SCHEMA,
+    MAX_WAKE_ATTEMPTS,
     invokeWake,
     processWakeRequest
 } = require('../scripts/agent/processCodexAppWakeRequest');
@@ -42,7 +44,7 @@ function fixture(t) {
     return paths;
 }
 
-test('ponte usa configuração protegida e processa cada hash no máximo uma vez', t => {
+test('ponte usa configuração protegida e processa hash aceito no máximo uma vez', t => {
     const paths = fixture(t);
     let calls = 0;
     const deps = {
@@ -62,6 +64,7 @@ test('ponte usa configuração protegida e processa cada hash no máximo uma vez
         records: [{
             observed_hash: 'a'.repeat(64),
             status: 'accepted',
+            attempts: 1,
             updated_at: '2026-08-25T00:01:00.000Z',
             handled_by_client_id: '99999999-8888-4777-8666-555555555555',
             error_code: null
@@ -95,21 +98,80 @@ test('ponte usa configuração protegida e processa cada hash no máximo uma vez
     assert.equal(calls, 2);
 });
 
-test('falha fica terminal para o mesmo hash sem duplicar campainha', t => {
+test('falha transitória do IPC é repetida para o mesmo hash e accepted continua terminal', t => {
+    const paths = fixture(t);
+    let calls = 0;
+    const deps = {
+        invokeWake() {
+            calls += 1;
+            if (calls === 1) throw new Error('pipe indisponível');
+            return { status: 'accepted', handledByClientId: '99999999-8888-4777-8666-555555555555' };
+        }
+    };
+
+    assert.throws(() => processWakeRequest(paths, deps), /pipe indisponível/);
+    let result = JSON.parse(fs.readFileSync(paths.result, 'utf8'));
+    assert.equal(result.schema, RESULT_SCHEMA);
+    assert.equal(result.records[0].status, 'failed');
+    assert.equal(result.records[0].attempts, 1);
+    assert.equal(result.records[0].error_code, 'IPC_WAKE_FAILED');
+
+    const retry = processWakeRequest(paths, deps);
+    assert.equal(retry.action, 'accepted_after_retry');
+    assert.equal(retry.attempts, 2);
+    result = JSON.parse(fs.readFileSync(paths.result, 'utf8'));
+    assert.equal(result.records[0].status, 'accepted');
+    assert.equal(result.records[0].attempts, 2);
+    assert.equal(processWakeRequest(paths, deps).action, 'already_processed');
+    assert.equal(calls, 2);
+});
+
+test('falha persistente do IPC tem limite e não dispara indefinidamente', t => {
     const paths = fixture(t);
     let calls = 0;
     const deps = {
         invokeWake() { calls += 1; throw new Error('pipe indisponível'); }
     };
-    assert.throws(() => processWakeRequest(paths, deps), /pipe indisponível/);
+
+    for (let attempt = 0; attempt < MAX_WAKE_ATTEMPTS; attempt += 1) {
+        assert.throws(() => processWakeRequest(paths, deps), /pipe indisponível/);
+    }
     const result = JSON.parse(fs.readFileSync(paths.result, 'utf8'));
     assert.equal(result.records[0].status, 'failed');
-    assert.equal(result.records[0].error_code, 'IPC_WAKE_FAILED');
-    assert.equal(processWakeRequest(paths, deps).action, 'already_processed');
-    assert.equal(calls, 1);
+    assert.equal(result.records[0].attempts, MAX_WAKE_ATTEMPTS);
+    assert.throws(() => processWakeRequest(paths, deps), /IPC_RETRY_EXHAUSTED/);
+    assert.equal(calls, MAX_WAKE_ATTEMPTS);
 });
 
-test('marcador legado preserva o hash já terminal durante a migração', t => {
+test('resultado v2 failed migra e pode recuperar no mesmo hash', t => {
+    const paths = fixture(t);
+    fs.writeFileSync(paths.result, JSON.stringify({
+        schema: PREVIOUS_RESULT_SCHEMA,
+        records: [{
+            observed_hash: 'a'.repeat(64),
+            status: 'failed',
+            updated_at: '2026-08-25T00:00:30.000Z',
+            handled_by_client_id: null,
+            error_code: 'IPC_WAKE_FAILED'
+        }]
+    }));
+    let calls = 0;
+    const response = processWakeRequest(paths, {
+        invokeWake() {
+            calls += 1;
+            return { status: 'accepted', handledByClientId: '99999999-8888-4777-8666-555555555555' };
+        }
+    });
+    assert.equal(response.action, 'accepted_after_retry');
+    assert.equal(response.attempts, 2);
+    assert.equal(calls, 1);
+    const result = JSON.parse(fs.readFileSync(paths.result, 'utf8'));
+    assert.equal(result.schema, RESULT_SCHEMA);
+    assert.equal(result.records[0].attempts, 2);
+    assert.equal(result.records[0].status, 'accepted');
+});
+
+test('marcador legado aceito preserva o hash terminal durante a migração', t => {
     const paths = fixture(t);
     fs.writeFileSync(paths.result, JSON.stringify({
         schema: LEGACY_RESULT_SCHEMA,
@@ -182,18 +244,23 @@ test('launcher da ponte chama helper protegido sem shell', () => {
     assert.equal(response.status, 'accepted');
 });
 
-test('instalador usa S4U limitado e executa somente cópia protegida em ProgramData', () => {
+test('instalador usa S4U limitado, cópia protegida e repair in-place', () => {
     const installer = fs.readFileSync(path.join(
         __dirname, '..', 'scripts', 'agent', 'Install-CodexAppWakeBridge.ps1'
     ), 'utf8');
+    assert.match(installer, /ValidateSet\([^)]*'Repair'/s);
     assert.match(installer, /LogonType S4U/);
     assert.match(installer, /RunLevel Limited/);
     assert.match(installer, /ProgramData/);
     assert.match(installer, /SetAccessRuleProtection\(\$true, \$false\)/);
     assert.match(installer, /Set-BridgeAcl \$inboxPath \$true/);
     assert.match(installer, /Set-BridgeAcl \$statePath \$false/);
-    assert.match(installer, /Copy-Item -LiteralPath \$workerSource -Destination \$workerInstalled/);
-    assert.match(installer, /Copy-Item -LiteralPath \$helperSource -Destination \$helperInstalled/);
+    assert.match(installer, /'Repair'\s*\{/);
+    assert.match(installer, /Assert-InstalledBridgeConfig/);
+    assert.match(installer, /Copy-Item -LiteralPath \$workerSource -Destination \$workerInstalled -Force/);
+    assert.match(installer, /Copy-Item -LiteralPath \$helperSource -Destination \$helperInstalled -Force/);
+    assert.match(installer, /Status = 'REPAIRED_AND_STARTED'/);
+    assert.match(installer, /Start-ScheduledTask -TaskName \$TaskName/);
     assert.doesNotMatch(installer, /RunLevel Highest|NT AUTHORITY\\SYSTEM.*Principal/);
     assert.match(installer, /raiz da ponte inesperada/);
     const installedSchema = installer.match(
