@@ -130,8 +130,8 @@ function buildInvoiceSummaryFormula() {
     const headers = 'HSTACK("Cartão";"Mês de Cobrança";"Total da Fatura";"Parcelas Lançadas";"Primeira Compra";"Última Compra")';
     const source = "HSTACK(ARRAYFORMULA(IF(TRIM('Lançamentos Cartão'!G2:G)<>\"\";\"id:\"&TRIM('Lançamentos Cartão'!G2:G);IF(TRIM('Lançamentos Cartão'!H2:H)<>\"\";\"legacy:\"&TRIM('Lançamentos Cartão'!H2:H);\"\")));'Lançamentos Cartão'!F2:F;'Lançamentos Cartão'!D2:D;'Lançamentos Cartão'!A2:A;'Lançamentos Cartão'!J2:J)";
     const query = `DROP(QUERY(${source};"select Col1, Col2, sum(Col3), count(Col3), min(Col4), max(Col4) where Col5 is not null and Col1 is not null group by Col1, Col2 label Col1 '', Col2 '', sum(Col3) '', count(Col3) '', min(Col4) '', max(Col4) ''";0);1)`;
-    const catalogSource = "HSTACK(ARRAYFORMULA(TRIM('Cartões'!A2:A));'Cartões'!B2:B)";
-    const rowSource = "HSTACK(ARRAYFORMULA(TRIM('Lançamentos Cartão'!G2:G));'Lançamentos Cartão'!H2:H)";
+    const catalogSource = "FILTER(HSTACK(ARRAYFORMULA(TRIM('Cartões'!A2:A));'Cartões'!B2:B);ARRAYFORMULA(TRIM('Cartões'!A2:A))<>\"\";'Cartões'!B2:B<>\"\")";
+    const rowSource = "FILTER(HSTACK(ARRAYFORMULA(TRIM('Lançamentos Cartão'!G2:G));'Lançamentos Cartão'!H2:H);ARRAYFORMULA(TRIM('Lançamentos Cartão'!G2:G))<>\"\";'Lançamentos Cartão'!H2:H<>\"\")";
     const ids = 'ARRAYFORMULA(IF(LEFT(keys;3)="id:";MID(keys;4;999);""))';
     const catalogDisplay = `ARRAYFORMULA(IFNA(VLOOKUP(ids;${catalogSource};2;FALSE);""))`;
     const rowDisplay = `ARRAYFORMULA(IFNA(VLOOKUP(ids;${rowSource};2;FALSE);""))`;
