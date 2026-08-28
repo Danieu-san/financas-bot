@@ -1,12 +1,13 @@
 # Estado — ROAD-01 Schema e identidade consumer-first
 
-Atualizado em: 2026-08-27
-Status: `ROAD-01.1 COMPLETE — ROAD-01.2 CARD IDENTITY IMPLEMENTATION NEXT`
+Atualizado em: 2026-08-28
+Status: `ROAD-01.1 COMPLETE — ROAD-01.2 NO-GO; RECOVERY READY`
 Branch: `chat/financial-roadmap-road01-20260827`
 Base: ROAD-K0 GO em `9ea7906e16c0639681e9cf9437bcef8a9ef92eda`
 Contrato semântico: `docs/specs/financial-semantic-convergence-contract-v1.md`
 Roadmap canônico: `docs/plans/workstreams/financial-roadmap-canonical.md`
 Inventário: `docs/agent-memory/workstreams/financial-roadmap-road01-inventory.md`
+Recovery ROAD-01.2: `docs/agent-memory/workstreams/financial-roadmap-road01-card-identity-recovery-task.md`
 
 ## Objetivo
 
@@ -18,27 +19,37 @@ O inventário consumer-first foi versionado e cobre template, readers, writers, 
 
 Achados principais:
 
-- **P0:** `Faturas` agrupa por label H, não por `card_id` G;
-- **P0/P1:** personal card writer usa `sheetName=Cartão ${label}` e o adapter Google persiste esse legacy sheet name como display H, permitindo duas labels para o mesmo G;
+- **P0:** `Faturas` agrupava por label H, não por `card_id` G;
+- **P0/P1:** personal card writer usava `sheetName=Cartão ${label}` e o adapter Google persistia esse legacy sheet name como display H, permitindo duas labels para o mesmo G;
 - **P1:** `Lançamentos Cartão` não possui subcategoria estruturada;
 - **P1:** template/readers usam Conta Financeira K/J enquanto maintenance de user_id ainda lê A:J/A:I;
 - **P1:** existência de aba não prova header atual em planilha histórica;
 - **P1:** recorrência sem `user_id` é migração de dado, não autorização para ler linha sem escopo;
 - **P2:** resource de criação não congela timezone da planilha.
 
-O inventário separa explicitamente identidade/schema (ROAD-01) de competência/fechamento/schedule (ROAD-02) e saldo/budget (ROAD-03A).
+## ROAD-01.2 — candidato recusado
 
-## Próxima fatia — ROAD-01.2
+Candidato implementado pelo Codex no commit imutável `fe39d8c57a7907da02282035130aa1fe4f56b47c` recebeu `NO-GO ROAD-01.2` em auditoria independente.
 
-Implementar primeiro somente a identidade estável de cartão e compatibilidade associada:
+Partes aceitas estaticamente:
 
-1. preservar `card_id` como chave em writer/readers;
-2. separar legacy routing (`Cartão <label>`) do display persistido;
-3. fazer `Faturas` agregar por `card_id` + competência e resolver label pelo catálogo para apresentação;
-4. manter fallback seguro para linhas antigas sem card_id, sem fundir cartões distintos por nome;
-5. adicionar testes causais de duas labels para o mesmo card_id e round-trip do adapter legacy.
+- `card_id` explícito vence ID/slug derivado;
+- rota `Cartão <label>` fica separada do display persistido;
+- writer personal-sheet mantém G=`card_id`, H=display, I=relation note, J=`user_id`;
+- import e `saveCreditCardExpense()` propagam ID/display;
+- nenhuma nova regra de titularidade exclusiva foi introduzida.
 
-Subcategoria/schema v2, headers/account repair, recorrências e timezone permanecem para fatias seguintes de ROAD-01.
+Bloqueios obrigatórios do recovery:
+
+1. `Faturas` não pode excluir linha histórica sem `card_id`; G vazio precisa continuar contabilizável por identidade legacy derivada do label, sem fundir labels distintos;
+2. `Faturas` deve agrupar por identidade estável, mas apresentar nome amigável/canônico — não `card_id` bruto;
+3. testes precisam provar causalmente esses comportamentos, não apenas verificar substrings da fórmula.
+
+A falha relatada de `validateAgentWorkflow.js` por tamanho/CRLF de arquivo não alterado do watcher é tratada como pendência separada de workflow e não como causa do NO-GO funcional desta fatia.
+
+## Recovery ROAD-01.2 — READY
+
+O recovery está delimitado em `financial-roadmap-road01-card-identity-recovery-task.md` e não amplia o escopo para schema v2, fechamento, competência, parcelas, saldo, budget, áudio, Open Finance, backfill ou produção.
 
 ## Invariantes
 
@@ -46,8 +57,12 @@ Subcategoria/schema v2, headers/account repair, recorrências e timezone permane
 - nenhuma planilha real/backfill será executado nesta fatia;
 - nenhuma regra de closing/competence será alterada;
 - nenhuma retirada de legado;
-- mudança material de código só fecha após testes e auditoria independente em conversa limpa do Chat.
+- mudança material de código só fecha após testes e nova auditoria independente em conversa limpa do Chat.
+
+## Próxima ação
+
+Executar no Codex somente o recovery ROAD-01.2, preservar o patch já aceito, adicionar compatibilidade histórica + display amigável em `Faturas` e testes causais; depois publicar novo hash imutável para reauditoria independente.
 
 ## Capacidade
 
-`Codex -> capacidade atual -> Alto -> implementar ROAD-01.2 card identity em branch dedicada, testes focais/causais, sem deploy nem dados privados`.
+`Codex -> capacidade atual -> Alto -> corrigir somente os bloqueios do NO-GO ROAD-01.2, com testes causais e sem deploy/dados privados`.
