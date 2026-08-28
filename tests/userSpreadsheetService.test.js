@@ -350,9 +350,10 @@ test('createUserSpreadsheetForUser creates spreadsheet and writes headers to eve
     const dashboard = starterContent.payload.resource.data.find(item => item.range === "'Dashboard'!A1:E19");
     const faturas = starterContent.payload.resource.data.find(item => item.range === "'Faturas'!A1:F1");
     assert.ok(JSON.stringify(dashboard.values).includes("SUMIF('Saídas'!J2:J"));
-    assert.ok(faturas.values[0][0].includes("'Lançamentos Cartão'!A2:J"));
-    assert.ok(faturas.values[0][0].includes('where J is not null and G is not null group by G, F'));
-    assert.ok(faturas.values[0][0].includes(';0)'));
+    assert.ok(faturas.values[0][0].includes("'Lançamentos Cartão'!G2:G"));
+    assert.ok(faturas.values[0][0].includes("'Lançamentos Cartão'!H2:H"));
+    assert.ok(faturas.values[0][0].includes('where Col5 is not null and Col1 is not null group by Col1, Col2'));
+    assert.ok(faturas.values[0][0].includes("'Cartões'!A2:A"));
     const formatCall = calls.find(call => call.type === 'batchUpdate');
     assert.ok(formatCall, 'Should apply visual formatting');
     assert.ok(formatCall.payload.resource.requests.some(req => req.addChart), 'Should add a dashboard chart');
@@ -490,11 +491,12 @@ test('new user spreadsheets include non-counted example rows for user-filled tab
     assert.ok(JSON.stringify(dashboard.values).includes("SUMIF('Entradas'!I2:I"));
     assert.ok(JSON.stringify(dashboard.values).includes("SUMIF('Saídas'!J2:J"));
     assert.ok(JSON.stringify(dashboard.values).includes("SUMIF('Lançamentos Cartão'!J2:J"));
-    assert.ok(faturas.values[0][0].includes("'Lançamentos Cartão'!A2:J"));
+    assert.ok(faturas.values[0][0].includes("'Lançamentos Cartão'!G2:G"));
+    assert.ok(faturas.values[0][0].includes("'Lançamentos Cartão'!H2:H"));
     assert.ok(parcelamentos.values[0][0].includes("'Lançamentos Cartão'!A2:J"));
-    assert.ok(faturas.values[0][0].includes('where J is not null'));
+    assert.ok(faturas.values[0][0].includes('where Col5 is not null and Col1 is not null'));
     assert.ok(parcelamentos.values[0][0].includes('where J is not null'));
-    assert.ok(faturas.values[0][0].endsWith(';0)'));
+    assert.match(faturas.values[0][0], /^=IFERROR\(LET\(/);
     assert.ok(parcelamentos.values[0][0].endsWith(';0)'));
 });
 
@@ -521,13 +523,15 @@ test('user spreadsheet card summary tabs are formula-driven from card launches',
 
     assert.ok(faturas, 'Should seed automatic invoice summary');
     assert.ok(parcelamentos, 'Should seed automatic installment summary');
-    assert.match(faturas.values[0][0], /^=QUERY\(/);
+    assert.match(faturas.values[0][0], /^=IFERROR\(LET\(/);
     assert.match(parcelamentos.values[0][0], /^=QUERY\(/);
-    assert.match(faturas.values[0][0], /'Lançamentos Cartão'!A2:J/);
+    assert.match(faturas.values[0][0], /'Lançamentos Cartão'!G2:G/);
+    assert.match(faturas.values[0][0], /'Lançamentos Cartão'!H2:H/);
+    assert.match(faturas.values[0][0], /'Cartões'!A2:A/);
+    assert.match(faturas.values[0][0], /legacy:/);
+    assert.match(faturas.values[0][0], /group by Col1, Col2/);
     assert.match(parcelamentos.values[0][0], /'Lançamentos Cartão'!A2:J/);
-    assert.match(faturas.values[0][0], /;0\)$/);
     assert.match(parcelamentos.values[0][0], /;0\)$/);
-    assert.doesNotMatch(faturas.values[0][0], /",1\)$/);
     assert.doesNotMatch(parcelamentos.values[0][0], /",1\)$/);
     assert.doesNotMatch(JSON.stringify([faturas, parcelamentos]), /Importações|Hash|Configurações/i);
 });
