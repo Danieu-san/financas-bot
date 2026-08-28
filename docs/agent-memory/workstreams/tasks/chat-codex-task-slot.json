@@ -1,44 +1,30 @@
 {
   "schema": "financasbot-chat-codex-task-v1",
-  "task_id": "FIN-ROAD01-CARD-ID-RECOVERY-20260828",
-  "objective": "NOME DA TAREFA NO CODEX: 'FinançasBot — Recovery ROAD-01.2 Faturas legacy/display — 2026-08-28'. Corrija exclusivamente os três bloqueios do NO-GO independente registrados no brief sanitizado: preservar linhas históricas sem card_id em Faturas por identidade legacy determinística, manter agrupamento canônico por card_id+competência com display amigável/canônico, e adicionar testes realmente causais desses comportamentos. Preserve todo o restante do candidato anterior. Antes de editar, confirme os cinco blobs-base do brief; se qualquer um divergir, falhe fechado e escreva BLOCKED no result_file. Faça o menor patch causal, sem checkout/fetch/commit/push e sem ampliar escopo.",
+  "task_id": "FIN-ROAD01-CARD-ID-VALIDATE-20260828",
+  "objective": "NOME DA TAREFA NO CODEX: 'FinançasBot — Validação mecânica ROAD-01.2 — 2026-08-28'. Valide exclusivamente o SHA imutável e4bfe14b9e436c70b6f4ef08a347de2b4c718af0 conforme o brief sanitizado. Esta tarefa é read-only sobre o candidato: não implemente, não corrija, não refatore e não redesenhe. Execute node --check, testes focais/causais, bateria combinada, git diff --check, validateAgentWorkflow e uma única suíte ampla proporcional se o candidato estiver estável. Se o SHA não estiver disponível localmente, é permitido somente um fetch read-only da branch exata do produto para obtê-lo. Termine com VALIDATION_PASS ou VALIDATION_FAIL e mantenha a worktree limpa.",
   "required_files": [
     "docs/agent-memory/README.md",
-    "docs/agent-memory/workstreams/review-inputs/FIN-ROAD01-CARD-ID-RECOVERY-20260828.md",
-    "src/handlers/messageHandler.js",
-    "src/services/google.js",
-    "src/services/userSpreadsheetService.js",
-    "tests/unit.test.js",
-    "tests/userSpreadsheetService.test.js",
+    "docs/agent-memory/workstreams/review-inputs/FIN-ROAD01-CARD-ID-VALIDATE-20260828.md",
+    "AGENTS.md",
     "package.json"
   ],
   "allowed_paths": [
-    "src/handlers/messageHandler.js",
-    "src/services/google.js",
-    "src/services/userSpreadsheetService.js",
-    "tests/userSpreadsheetService.test.js",
-    "tests/unit.test.js",
-    "tests/road01CardIdentity.test.js",
-    "docs/agent-memory/workstreams/results/FIN-ROAD01-CARD-ID-RECOVERY-20260828.md"
+    "docs/agent-memory/workstreams/results/FIN-ROAD01-CARD-ID-VALIDATE-20260828.md"
   ],
-  "result_file": "docs/agent-memory/workstreams/results/FIN-ROAD01-CARD-ID-RECOVERY-20260828.md",
+  "result_file": "docs/agent-memory/workstreams/results/FIN-ROAD01-CARD-ID-VALIDATE-20260828.md",
   "validation": [
-    "O executor confirma os cinco blobs-base do brief antes da edição ou termina BLOCKED sem implementar.",
-    "Mesmo card_id e mesma competência agregam em um único grupo independentemente de variação de label.",
-    "O grupo canônico apresenta nome amigável/canônico quando resolvível e não card_id bruto como display.",
-    "Linha histórica sem card_id continua contabilizável por identidade legacy; labels legacy distintos não são fundidos.",
-    "Linha legacy sem card_id não é fundida com linha canônica apenas por similaridade de label.",
-    "O writer adapter continua preservando G=card_id, H=display, I=relation note e J=user_id.",
-    "Há prova causal local da agregação/apresentação, não apenas substring da fórmula.",
-    "O relatório lista arquivos alterados, comandos, contagens, riscos residuais e termina READY_FOR_CHAT_AUDIT ou BLOCKED."
+    "Confirma que o SHA efetivamente validado é e4bfe14b9e436c70b6f4ef08a347de2b4c718af0.",
+    "Executa todos os nove comandos obrigatórios do brief e registra PASS/FAIL e contagens.",
+    "Executa no máximo uma suíte ampla proporcional após o candidato estar estável.",
+    "Não altera código, testes, docs ou configuração; somente o result_file pode ser escrito pelo executor.",
+    "Confirma worktree limpa ao final.",
+    "Termina exatamente com VALIDATION_PASS ou VALIDATION_FAIL."
   ],
   "constraints": [
     "Não acessar produção, OCI/SSH, WhatsApp real, Google Sheets real, Pluggy real, navegador, segredos, sessões, .env ou dados privados.",
-    "Não fazer checkout, fetch, add, commit ou push; o watcher publica somente os caminhos autorizados.",
-    "Não alterar closing/competence, purchaseDate > closingDay, future installments, refunds, saldo, budget, áudio, Open Finance, schema v2, timezone ou recorrência.",
-    "Não fazer backfill, migração de dados, deploy, restart, flags ou retirada de legado/canários.",
-    "Não modificar autorização/titularidade nem introduzir titular exclusivo.",
-    "Não ampliar allowed_paths; se faltar arquivo necessário, registre BLOCKED no result_file.",
-    "Não pedir troca de modelo, esforço, autorização ou interação humana."
+    "Não fazer git add, commit ou push.",
+    "Fetch é permitido somente em modo read-only da branch chat/financial-roadmap-road01-20260827 se necessário para obter o SHA alvo.",
+    "Não corrigir falhas encontradas; apenas reportar a cadeia causal observável e parar com VALIDATION_FAIL.",
+    "Não ampliar allowed_paths nem pedir autorização/interação humana."
   ]
 }
