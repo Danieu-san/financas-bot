@@ -1,7 +1,7 @@
 # Estado — ROAD-01 Schema e identidade consumer-first
 
 Atualizado em: 2026-08-28
-Status: `ROAD-01.1 COMPLETE — ROAD-01.2 RECOVERY IMPLEMENTED; ENV VALIDATION PENDING`
+Status: `ROAD-01.1 COMPLETE — ROAD-01.2 SPECIFIC VALIDATION PASS; BROAD BASELINE DIAG PENDING`
 Branch: `chat/financial-roadmap-road01-20260827`
 Base: ROAD-K0 GO em `9ea7906e16c0639681e9cf9437bcef8a9ef92eda`
 Contrato semântico: `docs/specs/financial-semantic-convergence-contract-v1.md`
@@ -45,11 +45,9 @@ Bloqueios do NO-GO:
 2. `Faturas` exibia `card_id` bruto em vez de nome amigável/canônico;
 3. os testes não provavam causalmente esses comportamentos.
 
-A falha relatada de `validateAgentWorkflow.js` por tamanho/CRLF de arquivo não alterado do watcher continua tratada como pendência separada de workflow e não como causa do NO-GO funcional desta fatia.
-
 ## Recovery ROAD-01.2 — IMPLEMENTED BY CHAT
 
-O Chat principal transplantou para esta branch apenas os cinco blobs de código/teste do primeiro candidato que haviam passado na auditoria estática, sem trazer estado, scripts ou artefatos da branch de orquestração. Em seguida aplicou diretamente o recovery delimitado.
+O Chat principal transplantou para esta branch apenas os blobs de código/teste do primeiro candidato que haviam passado na auditoria estática, sem trazer estado, scripts ou artefatos da branch de orquestração. Em seguida aplicou diretamente o recovery delimitado.
 
 Implementação do recovery:
 
@@ -59,29 +57,32 @@ Implementação do recovery:
 - display canônico resolve primeiro o catálogo `Cartões` por `card_id`, depois o display persistido da linha e só cai no ID bruto se nenhum nome estiver disponível;
 - display legacy permanece o label legacy exato normalizado;
 - `Faturas` usa fórmula coerente com a mesma separação `id:` / `legacy:` e não exige mais G não nulo;
-- `tests/road01CardIdentity.test.js` cobre os quatro contraexemplos causais e exige igualdade exata entre a fórmula de produção e a fórmula construída pelo helper.
+- `tests/road01CardIdentity.test.js` cobre contraexemplos causais e coerência fórmula/helper.
 
-Candidato de código antes deste checkpoint: `550a4d2651abec7adf75c1830de153772780cd40`.
+SHA atual validado pelo executor local: `d2e3e17caae79577b6c8736780d809a36d2a0f31`.
 
-## Evidência disponível
+## Revalidação local — checks específicos verdes
 
-Validação que o Chat conseguiu executar sem ambiente completo do repositório:
+Resultado `FIN-ROAD01-CARD-ID-REVALIDATE-20260828`:
 
-- helper puro: 4/4 checagens causais locais passaram para agregação canônica, inclusão legacy, separação de labels legacy e não-fusão legacy/canônico;
-- sintaxe JS isolada da fórmula foi verificada localmente;
-- diff GitHub do patch de produção confirmou alteração localizada na fórmula de `Faturas`;
-- compare `09a6cceb394157153516a4f8393267e47ed66a06..550a4d2651abec7adf75c1830de153772780cd40` mostra apenas os arquivos esperados da fatia, mais o result file histórico do primeiro candidato publicado tardiamente;
-- não há CI/status checks nem workflow run associado ao candidato.
+- `node --check` nos quatro módulos relevantes: PASS;
+- `tests/road01CardIdentity.test.js`: 7/7 PASS;
+- focais de writer/adapter em `tests/unit.test.js`: 2/2 PASS;
+- bateria combinada `userSpreadsheetService + unit + road01CardIdentity`: 233/233 PASS;
+- `git diff --check 09a6cceb...d2e3e17c...`: PASS;
+- `node scripts/agent/validateAgentWorkflow.js`: PASS (`agent-workflow: OK`);
+- worktree detached permaneceu limpa.
 
-Ainda **não executado no ambiente completo**:
+A única suíte ampla proporcional executada (`npm run test:unit`) falhou no lifecycle `pretest:unit`, antes da suíte principal, em `tests/userStateSnapshotSecurity.test.js`: 14 executados, 9 PASS, 5 FAIL, com `state_store_persist_failed` em persistência/compactação do state store.
 
-- `node --check` nos módulos reais alterados com dependências instaladas;
-- `node --test tests/road01CardIdentity.test.js`;
-- regressão focal de `tests/unit.test.js` e `tests/userSpreadsheetService.test.js`;
-- suíte ampla proporcional conforme `AGENTS.md`;
-- `node scripts/agent/validateAgentWorkflow.js`.
+## Causalidade do bloqueio amplo
 
-Portanto este checkpoint **não declara GO** e ainda não autoriza auditoria final como candidato validado.
+O `pretest:unit` inicia por `npm run test:state-store-security`, antes de qualquer bateria principal do ROAD-01. Os dois arquivos diretamente envolvidos na falha têm blobs idênticos no base `09a6cceb394157153516a4f8393267e47ed66a06` e no candidato `d2e3e17caae79577b6c8736780d809a36d2a0f31`:
+
+- `src/state/userStateManager.js`: blob `442857d58977b64ae7f0c3a8f9e6385549db049d` nos dois hashes;
+- `tests/userStateSnapshotSecurity.test.js`: blob `5dcefe7d6988f404f026d8801c2557d9131f66d6` nos dois hashes.
+
+Isso torna improvável uma regressão causal do ROAD-01, mas a suíte ampla continua vermelha e não será ignorada por inferência. O próximo gate é uma comparação ambiental controlada do mesmo preteste no base e no candidato, sem edição de produto.
 
 ## Invariantes
 
@@ -90,12 +91,12 @@ Portanto este checkpoint **não declara GO** e ainda não autoriza auditoria fin
 - nenhuma regra de closing/competence foi alterada;
 - nenhuma retirada de legado;
 - nenhuma mudança de deploy/restart/flags/produção;
-- GO da fatia exige validação de ambiente e auditorias independentes posteriores.
+- GO da fatia exige resolver/classificar a falha ampla e depois auditorias independentes.
 
 ## Próxima ação
 
-Executar validação local somente-leitura/sem redesign sobre o SHA atual desta branch. Se os testes passarem, congelar novo SHA imutável e submetê-lo a duas auditorias independentes: conversa limpa do GPT e Abacus/Claude Sonnet 5 seguindo o protocolo canônico.
+Executar no Codex/local executor, em worktrees limpas e sem editar, somente `npm run test:state-store-security` no base `09a6cceb394157153516a4f8393267e47ed66a06` e no candidato `d2e3e17caae79577b6c8736780d809a36d2a0f31`, registrar plataforma/Node, nomes dos testes falhos e cadeia causal. Se o resultado for idêntico, classificar como baseline/ambiente e decidir o tratamento do gate sem misturar correção lateral no ROAD-01. Se divergir, investigar regressão do candidato.
 
 ## Capacidade
 
-`Codex/local executor -> capacidade atual -> Médio -> validar o SHA sem editar nem redesenhar; depois Chat limpo + Claude -> Alto -> auditorias independentes`.
+`Codex/local executor -> capacidade atual -> Baixo -> comparar apenas o preteste de state store no base e candidato; depois Chat -> GPT-5.6 Sol -> Médio -> classificar causalmente o bloqueio e decidir se o candidato pode seguir para auditorias`.
