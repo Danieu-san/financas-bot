@@ -265,7 +265,7 @@ function buildManualRows({ user = {} } = {}) {
 
 function buildInvoiceSummaryRows({ dataStartRow = 2 } = {}) {
     return [[
-        '=QUERY(\'Lançamentos Cartão\'!A2:J;"select G, F, sum(D), count(D), min(A), max(A) where J is not null and G is not null group by G, F label G \'Cartão\', F \'Mês de Cobrança\', sum(D) \'Total da Fatura\', count(D) \'Parcelas Lançadas\', min(A) \'Primeira Compra\', max(A) \'Última Compra\'";0)',
+        '=IFERROR(LET(q;DROP(QUERY(HSTACK(ARRAYFORMULA(IF(\'Lançamentos Cartão\'!G2:G<>"";"id:"&\'Lançamentos Cartão\'!G2:G;IF(\'Lançamentos Cartão\'!H2:H<>"";"legacy:"&\'Lançamentos Cartão\'!H2:H;"")));\'Lançamentos Cartão\'!F2:F;\'Lançamentos Cartão\'!D2:D;\'Lançamentos Cartão\'!A2:A;\'Lançamentos Cartão\'!J2:J);"select Col1, Col2, sum(Col3), count(Col3), min(Col4), max(Col4) where Col5 is not null and Col1 is not null group by Col1, Col2 label Col1 \'\', Col2 \'\', sum(Col3) \'\', count(Col3) \'\', min(Col4) \'\', max(Col4) \'\'";0);1);keys;CHOOSECOLS(q;1);display;ARRAYFORMULA(IF(LEFT(keys;3)="id:";IFNA(VLOOKUP(MID(keys;4;999);\'Cartões\'!A:B;2;FALSE);IFNA(VLOOKUP(MID(keys;4;999);HSTACK(\'Lançamentos Cartão\'!G2:G;\'Lançamentos Cartão\'!H2:H);2;FALSE);MID(keys;4;999)));REGEXREPLACE(keys;"^legacy:";"")));VSTACK(HSTACK("Cartão";"Mês de Cobrança";"Total da Fatura";"Parcelas Lançadas";"Primeira Compra";"Última Compra");HSTACK(display;CHOOSECOLS(q;2;3;4;5;6))));HSTACK("Cartão";"Mês de Cobrança";"Total da Fatura";"Parcelas Lançadas";"Primeira Compra";"Última Compra"))',
         '',
         '',
         '',
