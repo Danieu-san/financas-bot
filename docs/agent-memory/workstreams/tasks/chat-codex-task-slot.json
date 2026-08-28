@@ -1,16 +1,15 @@
 {
   "schema": "financasbot-chat-codex-task-v1",
-  "task_id": "FIN-ROAD01-CARD-ID-IMPL-20260827",
-  "objective": "NOME DA TAREFA NO CODEX: 'FinançasBot — Implementação ROAD-01.2 identidade estável de cartão — 2026-08-27'. Produza um candidato de implementação estritamente delimitado para ROAD-01.2 conforme o brief sanitizado requerido. O objetivo é eliminar dependência contábil de labels no writer/resumo de cartão, fazer card_id vencer IDs derivados, persistir display canônico separado da rota legacy e agregar Faturas por identidade estável + competência, preservando fallback legível para linhas antigas sem card_id. Não altere fechamento, competência, parcelamento além da identidade, titularidade/autorização, subcategoria, saldo, budget, áudio, Open Finance ou produto adjacente. O clone do canal está na branch operacional; não faça checkout/fetch/commit/push. Trabalhe apenas nos allowed_paths e entregue o resultado para o Chat reconciliar na branch de produto após retorno. Faça revisão adversarial antes da edição, menor patch causal, testes focais e bateria causal; suíte ampla somente no candidato estável conforme AGENTS.md. Se qualquer blob-base listado no brief divergir, falhe fechado sem implementar.",
+  "task_id": "FIN-ROAD01-CARD-ID-RECOVERY-20260828",
+  "objective": "NOME DA TAREFA NO CODEX: 'FinançasBot — Recovery ROAD-01.2 Faturas legacy/display — 2026-08-28'. Corrija exclusivamente os três bloqueios do NO-GO independente registrados no brief sanitizado: preservar linhas históricas sem card_id em Faturas por identidade legacy determinística, manter agrupamento canônico por card_id+competência com display amigável/canônico, e adicionar testes realmente causais desses comportamentos. Preserve todo o restante do candidato anterior. Antes de editar, confirme os cinco blobs-base do brief; se qualquer um divergir, falhe fechado e escreva BLOCKED no result_file. Faça o menor patch causal, sem checkout/fetch/commit/push e sem ampliar escopo.",
   "required_files": [
     "docs/agent-memory/README.md",
-    "docs/agent-memory/workstreams/review-inputs/FIN-ROAD01-CARD-ID-IMPL-20260827.md",
+    "docs/agent-memory/workstreams/review-inputs/FIN-ROAD01-CARD-ID-RECOVERY-20260828.md",
     "src/handlers/messageHandler.js",
     "src/services/google.js",
     "src/services/userSpreadsheetService.js",
-    "src/config/constants.js",
-    "tests/userSpreadsheetService.test.js",
     "tests/unit.test.js",
+    "tests/userSpreadsheetService.test.js",
     "package.json"
   ],
   "allowed_paths": [
@@ -20,26 +19,26 @@
     "tests/userSpreadsheetService.test.js",
     "tests/unit.test.js",
     "tests/road01CardIdentity.test.js",
-    "docs/agent-memory/workstreams/results/FIN-ROAD01-CARD-ID-IMPL-20260827.md"
+    "docs/agent-memory/workstreams/results/FIN-ROAD01-CARD-ID-RECOVERY-20260828.md"
   ],
-  "result_file": "docs/agent-memory/workstreams/results/FIN-ROAD01-CARD-ID-IMPL-20260827.md",
+  "result_file": "docs/agent-memory/workstreams/results/FIN-ROAD01-CARD-ID-RECOVERY-20260828.md",
   "validation": [
-    "O executor confirma no relatório que os quatro blobs-base do brief coincidem antes da implementação ou falha fechado.",
-    "cardInfo.cardId explícito vence qualquer slug/ID derivado de label.",
-    "O writer personal-sheet persiste G=card_id canônico e H=display canônico mesmo quando a rota interna usa nome legacy de aba.",
-    "O adapter Google preserva compatibilidade para caller legacy sem display explícito e não perde user_id nem relation note.",
-    "Faturas agregam por identidade estável + competência; variação de label para o mesmo card_id não fragmenta a fatura.",
-    "Linha antiga sem card_id continua contabilizável por chave legacy e labels distintos não são fundidos entre si.",
-    "Nenhuma regra de titular exclusivo é introduzida e rotas central/legacy versus personal sheet permanecem separadas.",
-    "O relatório lista arquivos alterados, comandos/testes, contagens, riscos residuais e termina declarando READY_FOR_CHAT_AUDIT ou BLOCKED."
+    "O executor confirma os cinco blobs-base do brief antes da edição ou termina BLOCKED sem implementar.",
+    "Mesmo card_id e mesma competência agregam em um único grupo independentemente de variação de label.",
+    "O grupo canônico apresenta nome amigável/canônico quando resolvível e não card_id bruto como display.",
+    "Linha histórica sem card_id continua contabilizável por identidade legacy; labels legacy distintos não são fundidos.",
+    "Linha legacy sem card_id não é fundida com linha canônica apenas por similaridade de label.",
+    "O writer adapter continua preservando G=card_id, H=display, I=relation note e J=user_id.",
+    "Há prova causal local da agregação/apresentação, não apenas substring da fórmula.",
+    "O relatório lista arquivos alterados, comandos, contagens, riscos residuais e termina READY_FOR_CHAT_AUDIT ou BLOCKED."
   ],
   "constraints": [
     "Não acessar produção, OCI/SSH, WhatsApp real, Google Sheets real, Pluggy real, navegador, segredos, sessões, .env ou dados privados.",
     "Não fazer checkout, fetch, add, commit ou push; o watcher publica somente os caminhos autorizados.",
-    "Não alterar purchaseDate > closingDay, billing provenance, future installments, refund semantics, saldo, budget, áudio, Open Finance ou ROAD-02/03/AUDIO.",
+    "Não alterar closing/competence, purchaseDate > closingDay, future installments, refunds, saldo, budget, áudio, Open Finance, schema v2, timezone ou recorrência.",
     "Não fazer backfill, migração de dados, deploy, restart, flags ou retirada de legado/canários.",
-    "Não modificar autorização/titularidade: cartões ativos continuam compartilhados entre usuários autorizados da família.",
-    "Não ampliar allowed_paths; se faltar um arquivo necessário, registre BLOCKED no result_file em vez de contornar a fronteira.",
+    "Não modificar autorização/titularidade nem introduzir titular exclusivo.",
+    "Não ampliar allowed_paths; se faltar arquivo necessário, registre BLOCKED no result_file.",
     "Não pedir troca de modelo, esforço, autorização ou interação humana."
   ]
 }
