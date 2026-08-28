@@ -1,19 +1,19 @@
 {
   "schema": "financasbot-chat-codex-task-v1",
-  "task_id": "FIN-ROAD01-CARD-ID-VALIDATE-20260828",
-  "objective": "NOME DA TAREFA NO CODEX: 'FinançasBot — Validação mecânica ROAD-01.2 — 2026-08-28'. Valide exclusivamente o SHA imutável e4bfe14b9e436c70b6f4ef08a347de2b4c718af0 conforme o brief sanitizado. Esta tarefa é read-only sobre o candidato: não implemente, não corrija, não refatore e não redesenhe. Execute node --check, testes focais/causais, bateria combinada, git diff --check, validateAgentWorkflow e uma única suíte ampla proporcional se o candidato estiver estável. Se o SHA não estiver disponível localmente, é permitido somente um fetch read-only da branch exata do produto para obtê-lo. Termine com VALIDATION_PASS ou VALIDATION_FAIL e mantenha a worktree limpa.",
+  "task_id": "FIN-ROAD01-CARD-ID-REVALIDATE-20260828",
+  "objective": "NOME DA TAREFA NO CODEX: 'FinançasBot — Revalidação mecânica ROAD-01.2 — 2026-08-28'. Valide exclusivamente o SHA imutável d2e3e17caae79577b6c8736780d809a36d2a0f31 conforme o brief sanitizado. Esta tarefa é read-only sobre o candidato: não implemente, não corrija, não refatore e não redesenhe. Execute node --check, testes focais/causais, bateria combinada, git diff --check, validateAgentWorkflow e uma única suíte ampla proporcional se o candidato estiver estável. Se o SHA não estiver disponível localmente, é permitido somente um fetch read-only da branch exata do produto para obtê-lo. Termine com VALIDATION_PASS ou VALIDATION_FAIL e mantenha a worktree limpa.",
   "required_files": [
     "docs/agent-memory/README.md",
-    "docs/agent-memory/workstreams/review-inputs/FIN-ROAD01-CARD-ID-VALIDATE-20260828.md",
+    "docs/agent-memory/workstreams/review-inputs/FIN-ROAD01-CARD-ID-REVALIDATE-20260828.md",
     "AGENTS.md",
     "package.json"
   ],
   "allowed_paths": [
-    "docs/agent-memory/workstreams/results/FIN-ROAD01-CARD-ID-VALIDATE-20260828.md"
+    "docs/agent-memory/workstreams/results/FIN-ROAD01-CARD-ID-REVALIDATE-20260828.md"
   ],
-  "result_file": "docs/agent-memory/workstreams/results/FIN-ROAD01-CARD-ID-VALIDATE-20260828.md",
+  "result_file": "docs/agent-memory/workstreams/results/FIN-ROAD01-CARD-ID-REVALIDATE-20260828.md",
   "validation": [
-    "Confirma que o SHA efetivamente validado é e4bfe14b9e436c70b6f4ef08a347de2b4c718af0.",
+    "Confirma que o SHA efetivamente validado é d2e3e17caae79577b6c8736780d809a36d2a0f31.",
     "Executa todos os nove comandos obrigatórios do brief e registra PASS/FAIL e contagens.",
     "Executa no máximo uma suíte ampla proporcional após o candidato estar estável.",
     "Não altera código, testes, docs ou configuração; somente o result_file pode ser escrito pelo executor.",
