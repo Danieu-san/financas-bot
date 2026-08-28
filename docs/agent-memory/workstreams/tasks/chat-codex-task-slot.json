@@ -1,10 +1,13 @@
 {
   "schema": "financasbot-chat-codex-task-v1",
   "task_id": "FIN-ROAD01-CARD-ID-REVALIDATE-20260828",
-  "objective": "NOME DA TAREFA NO CODEX: 'FinançasBot — Revalidação mecânica ROAD-01.2 — 2026-08-28'. Valide exclusivamente o SHA imutável d2e3e17caae79577b6c8736780d809a36d2a0f31 conforme o brief sanitizado. Esta tarefa é read-only sobre o candidato: não implemente, não corrija, não refatore e não redesenhe. Execute node --check, testes focais/causais, bateria combinada, git diff --check, validateAgentWorkflow e uma única suíte ampla proporcional se o candidato estiver estável. Se o SHA não estiver disponível localmente, é permitido somente um fetch read-only da branch exata do produto para obtê-lo. Termine com VALIDATION_PASS ou VALIDATION_FAIL e mantenha a worktree limpa.",
+  "objective": "NOME DA TAREFA NO CODEX: 'FinançasBot — autorreparo da ponte + revalidação ROAD-01.2 — 2026-08-28'. Antes da revalidação, faça um bootstrap estritamente local da ponte Codex App Wake: compare os arquivos versionados scripts/agent/processCodexAppWakeRequest.js e scripts/agent/wakeCodexAppViaIpc.js com as cópias instaladas em %ProgramData%\\FinancasBot\\chat-codex-app-wake\\bin. Se a conta atual já tiver permissão ACL para escrever nesses dois arquivos, substitua SOMENTE essas duas cópias instaladas pelos bytes exatos do repositório e confirme igualdade byte a byte. Não altere config.json, ACLs, definição da Scheduled Task, usuários, thread_id ou chat_url. Não tente elevação, UAC, bypass de permissão ou mudança de segurança; se a escrita for negada, registre BLOCKED_LOCAL_PERMISSION no result_file e pare. Depois do autorreparo bem-sucedido, valide exclusivamente o SHA imutável d2e3e17caae79577b6c8736780d809a36d2a0f31 conforme o brief sanitizado: node --check, testes focais/causais, bateria combinada, git diff --check, validateAgentWorkflow e uma única suíte ampla proporcional se o candidato estiver estável. Não implemente nem corrija código do produto. Termine com VALIDATION_PASS ou VALIDATION_FAIL e mantenha a worktree Git limpa.",
   "required_files": [
     "docs/agent-memory/README.md",
     "docs/agent-memory/workstreams/review-inputs/FIN-ROAD01-CARD-ID-REVALIDATE-20260828.md",
+    "docs/agent-memory/workstreams/chat-codex-delivery-recovery-20260828.md",
+    "scripts/agent/processCodexAppWakeRequest.js",
+    "scripts/agent/wakeCodexAppViaIpc.js",
     "AGENTS.md",
     "package.json"
   ],
@@ -13,18 +16,23 @@
   ],
   "result_file": "docs/agent-memory/workstreams/results/FIN-ROAD01-CARD-ID-REVALIDATE-20260828.md",
   "validation": [
-    "Confirma que o SHA efetivamente validado é d2e3e17caae79577b6c8736780d809a36d2a0f31.",
-    "Executa todos os nove comandos obrigatórios do brief e registra PASS/FAIL e contagens.",
+    "Antes da revalidação, confirma se as cópias instaladas do worker/helper existem em %ProgramData%\\FinancasBot\\chat-codex-app-wake\\bin e registra seus hashes/bytes comparativos sem ler config sensível além do necessário.",
+    "Se houver permissão já concedida, substitui somente processCodexAppWakeRequest.js e wakeCodexAppViaIpc.js instalados pelos bytes exatos dos arquivos versionados; depois confirma igualdade byte a byte. Se não houver permissão, não eleva e termina com BLOCKED_LOCAL_PERMISSION.",
+    "Não modifica config.json, ACLs, Scheduled Task, thread_id, chat_url, usuários, Git ou qualquer outro arquivo fora das duas cópias instaladas e do result_file autorizado.",
+    "Confirma que o SHA de produto efetivamente validado é d2e3e17caae79577b6c8736780d809a36d2a0f31.",
+    "Executa todos os nove comandos obrigatórios do brief de revalidação e registra PASS/FAIL e contagens.",
     "Executa no máximo uma suíte ampla proporcional após o candidato estar estável.",
-    "Não altera código, testes, docs ou configuração; somente o result_file pode ser escrito pelo executor.",
-    "Confirma worktree limpa ao final.",
-    "Termina exatamente com VALIDATION_PASS ou VALIDATION_FAIL."
+    "Não altera código, testes, docs ou configuração do produto; somente o result_file pode ser escrito na worktree Git.",
+    "Confirma worktree Git limpa ao final.",
+    "Termina exatamente com VALIDATION_PASS, VALIDATION_FAIL ou BLOCKED_LOCAL_PERMISSION."
   ],
   "constraints": [
     "Não acessar produção, OCI/SSH, WhatsApp real, Google Sheets real, Pluggy real, navegador, segredos, sessões, .env ou dados privados.",
+    "A única mutação local fora da worktree autorizada é substituir exatamente os dois executáveis JavaScript instalados em %ProgramData%\\FinancasBot\\chat-codex-app-wake\\bin pelos bytes versionados correspondentes.",
+    "Não solicitar nem disparar elevação/UAC. Não alterar ACL, configuração, definição da task, usuários ou destino da conversa.",
     "Não fazer git add, commit ou push.",
     "Fetch é permitido somente em modo read-only da branch chat/financial-roadmap-road01-20260827 se necessário para obter o SHA alvo.",
-    "Não corrigir falhas encontradas; apenas reportar a cadeia causal observável e parar com VALIDATION_FAIL.",
+    "Não corrigir falhas de produto encontradas; apenas reportar a cadeia causal observável e parar com VALIDATION_FAIL.",
     "Não ampliar allowed_paths nem pedir autorização/interação humana."
   ]
 }
