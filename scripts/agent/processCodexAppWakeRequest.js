@@ -7,7 +7,9 @@ const { spawnSync } = require('node:child_process');
 const CONFIG_SCHEMA = 'financasbot-codex-app-wake-bridge-config-v2';
 const REQUEST_SCHEMA = 'financasbot-codex-app-wake-request-v3';
 const LEGACY_RESULT_SCHEMA = 'financasbot-codex-app-wake-result-v1';
-const RESULT_SCHEMA = 'financasbot-codex-app-wake-result-v2';
+const PREVIOUS_RESULT_SCHEMA = 'financasbot-codex-app-wake-result-v2';
+const RESULT_SCHEMA = 'financasbot-codex-app-wake-result-v3';
+const MAX_WAKE_ATTEMPTS = 3;
 
 function parseArgs(argv) {
     const options = {};
@@ -75,7 +77,7 @@ function writeAtomically(filePath, value) {
     fs.renameSync(temporary, filePath);
 }
 
-function assertResultRecord(value) {
+function assertLegacyResultRecord(value) {
     const allowedKeys = [
         'observed_hash', 'status', 'updated_at', 'handled_by_client_id', 'error_code'
     ];
@@ -94,6 +96,32 @@ function assertResultRecord(value) {
     return value;
 }
 
+function assertResultRecord(value) {
+    const allowedKeys = [
+        'observed_hash', 'status', 'attempts', 'updated_at', 'handled_by_client_id', 'error_code'
+    ];
+    if (!value || typeof value !== 'object' || Array.isArray(value)
+        || Object.keys(value).some(key => !allowedKeys.includes(key))
+        || !/^[0-9a-f]{64}$/.test(value.observed_hash || '')
+        || !['dispatching', 'accepted', 'failed'].includes(value.status)
+        || !Number.isSafeInteger(value.attempts)
+        || value.attempts < 1 || value.attempts > MAX_WAKE_ATTEMPTS
+        || Number.isNaN(Date.parse(value.updated_at || ''))
+        || (value.handled_by_client_id !== null
+            && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+                .test(value.handled_by_client_id || ''))
+        || (value.error_code !== null
+            && !['IPC_ACCEPT_INVALID', 'IPC_WAKE_FAILED'].includes(value.error_code))) {
+        throw new Error('resultado inválido');
+    }
+    return value;
+}
+
+function upgradeLegacyRecord(record) {
+    const validated = assertLegacyResultRecord(record);
+    return assertResultRecord({ ...validated, attempts: 1 });
+}
+
 function readResultStore(filePath) {
     const value = JSON.parse(fs.readFileSync(filePath, 'utf8'));
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -107,7 +135,21 @@ function readResultStore(filePath) {
             throw new Error('resultado inválido');
         }
         const { schema: _legacySchema, ...record } = value;
-        return { schema: RESULT_SCHEMA, records: [assertResultRecord(record)] };
+        return { schema: RESULT_SCHEMA, records: [upgradeLegacyRecord(record)] };
+    }
+    if (value.schema === PREVIOUS_RESULT_SCHEMA) {
+        if (Object.keys(value).some(key => !['schema', 'records'].includes(key))
+            || !Array.isArray(value.records)) {
+            throw new Error('resultado inválido');
+        }
+        const seen = new Set();
+        const records = value.records.map(record => {
+            const upgraded = upgradeLegacyRecord(record);
+            if (seen.has(upgraded.observed_hash)) throw new Error('resultado duplicado');
+            seen.add(upgraded.observed_hash);
+            return upgraded;
+        });
+        return { schema: RESULT_SCHEMA, records };
     }
     if (value.schema !== RESULT_SCHEMA
         || Object.keys(value).some(key => !['schema', 'records'].includes(key))
@@ -168,17 +210,29 @@ function processWakeRequest(options, deps = {}) {
         ? readResultStore(options.result)
         : { schema: RESULT_SCHEMA, records: [] };
     const previous = store.records.find(record => record.observed_hash === request.observed_hash);
-    if (previous) return { action: 'already_processed', status: previous.status };
+    if (previous?.status === 'accepted') {
+        return { action: 'already_processed', status: previous.status, attempts: previous.attempts };
+    }
+    if (previous && previous.attempts >= MAX_WAKE_ATTEMPTS) {
+        throw new Error('IPC_RETRY_EXHAUSTED');
+    }
 
     const now = () => (deps.now?.() || new Date()).toISOString();
-    const record = {
+    const isRetry = Boolean(previous);
+    const record = previous || {
         observed_hash: request.observed_hash,
         status: 'dispatching',
+        attempts: 0,
         updated_at: now(),
         handled_by_client_id: null,
         error_code: null
     };
-    store.records.push(record);
+    record.status = 'dispatching';
+    record.attempts += 1;
+    record.updated_at = now();
+    record.handled_by_client_id = null;
+    record.error_code = null;
+    if (!previous) store.records.push(record);
     writeResultStore(options.result, store.records);
     try {
         const response = (deps.invokeWake || invokeWake)({
@@ -196,7 +250,11 @@ function processWakeRequest(options, deps = {}) {
             handled_by_client_id: response.handledByClientId, error_code: null
         });
         writeResultStore(options.result, store.records);
-        return { action: 'accepted', hash: request.observed_hash };
+        return {
+            action: isRetry ? 'accepted_after_retry' : 'accepted',
+            hash: request.observed_hash,
+            attempts: record.attempts
+        };
     } catch (error) {
         Object.assign(record, {
             status: 'failed', updated_at: now(), handled_by_client_id: null,
@@ -219,8 +277,10 @@ if (require.main === module) {
 module.exports = {
     CONFIG_SCHEMA,
     LEGACY_RESULT_SCHEMA,
+    PREVIOUS_RESULT_SCHEMA,
     REQUEST_SCHEMA,
     RESULT_SCHEMA,
+    MAX_WAKE_ATTEMPTS,
     assertRegularFile,
     assertConfig,
     assertRequest,
