@@ -1,11 +1,11 @@
 {
   "schema": "financasbot-chat-codex-orchestration-v1",
-  "orchestration_state": "CHAT_WORKING",
-  "next_executor": "chat",
-  "task_id": "FIN-ROAD01-CARD-ID-VALIDATE-20260828",
-  "expected_base_sha": "e4bfe14b9e436c70b6f4ef08a347de2b4c718af0",
+  "orchestration_state": "CODEX_READY",
+  "next_executor": "codex",
+  "task_id": "FIN-ROAD01-CARD-ID-REVALIDATE-20260828",
+  "expected_base_sha": "d2e3e17caae79577b6c8736780d809a36d2a0f31",
   "task_file": "docs/agent-memory/workstreams/tasks/chat-codex-task-slot.json",
   "candidate_sha": null,
-  "result_file": "docs/agent-memory/workstreams/results/FIN-ROAD01-CARD-ID-VALIDATE-20260828.md",
-  "updated_at": "2026-08-28T22:13:00.000Z"
+  "result_file": null,
+  "updated_at": "2026-08-28T22:15:00.000Z"
 }
