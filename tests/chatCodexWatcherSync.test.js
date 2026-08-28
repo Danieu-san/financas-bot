@@ -223,6 +223,62 @@ test('CODEX_READY validado acorda App e não chama CLI', () => {
     assert.equal(request.repo_path, item.repo);
 });
 
+test('modo App publica CHAT_READY local e só então sinaliza sucesso remoto', () => {
+    const item = fixture('CODEX_READY');
+    const queue = path.join(item.runtime, 'bridge', 'request.json');
+    const statePath = 'docs/agent-memory/workstreams/chat-codex-channel.state.json';
+    const stateFile = path.join(item.repo, ...statePath.split('/'));
+    fs.mkdirSync(path.dirname(queue), { recursive: true });
+    fs.mkdirSync(path.dirname(stateFile), { recursive: true });
+    fs.writeFileSync(stateFile, item.raw);
+    let remoteRaw = item.raw;
+    let publications = 0;
+    const deps = executorDeps({
+        fetchRemoteState: () => remoteRaw,
+        publishLocalResult: () => {
+            publications += 1;
+            remoteRaw = fs.readFileSync(stateFile, 'utf8');
+        }
+    });
+    const options = watcherOptions(item, { 'app-wake-request': queue });
+
+    assert.equal(pollOnce(options, deps).action, 'app_task_queued');
+    fs.writeFileSync(stateFile, withState(item.raw, 'CODEX_RUNNING'));
+    assert.equal(pollOnce(options, deps).action, 'unchanged');
+    assert.equal(publications, 0);
+
+    fs.writeFileSync(stateFile, withState(item.raw, 'CHAT_READY'));
+    fs.writeFileSync(path.join(item.repo, 'docs', 'result.md'), 'ok\n');
+    const completed = pollOnce(options, deps);
+    assert.equal(completed.action, 'app_result_published');
+    assert.equal(completed.state, 'CHAT_READY');
+    assert.equal(publications, 1);
+    assert.equal(readCache(path.join(item.runtime, 'watcher-state.json')).launch_status,
+        'succeeded');
+    assert.equal(JSON.parse(fs.readFileSync(queue, 'utf8')).mode, 'return');
+});
+
+test('modo App falha fechado se publicação de CHAT_READY falhar', () => {
+    const item = fixture('CODEX_READY');
+    const queue = path.join(item.runtime, 'bridge', 'request.json');
+    const statePath = 'docs/agent-memory/workstreams/chat-codex-channel.state.json';
+    const stateFile = path.join(item.repo, ...statePath.split('/'));
+    fs.mkdirSync(path.dirname(queue), { recursive: true });
+    fs.mkdirSync(path.dirname(stateFile), { recursive: true });
+    fs.writeFileSync(stateFile, item.raw);
+    const deps = executorDeps({
+        fetchRemoteState: () => item.raw,
+        publishLocalResult: () => { throw new Error('push recusado'); }
+    });
+    const options = watcherOptions(item, { 'app-wake-request': queue });
+
+    assert.equal(pollOnce(options, deps).action, 'app_task_queued');
+    fs.writeFileSync(stateFile, withState(item.raw, 'CHAT_READY'));
+    assert.throws(() => pollOnce(options, deps), /push recusado/);
+    assert.equal(readCache(path.join(item.runtime, 'watcher-state.json')).launch_status,
+        'failed:publish_error');
+});
+
 test('CODEX_READY no modo App repete preflight de tracked, untracked e ignored', () => {
     const cases = [
         { entries: [' M tracked.txt'], ignored: [], error: /worktree .* limpa/ },

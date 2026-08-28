@@ -5,6 +5,7 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { parseState, stateHash, writeAtomically } = require('./manageChatCodexOrchestration');
 const { loadTaskDefinition } = require('./chatCodexTaskContract');
+const { completeChatCodexAppExecution } = require('./completeChatCodexAppExecution');
 
 const CACHE_SCHEMA = 'financasbot-chat-codex-watcher-v1';
 const DEFAULT_BRANCH = 'chat/chat-codex-orchestration-20260824';
@@ -474,6 +475,15 @@ function pollOnce(options, deps = {}) {
         const usesAppExecutor = state.orchestration_state === 'CODEX_READY'
             && Boolean(options['app-wake-request']
                 || (options['app-thread-id'] && options['chat-url']));
+        const completion = usesAppExecutor && cache.launched_hash === observedHash
+            && cache.launch_status === 'running'
+            ? completeChatCodexAppExecution(
+                { repoPath, branch, statePath, observedHash, initialState: state,
+                    gitDeps, cache, cachePath, options },
+                { loadTaskDefinition, publishLocalResult, fetchRemoteState,
+                    saveCache, maybeWakeCodexApp, ...deps })
+            : null;
+        if (completion) return completion;
         const appWake = state.orchestration_state === 'CHAT_READY'
             ? maybeWakeCodexApp({ cache, cachePath, options, observedHash, state }, deps)
             : { cache, action: null };
