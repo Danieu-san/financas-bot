@@ -3,6 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
+const userSpreadsheetService = require('../src/services/userSpreadsheetService');
 const {
     buildInvoiceIdentity,
     summarizeCardInvoiceRows,
@@ -102,4 +103,9 @@ test('invoice formula mirrors canonical/legacy identity split and resolves frien
     assert.match(formula, /'Cartões'!A:B/);
     assert.match(formula, /group by Col1, Col2/);
     assert.doesNotMatch(formula, /where Col5 is not null and 'Lançamentos Cartão'!G/);
+});
+
+test('production Faturas formula is exactly the formula represented by the causal helper', () => {
+    const productionFormula = userSpreadsheetService.__test__.buildInvoiceSummaryRows()[0][0];
+    assert.equal(productionFormula, buildInvoiceSummaryFormula());
 });
