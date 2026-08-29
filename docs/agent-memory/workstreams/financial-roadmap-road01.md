@@ -1,13 +1,14 @@
 # Estado — ROAD-01 Schema e identidade consumer-first
 
-Atualizado em: 2026-08-28
-Status: `ROAD-01.1 COMPLETE — ROAD-01.2 SPECIFIC VALIDATION PASS; BROAD BASELINE DIAG PENDING`
+Atualizado em: 2026-08-29
+Status: `ROAD-01.1 COMPLETE — ROAD-01.2 READY_FOR_DUAL_AUDIT`
 Branch: `chat/financial-roadmap-road01-20260827`
 Base: ROAD-K0 GO em `9ea7906e16c0639681e9cf9437bcef8a9ef92eda`
 Contrato semântico: `docs/specs/financial-semantic-convergence-contract-v1.md`
 Roadmap canônico: `docs/plans/workstreams/financial-roadmap-canonical.md`
 Inventário: `docs/agent-memory/workstreams/financial-roadmap-road01-inventory.md`
 Recovery ROAD-01.2: `docs/agent-memory/workstreams/financial-roadmap-road01-card-identity-recovery-task.md`
+Evidência de validação: `docs/agent-memory/workstreams/financial-roadmap-road01-validation-evidence.md`
 
 ## Objetivo
 
@@ -51,7 +52,7 @@ O Chat principal transplantou para esta branch apenas os blobs de código/teste 
 
 Implementação do recovery:
 
-- novo helper puro `src/services/cardInvoiceSummaryService.js` define identidade de fatura como `id:<card_id>` quando G existe e `legacy:<label>` somente quando G está vazio;
+- `src/services/cardInvoiceSummaryService.js` define identidade de fatura como `id:<card_id>` quando G existe e `legacy:<label>` somente quando G está vazio;
 - `card_id` e label são normalizados deterministicamente com trim, sem heurística de similaridade;
 - a regra pura agrupa por identidade + competência, mantém linhas legacy sem G e nunca funde automaticamente legacy com canônico por label;
 - display canônico resolve primeiro o catálogo `Cartões` por `card_id`, depois o display persistido da linha e só cai no ID bruto se nenhum nome estiver disponível;
@@ -59,11 +60,11 @@ Implementação do recovery:
 - `Faturas` usa fórmula coerente com a mesma separação `id:` / `legacy:` e não exige mais G não nulo;
 - `tests/road01CardIdentity.test.js` cobre contraexemplos causais e coerência fórmula/helper.
 
-SHA atual validado pelo executor local: `d2e3e17caae79577b6c8736780d809a36d2a0f31`.
+Candidato de código: `d2e3e17caae79577b6c8736780d809a36d2a0f31`.
 
 ## Revalidação local — checks específicos verdes
 
-Resultado `FIN-ROAD01-CARD-ID-REVALIDATE-20260828`:
+Resultado consolidado em `financial-roadmap-road01-validation-evidence.md`:
 
 - `node --check` nos quatro módulos relevantes: PASS;
 - `tests/road01CardIdentity.test.js`: 7/7 PASS;
@@ -73,16 +74,23 @@ Resultado `FIN-ROAD01-CARD-ID-REVALIDATE-20260828`:
 - `node scripts/agent/validateAgentWorkflow.js`: PASS (`agent-workflow: OK`);
 - worktree detached permaneceu limpa.
 
-A única suíte ampla proporcional executada (`npm run test:unit`) falhou no lifecycle `pretest:unit`, antes da suíte principal, em `tests/userStateSnapshotSecurity.test.js`: 14 executados, 9 PASS, 5 FAIL, com `state_store_persist_failed` em persistência/compactação do state store.
+## Suíte ampla e diagnóstico causal
 
-## Causalidade do bloqueio amplo
+A única suíte ampla proporcional (`npm run test:unit`) falhou no lifecycle `pretest:unit`, antes da suíte principal, em `tests/userStateSnapshotSecurity.test.js`: 14 executados, 9 PASS, 5 FAIL, com `state_store_persist_failed` em persistência/compactação do state store.
 
-O `pretest:unit` inicia por `npm run test:state-store-security`, antes de qualquer bateria principal do ROAD-01. Os dois arquivos diretamente envolvidos na falha têm blobs idênticos no base `09a6cceb394157153516a4f8393267e47ed66a06` e no candidato `d2e3e17caae79577b6c8736780d809a36d2a0f31`:
+Os arquivos diretamente envolvidos eram blobs idênticos no base `09a6cceb394157153516a4f8393267e47ed66a06` e no candidato `d2e3e17caae79577b6c8736780d809a36d2a0f31`:
 
-- `src/state/userStateManager.js`: blob `442857d58977b64ae7f0c3a8f9e6385549db049d` nos dois hashes;
-- `tests/userStateSnapshotSecurity.test.js`: blob `5dcefe7d6988f404f026d8801c2557d9131f66d6` nos dois hashes.
+- `src/state/userStateManager.js`: `442857d58977b64ae7f0c3a8f9e6385549db049d`;
+- `tests/userStateSnapshotSecurity.test.js`: `5dcefe7d6988f404f026d8801c2557d9131f66d6`.
 
-Isso torna improvável uma regressão causal do ROAD-01, mas a suíte ampla continua vermelha e não será ignorada por inferência. O próximo gate é uma comparação ambiental controlada do mesmo preteste no base e no candidato, sem edição de produto.
+Uma tarefa separada de diagnóstico executou exatamente uma vez `npm run test:state-store-security` em worktrees limpas da base e do candidato, no mesmo ambiente Node `v22.17.0` / `win32` / `x64`:
+
+- base: 14/14 PASS, exit 0;
+- candidato: 14/14 PASS, exit 0.
+
+A falha ampla anterior não foi reproduzida em nenhum dos dois hashes. Portanto não existe evidência reproduzível de regressão do ROAD-01.2; a causa exata do incidente permanece não identificada e é tratada como dependente de contexto/ambiente, com risco residual explícito. A suíte ampla não será repetida apenas para buscar um verde posterior, preservando o contrato de uma suíte ampla por candidato estável.
+
+Essa classificação resolve o bloqueio de validação para fins de **seguir à auditoria independente**, mas não constitui GO da fatia.
 
 ## Invariantes
 
@@ -91,12 +99,18 @@ Isso torna improvável uma regressão causal do ROAD-01, mas a suíte ampla cont
 - nenhuma regra de closing/competence foi alterada;
 - nenhuma retirada de legado;
 - nenhuma mudança de deploy/restart/flags/produção;
-- GO da fatia exige resolver/classificar a falha ampla e depois auditorias independentes.
+- nenhuma correção lateral do state store foi misturada ao ROAD-01.2;
+- `GO ROAD-01.2` exige auditorias independentes do candidato imutável e reconciliação causal dos findings.
 
 ## Próxima ação
 
-Executar no Codex/local executor, em worktrees limpas e sem editar, somente `npm run test:state-store-security` no base `09a6cceb394157153516a4f8393267e47ed66a06` e no candidato `d2e3e17caae79577b6c8736780d809a36d2a0f31`, registrar plataforma/Node, nomes dos testes falhos e cadeia causal. Se o resultado for idêntico, classificar como baseline/ambiente e decidir o tratamento do gate sem misturar correção lateral no ROAD-01. Se divergir, investigar regressão do candidato.
+Congelar um hash imutável contendo este checkpoint + evidência sanitizada, confirmar no GitHub o SHA e os paths canônicos da auditoria e executar duas auditorias independentes:
+
+1. conversa limpa do GPT;
+2. Abacus / Claude Sonnet 5 conforme o protocolo canônico de auditoria.
+
+Findings divergentes devem ser reconciliados pela cadeia causal no código/contrato/testes, não por maioria ou autoridade do modelo.
 
 ## Capacidade
 
-`Codex/local executor -> capacidade atual -> Baixo -> comparar apenas o preteste de state store no base e candidato; depois Chat -> GPT-5.6 Sol -> Médio -> classificar causalmente o bloqueio e decidir se o candidato pode seguir para auditorias`.
+`Chat -> GPT-5.6 Sol -> Alto -> preparar candidato imutável e prompts das duas auditorias; Chat limpo + Abacus/Claude -> Alto -> auditar de forma independente; Chat principal -> Alto -> reconciliar findings e decidir GO/NO-GO ROAD-01.2`.
