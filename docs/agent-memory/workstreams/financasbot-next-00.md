@@ -1,7 +1,7 @@
 # Workstream — FinançasBot Next / NEXT-00
 
 Atualizado em: 2026-08-30
-Status: `NEXT00-04 COMPLETE; NEXT00-05 READY; ZERO IMPLEMENTAÇÃO FUNCIONAL`
+Status: `NEXT00-05 LOCAL PASS; AWAITING INDEPENDENT AUDIT; ZERO IMPLEMENTAÇÃO FUNCIONAL`
 
 ## Objetivo ativo
 
@@ -44,29 +44,32 @@ Golden Set sanitizado exigidos pelo roadmap ratificado antes de NEXT-01.
 
 ## Gate ativo
 
-`NEXT00-05 — COERÊNCIA E AUDITORIA FINAL` — pronto para abertura.
+`NEXT00-05 — COERÊNCIA E AUDITORIA FINAL` — candidato local; aguardando auditoria independente.
 
-### Resultado de NEXT00-04
+### Resultado local de NEXT00-05
 
-- fixture financeira inteiramente sintética com relógio fixo em 2042;
-- 48 conversas: `16/16/8/8`, todas com claims, proibições e tools read-only esperadas;
-- dimensões críticas cobertas entre 3 e 26 casos cada;
-- referências contratuais completas: `67/67`, sem ID desconhecido;
-- validador focal verde para estrutura, cobertura, fixtures, sanitização e allowlist;
-- nenhum runtime, integração, dado real, segredo, writer ou produção acessado.
+- revisão adversarial das fronteiras de autoridade, single-writer, proposta/CAS,
+  Model Data Boundary, dashboard e bloqueio de NEXT-01 sem contradição material;
+- validador documental final verde: 18 arquivos, inventário 30/15/12, nove
+  manifests sem write, matriz 32/30, 67/67 testes e zero caminho de runtime;
+- Golden Set permanece verde em 48/48, distribuição 16/16/8/8, 14 dimensões e
+  rastreabilidade causal 67/67;
+- nenhuma integração, dado real, segredo, runtime, writer ou produção acessado;
+- validação ampla do workflow ainda deve ser executada uma única vez sobre o
+  candidato staged antes do commit auditável.
 
 ## Critério de saída da fatia
 
-Critério satisfeito: volume e distribuição exatos, cobertura mínima integral,
-fixtures resolvidas e sintéticas, rastreabilidade completa e validação focal
-verde. `GO DOCUMENTAL PARA NEXT00-05`.
+Ainda não satisfeito: a evidência local está verde, mas faltam a validação ampla
+única, o hash imutável publicado e o parecer independente. Estado máximo:
+`CANDIDATO AGUARDANDO AUDITORIA`.
 
 ## Próxima ação exata
 
-Abrir NEXT00-05 para revisão de coerência cruzada, validação ampla única do
-workflow, commit sanitizado e auditoria independente por hash. Nenhuma
-implementação funcional ou abertura de NEXT-01 está autorizada.
-
+Executar uma única validação ampla do workflow no candidato estável, publicar o
+commit sanitizado e submeter o hash à auditoria independente. NEXT-01 permanece
+fechado e depende de parecer sem lacuna indispensável e decisão explícita de
+Daniel.
 ## Referências
 
 - `docs/plans/workstreams/financasbot-next-00.md`;
@@ -82,6 +85,8 @@ implementação funcional ou abertura de NEXT-01 está autorizada.
 - `docs/contracts/next/tool-budget-failure-policy-v0.md`;
 - `docs/contracts/next/quality-stability-retention-contract-v0.md`;
 - `docs/plans/workstreams/financasbot-next-00-golden-set-v1-validation.md`;
+- `docs/plans/workstreams/financasbot-next-00-final-validation-v1.md`;
+- `scripts/agent/validateFinancasBotNext00.mjs`;
 - `tests/fixtures/financasbot-next/golden-financial-fixture-v1.json`;
 - `tests/fixtures/financasbot-next/golden-conversation-set-v1.json`;
 - `docs/plans/workstreams/financasbot-next-roadmap-ratification-v1.md`;

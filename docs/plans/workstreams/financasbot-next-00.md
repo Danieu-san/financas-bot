@@ -1,7 +1,7 @@
 # NEXT-00 — Charter e contratos do FinançasBot Next
 
 Atualizado em: 2026-08-30
-Estado: `OPEN — NEXT00-04 COMPLETE; NEXT00-05 READY; ZERO IMPLEMENTAÇÃO FUNCIONAL`
+Estado: `OPEN — NEXT00-05 LOCAL CANDIDATE; AWAITING INDEPENDENT AUDIT; ZERO IMPLEMENTAÇÃO FUNCIONAL`
 Base: `fc577e5d5e21fdc5402ace1cf662a6ea1bef255f`
 Roadmap normativo: `911af93343210ccfe2d7b7fe0b898542044a1fdf`
 
@@ -109,12 +109,13 @@ Artefatos congelados:
 - validação focal versionada em
   `financasbot-next-00-golden-set-v1-validation.md`.
 
-### NEXT00-05 — Coerência e auditoria
+### NEXT00-05 — Coerência e auditoria — `LOCAL CANDIDATE`
 
-- validar referências, cobertura, ausência de contradições e não escopo;
-- executar o validador do workflow;
-- publicar commit sanitizado e obter auditoria independente por hash;
-- decisão humana antes de qualquer NEXT-01.
+- coerência, referências, cobertura e não escopo validados localmente;
+- validador documental final verde;
+- validação ampla única, commit sanitizado e auditoria independente ainda
+  bloqueiam o fechamento;
+- decisão humana continua obrigatória antes de qualquer NEXT-01.
 
 ## Validação proporcional
 
@@ -150,7 +151,6 @@ Parar diante de:
 
 ## Próxima ação exata
 
-Abrir somente `NEXT00-05`: revisar coerência e não escopo, executar uma única
-validação ampla do workflow, publicar commit sanitizado e obter auditoria
-independente por hash. NEXT-01 continua fechado até GO documental e decisão
-explícita de Daniel.
+Executar uma única validação ampla do workflow no candidato estável, publicar o
+commit sanitizado e obter auditoria independente por hash. NEXT-01 continua
+fechado até parecer sem lacuna indispensável e decisão explícita de Daniel.
