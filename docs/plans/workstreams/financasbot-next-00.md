@@ -1,7 +1,7 @@
 # NEXT-00 — Charter e contratos do FinançasBot Next
 
 Atualizado em: 2026-08-30
-Estado: `OPEN — NEXT00-03 COMPLETE; NEXT00-04 READY; ZERO IMPLEMENTAÇÃO FUNCIONAL`
+Estado: `OPEN — NEXT00-04 COMPLETE; NEXT00-05 READY; ZERO IMPLEMENTAÇÃO FUNCIONAL`
 Base: `fc577e5d5e21fdc5402ace1cf662a6ea1bef255f`
 Roadmap normativo: `911af93343210ccfe2d7b7fe0b898542044a1fdf`
 
@@ -100,12 +100,14 @@ Artefatos congelados:
 - `docs/contracts/next/quality-stability-retention-contract-v0.md`;
 - `financasbot-next-00-contracts-5-8-validation-v1.md`.
 
-### NEXT00-04 — Golden Set v1 — `READY`
+### NEXT00-04 — Golden Set v1 — `COMPLETE`
 
-- mínimo de 48 conversas sanitizadas;
-- 16 simples, 16 multi-tool, 8 follow-ups e 8 negativas;
-- ao menos três casos por dimensão crítica definida no roadmap;
-- fixtures sintéticas, rastreáveis e sem dados privados.
+- 48 conversas sanitizadas: 16 simples, 16 multi-tool, 8 follow-ups e 8 negativas;
+- 14 dimensões críticas com ao menos três casos cada;
+- fixture financeira sintética e relógio fixo;
+- rastreabilidade completa aos 67 testes documentais dos contratos 1 a 8;
+- validação focal versionada em
+  `financasbot-next-00-golden-set-v1-validation.md`.
 
 ### NEXT00-05 — Coerência e auditoria
 
@@ -148,8 +150,7 @@ Parar diante de:
 
 ## Próxima ação exata
 
-Abrir somente `NEXT00-04`: construir o Golden Conversation Set v1 com 48
-conversas sanitizadas, cobertura mínima por dimensão, fixtures sintéticas e
-rastreabilidade para os 67 casos documentais dos contratos 1 a 8. Nenhum
-runtime, integração real ou writer está autorizado.
-
+Abrir somente `NEXT00-05`: revisar coerência e não escopo, executar uma única
+validação ampla do workflow, publicar commit sanitizado e obter auditoria
+independente por hash. NEXT-01 continua fechado até GO documental e decisão
+explícita de Daniel.

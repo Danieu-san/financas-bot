@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "fixture_id": "NEXT-GOLDEN-FINANCIAL-V1",
+  "synthetic": true,
+  "notice": "Dados integralmente ficticios, criados apenas para testes.",
+  "fixed_clock": "2042-06-15T12:00:00-03:00",
+  "currency": "BRL",
+  "families": [
+    { "id": "family-example", "label": "Familia Exemplo", "members": ["person-a", "person-b"] },
+    { "id": "family-outside", "label": "Familia Externa", "members": ["person-c"] }
+  ],
+  "people": [
+    { "id": "person-a", "label": "Pessoa A", "family_id": "family-example" },
+    { "id": "person-b", "label": "Pessoa B", "family_id": "family-example" },
+    { "id": "person-c", "label": "Pessoa C", "family_id": "family-outside" }
+  ],
+  "accounts": [
+    { "id": "account-a", "label": "Conta Principal A", "owner_id": "person-a", "type": "checking" },
+    { "id": "account-b", "label": "Conta Principal B", "owner_id": "person-b", "type": "checking" },
+    { "id": "account-reserve", "label": "Reserva Exemplo", "owner_id": "person-a", "type": "reserve" }
+  ],
+  "cards": [
+    { "id": "card-blue", "label": "Cartao Azul", "owner_id": "person-a", "closing_day": 10, "due_day": 17 },
+    { "id": "card-green", "label": "Cartao Verde", "owner_id": "person-b", "closing_day": 20, "due_day": 27 },
+    { "id": "card-offline", "label": "Cartao Offline", "owner_id": "person-a", "closing_day": 5, "due_day": 12 }
+  ],
+  "categories": [
+    { "id": "food.snack", "label": "Lanche", "kind": "expense" },
+    { "id": "food.market", "label": "Supermercado", "kind": "expense" },
+    { "id": "food.restaurant", "label": "Restaurante", "kind": "expense" },
+    { "id": "transport.fuel", "label": "Combustivel", "kind": "expense" },
+    { "id": "housing.rent", "label": "Moradia", "kind": "expense" },
+    { "id": "leisure.cinema", "label": "Cinema", "kind": "expense" },
+    { "id": "gifts", "label": "Presentes", "kind": "expense" },
+    { "id": "income.salary", "label": "Salario", "kind": "income" },
+    { "id": "neutral.transfer", "label": "Transferencia interna", "kind": "neutral" },
+    { "id": "neutral.invoice_payment", "label": "Pagamento de fatura", "kind": "neutral" },
+    { "id": "neutral.refund", "label": "Estorno", "kind": "compensation" }
+  ],
+  "events": [
+    { "id": "evt-salary-a", "date": "2042-06-03", "person_id": "person-a", "account_id": "account-a", "category_id": "income.salary", "amount_minor": 500000, "state": "realized" },
+    { "id": "evt-market-a", "date": "2042-06-04", "person_id": "person-a", "account_id": "account-a", "category_id": "food.market", "amount_minor": -30000, "state": "realized" },
+    { "id": "evt-snack-a", "date": "2042-06-05", "person_id": "person-a", "card_id": "card-blue", "category_id": "food.snack", "amount_minor": -1200, "state": "realized" },
+    { "id": "evt-fuel-a", "date": "2042-06-06", "person_id": "person-a", "card_id": "card-blue", "category_id": "transport.fuel", "amount_minor": -20000, "state": "realized" },
+    { "id": "evt-restaurant-b", "date": "2042-06-07", "person_id": "person-b", "card_id": "card-green", "category_id": "food.restaurant", "amount_minor": -4500, "state": "realized" },
+    { "id": "evt-refund-b", "date": "2042-06-09", "person_id": "person-b", "card_id": "card-green", "category_id": "neutral.refund", "amount_minor": 4500, "state": "realized", "compensates": "evt-restaurant-b" },
+    { "id": "evt-cinema-b", "date": "2042-06-10", "person_id": "person-b", "card_id": "card-green", "category_id": "leisure.cinema", "amount_minor": -3200, "state": "realized" },
+    { "id": "evt-gift-b", "date": "2042-06-11", "person_id": "person-b", "account_id": "account-b", "category_id": "gifts", "amount_minor": -5000, "state": "realized" },
+    { "id": "evt-transfer-out", "date": "2042-06-12", "person_id": "person-a", "account_id": "account-a", "category_id": "neutral.transfer", "amount_minor": -15000, "state": "realized", "transfer_pair": "transfer-01" },
+    { "id": "evt-transfer-in", "date": "2042-06-12", "person_id": "person-a", "account_id": "account-reserve", "category_id": "neutral.transfer", "amount_minor": 15000, "state": "realized", "transfer_pair": "transfer-01" },
+    { "id": "evt-invoice-payment", "date": "2042-06-13", "person_id": "person-a", "account_id": "account-a", "category_id": "neutral.invoice_payment", "amount_minor": -60000, "state": "realized", "settles_card_id": "card-blue" },
+    { "id": "evt-rent-a", "date": "2042-06-14", "person_id": "person-a", "account_id": "account-a", "category_id": "housing.rent", "amount_minor": -100000, "state": "realized" },
+    { "id": "evt-installment-1", "date": "2042-06-14", "person_id": "person-a", "card_id": "card-blue", "category_id": "gifts", "amount_minor": -10000, "state": "realized", "installment_plan": "plan-01", "installment_number": 1, "installment_total": 3 },
+    { "id": "evt-installment-2", "date": "2042-07-14", "person_id": "person-a", "card_id": "card-blue", "category_id": "gifts", "amount_minor": -10000, "state": "projected", "installment_plan": "plan-01", "installment_number": 2, "installment_total": 3 },
+    { "id": "evt-installment-3", "date": "2042-08-14", "person_id": "person-a", "card_id": "card-blue", "category_id": "gifts", "amount_minor": -10000, "state": "projected", "installment_plan": "plan-01", "installment_number": 3, "installment_total": 3 },
+    { "id": "evt-bill-projected", "date": "2042-06-25", "person_id": "person-b", "account_id": "account-b", "category_id": "housing.rent", "amount_minor": -80000, "state": "projected" }
+  ],
+  "budgets": [
+    { "id": "budget-snack", "family_id": "family-example", "category_id": "food.snack", "period": "2042-06", "limit_minor": 20000 },
+    { "id": "budget-leisure", "family_id": "family-example", "category_id": "leisure.cinema", "period": "2042-06", "limit_minor": 15000 }
+  ],
+  "bills": [
+    { "id": "bill-rent-b", "person_id": "person-b", "due_date": "2042-06-25", "amount_minor": 80000, "status": "open" }
+  ],
+  "source_states": [
+    { "id": "source-complete-june", "source": "synthetic-ledger", "period": "2042-06", "coverage": "complete" },
+    { "id": "source-partial-may", "source": "synthetic-ledger", "period": "2042-05", "coverage": "partial" },
+    { "id": "source-offline-card", "source": "synthetic-open-finance", "entity_id": "card-offline", "coverage": "unavailable" },
+    { "id": "source-empty-health", "source": "synthetic-ledger", "period": "2042-06", "category_id": "health", "coverage": "complete", "event_count": 0 }
+  ],
+  "proposals": [
+    { "id": "proposal-active", "state": "pending", "expires_at": "2042-06-15T12:10:00-03:00", "source_version": "obs-v2" },
+    { "id": "proposal-expired", "state": "expired", "expires_at": "2042-06-15T11:55:00-03:00", "source_version": "obs-v1" },
+    { "id": "proposal-superseded", "state": "superseded", "expires_at": "2042-06-15T12:20:00-03:00", "source_version": "obs-v0" }
+  ]
+}

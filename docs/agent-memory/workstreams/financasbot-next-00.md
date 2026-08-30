@@ -1,7 +1,7 @@
 # Workstream — FinançasBot Next / NEXT-00
 
 Atualizado em: 2026-08-30
-Status: `NEXT00-03 COMPLETE; NEXT00-04 READY; ZERO IMPLEMENTAÇÃO FUNCIONAL`
+Status: `NEXT00-04 COMPLETE; NEXT00-05 READY; ZERO IMPLEMENTAÇÃO FUNCIONAL`
 
 ## Objetivo ativo
 
@@ -36,36 +36,36 @@ Golden Set sanitizado exigidos pelo roadmap ratificado antes de NEXT-01.
 - Tool Budget fixado em 6/12 calls, repetição máxima 2 e trajetória de 30 s;
 - qualidade/estabilidade fixadas em 7/14 dias, volumes mínimos, custo máximo
   de US$0.05, RPO/RTO, rollback, backup e retenção numéricos;
-- Golden Set ainda não foi produzido;
+- Golden Set v1 produzido com 48 conversas sintéticas: 16 simples, 16 multi-tool,
+  8 follow-ups e 8 negativas;
+- 14 dimensões críticas cobertas por ao menos três casos e 67/67 testes
+  documentais rastreados;
 - nenhuma implementação funcional foi iniciada.
 
 ## Gate ativo
 
-`NEXT00-04 — GOLDEN CONVERSATION SET V1` — pronto para abertura.
+`NEXT00-05 — COERÊNCIA E AUDITORIA FINAL` — pronto para abertura.
 
-### Resultado de NEXT00-03
+### Resultado de NEXT00-04
 
-- manifests v0 para WhatsApp, Google OAuth/Sheets/Drive/Calendar, Pluggy, modelo,
-  áudio, dashboard e importação local, todos desativados;
-- matriz consumer-preserving com beta read-only e bloqueios explícitos de
-  cutover/retirement;
-- falhas classificadas, sem fallback silencioso, retry cego ou aritmética do
-  modelo;
-- métricas de fato, efeito, latência, custo, disponibilidade, lease, RPO/RTO,
-  rollback, backup, delete e restore com valores prévios ao teste;
-- 46 testes documentais indexados; total acumulado dos contratos 1 a 8: 67;
-- nenhuma consulta externa ou alteração funcional realizada.
+- fixture financeira inteiramente sintética com relógio fixo em 2042;
+- 48 conversas: `16/16/8/8`, todas com claims, proibições e tools read-only esperadas;
+- dimensões críticas cobertas entre 3 e 26 casos cada;
+- referências contratuais completas: `67/67`, sem ID desconhecido;
+- validador focal verde para estrutura, cobertura, fixtures, sanitização e allowlist;
+- nenhum runtime, integração, dado real, segredo, writer ou produção acessado.
 
 ## Critério de saída da fatia
 
-Critério satisfeito: quatro contratos versionados, nove manifests sem writes,
-30 capacidades classificadas, limiares numéricos e revisão cruzada sem
-contradição material. `GO DOCUMENTAL PARA NEXT00-04`.
+Critério satisfeito: volume e distribuição exatos, cobertura mínima integral,
+fixtures resolvidas e sintéticas, rastreabilidade completa e validação focal
+verde. `GO DOCUMENTAL PARA NEXT00-05`.
 
 ## Próxima ação exata
 
-Abrir NEXT00-04 e construir o Golden Conversation Set v1 sanitizado com 48
-conversas e cobertura mínima por dimensão, sem implementar runtime.
+Abrir NEXT00-05 para revisão de coerência cruzada, validação ampla única do
+workflow, commit sanitizado e auditoria independente por hash. Nenhuma
+implementação funcional ou abertura de NEXT-01 está autorizada.
 
 ## Referências
 
@@ -81,7 +81,9 @@ conversas e cobertura mínima por dimensão, sem implementar runtime.
 - `docs/contracts/next/capability-cutover-matrix-v0.md`;
 - `docs/contracts/next/tool-budget-failure-policy-v0.md`;
 - `docs/contracts/next/quality-stability-retention-contract-v0.md`;
+- `docs/plans/workstreams/financasbot-next-00-golden-set-v1-validation.md`;
+- `tests/fixtures/financasbot-next/golden-financial-fixture-v1.json`;
+- `tests/fixtures/financasbot-next/golden-conversation-set-v1.json`;
 - `docs/plans/workstreams/financasbot-next-roadmap-ratification-v1.md`;
 - `docs/plans/workstreams/financasbot-next-roadmap-draft-v2.md`;
 - `docs/agent-memory/architecture-map.md`.
-
