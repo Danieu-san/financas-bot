@@ -1,7 +1,7 @@
 # NEXT-00 — Charter e contratos do FinançasBot Next
 
 Atualizado em: 2026-08-30
-Estado: `OPEN — NEXT00-01 COMPLETE; NEXT00-02 READY; ZERO IMPLEMENTAÇÃO FUNCIONAL`
+Estado: `OPEN — NEXT00-02 COMPLETE; NEXT00-03 READY; ZERO IMPLEMENTAÇÃO FUNCIONAL`
 Base: `fc577e5d5e21fdc5402ace1cf662a6ea1bef255f`
 Roadmap normativo: `911af93343210ccfe2d7b7fe0b898542044a1fdf`
 
@@ -72,13 +72,21 @@ evidência rastreável que o contenha.
   `REPLACE_WITH_TOOL` ou `DO_NOT_PORT`;
 - registrar dependências e evidências, sem inferir uso por mera existência.
 
-### NEXT00-02 — Autoridade, coexistência e conversa
+### NEXT00-02 — Autoridade, coexistência e conversa — `COMPLETE`
 
 - contratos 1 a 4;
 - schemas mínimos, estados e máquinas de transição;
 - testes negativos e invariantes correspondentes.
 
-### NEXT00-03 — Integrações, capacidades, orçamento e retenção
+Artefatos congelados:
+
+- `docs/contracts/next/data-authority-contract-v0.md`;
+- `docs/contracts/next/coexistence-single-writer-contract-v0.md`;
+- `docs/contracts/next/conversation-proposal-contract-v0.md`;
+- `docs/contracts/next/model-data-boundary-contract-v0.md`;
+- `financasbot-next-00-contracts-1-4-validation-v1.md`.
+
+### NEXT00-03 — Integrações, capacidades, orçamento e retenção — `READY`
 
 - contratos 5 a 8;
 - matriz beta/cutover/retirement/pós-MVP preenchida;
@@ -132,7 +140,8 @@ Parar diante de:
 
 ## Próxima ação exata
 
-Abrir somente `NEXT00-02`: congelar os contratos de autoridade de dados,
-coexistência/single-writer, conversa/proposta e fronteira de dados do modelo.
-Nenhum runtime, integração real ou writer está autorizado.
+Abrir somente `NEXT00-03`: congelar Integration Capability Manifest,
+Capability and Cutover Matrix, Tool Budget and Failure Policy e Quality,
+Stability and Retention Contract, com limiares numéricos e sem `TBD`. Nenhum
+runtime, integração real ou writer está autorizado.
 
