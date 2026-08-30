@@ -48,8 +48,11 @@ três pontos que o Chat tratou como HIGH, mas a cadeia causal converge.
 
 ## Estado
 
-Todos os achados receberam resolução documental rastreável. Isso ainda não é
-GO: a suficiência das resoluções será verificada focalmente por Chat e Claude.
+Todos os achados receberam resolução documental rastreável. No candidato final
+`911af93343210ccfe2d7b7fe0b898542044a1fdf`, Chat e Claude leram integralmente
+o roadmap e esta matriz e emitiram `APROVÁVEL`. A revisão focal está fechada.
+Isso não constitui autorização para implementação, NEXT-00, deploy ou produção;
+essas ações continuam dependentes da decisão humana de Daniel.
 
 ## Residual da revisão focal
 
@@ -63,4 +66,13 @@ O candidato final fecha os três pontos:
 - piso inicial de 48 conversas e três casos por dimensão crítica;
 - revisão por Daniel e auditor independente;
 - GO de NEXT-00 proíbe limiares numéricos `TBD`.
+
+## Confirmação focal final
+
+- Chat: `APROVÁVEL`; hash efetivamente lido
+  `911af93343210ccfe2d7b7fe0b898542044a1fdf`.
+- Claude: `APROVÁVEL`; hash efetivamente lido
+  `911af93343210ccfe2d7b7fe0b898542044a1fdf`.
+- escopo: somente fechamento documental dos quatro resíduos focais; nenhum GO
+  de implementação foi inferido.
 

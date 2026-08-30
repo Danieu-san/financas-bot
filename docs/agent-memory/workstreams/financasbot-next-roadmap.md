@@ -1,7 +1,7 @@
 # Workstream — roadmap do FinançasBot Next
 
 Atualizado em: 2026-08-30
-Status: `DRAFT_V2 CANDIDATO FINAL; ZERO IMPLEMENTAÇÃO`
+Status: `DRAFT_V2 APROVADO INDEPENDENTEMENTE; AGUARDA CONFIRMAÇÃO HUMANA; ZERO IMPLEMENTAÇÃO`
 
 ## Objetivo
 
@@ -13,6 +13,7 @@ até cutover comprovado.
 
 - branch: `codex/financasbot-next-roadmap`;
 - draft v1 publicado: `570ec0878ebbaf479b9aef23320e9e37a5b62d67`;
+- candidato final publicado: `911af93343210ccfe2d7b7fe0b898542044a1fdf`;
 - worktree: `.codex-worktrees/financasbot-next-roadmap`;
 - bot atual, produção, dados e credenciais permanecem intocados.
 
@@ -24,6 +25,8 @@ até cutover comprovado.
   proposta, cálculo no kernel, regras aprendidas, integrações e gates por
   domínio;
 - draft v2 e matriz de resolução incorporam todos os achados.
+- confirmação focal final no hash `911af93343210ccfe2d7b7fe0b898542044a1fdf`:
+  Chat `APROVÁVEL` e Claude `APROVÁVEL`.
 
 ## Decisões v2
 
@@ -45,13 +48,13 @@ até cutover comprovado.
 
 ## Gate
 
-`NEXT-ROADMAP-V2-FOCAL-REVIEW`: Chat e Claude verificam o mesmo hash do draft v2
-e matriz. Depois Daniel decide se confirma o roadmap.
+`NEXT-ROADMAP-V2-FOCAL-REVIEW`: `FECHADO`. Chat e Claude verificaram o mesmo
+hash do draft v2 e da matriz e emitiram `APROVÁVEL`. Daniel decide se confirma
+o roadmap e autoriza a abertura de NEXT-00.
 
 ## Próxima ação exata
 
-Publicar o delta documental que torna o Golden Set v1 entregável obrigatório de
-NEXT-00 e proíbe GO com limiares numéricos `TBD`; pedir confirmação focal curta
-a Chat e Claude. Sem confirmação humana, o estado máximo é `DRAFT_V2`, nunca GO
-de implementação.
+Obter a decisão humana de Daniel sobre o roadmap aprovado. Somente se ele
+confirmar, preparar a abertura documental de NEXT-00 em objetivo separado. Não
+há autorização implícita para implementação, acesso real, deploy ou produção.
 
