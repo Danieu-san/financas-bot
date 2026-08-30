@@ -1,7 +1,7 @@
 # Workstream — roadmap do FinançasBot Next
 
 Atualizado em: 2026-08-30
-Status: `DRAFT_V2 APROVADO INDEPENDENTEMENTE; AGUARDA CONFIRMAÇÃO HUMANA; ZERO IMPLEMENTAÇÃO`
+Status: `ROADMAP RATIFICADO; NEXT-00 ABERTO; ZERO IMPLEMENTAÇÃO FUNCIONAL`
 
 ## Objetivo
 
@@ -49,12 +49,12 @@ até cutover comprovado.
 ## Gate
 
 `NEXT-ROADMAP-V2-FOCAL-REVIEW`: `FECHADO`. Chat e Claude verificaram o mesmo
-hash do draft v2 e da matriz e emitiram `APROVÁVEL`. Daniel decide se confirma
-o roadmap e autoriza a abertura de NEXT-00.
+hash do draft v2 e da matriz e emitiram `APROVÁVEL`. Daniel confirmou o roadmap
+e autorizou a abertura documental de NEXT-00 em 2026-08-30.
 
 ## Próxima ação exata
 
-Obter a decisão humana de Daniel sobre o roadmap aprovado. Somente se ele
-confirmar, preparar a abertura documental de NEXT-00 em objetivo separado. Não
-há autorização implícita para implementação, acesso real, deploy ou produção.
+Continuar pelo checkpoint `financasbot-next-00.md`, começando por NEXT00-01.
+Não há autorização implícita para implementação, acesso real, deploy ou
+produção.
 
