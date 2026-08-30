@@ -1,7 +1,7 @@
 # NEXT-00 — Charter e contratos do FinançasBot Next
 
 Atualizado em: 2026-08-30
-Estado: `OPEN — CHARTER MATERIALIZADO; ZERO IMPLEMENTAÇÃO FUNCIONAL`
+Estado: `OPEN — NEXT00-01 COMPLETE; NEXT00-02 READY; ZERO IMPLEMENTAÇÃO FUNCIONAL`
 Base: `fc577e5d5e21fdc5402ace1cf662a6ea1bef255f`
 Roadmap normativo: `911af93343210ccfe2d7b7fe0b898542044a1fdf`
 
@@ -65,7 +65,7 @@ evidência rastreável que o contenha.
 
 ## Entregas e etapas
 
-### NEXT00-01 — Inventário e taxonomia
+### NEXT00-01 — Inventário e taxonomia — `COMPLETE`
 
 - enumerar capacidades usadas e contratos aproveitáveis do legado;
 - classificar `PORT_AS_IS`, `PORT_BEHIND_NEW_CONTRACT`, `REWRITE`,
@@ -132,7 +132,7 @@ Parar diante de:
 
 ## Próxima ação exata
 
-Executar somente `NEXT00-01`: produzir o inventário de capacidades e a
-taxonomia de reaproveitamento a partir de documentação e código locais, sem
-executar o bot, acessar integrações ou alterar comportamento.
+Abrir somente `NEXT00-02`: congelar os contratos de autoridade de dados,
+coexistência/single-writer, conversa/proposta e fronteira de dados do modelo.
+Nenhum runtime, integração real ou writer está autorizado.
 
