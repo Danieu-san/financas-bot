@@ -1,7 +1,7 @@
 # Workstream — roadmap do FinançasBot Next
 
 Atualizado em: 2026-08-30
-Status: `DRAFT_V2 PRONTO PARA REVISÃO FOCAL; ZERO IMPLEMENTAÇÃO`
+Status: `DRAFT_V2 CANDIDATO FINAL; ZERO IMPLEMENTAÇÃO`
 
 ## Objetivo
 
@@ -50,6 +50,8 @@ e matriz. Depois Daniel decide se confirma o roadmap.
 
 ## Próxima ação exata
 
-Validar e publicar o commit documental v2; executar duas revisões focais. Sem
-confirmação humana, o estado máximo é `DRAFT_V2`, nunca GO de implementação.
+Publicar o delta documental que torna o Golden Set v1 entregável obrigatório de
+NEXT-00 e proíbe GO com limiares numéricos `TBD`; pedir confirmação focal curta
+a Chat e Claude. Sem confirmação humana, o estado máximo é `DRAFT_V2`, nunca GO
+de implementação.
 

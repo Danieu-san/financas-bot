@@ -51,3 +51,16 @@ três pontos que o Chat tratou como HIGH, mas a cadeia causal converge.
 Todos os achados receberam resolução documental rastreável. Isso ainda não é
 GO: a suficiência das resoluções será verificada focalmente por Chat e Claude.
 
+## Residual da revisão focal
+
+O Chat aprovou integralmente o v2. Claude confirmou todos os fechamentos, mas
+manteve H3 e M1 como parciais e encontrou um novo MEDIUM: o texto exigia
+cobertura do Golden Set sem tornar sua construção um entregável de NEXT-00.
+
+O candidato final fecha os três pontos:
+
+- Golden Set v1 é artefato obrigatório de NEXT-00;
+- piso inicial de 48 conversas e três casos por dimensão crítica;
+- revisão por Daniel e auditor independente;
+- GO de NEXT-00 proíbe limiares numéricos `TBD`.
+

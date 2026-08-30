@@ -247,6 +247,10 @@ Define antes dos testes:
 - sanitização e cobertura mínima do Golden Set;
 - logical delete, tombstone, hard delete, retenção e restore.
 
+O GO de NEXT-00 proíbe placeholders `TBD`: duração, percentuais, limites de
+latência/custo, RTO e critérios de rollback precisam possuir valores numéricos
+versionados antes de qualquer teste usado como evidência de beta ou cutover.
+
 Evento reconciliado ou com efeito externo usa tombstone/reversal, não hard
 delete. Hard delete fica limitado a draft não confirmado ou obrigação legal
 explicitamente governada. Restore nunca ressuscita tombstone.
@@ -450,18 +454,33 @@ Finance.
 
 Diálogo verde não prova exactly-once.
 
-O Golden Set define cobertura mínima por categoria e revisão humana por Daniel
-ou auditor autorizado. Fixtures não contêm dados privados.
+O Golden Set v1 é um artefato versionado e sanitizado, construído em NEXT-00.
+Seu piso inicial é de 48 conversas:
+
+- 16 perguntas simples;
+- 16 investigações com múltiplas tools;
+- 8 follow-ups que preservam ou alteram uma dimensão;
+- 8 casos negativos de indisponibilidade, incompletude, ambiguidade ou escopo.
+
+Cada dimensão crítica — pessoa/família, conta/cartão, categoria, período,
+time basis, transferência, pagamento de fatura, estorno, projeção e zero/vazio/
+incompleto/indisponível — aparece em pelo menos três casos. Daniel e um revisor
+independente aprovam a cobertura. Fixtures não contêm dados privados.
 
 ## 12. Fases e gates
 
 ### NEXT-00 — Charter e contratos
 
 Produzir os oito contratos da seção 4, inventário de capacidades e taxonomia de
-reaproveitamento. Decidir isolamento de repo/workspace, banco e ambiente apenas
-quando necessário ao contrato; essas escolhas não bloqueiam abrir NEXT-00.
+reaproveitamento. Construir, sanitizar, versionar e revisar o Golden Set v1 com
+a cobertura mínima da seção 11. Decidir isolamento de repo/workspace, banco e
+ambiente apenas quando necessário ao contrato; essas escolhas não bloqueiam
+abrir NEXT-00.
 
-**GO:** todos os contratos versionados, revisados e sem acesso real.
+**GO:** todos os contratos e o Golden Set v1 estão versionados e revisados; os
+limiares de qualidade, estabilidade, custo, latência, janela e rollback possuem
+valores numéricos, sem `TBD`; a matriz de capacidades está preenchida; nenhuma
+fonte real, produção ou writer foi acessado.
 
 ### NEXT-01 — Esqueleto isolado
 
