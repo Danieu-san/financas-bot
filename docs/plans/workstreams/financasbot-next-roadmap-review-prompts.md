@@ -30,6 +30,9 @@ Contexto decisório:
 - código determinístico continua responsável por identidade, autorização,
   cálculos, verdade financeira e toda escrita;
 - salvamento manual e proativo Open Finance deve ser preservado;
+- Calendar, lembretes, contas a pagar, compartilhamento familiar, edição,
+  exclusão, undo, regras aprendidas, limites por categoria, projeções,
+  ambiguidades e integrações futuras também devem permanecer no produto;
 - o objetivo é reduzir complexidade emergente e ciclos infinitos de correção.
 
 Avalie especificamente:
@@ -44,7 +47,11 @@ Avalie especificamente:
 9. quais partes do legado devem ou não ser reaproveitadas;
 10. riscos de custo, latência, privacidade, vendor lock-in e testabilidade;
 11. o que está complexo demais e pode ser removido;
-12. quais lacunas impedem começar NEXT-00.
+12. se as capacidades preservadas têm lugar claro sem inflar o primeiro MVP;
+13. se regras aprendidas são corrigíveis e não criam automação indevida;
+14. se edição, exclusão, undo, lembretes e Calendar têm controles suficientes;
+15. se o gateway de integrações evita ampliar acesso e vendor lock-in;
+16. quais lacunas impedem começar NEXT-00.
 
 Separe achados em CRITICAL, HIGH, MEDIUM e LOW. Para cada achado, cite a seção,
 explique a cadeia causal e proponha a menor correção. Termine com um destes

@@ -1,7 +1,7 @@
 # Workstream — roadmap do FinançasBot Next
 
 Atualizado em: 2026-08-30
-Status: `DRAFT_V1 EM ELABORAÇÃO; ZERO IMPLEMENTAÇÃO`
+Status: `DRAFT_V1 AMPLIADO; AGUARDANDO REVISÕES; ZERO IMPLEMENTAÇÃO`
 
 ## Objetivo
 
@@ -20,6 +20,9 @@ legado até cutover comprovado.
 
 - elaborar o draft v1;
 - preparar prompts idênticos em substância para Chat e Claude;
+- preservar explicitamente Calendar, lembretes, contas a pagar, operações de
+  correção, compartilhamento familiar, regras aprendidas, limites, projeções,
+  ambiguidades e extensibilidade de integrações;
 - validar coerência documental;
 - receber revisões e produzir draft v2 posteriormente.
 

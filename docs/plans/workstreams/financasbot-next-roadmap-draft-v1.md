@@ -148,9 +148,12 @@ Sheets | Pluggy | Ledger <------+
 Componentes transversais:
 
 - catálogo de entidades e aliases;
+- catálogo de regras pessoais/familiares e conhecimento corrigível;
 - ledger/event store canônico;
 - política de fonte e reconciliação;
 - memória conversacional explícita;
+- scheduler de lembretes e vencimentos;
+- gateway de integrações com adapters versionados;
 - observabilidade sanitizada;
 - suíte de avaliação replayable;
 - configuração e flags por capacidade, nunca por emaranhado de rotas.
@@ -174,6 +177,11 @@ nova formulação de pergunta.
 - `income.summarize`
 - `debts.get_status`
 - `goals.get_status`
+- `bills.list_due`
+- `reminders.list`
+- `merchant_rules.lookup`
+- `forecasts.run`
+- `calendar.events.list`
 - `open_finance.unregistered_events`
 - `financial_sources.get_coverage`
 
@@ -190,6 +198,12 @@ Cada operação é um protocolo independente:
 - `card_expense.prepare/commit`
 - `refund.prepare/commit`
 - `recurring.prepare/commit`
+- `transaction.update.prepare/commit`
+- `transaction.delete.prepare/commit`
+- `transaction.undo.prepare/commit`
+- `merchant_rule.prepare/commit`
+- `reminder.prepare/commit`
+- `calendar_event.prepare/commit`
 - `open_finance_event.prepare/commit`
 
 Não haverá uma tool genérica `write_financial_data`.
@@ -222,7 +236,42 @@ Não haverá uma tool genérica `write_financial_data`.
 - dashboard;
 - scheduler.
 
-### 6.3 Não portar como arquitetura
+### 6.3 Capacidades funcionais que devem ser preservadas
+
+As capacidades abaixo fazem parte do produto alvo. A classificação
+`preservada` não significa portar a implementação antiga; cada uma ainda deve
+passar por inventário e receber `REUSE_AS_IS`, `EXTRACT_AND_HARDEN`,
+`REIMPLEMENT_BEHIND_CONTRACT`, `REFERENCE_ONLY` ou `DO_NOT_PORT`:
+
+- Google Calendar;
+- lembretes individuais de contas e vencimentos;
+- consulta de contas a pagar;
+- alertas de vencimento de fatura;
+- avisos e acompanhamento de limites por categoria;
+- edição, exclusão e desfazer lançamentos;
+- compartilhamento familiar da planilha e dos dados autorizados;
+- classificação aprendida de estabelecimentos;
+- regras pessoais e familiares corrigíveis, como “este estabelecimento sempre
+  é lanche”;
+- interface conversacional para resolver ambiguidades e aplicar uma decisão a
+  ocorrências equivalentes quando o usuário pedir;
+- projeções financeiras e comparação de cenários, sempre separando realizado,
+  comprometido, projetado e estimado;
+- exportação financeira;
+- backup e restauração;
+- criação e manutenção controlada da Planilha;
+- importação CSV/OFX;
+- áudio e comprovantes; OCR/PDF/imagem podem ficar pós-MVP;
+- dashboard funcional, sem exigir redesign visual no início;
+- visão de saúde financeira;
+- dívidas e metas;
+- integrações futuras além de Google, Pluggy e WhatsApp por um contrato de
+  adapter, autorização e gate próprio.
+
+Compartilhamento familiar não equivale a administração global. Cada leitura e
+escrita continua vinculada à policy familiar resolvida server-side.
+
+### 6.4 Não portar como arquitetura
 
 - `messageHandler` monolítico;
 - cadeias de classifier -> planner -> fallback -> outro agente;
@@ -267,6 +316,23 @@ novo modelo reproduz consultas em read-only. Migração ocorre depois de:
 4. dry-run e fingerprint;
 5. backup e rollback;
 6. validação amostral e totais por período.
+
+### 7.5 Conhecimento aprendido e regras pessoais
+
+Classificações aprendidas não ficam escondidas no prompt ou no histórico da
+conversa. Elas são registros versionados com:
+
+- escopo pessoal ou familiar;
+- matcher normalizado e exemplos conhecidos;
+- categoria/subcategoria ou ação sugerida;
+- provenance da decisão;
+- data, autor e versão;
+- prioridade diante de regras conflitantes;
+- opção de revisar, desativar e excluir;
+- confiança e regra de aplicação automática versus sugestão.
+
+A IA pode propor uma regra a partir de repetição, mas somente uma confirmação
+explícita a torna persistente. Correção do usuário vence inferência anterior.
 
 ## 8. Estratégia conversacional
 
@@ -477,6 +543,10 @@ Ordem sugerida:
 
 Cada writer possui gate independente. Nenhum herda GO de outro.
 
+Depois dos writers de criação, edição, exclusão e desfazer recebem gates
+próprios. Exclusão deve preferir tombstone/auditoria quando a integridade exigir,
+e undo nunca pode repetir um efeito externo já conciliado.
+
 **GO por writer:** preview, confirmação, replay, concorrência, falha parcial,
 recibo, reconciliação e rollback comprovados.
 
@@ -502,11 +572,24 @@ Migrar um domínio por vez:
 
 - faturas e parcelas;
 - orçamento livre e essencial;
+- limites por categoria;
 - recorrências;
 - dívidas e metas;
+- contas a pagar, lembretes e vencimentos;
+- Google Calendar;
+- regras pessoais e classificação aprendida de estabelecimentos;
+- projeções e comparação de cenários;
+- edição, exclusão e desfazer;
 - importação;
+- exportação, backup e restauração;
+- manutenção controlada da Planilha;
 - dashboard;
+- saúde financeira;
 - scheduler.
+
+Integrações adicionais entram somente por adapters tipados, com autorização,
+provenance, observabilidade, testes contratuais e rollback próprios. Nenhum
+serviço novo recebe acesso financeiro apenas por implementar o protocolo.
 
 Cada domínio passa por kernel -> tools -> agente -> shadow -> writer, quando
 aplicável.
@@ -553,7 +636,7 @@ read-only e do canal isolado estarem comprovados.
 - administração com acesso amplo a dados individuais;
 - recomendações de investimento;
 - patrimônio completo;
-- PDF/imagem de extrato;
+- OCR/PDF/imagem de extrato no MVP inicial, preservados como pós-MVP;
 - auto-write sem confirmação;
 - substituição imediata da planilha;
 - redesign visual amplo do dashboard;
@@ -561,6 +644,11 @@ read-only e do canal isolado estarem comprovados.
 - uso simultâneo da mesma sessão WhatsApp por dois processos;
 - migração de segredos para Git;
 - treinamento de modelo próprio.
+
+Não estão fora do produto: Google Calendar, lembretes, contas a pagar,
+compartilhamento familiar, limites por categoria, projeções, regras aprendidas,
+ambiguidades, edição, exclusão, desfazer, exportação, backup, restauração,
+dashboard, áudio, comprovantes e extensibilidade para novas integrações.
 
 ## 14. Segurança, privacidade e acessos
 
@@ -608,6 +696,10 @@ configuração para facilitar medição.
 10. Todo erro real vira regressão permanente.
 11. O bot atual continua disponível até o cutover reversível.
 12. Custos e latência são medidos por conversa e por capacidade.
+13. Regras aprendidas são explicáveis, versionadas, corrigíveis e escopadas.
+14. Edição, exclusão e undo preservam trilha de auditoria e reconciliação.
+15. Lembretes, Calendar e alertas são idempotentes e não notificam duplicado.
+16. Integrações novas não ampliam permissões ou verdade financeira por padrão.
 
 ## 17. Decisões ainda abertas para revisão
 
