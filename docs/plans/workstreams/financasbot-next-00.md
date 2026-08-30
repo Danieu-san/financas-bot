@@ -1,7 +1,7 @@
 # NEXT-00 — Charter e contratos do FinançasBot Next
 
 Atualizado em: 2026-08-30
-Estado: `OPEN — NEXT00-02 COMPLETE; NEXT00-03 READY; ZERO IMPLEMENTAÇÃO FUNCIONAL`
+Estado: `OPEN — NEXT00-03 COMPLETE; NEXT00-04 READY; ZERO IMPLEMENTAÇÃO FUNCIONAL`
 Base: `fc577e5d5e21fdc5402ace1cf662a6ea1bef255f`
 Roadmap normativo: `911af93343210ccfe2d7b7fe0b898542044a1fdf`
 
@@ -86,13 +86,21 @@ Artefatos congelados:
 - `docs/contracts/next/model-data-boundary-contract-v0.md`;
 - `financasbot-next-00-contracts-1-4-validation-v1.md`.
 
-### NEXT00-03 — Integrações, capacidades, orçamento e retenção — `READY`
+### NEXT00-03 — Integrações, capacidades, orçamento e retenção — `COMPLETE`
 
 - contratos 5 a 8;
 - matriz beta/cutover/retirement/pós-MVP preenchida;
 - limiares numéricos versionados, sem `TBD`.
 
-### NEXT00-04 — Golden Set v1
+Artefatos congelados:
+
+- `docs/contracts/next/integration-capability-manifest-v0.md`;
+- `docs/contracts/next/capability-cutover-matrix-v0.md`;
+- `docs/contracts/next/tool-budget-failure-policy-v0.md`;
+- `docs/contracts/next/quality-stability-retention-contract-v0.md`;
+- `financasbot-next-00-contracts-5-8-validation-v1.md`.
+
+### NEXT00-04 — Golden Set v1 — `READY`
 
 - mínimo de 48 conversas sanitizadas;
 - 16 simples, 16 multi-tool, 8 follow-ups e 8 negativas;
@@ -140,8 +148,8 @@ Parar diante de:
 
 ## Próxima ação exata
 
-Abrir somente `NEXT00-03`: congelar Integration Capability Manifest,
-Capability and Cutover Matrix, Tool Budget and Failure Policy e Quality,
-Stability and Retention Contract, com limiares numéricos e sem `TBD`. Nenhum
+Abrir somente `NEXT00-04`: construir o Golden Conversation Set v1 com 48
+conversas sanitizadas, cobertura mínima por dimensão, fixtures sintéticas e
+rastreabilidade para os 67 casos documentais dos contratos 1 a 8. Nenhum
 runtime, integração real ou writer está autorizado.
 
