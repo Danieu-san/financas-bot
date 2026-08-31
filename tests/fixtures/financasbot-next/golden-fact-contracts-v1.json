@@ -1,0 +1,1169 @@
+{
+  "schema_version": 1,
+  "contract_id": "NEXT-GOLDEN-FACT-CONTRACTS-V1",
+  "synthetic": true,
+  "authority": "reviewed_conversation_semantics",
+  "dimensions": [
+    "metric",
+    "unit",
+    "entity",
+    "period",
+    "time_basis",
+    "coverage",
+    "evidence_state",
+    "evidence_refs"
+  ],
+  "turns": {
+    "S-01#1": [
+      {
+        "fact_key": "S-01#1#1",
+        "metric": "consumption_total",
+        "unit": "BRL_minor",
+        "entity": "family-example",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-market-a",
+          "evt-snack-a",
+          "evt-fuel-a",
+          "evt-restaurant-b",
+          "evt-refund-b",
+          "evt-cinema-b",
+          "evt-gift-b",
+          "evt-rent-a",
+          "evt-installment-1"
+        ]
+      }
+    ],
+    "S-02#1": [
+      {
+        "fact_key": "S-02#1#1",
+        "metric": "consumption_total",
+        "unit": "BRL_minor",
+        "entity": "person-a",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-market-a",
+          "evt-snack-a",
+          "evt-fuel-a",
+          "evt-rent-a",
+          "evt-installment-1"
+        ]
+      }
+    ],
+    "S-03#1": [
+      {
+        "fact_key": "S-03#1#1",
+        "metric": "category_consumption",
+        "unit": "BRL_minor",
+        "entity": "family-example:food.market",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-market-a"
+        ]
+      }
+    ],
+    "S-04#1": [
+      {
+        "fact_key": "S-04#1#1",
+        "metric": "movement_ids",
+        "unit": "entity_ids",
+        "entity": "account-a",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-salary-a",
+          "evt-market-a",
+          "evt-transfer-out",
+          "evt-invoice-payment",
+          "evt-rent-a"
+        ]
+      }
+    ],
+    "S-05#1": [
+      {
+        "fact_key": "S-05#1#1",
+        "metric": "statement_total",
+        "unit": "BRL_minor",
+        "entity": "card-blue",
+        "period": "statement_due:2042-06-17",
+        "time_basis": "statement_due_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-snack-a",
+          "evt-fuel-a"
+        ]
+      }
+    ],
+    "S-06#1": [
+      {
+        "fact_key": "S-06#1#1",
+        "metric": "account_balance",
+        "unit": "BRL_minor",
+        "entity": "account-a",
+        "period": "as_of:2042-06-14",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "account-a",
+          "evt-salary-a",
+          "evt-market-a",
+          "evt-transfer-out",
+          "evt-invoice-payment",
+          "evt-rent-a"
+        ]
+      }
+    ],
+    "S-07#1": [
+      {
+        "fact_key": "S-07#1#1",
+        "metric": "owned_cards",
+        "unit": "entity_ids",
+        "entity": "person-a",
+        "period": "as_of:2042-06-15",
+        "time_basis": "registry_current",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "person-a",
+          "card-blue",
+          "card-offline"
+        ]
+      }
+    ],
+    "S-08#1": [
+      {
+        "fact_key": "S-08#1#1",
+        "metric": "consumption_effect",
+        "unit": "BRL_minor",
+        "entity": "transfer-01",
+        "period": "2042-06-12",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-transfer-out",
+          "evt-transfer-in"
+        ]
+      }
+    ],
+    "S-09#1": [
+      {
+        "fact_key": "S-09#1#1",
+        "metric": "consumption_effect",
+        "unit": "BRL_minor",
+        "entity": "evt-invoice-payment",
+        "period": "2042-06-13",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-invoice-payment"
+        ]
+      }
+    ],
+    "S-10#1": [
+      {
+        "fact_key": "S-10#1#1",
+        "metric": "net_consumption",
+        "unit": "BRL_minor",
+        "entity": "evt-restaurant-b",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-restaurant-b",
+          "evt-refund-b"
+        ]
+      }
+    ],
+    "S-11#1": [
+      {
+        "fact_key": "S-11#1#1",
+        "metric": "installments_realized",
+        "unit": "count",
+        "entity": "plan-01",
+        "period": "through:2042-06-15",
+        "time_basis": "installment_competence",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-installment-1"
+        ]
+      },
+      {
+        "fact_key": "S-11#1#2",
+        "metric": "installments_projected",
+        "unit": "count",
+        "entity": "plan-01",
+        "period": "2042-07..2042-08",
+        "time_basis": "installment_competence",
+        "coverage": "complete",
+        "evidence_state": "projected",
+        "evidence_refs": [
+          "evt-installment-2",
+          "evt-installment-3"
+        ]
+      },
+      {
+        "fact_key": "S-11#1#3",
+        "metric": "installments_projected_amount",
+        "unit": "BRL_minor",
+        "entity": "plan-01",
+        "period": "2042-07..2042-08",
+        "time_basis": "installment_competence",
+        "coverage": "complete",
+        "evidence_state": "projected",
+        "evidence_refs": [
+          "evt-installment-2",
+          "evt-installment-3"
+        ]
+      }
+    ],
+    "S-12#1": [
+      {
+        "fact_key": "S-12#1#1",
+        "metric": "account_balance",
+        "unit": "BRL_minor",
+        "entity": "account-reserve",
+        "period": "as_of:2042-06-11",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "account-reserve"
+        ]
+      }
+    ],
+    "S-13#1": [
+      {
+        "fact_key": "S-13#1#1",
+        "metric": "eligible_event_count",
+        "unit": "count",
+        "entity": "family-example:health.general",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "source-empty-health"
+        ]
+      }
+    ],
+    "S-16#1": [
+      {
+        "fact_key": "S-16#1#1",
+        "metric": "source_coverage",
+        "unit": "state",
+        "entity": "source-complete-june",
+        "period": "2042-06",
+        "time_basis": "source_period",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "source-complete-june"
+        ]
+      }
+    ],
+    "M-01#1": [
+      {
+        "fact_key": "M-01#1#1",
+        "metric": "consumption_total",
+        "unit": "BRL_minor",
+        "entity": "person-a",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-market-a",
+          "evt-snack-a",
+          "evt-fuel-a",
+          "evt-rent-a",
+          "evt-installment-1"
+        ]
+      },
+      {
+        "fact_key": "M-01#1#2",
+        "metric": "consumption_total",
+        "unit": "BRL_minor",
+        "entity": "person-b",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-restaurant-b",
+          "evt-refund-b",
+          "evt-cinema-b",
+          "evt-gift-b"
+        ]
+      },
+      {
+        "fact_key": "M-01#1#3",
+        "metric": "ranking_winner",
+        "unit": "entity_ids",
+        "entity": "family-example",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "person-a",
+          "person-b"
+        ]
+      },
+      {
+        "fact_key": "M-01#1#4",
+        "metric": "consumption_difference",
+        "unit": "BRL_minor",
+        "entity": "person-a-minus-person-b",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "person-a",
+          "person-b"
+        ]
+      }
+    ],
+    "M-02#1": [
+      {
+        "fact_key": "M-02#1#1",
+        "metric": "consumption_by_instrument",
+        "unit": "BRL_minor",
+        "entity": "account-a",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-market-a",
+          "evt-rent-a"
+        ]
+      },
+      {
+        "fact_key": "M-02#1#2",
+        "metric": "consumption_by_instrument",
+        "unit": "BRL_minor",
+        "entity": "card-blue",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-snack-a",
+          "evt-fuel-a",
+          "evt-installment-1"
+        ]
+      }
+    ],
+    "M-03#1": [
+      {
+        "fact_key": "M-03#1#1",
+        "metric": "budget_class_consumption",
+        "unit": "BRL_minor",
+        "entity": "family-example:flexible",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-snack-a",
+          "evt-restaurant-b",
+          "evt-refund-b",
+          "evt-cinema-b",
+          "evt-gift-b",
+          "evt-installment-1"
+        ]
+      },
+      {
+        "fact_key": "M-03#1#2",
+        "metric": "budget_class_consumption",
+        "unit": "BRL_minor",
+        "entity": "family-example:essential",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-market-a",
+          "evt-fuel-a",
+          "evt-rent-a"
+        ]
+      }
+    ],
+    "M-04#1": [
+      {
+        "fact_key": "M-04#1#1",
+        "metric": "balance_delta",
+        "unit": "BRL_minor",
+        "entity": "account-a",
+        "period": "2042-06-12",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-transfer-out"
+        ]
+      },
+      {
+        "fact_key": "M-04#1#2",
+        "metric": "balance_delta",
+        "unit": "BRL_minor",
+        "entity": "account-reserve",
+        "period": "2042-06-12",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-transfer-in"
+        ]
+      },
+      {
+        "fact_key": "M-04#1#3",
+        "metric": "consumption_effect",
+        "unit": "BRL_minor",
+        "entity": "transfer-01",
+        "period": "2042-06-12",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-transfer-out",
+          "evt-transfer-in"
+        ]
+      }
+    ],
+    "M-05#1": [
+      {
+        "fact_key": "M-05#1#1",
+        "metric": "statement_total",
+        "unit": "BRL_minor",
+        "entity": "card-blue",
+        "period": "statement_due:2042-06-17",
+        "time_basis": "statement_due_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-snack-a",
+          "evt-fuel-a"
+        ]
+      },
+      {
+        "fact_key": "M-05#1#2",
+        "metric": "invoice_payment_amount",
+        "unit": "BRL_minor",
+        "entity": "evt-invoice-payment",
+        "period": "2042-06-13",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-invoice-payment"
+        ]
+      },
+      {
+        "fact_key": "M-05#1#3",
+        "metric": "invoice_payment_target_card",
+        "unit": "entity_ids",
+        "entity": "evt-invoice-payment",
+        "period": "2042-06-13",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-invoice-payment",
+          "card-blue"
+        ]
+      },
+      {
+        "fact_key": "M-05#1#4",
+        "metric": "statement_payment_correspondence",
+        "unit": "state",
+        "entity": "evt-invoice-payment",
+        "period": "2042-06-13",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-invoice-payment",
+          "card-blue"
+        ]
+      },
+      {
+        "fact_key": "M-05#1#5",
+        "metric": "invoice_payment_consumption_effect",
+        "unit": "BRL_minor",
+        "entity": "evt-invoice-payment",
+        "period": "2042-06-13",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-invoice-payment"
+        ]
+      }
+    ],
+    "M-06#1": [
+      {
+        "fact_key": "M-06#1#1",
+        "metric": "gross_consumption",
+        "unit": "BRL_minor",
+        "entity": "person-b:food.restaurant",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-restaurant-b"
+        ]
+      },
+      {
+        "fact_key": "M-06#1#2",
+        "metric": "refund_amount",
+        "unit": "BRL_minor",
+        "entity": "evt-refund-b",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-refund-b"
+        ]
+      },
+      {
+        "fact_key": "M-06#1#3",
+        "metric": "net_consumption",
+        "unit": "BRL_minor",
+        "entity": "person-b:food.restaurant",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-restaurant-b",
+          "evt-refund-b"
+        ]
+      }
+    ],
+    "M-07#1": [
+      {
+        "fact_key": "M-07#1#1",
+        "metric": "consumption_total",
+        "unit": "BRL_minor",
+        "entity": "family-example",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "source-complete-june"
+        ]
+      },
+      {
+        "fact_key": "M-07#1#2",
+        "metric": "projected_installments",
+        "unit": "BRL_minor",
+        "entity": "family-example",
+        "period": "2042-07..2042-08",
+        "time_basis": "installment_competence",
+        "coverage": "complete",
+        "evidence_state": "projected",
+        "evidence_refs": [
+          "evt-installment-2",
+          "evt-installment-3"
+        ]
+      }
+    ],
+    "M-08#1": [
+      {
+        "fact_key": "M-08#1#1",
+        "metric": "category_spent",
+        "unit": "BRL_minor",
+        "entity": "person-b:food.snack",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "person-b",
+          "source-complete-june"
+        ]
+      },
+      {
+        "fact_key": "M-08#1#2",
+        "metric": "category_budget_remaining",
+        "unit": "BRL_minor",
+        "entity": "budget-snack:person-b",
+        "period": "2042-06",
+        "time_basis": "budget_cycle",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "budget-snack"
+        ],
+        "relations": [
+          {
+            "op": "member_of_budget_family",
+            "person_id": "person-b",
+            "budget_id": "budget-snack"
+          }
+        ]
+      }
+    ],
+    "M-09#1": [
+      {
+        "fact_key": "M-09#1#1",
+        "metric": "eligible_event_count",
+        "unit": "count",
+        "entity": "family-example:health.general",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "source-empty-health"
+        ]
+      }
+    ],
+    "M-12#1": [
+      {
+        "fact_key": "M-12#1#1",
+        "metric": "consumption_total",
+        "unit": "BRL_minor",
+        "entity": "family-example",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "source-complete-june"
+        ]
+      }
+    ],
+    "M-13#1": [
+      {
+        "fact_key": "M-13#1#1",
+        "metric": "category_spent",
+        "unit": "BRL_minor",
+        "entity": "food.snack",
+        "period": "2042-06",
+        "time_basis": "budget_cycle",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-snack-a"
+        ]
+      },
+      {
+        "fact_key": "M-13#1#2",
+        "metric": "category_budget_remaining",
+        "unit": "BRL_minor",
+        "entity": "budget-snack",
+        "period": "2042-06",
+        "time_basis": "budget_cycle",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "budget-snack",
+          "evt-snack-a"
+        ]
+      },
+      {
+        "fact_key": "M-13#1#3",
+        "metric": "safe_daily_pace",
+        "unit": "BRL_minor",
+        "entity": "budget-snack",
+        "period": "2042-06-16..2042-06-30",
+        "time_basis": "15_full_days_after_as_of",
+        "coverage": "complete",
+        "evidence_state": "estimated",
+        "evidence_refs": [
+          "budget-snack",
+          "evt-snack-a"
+        ]
+      },
+      {
+        "fact_key": "M-13#1#4",
+        "metric": "category_spent",
+        "unit": "BRL_minor",
+        "entity": "leisure.cinema",
+        "period": "2042-06",
+        "time_basis": "budget_cycle",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-cinema-b"
+        ]
+      },
+      {
+        "fact_key": "M-13#1#5",
+        "metric": "category_budget_remaining",
+        "unit": "BRL_minor",
+        "entity": "budget-leisure",
+        "period": "2042-06",
+        "time_basis": "budget_cycle",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "budget-leisure",
+          "evt-cinema-b"
+        ]
+      },
+      {
+        "fact_key": "M-13#1#6",
+        "metric": "safe_daily_pace",
+        "unit": "BRL_minor",
+        "entity": "budget-leisure",
+        "period": "2042-06-16..2042-06-30",
+        "time_basis": "15_full_days_after_as_of",
+        "coverage": "complete",
+        "evidence_state": "estimated",
+        "evidence_refs": [
+          "budget-leisure",
+          "evt-cinema-b"
+        ]
+      }
+    ],
+    "M-14#1": [
+      {
+        "fact_key": "M-14#1#1",
+        "metric": "income_realized",
+        "unit": "BRL_minor",
+        "entity": "family-example",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-salary-a"
+        ]
+      },
+      {
+        "fact_key": "M-14#1#2",
+        "metric": "bills_open",
+        "unit": "BRL_minor",
+        "entity": "family-example",
+        "period": "2042-06",
+        "time_basis": "due_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "bill-rent-b"
+        ]
+      },
+      {
+        "fact_key": "M-14#1#3",
+        "metric": "income_minus_open_bills",
+        "unit": "BRL_minor",
+        "entity": "family-example",
+        "period": "2042-06",
+        "time_basis": "mixed_declared",
+        "coverage": "complete",
+        "evidence_state": "estimated",
+        "evidence_refs": [
+          "evt-salary-a",
+          "bill-rent-b"
+        ]
+      }
+    ],
+    "M-15#1": [
+      {
+        "fact_key": "M-15#1#1",
+        "metric": "due_bill_ids",
+        "unit": "entity_ids",
+        "entity": "person-b",
+        "period": "2042-06-15..2042-06-30",
+        "time_basis": "due_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "bill-rent-b"
+        ]
+      },
+      {
+        "fact_key": "M-15#1#2",
+        "metric": "due_bills_total",
+        "unit": "BRL_minor",
+        "entity": "person-b",
+        "period": "2042-06-15..2042-06-30",
+        "time_basis": "due_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "bill-rent-b"
+        ]
+      },
+      {
+        "fact_key": "M-15#1#3",
+        "metric": "reminder_count",
+        "unit": "count",
+        "entity": "person-b",
+        "period": "2042-06-15..2042-06-30",
+        "time_basis": "scheduled_at",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "person-b"
+        ]
+      },
+      {
+        "fact_key": "M-15#1#4",
+        "metric": "calendar_event_count",
+        "unit": "count",
+        "entity": "person-b",
+        "period": "2042-06-15..2042-06-30",
+        "time_basis": "scheduled_at",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "person-b"
+        ]
+      }
+    ],
+    "M-16#1": [
+      {
+        "fact_key": "M-16#1#1",
+        "metric": "merchant_rule_ids",
+        "unit": "entity_ids",
+        "entity": "merchant-market-example",
+        "period": "as_of:2042-06-15",
+        "time_basis": "registry_current",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "rule-market-example"
+        ]
+      },
+      {
+        "fact_key": "M-16#1#2",
+        "metric": "similar_event_ids",
+        "unit": "entity_ids",
+        "entity": "merchant-market-example",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-market-a"
+        ]
+      },
+      {
+        "fact_key": "M-16#1#3",
+        "metric": "side_effect_count",
+        "unit": "count",
+        "entity": "turn:M-16#1",
+        "period": "as_of:2042-06-15",
+        "time_basis": "request_execution",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "rule-market-example",
+          "evt-market-a"
+        ]
+      }
+    ],
+    "F-01#1": [
+      {
+        "fact_key": "F-01#1#1",
+        "metric": "category_consumption",
+        "unit": "BRL_minor",
+        "entity": "person-a:food.snack",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-snack-a"
+        ]
+      }
+    ],
+    "F-01#2": [
+      {
+        "fact_key": "F-01#2#1",
+        "metric": "category_consumption",
+        "unit": "BRL_minor",
+        "entity": "person-b:food.snack",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "person-b",
+          "source-complete-june"
+        ]
+      }
+    ],
+    "F-02#1": [
+      {
+        "fact_key": "F-02#1#1",
+        "metric": "consumption_total",
+        "unit": "BRL_minor",
+        "entity": "person-a",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "source-complete-june"
+        ]
+      }
+    ],
+    "F-03#1": [
+      {
+        "fact_key": "F-03#1#1",
+        "metric": "consumption_by_instrument",
+        "unit": "BRL_minor",
+        "entity": "account-a",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-market-a",
+          "evt-rent-a"
+        ]
+      }
+    ],
+    "F-03#2": [
+      {
+        "fact_key": "F-03#2#1",
+        "metric": "statement_total",
+        "unit": "BRL_minor",
+        "entity": "card-blue",
+        "period": "statement_due:2042-06-17",
+        "time_basis": "statement_competence",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-snack-a",
+          "evt-fuel-a"
+        ]
+      }
+    ],
+    "F-04#1": [
+      {
+        "fact_key": "F-04#1#1",
+        "metric": "category_consumption",
+        "unit": "BRL_minor",
+        "entity": "person-a:food.snack",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-snack-a"
+        ]
+      }
+    ],
+    "F-04#2": [
+      {
+        "fact_key": "F-04#2#1",
+        "metric": "category_budget_remaining",
+        "unit": "BRL_minor",
+        "entity": "budget-snack",
+        "period": "2042-06",
+        "time_basis": "budget_cycle",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "budget-snack",
+          "evt-snack-a"
+        ]
+      }
+    ],
+    "F-05#1": [
+      {
+        "fact_key": "F-05#1#1",
+        "metric": "category_consumption",
+        "unit": "BRL_minor",
+        "entity": "person-a:food.market",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-market-a"
+        ]
+      }
+    ],
+    "F-05#2": [
+      {
+        "fact_key": "F-05#2#1",
+        "metric": "category_consumption",
+        "unit": "BRL_minor",
+        "entity": "family-example:food.market",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-market-a"
+        ]
+      }
+    ],
+    "F-06#1": [
+      {
+        "fact_key": "F-06#1#1",
+        "metric": "gross_consumption",
+        "unit": "BRL_minor",
+        "entity": "evt-restaurant-b",
+        "period": "2042-06-07",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-restaurant-b"
+        ]
+      }
+    ],
+    "F-06#2": [
+      {
+        "fact_key": "F-06#2#1",
+        "metric": "refund_amount",
+        "unit": "BRL_minor",
+        "entity": "evt-refund-b",
+        "period": "2042-06-09",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-refund-b"
+        ]
+      },
+      {
+        "fact_key": "F-06#2#2",
+        "metric": "net_consumption",
+        "unit": "BRL_minor",
+        "entity": "evt-restaurant-b",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-restaurant-b",
+          "evt-refund-b"
+        ]
+      }
+    ],
+    "F-07#1": [
+      {
+        "fact_key": "F-07#1#1",
+        "metric": "installments_realized",
+        "unit": "count",
+        "entity": "plan-01",
+        "period": "through:2042-06-15",
+        "time_basis": "installment_competence",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-installment-1"
+        ]
+      },
+      {
+        "fact_key": "F-07#1#2",
+        "metric": "installments_realized_amount",
+        "unit": "BRL_minor",
+        "entity": "plan-01",
+        "period": "through:2042-06-15",
+        "time_basis": "installment_competence",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-installment-1"
+        ]
+      }
+    ],
+    "F-07#2": [
+      {
+        "fact_key": "F-07#2#1",
+        "metric": "installments_projected",
+        "unit": "count",
+        "entity": "plan-01",
+        "period": "2042-07..2042-08",
+        "time_basis": "installment_competence",
+        "coverage": "complete",
+        "evidence_state": "projected",
+        "evidence_refs": [
+          "evt-installment-2",
+          "evt-installment-3"
+        ]
+      },
+      {
+        "fact_key": "F-07#2#2",
+        "metric": "installments_projected_amount",
+        "unit": "BRL_minor",
+        "entity": "plan-01",
+        "period": "2042-07..2042-08",
+        "time_basis": "installment_competence",
+        "coverage": "complete",
+        "evidence_state": "projected",
+        "evidence_refs": [
+          "evt-installment-2",
+          "evt-installment-3"
+        ]
+      }
+    ],
+    "N-04#1": [
+      {
+        "fact_key": "N-04#1#1",
+        "metric": "eligible_event_count",
+        "unit": "count",
+        "entity": "family-example:health.general",
+        "period": "2042-06",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "source-empty-health"
+        ]
+      }
+    ],
+    "N-07#1": [
+      {
+        "fact_key": "N-07#1#1",
+        "metric": "consumption_effect",
+        "unit": "BRL_minor",
+        "entity": "transfer-01",
+        "period": "2042-06-12",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-transfer-out",
+          "evt-transfer-in"
+        ]
+      }
+    ],
+    "N-08#1": [
+      {
+        "fact_key": "N-08#1#1",
+        "metric": "invoice_payment_consumption_effect",
+        "unit": "BRL_minor",
+        "entity": "evt-invoice-payment",
+        "period": "2042-06-13",
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evidence_refs": [
+          "evt-invoice-payment"
+        ]
+      }
+    ]
+  }
+}

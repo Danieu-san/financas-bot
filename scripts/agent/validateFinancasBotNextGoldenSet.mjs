@@ -8,6 +8,7 @@ const corpusPath = 'tests/fixtures/financasbot-next/golden-conversation-set-v1.j
 const corpus = readJson(corpusPath);
 const fixture = readJson(path.join(path.dirname(corpusPath), corpus.fixture_file));
 const oracle = readJson(path.join(path.dirname(corpusPath), corpus.claim_oracle_file));
+const factContracts = readJson(path.join(path.dirname(corpusPath), corpus.fact_contract_file));
 
 const failures = [];
 const assert = (condition, message) => { if (!condition) failures.push(message); };
@@ -81,6 +82,7 @@ assert(oracle.synthetic === true, 'claim oracle must be synthetic');
 assert(corpus.fixed_clock === fixture.fixed_clock && corpus.fixed_clock === oracle.fixed_clock,
   'corpus, fixture and oracle clocks must match');
 assert(corpus.claim_oracle_file === 'golden-claim-oracles-v1.json', 'unexpected claim oracle file');
+assert(corpus.fact_contract_file === 'golden-fact-contracts-v1.json', 'unexpected fact contract file');
 assert(corpus.traceability_policy_version === 'causal-trace-v2', 'unexpected traceability policy');
 assert(Array.isArray(corpus.cases) && corpus.cases.length === 48, 'expected exactly 48 cases');
 assert(JSON.stringify(corpus.required_class_counts) === JSON.stringify(expectedClassCounts),
@@ -168,7 +170,7 @@ for (const [disposition, expected] of Object.entries(expectedDispositionCounts))
 assert(Object.keys(dispositionCounts).length === Object.keys(expectedDispositionCounts).length,
   'oracle contains an unexpected disposition');
 
-const factValidation = validateMaterializedFacts(fixture, oracle);
+const factValidation = validateMaterializedFacts(fixture, oracle, factContracts);
 for (const failure of factValidation.failures) failures.push(failure);
 assert(factValidation.materializedFacts === 76, `expected 76 materialized facts, found ${factValidation.materializedFacts}`);
 assert(factValidation.metricCount === 39, `expected 39 deterministic metric evaluators, found ${factValidation.metricCount}`);

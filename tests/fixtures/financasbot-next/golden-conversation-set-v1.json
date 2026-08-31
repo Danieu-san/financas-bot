@@ -4,6 +4,7 @@
   "synthetic": true,
   "fixture_file": "golden-financial-fixture-v1.json",
   "claim_oracle_file": "golden-claim-oracles-v1.json",
+  "fact_contract_file": "golden-fact-contracts-v1.json",
   "fixed_clock": "2042-06-15T12:00:00-03:00",
   "traceability_policy_version": "causal-trace-v2",
   "required_class_counts": { "simple": 16, "multi_tool": 16, "follow_up": 8, "negative": 8 },

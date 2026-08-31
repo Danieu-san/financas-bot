@@ -1,7 +1,7 @@
 # Workstream — FinançasBot Next / NEXT-00
 
 Atualizado em: 2026-08-31
-Status: `THIRD REAUDIT FINDINGS CORRECTED; NEW SHA + REAUDIT PENDING; ZERO IMPLEMENTAÇÃO FUNCIONAL`
+Status: `DECLARATIVE REDESIGN LOCAL PASS; NEW SHA + REAUDIT PENDING; ZERO IMPLEMENTAÇÃO FUNCIONAL`
 
 ## Objetivo ativo
 
@@ -14,7 +14,7 @@ runtime funcional e sem abrir NEXT-01.
 - worktree: `financasbot-next-00-worktree`;
 - base: `fc577e5d5e21fdc5402ace1cf662a6ea1bef255f`;
 - roadmap normativo: `911af93343210ccfe2d7b7fe0b898542044a1fdf`;
-- candidato reavaliado: `0beb543f9be52838ec6a8d04dc6a5787486561b2`;
+- candidato reavaliado: `831d0c35c1d12ad60f96989e19133c5b4630ec44`;
 - bot legado, produção, dados e credenciais permanecem intocados.
 
 ## Estado vigente
@@ -27,7 +27,7 @@ runtime funcional e sem abrir NEXT-01.
 - 12 respostas fail-closed;
 - 67/67 IDs dos contratos primários sob `causal-trace-v2`;
 - dois contratos numéricos integralmente pinados por SHA-256;
-- bateria adversarial focal em `27/27 RED`;
+- bateria de propriedades em `685/685 RED` e estrutural em `11/11 RED`;
 - nenhuma implementação funcional iniciada.
 
 ## Segunda reauditoria
@@ -46,18 +46,29 @@ runtime funcional e sem abrir NEXT-01.
 - orçamento filtrado por membro recebeu identidade explícita;
 - resolução: `financasbot-next-00-reaudit-resolution-v3.md`.
 
+## Quarta reauditoria e trava anti-remendo
+
+- Chat encontrou novas instâncias da mesma classe no hash `831d0c3...`;
+- em vez de acrescentar novos casos, o validador imperativo por métrica foi
+  removido;
+- `AGENTS.md` e a skill de execução agora proíbem um terceiro remendo da mesma
+  classe e exigem reavaliar a abstração;
+- dimensões ficam no contrato declarativo `golden-fact-contracts-v1.json`;
+- resolução: `financasbot-next-00-reaudit-resolution-v4.md`.
+
 ## Evidência focal vigente
 
 - `NEXT-00 DOCUMENTAL: PASS`;
-- `required_files=30`;
+- `required_files=33`;
 - inventário `30/15/12`;
 - manifests `9`, write ativo `0`;
 - matriz `32/30`, tiers `13/11/6/2`;
 - contract tests `67/67`, fonte contratos primários;
-- hashes numéricos congelados `2/2`;
+- contratos congelados por SHA-256 `3/3`;
 - Golden Set `48 casos/56 turnos/76 fatos/39 métricas`;
-- mutações `27/27 RED`;
-- suíte ampla única: `agent-workflow: OK` sobre 10 entradas staged;
+- propriedades: `608/608` dimensões, `76/76` valores e `1/1` relação;
+- mutações estruturais: `11/11 RED`;
+- suíte ampla única: `agent-workflow: OK` sobre 15 entradas staged;
 - zero caminho de runtime.
 
 ## Critério de saída
@@ -75,6 +86,7 @@ fechado.
 - `docs/plans/workstreams/financasbot-next-00.md`;
 - `docs/plans/workstreams/financasbot-next-00-reaudit-resolution-v2.md`;
 - `docs/plans/workstreams/financasbot-next-00-reaudit-resolution-v3.md`;
+- `docs/plans/workstreams/financasbot-next-00-reaudit-resolution-v4.md`;
 - `docs/plans/workstreams/financasbot-next-00-golden-set-v1-validation.md`;
 - `docs/plans/workstreams/financasbot-next-00-final-validation-v1.md`;
 - `docs/contracts/next/`;

@@ -1,9 +1,8 @@
 const sameValue = (actual, expected) => JSON.stringify(actual) === JSON.stringify(expected);
 
-export function validateMaterializedFacts(fixture, oracle) {
+export function validateMaterializedFacts(fixture, oracle, factContracts) {
   const failures = [];
   const assert = (condition, message) => { if (!condition) failures.push(message); };
-  const requiredTurnMetrics = { 'M-15#1': ['calendar_event_count'] };
   const categories = new Map(fixture.categories.map(item => [item.id, item]));
   const events = fixture.events;
   const confirmedEvents = events.filter(event => event.state === 'confirmed');
@@ -45,28 +44,6 @@ export function validateMaterializedFacts(fixture, oracle) {
   const refs = (fact, kind) => fact.evidence_refs.filter(ref => kindById.get(ref) === kind).map(ref => byId.get(ref));
   const referencedEvents = fact => refs(fact, 'events');
   const sum = values => values.reduce((total, value) => total + value, 0);
-  const ids = items => items.map(item => item.id).sort();
-  const sameIds = (left, right) => sameValue([...left].sort(), [...right].sort());
-  const eventRefs = fact => ids(referencedEvents(fact));
-  const assertExactEventRefs = (fact, expected, label) => assert(
-    sameIds(eventRefs(fact), ids(expected)),
-    `${label}: evidence_refs do not match the causal event set`,
-  );
-  const assertClosedWorldCoverage = (fact, label) => assert(
-    fixture.synthetic === true && fixture.closed_world === true && fact.coverage === 'complete',
-    `${label}: coverage is not substantiated by the closed-world fixture`,
-  );
-  const assertEventState = (fact, expectedState, label) => {
-    for (const event of referencedEvents(fact)) {
-      assert(event.state === expectedState, `${label}: event ${event.id} does not substantiate evidence_state ${expectedState}`);
-    }
-  };
-  const periodContainsEvent = (period, date) => {
-    if (period.startsWith('through:')) return date <= period.replace('through:', '');
-    if (period.startsWith('as_of:')) return date <= period.replace('as_of:', '');
-    if (period.startsWith('statement_due:')) return true;
-    return period.includes('..') ? inRange(date, period) : date === period || inMonth(date, period);
-  };
   const scopedConsumption = fact => sum(confirmedEvents
     .filter(event => inMonth(event.date, fact.period) && scopeMatches(fact.entity, event))
     .map(consumptionValue));
@@ -203,204 +180,53 @@ export function validateMaterializedFacts(fixture, oracle) {
     statement_total: ['BRL_minor',['statement_due_date','statement_competence'],['confirmed'],['events']],
   };
 
-  function validateDimensions(turn, fact) {
-    const label = `${turn}/${fact.metric}`;
-    const eventsFor = predicate => events.filter(predicate);
-    const confirmedFor = predicate => confirmedEvents.filter(predicate);
-    const referenced = referencedEvents(fact);
-    const sourceRefs = refs(fact, 'source_states');
-    const exactIfEvents = expected => {
-      if (referenced.length > 0) assertExactEventRefs(fact, expected, label);
-      else assert(sourceRefs.some(source => source.coverage === 'complete' && (
-        source.period === monthOf(fact.period) || source.entity_id === fact.entity || source.category_id === categoryFromEntity(fact.entity)
-      )), `${label}: source evidence does not substantiate entity/period coverage`);
-    };
+  const expectedDimensions = [
+    'metric', 'unit', 'entity', 'period', 'time_basis', 'coverage', 'evidence_state', 'evidence_refs',
+  ];
+  assert(fixture.synthetic === true && fixture.closed_world === true,
+    'financial fixture must explicitly declare a synthetic closed world');
+  assert(factContracts?.schema_version === 1, 'fact contract schema_version must be 1');
+  assert(factContracts?.authority === 'reviewed_conversation_semantics',
+    'fact contract authority must be reviewed_conversation_semantics');
+  assert(sameValue(factContracts?.dimensions, expectedDimensions),
+    'fact contract dimensions must equal the independent dimension contract');
 
-    assertClosedWorldCoverage(fact, label);
-    if (fact.evidence_state === 'confirmed') assertEventState(fact, 'confirmed', label);
-    if (fact.evidence_state === 'projected') assertEventState(fact, 'projected', label);
+  const relationOps = {
+    member_of_budget_family: relation => {
+      const person = fixture.people.find(item => item.id === relation.person_id);
+      const budget = fixture.budgets.find(item => item.id === relation.budget_id);
+      assert(Boolean(person), `relation member_of_budget_family: unknown person ${relation.person_id}`);
+      assert(Boolean(budget), `relation member_of_budget_family: unknown budget ${relation.budget_id}`);
+      assert(person?.family_id === budget?.family_id,
+        `relation member_of_budget_family: ${relation.person_id} is outside ${relation.budget_id}`);
+    },
+  };
 
-    switch (fact.metric) {
-      case 'consumption_total':
-        exactIfEvents(confirmedFor(event => inMonth(event.date, fact.period) && scopeMatches(fact.entity, event) && consumptionValue(event) !== 0));
-        break;
-      case 'category_consumption':
-      case 'category_spent':
-        exactIfEvents(confirmedFor(event => inMonth(event.date, fact.period) && scopeMatches(fact.entity, event)
-          && categoryFor(event)?.id === categoryFromEntity(fact.entity) && consumptionValue(event) !== 0));
-        break;
-      case 'movement_ids':
-        assertExactEventRefs(fact, confirmedFor(event => event.account_id === fact.entity && inMonth(event.date, fact.period)), label);
-        break;
-      case 'statement_total': {
-        const card = fixture.cards.find(item => item.id === fact.entity);
-        assert(Boolean(card), `${label}: entity is not a known card`);
-        const dueDate = fact.period.replace('statement_due:', '');
-        assert(dueDate.endsWith(`-${String(card?.due_day).padStart(2, '0')}`), `${label}: statement period does not match card due day`);
-        const closeDate = `${dueDate.slice(0, 8)}${String(card?.closing_day).padStart(2, '0')}`;
-        const previous = new Date(`${closeDate}T00:00:00Z`); previous.setUTCMonth(previous.getUTCMonth() - 1);
-        assertExactEventRefs(fact, confirmedFor(event => event.card_id === fact.entity && event.date > previous.toISOString().slice(0, 10) && event.date <= closeDate), label);
-        break;
-      }
-      case 'account_balance': {
-        const account = fixture.accounts.find(item => item.id === fact.entity);
-        const asOf = fact.period.replace('as_of:', '');
-        assert(Boolean(account) && asOf >= account.opening_balance_as_of, `${label}: account/as-of dimension is invalid`);
-        assertExactEventRefs(fact, confirmedFor(event => event.account_id === fact.entity && event.date <= asOf), label);
-        break;
-      }
-      case 'owned_cards':
-        assert(sameIds(refs(fact, 'cards').map(item => item.id), fixture.cards.filter(card => card.owner_id === fact.entity).map(card => card.id)), `${label}: cards do not match owner entity`);
-        assert(fact.period === `as_of:${fixture.fixed_clock.slice(0, 10)}`, `${label}: registry period does not match fixture clock`);
-        break;
-      case 'consumption_effect': {
-        const expected = fact.entity.startsWith('transfer-')
-          ? confirmedFor(event => event.transfer_pair === fact.entity)
-          : confirmedFor(event => event.id === fact.entity);
-        assert(expected.every(event => periodContainsEvent(fact.period, event.date)), `${label}: period excludes operation events`);
-        assertExactEventRefs(fact, expected, label);
-        break;
-      }
-      case 'net_consumption': {
-        const baseId = fact.entity.startsWith('evt-') ? fact.entity : referenced.find(event => categories.get(event.category_id)?.kind === 'expense')?.id;
-        const expected = confirmedFor(event => event.id === baseId || event.compensates === baseId);
-        assert(expected.every(event => periodContainsEvent(fact.period, event.date)), `${label}: period excludes compensation chain`);
-        assertExactEventRefs(fact, expected, label);
-        break;
-      }
-      case 'installments_realized':
-      case 'installments_realized_amount':
-        assertExactEventRefs(fact, eventsFor(event => event.installment_plan === fact.entity && event.state === 'confirmed' && periodContainsEvent(fact.period, event.date)), label);
-        break;
-      case 'installments_projected':
-      case 'installments_projected_amount':
-        assertExactEventRefs(fact, eventsFor(event => event.installment_plan === fact.entity && event.state === 'projected' && periodContainsEvent(fact.period, event.date)), label);
-        break;
-      case 'projected_installments':
-        assertExactEventRefs(fact, eventsFor(event => event.state === 'projected' && scopeMatches(fact.entity, event) && periodContainsEvent(fact.period, event.date)), label);
-        break;
-      case 'eligible_event_count': {
-        const source = sourceRefs[0];
-        assert(Boolean(source) && source.period === monthOf(fact.period) && source.category_id === categoryFromEntity(fact.entity), `${label}: source does not match category/period`);
-        break;
-      }
-      case 'source_coverage': {
-        const source = sourceRefs[0];
-        assert(source?.id === fact.entity && source.period === fact.period, `${label}: source entity/period mismatch`);
-        break;
-      }
-      case 'ranking_winner':
-        assert(sameIds(refs(fact, 'people').map(item => item.id), [...membersOf(fact.entity)]), `${label}: ranking evidence does not match family members`);
-        break;
-      case 'consumption_difference': {
-        const people = refs(fact, 'people');
-        assert(fact.entity === `${people[0]?.id}-minus-${people[1]?.id}`, `${label}: entity does not encode compared people`);
-        break;
-      }
-      case 'consumption_by_instrument':
-        assertExactEventRefs(fact, confirmedFor(event => inMonth(event.date, fact.period)
-          && (event.account_id === fact.entity || event.card_id === fact.entity) && consumptionValue(event) !== 0), label);
-        break;
-      case 'budget_class_consumption': {
-        const [familyId, budgetClass] = fact.entity.split(':');
-        assert(fixture.families.some(family => family.id === familyId), `${label}: unknown family entity`);
-        assertExactEventRefs(fact, confirmedFor(event => inMonth(event.date, fact.period) && membersOf(familyId).has(event.person_id)
-          && categoryFor(event)?.budget_class === budgetClass && consumptionValue(event) !== 0), label);
-        break;
-      }
-      case 'balance_delta': {
-        const expected = confirmedFor(event => event.account_id === fact.entity && event.date === fact.period && referenced.some(ref => ref.id === event.id));
-        assert(expected.length === 1, `${label}: account/date do not identify the referenced balance event`);
-        break;
-      }
-      case 'invoice_payment_amount':
-      case 'invoice_payment_target_card':
-      case 'statement_payment_correspondence':
-      case 'invoice_payment_consumption_effect': {
-        const payment = confirmedEvents.find(event => event.id === fact.entity && event.category_id === 'neutral.invoice_payment');
-        assert(Boolean(payment) && payment.date === fact.period, `${label}: payment entity/period mismatch`);
-        assertExactEventRefs(fact, payment ? [payment] : [], label);
-        if (fact.metric === 'invoice_payment_target_card' || fact.metric === 'statement_payment_correspondence') {
-          assert(refs(fact, 'cards').some(card => card.id === payment?.settles_card_id), `${label}: target card evidence is missing`);
-        }
-        break;
-      }
-      case 'gross_consumption': {
-        const expected = fact.entity.startsWith('evt-')
-          ? confirmedFor(event => event.id === fact.entity)
-          : confirmedFor(event => inMonth(event.date, fact.period) && scopeMatches(fact.entity, event) && categoryFor(event)?.id === categoryFromEntity(fact.entity) && consumptionValue(event) > 0);
-        assert(expected.every(event => periodContainsEvent(fact.period, event.date)), `${label}: period excludes gross events`);
-        assertExactEventRefs(fact, expected, label);
-        break;
-      }
-      case 'refund_amount': {
-        const expected = confirmedFor(event => event.id === fact.entity && categories.get(event.category_id)?.kind === 'compensation');
-        assert(expected.every(event => periodContainsEvent(fact.period, event.date)), `${label}: period excludes refund`);
-        assertExactEventRefs(fact, expected, label);
-        break;
-      }
-      case 'category_budget_remaining':
-      case 'safe_daily_pace': {
-        const [budgetId, scopedPerson] = fact.entity.split(':');
-        const budget = fixture.budgets.find(item => item.id === budgetId);
-        assert(Boolean(budget), `${label}: entity is not a budget`);
-        const budgetMonth = fact.metric === 'safe_daily_pace' ? monthOf(fact.period) : fact.period;
-        assert(budget?.period === budgetMonth, `${label}: period does not match budget cycle`);
-        const expected = confirmedFor(event => event.date.startsWith(budget?.period ?? '__invalid__')
-          && categoryFor(event)?.id === budget?.category_id && membersOf(budget?.family_id).has(event.person_id)
-          && (!scopedPerson || event.person_id === scopedPerson) && consumptionValue(event) !== 0);
-        assertExactEventRefs(fact, expected, label);
-        if (fact.metric === 'safe_daily_pace') {
-          const [start, end] = rangeOf(fact.period);
-          const days = Math.floor((Date.parse(`${end}T00:00:00Z`) - Date.parse(`${start}T00:00:00Z`)) / 86400000) + 1;
-          assert(fact.time_basis === `${days}_full_days_after_as_of`, `${label}: time_basis does not match period day count`);
-        }
-        break;
-      }
-      case 'income_realized':
-        assertExactEventRefs(fact, confirmedFor(event => inMonth(event.date, fact.period) && scopeMatches(fact.entity, event)
-          && categories.get(event.category_id)?.kind === 'income'), label);
-        break;
-      case 'bills_open':
-        assert(sameIds(refs(fact, 'bills').map(item => item.id), openBills(fact).map(item => item.id)), `${label}: bill evidence does not match scope/period`);
-        break;
-      case 'income_minus_open_bills':
-        assertExactEventRefs(fact, confirmedFor(event => inMonth(event.date, fact.period) && scopeMatches(fact.entity, event)
-          && categories.get(event.category_id)?.kind === 'income'), label);
-        assert(sameIds(refs(fact, 'bills').map(item => item.id), openBills(fact).map(item => item.id)), `${label}: bill evidence does not match scope/period`);
-        break;
-      case 'due_bill_ids':
-      case 'due_bills_total': {
-        const expected = fixture.bills.filter(bill => bill.person_id === fact.entity && bill.status === 'open' && inRange(bill.due_date, fact.period));
-        assert(sameIds(refs(fact, 'bills').map(item => item.id), expected.map(item => item.id)), `${label}: due-bill evidence does not match entity/period`);
-        break;
-      }
-      case 'reminder_count':
-      case 'calendar_event_count':
-        assert(refs(fact, 'people').some(person => person.id === fact.entity), `${label}: person evidence does not match entity`);
-        assert(rangeOf(fact.period).every(date => /^\d{4}-\d{2}-\d{2}$/.test(date)), `${label}: schedule period is not a date range`);
-        break;
-      case 'merchant_rule_ids':
-        assert(sameIds(refs(fact, 'merchant_rules').map(item => item.id), fixture.merchant_rules.filter(rule => rule.merchant_key === fact.entity).map(item => item.id)), `${label}: rule evidence does not match merchant`);
-        assert(fact.period === `as_of:${fixture.fixed_clock.slice(0, 10)}`, `${label}: registry period does not match fixture clock`);
-        break;
-      case 'similar_event_ids':
-        assertExactEventRefs(fact, confirmedFor(event => event.merchant_key === fact.entity && inMonth(event.date, fact.period)), label);
-        break;
-      case 'side_effect_count':
-        assert(fact.entity.startsWith('turn:') && fact.period === `as_of:${fixture.fixed_clock.slice(0, 10)}`, `${label}: request entity/period mismatch`);
-        break;
-    }
-  }
+  const materializedEntries = Object.entries(oracle.turns)
+    .filter(([, entry]) => entry.disposition === 'materialized');
+  const contractTurns = new Set(Object.keys(factContracts?.turns ?? {}));
+  assert(contractTurns.size === materializedEntries.length,
+    'fact contract turn count does not match materialized oracle turns');
 
   let materializedFacts = 0;
-  for (const [turn, metrics] of Object.entries(requiredTurnMetrics)) {
-    const actual = new Set((oracle.turns[turn]?.facts ?? []).map(fact => fact.metric));
-    for (const metric of metrics) assert(actual.has(metric), `${turn}: required materialized metric ${metric} is missing`);
-  }
   for (const [turn, entry] of Object.entries(oracle.turns)) {
     if (entry.disposition !== 'materialized') continue;
-    for (const fact of entry.facts) {
+    const contracts = factContracts.turns[turn] ?? [];
+    assert(contracts.length === entry.facts.length, `${turn}: fact contract cardinality mismatch`);
+    contractTurns.delete(turn);
+    for (const [factIndex, fact] of entry.facts.entries()) {
+      const contract = contracts[factIndex];
+      const factKey = `${turn}#${factIndex + 1}`;
+      assert(contract?.fact_key === factKey, `${factKey}: missing or reordered fact contract`);
+      for (const dimension of expectedDimensions) {
+        assert(sameValue(fact[dimension], contract?.[dimension]),
+          `${factKey}: ${dimension} diverges from reviewed fact contract`);
+      }
+      for (const relation of contract?.relations ?? []) {
+        const evaluate = relationOps[relation.op];
+        assert(Boolean(evaluate), `${factKey}: unknown relation operator ${relation.op}`);
+        evaluate?.(relation);
+      }
       materializedFacts += 1;
       const spec = specs[fact.metric];
       assert(Boolean(spec), `${turn}/${fact.metric}: metric lacks deterministic evaluator`);
@@ -413,7 +239,13 @@ export function validateMaterializedFacts(fixture, oracle) {
       for (const ref of fact.evidence_refs) {
         assert(evidenceKinds.includes(kindById.get(ref)), `${turn}/${fact.metric}: evidence ref ${ref} has incompatible type ${kindById.get(ref)}`);
       }
-      validateDimensions(turn, fact);
+      const expectedEventState = { confirmed: 'confirmed', projected: 'projected' }[fact.evidence_state];
+      if (expectedEventState) {
+        for (const event of referencedEvents(fact)) {
+          assert(event.state === expectedEventState,
+            `${factKey}: event ${event.id} does not substantiate evidence_state ${fact.evidence_state}`);
+        }
+      }
       for (const ref of fact.evidence_refs) {
         const source = byId.get(ref);
         if (fact.evidence_state === 'confirmed' && ['budgets','bills','merchant_rules'].includes(kindById.get(ref))) {
@@ -429,6 +261,7 @@ export function validateMaterializedFacts(fixture, oracle) {
     }
   }
 
+  assert(contractTurns.size === 0, `fact contracts contain non-materialized turns: ${[...contractTurns].join(',')}`);
   const usedMetrics = new Set(Object.values(oracle.turns).flatMap(entry => entry.facts.map(fact => fact.metric)));
   assert(Object.keys(specs).every(metric => usedMetrics.has(metric)), 'deterministic metric registry contains unused entries');
   assert([...usedMetrics].every(metric => Object.hasOwn(specs, metric)), 'a materialized metric is not in the deterministic registry');

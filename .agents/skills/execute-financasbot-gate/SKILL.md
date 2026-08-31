@@ -37,6 +37,16 @@ Não converter achados laterais em implementação silenciosa. Registrar o achad
 5. Não usar subagentes por padrão. Usá-los somente quando Daniel pedir explicitamente e quando subtarefas independentes justificarem o consumo adicional.
 6. Usar worktree/branch separada para trabalho simultâneo. Nunca iniciar outro agente escritor na mesma pasta e branch.
 7. Manter Daniel informado durante operações longas e registrar checkpoint antes de pausa, troca de contexto ou compactação.
+
+### Trava anti-remendo
+
+Se dois ciclos de correção ou auditoria expuserem novas instâncias da mesma
+classe causal, parar antes de acrescentar outro caso especial. Não ampliar
+`if`, `switch`, regex, allowlist ou tabela de exceções para sustentar uma
+propriedade geral. Rebaixar a alegação, registrar a abstração ausente e trocar
+o desenho por contrato declarativo, composição de primitivas ou teste de
+propriedade que gere a classe inteira de contraexemplos. Um terceiro remendo da
+mesma classe não é uma execução válida desta skill.
 8. Aplicar a escada obrigatória de validação: revisão adversarial, syntax/RED,
    teste focal, bateria causal e somente então uma suíte hermética ampla no
    candidato estável. Não repetir a ampla sem mudança causal posterior.

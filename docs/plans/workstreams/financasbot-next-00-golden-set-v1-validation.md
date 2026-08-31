@@ -65,13 +65,11 @@ fixture_ids=50
 
 ## Prova negativa
 
-`node scripts/agent/testValidateFinancasBotNextGoldenSet.mjs` executa dois
-baselines verdes e 27 mutações isoladas. Todas ficaram RED no motivo causal:
-valor sentinela e não sentinela, unidade, entidade, período, base temporal,
-evidência existente de tipo errado, saída do Calendar ausente, relação falsa
-fatura/pagamento, evidence state incompatível, modo causal, constantes de
-cobertura, sanitização, vocabulário, referência desconhecida e alteração de
-limiar fora das antigas regexes.
+`testFinancasBotNextFactContracts.mjs` gera 608 mutações de dimensão, 76 de
+valor e uma de relação sobre todos os fatos. A bateria estrutural separada
+executa baseline verde e 11 mutações de cardinalidade, trace, cobertura,
+sanitização, vocabulário, Calendar, estado da fonte e contratos congelados.
+Todas ficaram RED no motivo causal esperado.
 
 ## Interpretação
 

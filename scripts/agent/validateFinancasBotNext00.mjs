@@ -22,6 +22,7 @@ const requiredFiles = [
   'docs/plans/workstreams/financasbot-next-00-audit-resolution-v1.md',
   'docs/plans/workstreams/financasbot-next-00-reaudit-resolution-v2.md',
   'docs/plans/workstreams/financasbot-next-00-reaudit-resolution-v3.md',
+  'docs/plans/workstreams/financasbot-next-00-reaudit-resolution-v4.md',
   'docs/contracts/next/data-authority-contract-v0.md',
   'docs/contracts/next/coexistence-single-writer-contract-v0.md',
   'docs/contracts/next/conversation-proposal-contract-v0.md',
@@ -33,10 +34,12 @@ const requiredFiles = [
   'tests/fixtures/financasbot-next/golden-financial-fixture-v1.json',
   'tests/fixtures/financasbot-next/golden-conversation-set-v1.json',
   'tests/fixtures/financasbot-next/golden-claim-oracles-v1.json',
+  'tests/fixtures/financasbot-next/golden-fact-contracts-v1.json',
   'scripts/agent/validateFinancasBotNextGoldenSet.mjs',
   'scripts/agent/validateFinancasBotNextFacts.mjs',
   'scripts/agent/validateFinancasBotNextContractHashes.mjs',
   'scripts/agent/testValidateFinancasBotNextGoldenSet.mjs',
+  'scripts/agent/testFinancasBotNextFactContracts.mjs',
   'scripts/agent/validateFinancasBotNext00.mjs',
   'scripts/agent/validateAgentWorkflow.js'
 ];
@@ -54,6 +57,11 @@ assert(charter.includes('ZERO IMPLEMENTAÇÃO FUNCIONAL'), 'charter lost zero-ru
 assert(charter.includes('NEXT00-05'), 'charter does not identify NEXT00-05');
 assert(charter.includes('67 casos documentais') || charter.includes('67 testes documentais'),
   'charter lost 67-test traceability requirement/result');
+const factValidatorSource = read('scripts/agent/validateFinancasBotNextFacts.mjs');
+assert(!/switch\s*\(\s*fact\.metric\s*\)/.test(factValidatorSource),
+  'fact validator regressed to imperative branching by metric');
+assert(!/function\s+validateDimensions\b/.test(factValidatorSource),
+  'fact validator regressed to ad-hoc validateDimensions');
 
 const inventory = read('docs/plans/workstreams/financasbot-next-00-inventory-v1.md');
 const inventoryCaps = inventory.match(/^\| CAP-\d{2} \|/gm) ?? [];
@@ -121,7 +129,7 @@ for (const [field, value] of Object.entries(toolBudgetFields)) {
 
 const frozenHashFailures = validateFrozenContractHashes(root);
 for (const failure of frozenHashFailures) failures.push(failure);
-assert(Object.keys(frozenContractHashes).length === 2, 'expected exactly two frozen numeric contracts');
+assert(Object.keys(frozenContractHashes).length === 3, 'expected exactly three frozen contracts');
 
 const quality = read('docs/contracts/next/quality-stability-retention-contract-v0.md');
 const qualityAssertions = [
@@ -151,6 +159,8 @@ const changedPaths = [...new Set([
   ...gitLines(['ls-files', '--others', '--exclude-standard'])
 ])].sort();
 const allowedPath = file =>
+  file === 'AGENTS.md' ||
+  file === '.agents/skills/execute-financasbot-gate/SKILL.md' ||
   file.startsWith('docs/contracts/next/') ||
   file.startsWith('docs/plans/workstreams/financasbot-next') ||
   file === 'docs/agent-memory/workstreams/financasbot-next-00.md' ||
@@ -160,6 +170,7 @@ const allowedPath = file =>
   file === 'scripts/agent/validateFinancasBotNextFacts.mjs' ||
   file === 'scripts/agent/validateFinancasBotNextContractHashes.mjs' ||
   file === 'scripts/agent/testValidateFinancasBotNextGoldenSet.mjs' ||
+  file === 'scripts/agent/testFinancasBotNextFactContracts.mjs' ||
   file === 'scripts/agent/validateFinancasBotNext00.mjs' ||
   file.startsWith('tests/fixtures/financasbot-next/');
 for (const file of changedPaths) assert(allowedPath(file), `out-of-scope changed path: ${file}`);
@@ -182,6 +193,6 @@ console.log('inventory=30 capabilities,15 assets,12 do_not_port');
 console.log(`manifests=${manifestSections.length},write_enabled_nonempty=0`);
 console.log(`capability_slices=${matrixRows.length},source_capabilities=${sourceCaps.size},tiers=${JSON.stringify(tierCounts)}`);
 console.log(`contract_tests=${testIds.size}/67,source=primary_contracts`);
-console.log(`frozen_numeric_contract_hashes=${Object.keys(frozenContractHashes).length}/2`);
+console.log(`frozen_contract_hashes=${Object.keys(frozenContractHashes).length}/3`);
 console.log(`changed_paths=${changedPaths.length},runtime_paths=0`);
 console.log(golden.stdout.trim());

@@ -1,7 +1,7 @@
 # NEXT-00 — Charter e contratos do FinançasBot Next
 
 Atualizado em: 2026-08-31
-Estado: `OPEN — THIRD REAUDIT CORRECTION LOCAL PASS; NEW SHA + REAUDIT PENDING; ZERO IMPLEMENTAÇÃO FUNCIONAL`
+Estado: `OPEN — DECLARATIVE REDESIGN LOCAL PASS; NEW SHA + REAUDIT PENDING; ZERO IMPLEMENTAÇÃO FUNCIONAL`
 Base: `fc577e5d5e21fdc5402ace1cf662a6ea1bef255f`
 Roadmap normativo: `911af93343210ccfe2d7b7fe0b898542044a1fdf`
 
@@ -58,6 +58,9 @@ critérios objetivos. Não produz runtime funcional.
 12. Todo fato materializado é recomputado da fixture por métrica determinística.
 13. ID contratual executável não recebe verde por referência conversacional.
 14. Contrato numérico congelado não muda sem romper seu SHA-256 auditado.
+15. Duas auditorias com novas exceções da mesma classe interrompem remendos e
+    obrigam redesenho declarativo ou teste de propriedade; um terceiro remendo
+    é proibido.
 
 ## Riscos controlados
 
@@ -97,13 +100,16 @@ evidência rastreável que o contenha.
 - fixture financeira sintética, relógio fixo e vocabulário canônico;
 - rastreabilidade `67/67` a partir dos contratos primários, com policy causal.
 
-### NEXT00-05 — Coerência e auditoria — `THIRD CORRECTION FOCAL PASS`
+### NEXT00-05 — Coerência e auditoria — `DECLARATIVE REDESIGN FOCAL PASS`
 
 - `6aa658d...` recebeu Claude `APROVÁVEL` e Chat `APROVÁVEL APÓS AJUSTES`;
 - três HIGH e os MEDIUM causais do Chat foram reproduzidos e corrigidos;
 - `0beb543...` recebeu Chat `APROVÁVEL APÓS AJUSTES`; causalidade
   dimensional/provenance e a bateria adversarial foram endurecidas;
-- testes focais e 27 mutações negativas estão verdes;
+- o bloco imperativo por métrica foi removido e substituído por contrato de
+  fatos declarativo;
+- propriedades `608/608` de dimensão, `76/76` de valor, `1/1` de relação e
+  `11/11` mutações estruturais estão verdes;
 - validação ampla única está verde; novo commit sanitizado e reauditoria ainda bloqueiam o fechamento;
 - decisão humana continua obrigatória antes de NEXT-01.
 

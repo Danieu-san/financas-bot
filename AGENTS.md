@@ -21,6 +21,24 @@ Para qualquer tarefa não trivial, usar o workflow versionado no SSD:
    encerrar;
 6. separar implementação de auditoria e nunca declarar GO sem evidência factual.
 
+### Trava anti-remendo
+
+Não corrigir repetidamente exemplos isolados quando auditorias sucessivas
+encontrarem novas ocorrências da mesma classe causal. Se dois ciclos revelarem
+exceções equivalentes, ou se a correção exigir novo `if`, `switch`, regex,
+allowlist ou caso especial para preservar uma alegação geral, o agente deve:
+
+1. parar antes da próxima edição;
+2. retirar ou rebaixar a alegação geral ainda não demonstrada;
+3. identificar a abstração ou contrato ausente;
+4. propor uma solução declarativa, composicional ou orientada a propriedades;
+5. só retomar após registrar o novo desenho, os invariantes e um teste capaz de
+   gerar a classe de contraexemplos, em vez de enumerar apenas exemplos vistos.
+
+Um terceiro remendo da mesma classe é proibido. Menor diff não é virtude quando
+mantém uma estrutura causalmente incompleta. Esta trava vale para runtime,
+testes, validadores, documentação e automações.
+
 ### Escada obrigatória de validação e economia
 
 Este projeto aplica também o orçamento de contexto do contrato global. Antes da
