@@ -1,7 +1,7 @@
 # NEXT-00 — Charter e contratos do FinançasBot Next
 
 Atualizado em: 2026-08-31
-Estado: `OPEN — SECOND REAUDIT CORRECTION FOCAL PASS; FINAL BROAD + NEW SHA PENDING; ZERO IMPLEMENTAÇÃO FUNCIONAL`
+Estado: `OPEN — THIRD REAUDIT CORRECTION LOCAL PASS; NEW SHA + REAUDIT PENDING; ZERO IMPLEMENTAÇÃO FUNCIONAL`
 Base: `fc577e5d5e21fdc5402ace1cf662a6ea1bef255f`
 Roadmap normativo: `911af93343210ccfe2d7b7fe0b898542044a1fdf`
 
@@ -97,12 +97,14 @@ evidência rastreável que o contenha.
 - fixture financeira sintética, relógio fixo e vocabulário canônico;
 - rastreabilidade `67/67` a partir dos contratos primários, com policy causal.
 
-### NEXT00-05 — Coerência e auditoria — `SECOND CORRECTION FOCAL PASS`
+### NEXT00-05 — Coerência e auditoria — `THIRD CORRECTION FOCAL PASS`
 
 - `6aa658d...` recebeu Claude `APROVÁVEL` e Chat `APROVÁVEL APÓS AJUSTES`;
 - três HIGH e os MEDIUM causais do Chat foram reproduzidos e corrigidos;
-- testes focais e 17 mutações negativas estão verdes;
-- validação ampla única, novo commit sanitizado e reauditoria ainda bloqueiam o fechamento;
+- `0beb543...` recebeu Chat `APROVÁVEL APÓS AJUSTES`; causalidade
+  dimensional/provenance e a bateria adversarial foram endurecidas;
+- testes focais e 27 mutações negativas estão verdes;
+- validação ampla única está verde; novo commit sanitizado e reauditoria ainda bloqueiam o fechamento;
 - decisão humana continua obrigatória antes de NEXT-01.
 
 ## Validação proporcional
@@ -135,7 +137,6 @@ independente.
 
 ## Próxima ação exata
 
-Conferir e stagear somente o escopo, executar uma única validação ampla no
-candidato estável, revisar o diff, publicar novo hash imutável e obter
+Revisar o diff staged, publicar novo hash imutável e obter
 reauditoria independente. NEXT-01 continua fechado até parecer sem lacuna
 indispensável e decisão explícita de Daniel.

@@ -42,6 +42,7 @@ function mutateJson(file, change) {
 const runGolden = () => spawnSync(process.execPath, ['scripts/agent/validateFinancasBotNextGoldenSet.mjs'], { cwd: temp, encoding: 'utf8' });
 const runHashes = () => spawnSync(process.execPath, ['scripts/agent/validateFinancasBotNextContractHashes.mjs'], { cwd: temp, encoding: 'utf8' });
 let redCount = 0;
+const EXPECTED_MUTATIONS = 27;
 
 function expectRed(name, expectedFragment, mutation, run = runGolden) {
   restore();
@@ -92,7 +93,7 @@ expectRed('wrong_materialized_coverage', 'F-03#1/consumption_by_instrument: mate
 expectRed('existing_but_wrong_evidence_type', 'S-03#1/category_consumption: evidence ref card-blue has incompatible type cards', () => {
   mutateJson('tests/fixtures/financasbot-next/golden-claim-oracles-v1.json', value => { value.turns['S-03#1'].facts[0].evidence_refs = ['card-blue']; });
 });
-expectRed('missing_calendar_fact', 'deterministic metric registry contains unused entries', () => {
+expectRed('missing_calendar_fact', 'M-15#1: required materialized metric calendar_event_count is missing', () => {
   mutateJson('tests/fixtures/financasbot-next/golden-claim-oracles-v1.json', value => {
     value.turns['M-15#1'].facts = value.turns['M-15#1'].facts.filter(fact => fact.metric !== 'calendar_event_count');
   });
@@ -136,5 +137,50 @@ expectRed('uncovered_numeric_threshold_changed', 'frozen SHA-256 mismatch', () =
   fs.writeFileSync(file, text.replace('lease TTL: 60 segundos', 'lease TTL: 61 segundos'), 'utf8');
 }, runHashes);
 
+expectRed('wrong_same_type_event_evidence', 'S-03#1/category_consumption: evidence_refs do not match the causal event set', () => {
+  mutateJson('tests/fixtures/financasbot-next/golden-claim-oracles-v1.json', value => {
+    value.turns['S-03#1'].facts[0].evidence_refs = ['evt-snack-a'];
+  });
+});
+expectRed('balance_delta_wrong_account', 'M-04#1/balance_delta: account/date do not identify the referenced balance event', () => {
+  mutateJson('tests/fixtures/financasbot-next/golden-claim-oracles-v1.json', value => {
+    value.turns['M-04#1'].facts.find(fact => fact.metric === 'balance_delta').entity = 'account-b';
+  });
+});
+expectRed('invoice_payment_wrong_entity', 'M-05#1/invoice_payment_amount: payment entity/period mismatch', () => {
+  mutateJson('tests/fixtures/financasbot-next/golden-claim-oracles-v1.json', value => {
+    value.turns['M-05#1'].facts.find(fact => fact.metric === 'invoice_payment_amount').entity = 'evt-transfer-out';
+  });
+});
+expectRed('installment_wrong_plan', 'F-07#1/installments_realized: evidence_refs do not match the causal event set', () => {
+  mutateJson('tests/fixtures/financasbot-next/golden-claim-oracles-v1.json', value => {
+    value.turns['F-07#1'].facts.find(fact => fact.metric === 'installments_realized').entity = 'plan-02';
+  });
+});
+expectRed('budget_wrong_period', 'M-13#1/category_budget_remaining: period does not match budget cycle', () => {
+  mutateJson('tests/fixtures/financasbot-next/golden-claim-oracles-v1.json', value => {
+    value.turns['M-13#1'].facts.find(fact => fact.metric === 'category_budget_remaining').period = '2042-05';
+  });
+});
+expectRed('wrong_same_type_source_evidence', 'S-13#1/eligible_event_count: source does not match category/period', () => {
+  mutateJson('tests/fixtures/financasbot-next/golden-claim-oracles-v1.json', value => {
+    value.turns['S-13#1'].facts[0].evidence_refs = ['source-complete-june'];
+  });
+});
+expectRed('coverage_not_closed_world', 'coverage is not substantiated by the closed-world fixture', () => {
+  mutateJson('tests/fixtures/financasbot-next/golden-financial-fixture-v1.json', value => { value.closed_world = false; });
+});
+expectRed('calendar_zero_is_not_constant', 'M-15#1/calendar_event_count: factual oracle diverges', () => {
+  mutateJson('tests/fixtures/financasbot-next/golden-financial-fixture-v1.json', value => {
+    value.calendar_events.push({ id: 'calendar-synthetic-1', person_id: 'person-b', scheduled_at: '2042-06-20', evidence_state: 'confirmed' });
+  });
+});
+expectRed('source_budget_state_disagrees', 'source budget-snack does not substantiate evidence_state confirmed', () => {
+  mutateJson('tests/fixtures/financasbot-next/golden-financial-fixture-v1.json', value => {
+    value.budgets.find(item => item.id === 'budget-snack').evidence_state = 'committed';
+  });
+});
+
 fs.rmSync(temp, { recursive: true, force: true });
-console.log(`NEXT00 VALIDATOR MUTATIONS: PASS (${redCount}/${redCount} RED)`);
+if (redCount !== EXPECTED_MUTATIONS) throw new Error(`expected ${EXPECTED_MUTATIONS} mutations, executed ${redCount}`);
+console.log(`NEXT00 VALIDATOR MUTATIONS: PASS (${redCount}/${EXPECTED_MUTATIONS} RED)`);

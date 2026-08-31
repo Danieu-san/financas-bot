@@ -2,6 +2,7 @@
   "schema_version": 1,
   "fixture_id": "NEXT-GOLDEN-FINANCIAL-V1",
   "synthetic": true,
+  "closed_world": true,
   "notice": "Dados integralmente ficticios, criados apenas para testes.",
   "fixed_clock": "2042-06-15T12:00:00-03:00",
   "currency": "BRL",

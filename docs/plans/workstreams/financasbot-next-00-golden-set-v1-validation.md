@@ -66,7 +66,7 @@ fixture_ids=50
 ## Prova negativa
 
 `node scripts/agent/testValidateFinancasBotNextGoldenSet.mjs` executa dois
-baselines verdes e 18 mutações isoladas. Todas ficaram RED no motivo causal:
+baselines verdes e 27 mutações isoladas. Todas ficaram RED no motivo causal:
 valor sentinela e não sentinela, unidade, entidade, período, base temporal,
 evidência existente de tipo errado, saída do Calendar ausente, relação falsa
 fatura/pagamento, evidence state incompatível, modo causal, constantes de

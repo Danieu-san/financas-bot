@@ -21,6 +21,7 @@ const requiredFiles = [
   'docs/plans/workstreams/financasbot-next-00-final-validation-v1.md',
   'docs/plans/workstreams/financasbot-next-00-audit-resolution-v1.md',
   'docs/plans/workstreams/financasbot-next-00-reaudit-resolution-v2.md',
+  'docs/plans/workstreams/financasbot-next-00-reaudit-resolution-v3.md',
   'docs/contracts/next/data-authority-contract-v0.md',
   'docs/contracts/next/coexistence-single-writer-contract-v0.md',
   'docs/contracts/next/conversation-proposal-contract-v0.md',
