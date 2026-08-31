@@ -174,7 +174,7 @@
       "id": "M-05", "class": "multi_tool", "title": "Fatura e pagamento",
       "dimensions": ["invoice_payment", "account_card", "period"],
       "fixture_refs": ["evt-invoice-payment", "card-blue", "account-a"],
-      "turns": [{ "user": "Mostre a fatura do Cartao Azul e o pagamento correspondente sem dupla contagem.", "expected_tools": ["card_statement.get", "transactions.search", "transactions.summarize"], "expected_claims": ["invoice_payment_link", "net_new_consumption_minor=0"], "oracle_ref": "M-05#1" }],
+      "turns": [{ "user": "Mostre a fatura do Cartao Azul e um pagamento recebido para esse cartao, sem atribuir o pagamento a uma competencia sem vinculo explicito e sem dupla contagem.", "expected_tools": ["card_statement.get", "transactions.search", "transactions.summarize"], "expected_claims": ["invoice_payment_target=card-blue", "statement_correspondence=unproven", "net_new_consumption_minor=0"], "oracle_ref": "M-05#1" }],
       "expected_outcome": "answer", "must_not": ["add payment to expenses"]
     },
     {
@@ -244,7 +244,7 @@
       "id": "M-15", "class": "multi_tool", "title": "Agenda e contas",
       "dimensions": ["period", "time_basis", "person_family"],
       "fixture_refs": ["bill-rent-b", "person-b"],
-      "turns": [{ "user": "Quais contas da Pessoa B vencem nos proximos 15 dias e quais lembretes existem?", "expected_tools": ["bills.list_due", "reminders.list", "calendar.events.list"], "expected_claims": ["window=2042-06-15..2042-06-30", "scope=person-b"], "oracle_ref": "M-15#1" }],
+      "turns": [{ "user": "Quais contas da Pessoa B vencem nos proximos 15 dias e quais lembretes ou eventos de calendario existem?", "expected_tools": ["bills.list_due", "reminders.list", "calendar.events.list"], "expected_claims": ["window=2042-06-15..2042-06-30", "scope=person-b", "calendar_event_count=0"], "oracle_ref": "M-15#1" }],
       "expected_outcome": "answer", "must_not": ["create reminder"]
     },
     {

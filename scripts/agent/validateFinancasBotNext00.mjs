@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
+import { frozenContractHashes, validateFrozenContractHashes } from './validateFinancasBotNextContractHashes.mjs';
 
 const root = process.cwd();
 const failures = [];
@@ -19,6 +20,7 @@ const requiredFiles = [
   'docs/plans/workstreams/financasbot-next-00-golden-set-v1-validation.md',
   'docs/plans/workstreams/financasbot-next-00-final-validation-v1.md',
   'docs/plans/workstreams/financasbot-next-00-audit-resolution-v1.md',
+  'docs/plans/workstreams/financasbot-next-00-reaudit-resolution-v2.md',
   'docs/contracts/next/data-authority-contract-v0.md',
   'docs/contracts/next/coexistence-single-writer-contract-v0.md',
   'docs/contracts/next/conversation-proposal-contract-v0.md',
@@ -31,6 +33,8 @@ const requiredFiles = [
   'tests/fixtures/financasbot-next/golden-conversation-set-v1.json',
   'tests/fixtures/financasbot-next/golden-claim-oracles-v1.json',
   'scripts/agent/validateFinancasBotNextGoldenSet.mjs',
+  'scripts/agent/validateFinancasBotNextFacts.mjs',
+  'scripts/agent/validateFinancasBotNextContractHashes.mjs',
   'scripts/agent/testValidateFinancasBotNextGoldenSet.mjs',
   'scripts/agent/validateFinancasBotNext00.mjs',
   'scripts/agent/validateAgentWorkflow.js'
@@ -114,6 +118,10 @@ for (const [field, value] of Object.entries(toolBudgetFields)) {
   assert(new RegExp(`^${field}: ${value}$`, 'm').test(toolBudget), `${field}: expected ${value}`);
 }
 
+const frozenHashFailures = validateFrozenContractHashes(root);
+for (const failure of frozenHashFailures) failures.push(failure);
+assert(Object.keys(frozenContractHashes).length === 2, 'expected exactly two frozen numeric contracts');
+
 const quality = read('docs/contracts/next/quality-stability-retention-contract-v0.md');
 const qualityAssertions = [
   [/^\| pergunta simples read-only \| <=4 s \| <=10 s \| 30 s \|$/m, 'simple latency'],
@@ -148,6 +156,8 @@ const allowedPath = file =>
   file === 'docs/agent-memory/workstreams/financasbot-next-roadmap.md' ||
   file === 'docs/agent-memory/workstreams/index.md' ||
   file === 'scripts/agent/validateFinancasBotNextGoldenSet.mjs' ||
+  file === 'scripts/agent/validateFinancasBotNextFacts.mjs' ||
+  file === 'scripts/agent/validateFinancasBotNextContractHashes.mjs' ||
   file === 'scripts/agent/testValidateFinancasBotNextGoldenSet.mjs' ||
   file === 'scripts/agent/validateFinancasBotNext00.mjs' ||
   file.startsWith('tests/fixtures/financasbot-next/');
@@ -171,5 +181,6 @@ console.log('inventory=30 capabilities,15 assets,12 do_not_port');
 console.log(`manifests=${manifestSections.length},write_enabled_nonempty=0`);
 console.log(`capability_slices=${matrixRows.length},source_capabilities=${sourceCaps.size},tiers=${JSON.stringify(tierCounts)}`);
 console.log(`contract_tests=${testIds.size}/67,source=primary_contracts`);
+console.log(`frozen_numeric_contract_hashes=${Object.keys(frozenContractHashes).length}/2`);
 console.log(`changed_paths=${changedPaths.length},runtime_paths=0`);
 console.log(golden.stdout.trim());

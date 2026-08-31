@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { validateMaterializedFacts } from './validateFinancasBotNextFacts.mjs';
 
 const root = process.cwd();
 const readJson = file => JSON.parse(fs.readFileSync(path.join(root, file), 'utf8'));
@@ -167,40 +168,10 @@ for (const [disposition, expected] of Object.entries(expectedDispositionCounts))
 assert(Object.keys(dispositionCounts).length === Object.keys(expectedDispositionCounts).length,
   'oracle contains an unexpected disposition');
 
-const fact = (turn, metric, entity) => oracle.turns[turn].facts.find(item => item.metric === metric && (!entity || item.entity === entity));
-const categories = new Map(fixture.categories.map(item => [item.id, item]));
-const confirmedEvents = fixture.events.filter(event => event.state === 'confirmed');
-const consumptionValue = event => {
-  const category = categories.get(event.category_id);
-  if (category?.kind === 'expense') return -event.amount_minor;
-  if (category?.kind === 'compensation') return -event.amount_minor;
-  return 0;
-};
-const familyTotal = confirmedEvents.reduce((sum, event) => sum + consumptionValue(event), 0);
-const personTotal = person => confirmedEvents.filter(event => event.person_id === person)
-  .reduce((sum, event) => sum + consumptionValue(event), 0);
-const classTotal = budgetClass => confirmedEvents.reduce((sum, event) => {
-  let category = categories.get(event.category_id);
-  if (category?.kind === 'compensation' && event.compensates) {
-    const target = fixture.events.find(candidate => candidate.id === event.compensates);
-    category = categories.get(target?.category_id);
-  }
-  return category?.budget_class === budgetClass ? sum + consumptionValue(event) : sum;
-}, 0);
-assert(fact('S-01#1','consumption_total')?.value === familyTotal, 'S-01 factual oracle diverges from fixture');
-assert(fact('S-02#1','consumption_total')?.value === personTotal('person-a'), 'S-02 factual oracle diverges');
-assert(fact('M-01#1','consumption_total','person-b')?.value === personTotal('person-b'), 'M-01 person-b total diverges');
-assert(fact('M-01#1','ranking_winner')?.value === (personTotal('person-a') > personTotal('person-b') ? 'person-a' : 'person-b'),
-  'M-01 ranking oracle diverges');
-assert(fact('M-03#1','budget_class_consumption','family-example:flexible')?.value === classTotal('flexible'),
-  'M-03 flexible oracle diverges');
-assert(fact('M-03#1','budget_class_consumption','family-example:essential')?.value === classTotal('essential'),
-  'M-03 essential oracle diverges');
-const accountA = fixture.accounts.find(item => item.id === 'account-a');
-const balanceA = accountA.opening_balance_minor + confirmedEvents
-  .filter(event => event.account_id === 'account-a' && event.date <= '2042-06-14')
-  .reduce((sum, event) => sum + event.amount_minor, 0);
-assert(fact('S-06#1','account_balance')?.value === balanceA, 'S-06 balance oracle diverges');
+const factValidation = validateMaterializedFacts(fixture, oracle);
+for (const failure of factValidation.failures) failures.push(failure);
+assert(factValidation.materializedFacts === 76, `expected 76 materialized facts, found ${factValidation.materializedFacts}`);
+assert(factValidation.metricCount === 39, `expected 39 deterministic metric evaluators, found ${factValidation.metricCount}`);
 
 assert(Array.isArray(corpus.contract_traceability), 'contract_traceability must be an array');
 const traceModes = new Set(['conversation_guard','corpus_evidence','documentary_static','deferred_executable','mixed']);
@@ -244,8 +215,9 @@ assert(fixture.people.every(item => /^Pessoa [A-C]$/.test(item.label)), 'human l
 assert(fixture.families.every(item => /^Familia (Exemplo|Externa)$/.test(item.label)), 'family labels must be synthetic');
 assert(fixture.events.every(item => ['confirmed','projected'].includes(item.state)), 'fixture event state outside canonical vocabulary');
 assert(fixture.proposals.every(item => ['presented','expired','superseded'].includes(item.state)), 'fixture proposal state outside canonical vocabulary');
+const fixtureCategoryIds = new Set(fixture.categories.map(item => item.id));
 for (const source of fixture.source_states) {
-  if (source.category_id) assert(categories.has(source.category_id), `${source.id}: unknown category_id`);
+  if (source.category_id) assert(fixtureCategoryIds.has(source.category_id), `${source.id}: unknown category_id`);
 }
 
 if (failures.length > 0) {
@@ -258,6 +230,6 @@ console.log('NEXT00-04 GOLDEN SET: PASS');
 console.log(`cases=${corpus.cases.length},turns=${turnKeys.length}`);
 console.log(`classes=${JSON.stringify(classCounts)}`);
 console.log(`dimensions=${JSON.stringify(dimensionCounts)}`);
-console.log(`oracles=${oracleKeys.length},dispositions=${JSON.stringify(dispositionCounts)}`);
+console.log(`oracles=${oracleKeys.length},dispositions=${JSON.stringify(dispositionCounts)},facts=${factValidation.materializedFacts},metric_evaluators=${factValidation.metricCount}`);
 console.log(`contract_traceability=${traceRefs.size}/67,source=primary_contracts,policy=causal-trace-v2`);
 console.log(`fixture_ids=${fixtureIds.size}`);

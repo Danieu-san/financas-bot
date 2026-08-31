@@ -1,7 +1,7 @@
 # NEXT-00 — Charter e contratos do FinançasBot Next
 
-Atualizado em: 2026-08-30
-Estado: `OPEN — NEXT00-05 AUDIT CORRECTION + BROAD PASS; REAUDIT PENDING; ZERO IMPLEMENTAÇÃO FUNCIONAL`
+Atualizado em: 2026-08-31
+Estado: `OPEN — SECOND REAUDIT CORRECTION FOCAL PASS; FINAL BROAD + NEW SHA PENDING; ZERO IMPLEMENTAÇÃO FUNCIONAL`
 Base: `fc577e5d5e21fdc5402ace1cf662a6ea1bef255f`
 Roadmap normativo: `911af93343210ccfe2d7b7fe0b898542044a1fdf`
 
@@ -26,8 +26,9 @@ critérios objetivos. Não produz runtime funcional.
 8. Quality, Stability and Retention Contract;
 9. inventário de capacidades do legado e taxonomia de reaproveitamento;
 10. Golden Conversation Set v1 sanitizado, versionado e revisado;
-11. oracle factual tipado dos 56 turnos;
-12. rastreabilidade causal dos 67 testes documentais.
+11. oracle factual tipado dos 56 turnos, com 76 fatos materializados;
+12. rastreabilidade causal dos 67 testes documentais;
+13. registro determinístico das métricas e pin integral dos contratos numéricos.
 
 ## Não escopo
 
@@ -54,7 +55,9 @@ critérios objetivos. Não produz runtime funcional.
 10. Todo artefato deste gate é sanitizado e não contém dado financeiro privado.
 11. Pergunta quantitativa só recebe verde com oracle material tipado ou estado
     fail-closed explícito.
-12. ID contratual executável não recebe verde por referência conversacional.
+12. Todo fato materializado é recomputado da fixture por métrica determinística.
+13. ID contratual executável não recebe verde por referência conversacional.
+14. Contrato numérico congelado não muda sem romper seu SHA-256 auditado.
 
 ## Riscos controlados
 
@@ -89,19 +92,17 @@ evidência rastreável que o contenha.
 ### NEXT00-04 — Golden Set v1 — `COMPLETE; CORRECTED AFTER AUDIT`
 
 - 48 conversas: 16 simples, 16 multi-tool, 8 follow-ups e 8 negativas;
-- 56 turnos com oracle factual tipado;
+- 56 turnos com oracle factual tipado, 76 fatos e 39 avaliadores causais;
 - 14 dimensões críticas com ao menos três casos;
 - fixture financeira sintética, relógio fixo e vocabulário canônico;
 - rastreabilidade `67/67` a partir dos contratos primários, com policy causal.
 
-### NEXT00-05 — Coerência e auditoria — `LOCAL CORRECTION PASS`
+### NEXT00-05 — Coerência e auditoria — `SECOND CORRECTION FOCAL PASS`
 
-- candidato anterior recebeu Claude `APROVÁVEL` e Chat `APROVÁVEL APÓS
-  AJUSTES`;
-- dois HIGH de falso verde foram reproduzidos e corrigidos;
-- validador focal está verde;
-- validação ampla única está verde; novo commit sanitizado e reauditoria ainda
-  bloqueiam o fechamento;
+- `6aa658d...` recebeu Claude `APROVÁVEL` e Chat `APROVÁVEL APÓS AJUSTES`;
+- três HIGH e os MEDIUM causais do Chat foram reproduzidos e corrigidos;
+- testes focais e 17 mutações negativas estão verdes;
+- validação ampla única, novo commit sanitizado e reauditoria ainda bloqueiam o fechamento;
 - decisão humana continua obrigatória antes de NEXT-01.
 
 ## Validação proporcional
@@ -118,7 +119,7 @@ evidência rastreável que o contenha.
 3. rastreabilidade contém 67/67 IDs dos contratos primários, sem falso verde de
    requisito executável;
 4. matriz está preenchida e não oculta perda funcional;
-5. limiares numéricos são verificados por campo/valor, sem `TBD`;
+5. limiares explícitos são verificados e os dois contratos numéricos completos permanecem pinados por SHA-256, sem marcador não resolvido;
 6. inventário e taxonomia citam evidência e não portam por inércia;
 7. zero código funcional, fonte real, writer, credencial, produção ou legado foi
    acessado ou alterado;
@@ -134,6 +135,7 @@ independente.
 
 ## Próxima ação exata
 
-Executar o focal final após registrar a suíte ampla, conferir o diff staged,
-publicar novo hash imutável e obter reauditoria independente. NEXT-01 continua fechado até parecer sem lacuna
+Conferir e stagear somente o escopo, executar uma única validação ampla no
+candidato estável, revisar o diff, publicar novo hash imutável e obter
+reauditoria independente. NEXT-01 continua fechado até parecer sem lacuna
 indispensável e decisão explícita de Daniel.
