@@ -1,7 +1,7 @@
 # NEXT-00 — Charter e contratos do FinançasBot Next
 
 Atualizado em: 2026-08-31
-Estado: `OPEN — DECLARATIVE REDESIGN LOCAL PASS; NEW SHA + REAUDIT PENDING; ZERO IMPLEMENTAÇÃO FUNCIONAL`
+Estado: `OPEN — PROVENANCE GRAPH DESIGN DRAFT; IMPLEMENTATION BLOCKED; ZERO IMPLEMENTAÇÃO FUNCIONAL`
 Base: `fc577e5d5e21fdc5402ace1cf662a6ea1bef255f`
 Roadmap normativo: `911af93343210ccfe2d7b7fe0b898542044a1fdf`
 
@@ -61,6 +61,8 @@ critérios objetivos. Não produz runtime funcional.
 15. Duas auditorias com novas exceções da mesma classe interrompem remendos e
     obrigam redesenho declarativo ou teste de propriedade; um terceiro remendo
     é proibido.
+16. ID de evidência não prova provenance: conteúdo material, dimensões, arestas,
+    conjunto exato e trace de derivação precisam coincidir.
 
 ## Riscos controlados
 
@@ -100,7 +102,7 @@ evidência rastreável que o contenha.
 - fixture financeira sintética, relógio fixo e vocabulário canônico;
 - rastreabilidade `67/67` a partir dos contratos primários, com policy causal.
 
-### NEXT00-05 — Coerência e auditoria — `DECLARATIVE REDESIGN FOCAL PASS`
+### NEXT00-05 — Coerência e auditoria — `ARCHITECTURE REDESIGN DRAFT; IMPLEMENTATION BLOCKED`
 
 - `6aa658d...` recebeu Claude `APROVÁVEL` e Chat `APROVÁVEL APÓS AJUSTES`;
 - três HIGH e os MEDIUM causais do Chat foram reproduzidos e corrigidos;
@@ -109,15 +111,19 @@ evidência rastreável que o contenha.
 - o bloco imperativo por métrica foi removido e substituído por contrato de
   fatos declarativo;
 - propriedades `608/608` de dimensão, `76/76` de valor, `1/1` de relação e
-  `11/11` mutações estruturais estão verdes;
-- validação ampla única está verde; novo commit sanitizado e reauditoria ainda bloqueiam o fechamento;
+  `11/11` mutações estruturais permaneceram verdes, mas não cobrem drift do
+  conteúdo/arestas atrás do mesmo ID;
+- `bd53f70...` recebeu Chat `NO-GO`; o estado foi rebaixado;
+- o desenho do grafo declarativo de provenance está em revisão e nenhum motor
+  será implementado antes de sua ratificação;
 - decisão humana continua obrigatória antes de NEXT-01.
 
 ## Validação proporcional
 
-- inspeção adversarial local;
-- RED/focal sobre oracles, rastreabilidade e vocabulário;
-- uma única validação ampla do workflow no candidato staged e estável;
+- inspeção adversarial local do desenho antes de código;
+- auditoria arquitetural independente por hash imutável;
+- somente após ratificação: RED/focal gerado de nós, campos, arestas e trace;
+- uma única validação ampla do workflow no candidato implementado e estável;
 - uma reauditoria independente final por novo hash imutável.
 
 ## Critérios de GO
@@ -138,11 +144,12 @@ evidência rastreável que o contenha.
 
 Parar diante de contradição entre contratos, oracle ausente/ambíguo, requisito
 executável classificado como verde documental, necessidade de dado privado,
-escopo funcional antecipado, fixture não sanitizada, limiar pós-hoc ou NO-GO
-independente.
+escopo funcional antecipado, fixture não sanitizada, limiar pós-hoc, NO-GO
+independente ou terceira correção da mesma classe por exemplos especiais.
 
 ## Próxima ação exata
 
-Revisar o diff staged, publicar novo hash imutável e obter
-reauditoria independente. NEXT-01 continua fechado até parecer sem lacuna
-indispensável e decisão explícita de Daniel.
+Revisar e auditar o desenho
+`financasbot-next-00-provenance-graph-design-v1.md` sem implementar compiler,
+evaluator, fixture ou validador. NEXT-01 continua fechado até parecer sem
+lacuna indispensável e decisão explícita de Daniel.

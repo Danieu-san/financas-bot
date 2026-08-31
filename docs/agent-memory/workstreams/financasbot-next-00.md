@@ -1,7 +1,7 @@
 # Workstream — FinançasBot Next / NEXT-00
 
 Atualizado em: 2026-08-31
-Status: `DECLARATIVE REDESIGN LOCAL PASS; NEW SHA + REAUDIT PENDING; ZERO IMPLEMENTAÇÃO FUNCIONAL`
+Status: `PROVENANCE GRAPH DESIGN DRAFT; IMPLEMENTATION BLOCKED; ZERO IMPLEMENTAÇÃO FUNCIONAL`
 
 ## Objetivo ativo
 
@@ -56,7 +56,19 @@ runtime funcional e sem abrir NEXT-01.
 - dimensões ficam no contrato declarativo `golden-fact-contracts-v1.json`;
 - resolução: `financasbot-next-00-reaudit-resolution-v4.md`.
 
-## Evidência focal vigente
+## Quinta reauditoria e nova fronteira arquitetural
+
+- Claude: `APROVÁVEL APÓS AJUSTES` no hash `bd53f70...`;
+- Chat: `NO-GO` no mesmo hash;
+- o finding foi confirmado: IDs e dimensões congelados não provam a semântica
+  do conteúdo nem das arestas dos objetos referenciados;
+- o candidato local anterior foi rebaixado e nenhum novo remendo foi criado;
+- proposta: grafo declarativo tipado com fingerprint material, predicados,
+  conjunto exato e trace determinístico;
+- desenho: `financasbot-next-00-provenance-graph-design-v1.md`;
+- resolução: `financasbot-next-00-reaudit-resolution-v5.md`.
+
+## Evidência focal histórica, agora insuficiente para fechamento
 
 - `NEXT-00 DOCUMENTAL: PASS`;
 - `required_files=33`;
@@ -73,13 +85,16 @@ runtime funcional e sem abrir NEXT-01.
 
 ## Critério de saída
 
-Ainda não satisfeito. Faltam novo SHA sanitizado publicado e reauditoria independente sem lacuna
-indispensável. Estado máximo: `CANDIDATO AGUARDANDO REAUDITORIA`.
+Ainda não satisfeito. A arquitetura do grafo precisa ser revisada e ratificada
+antes de qualquer implementação. Depois disso, compiler/evaluator e corpus v2
+precisarão de provas geradas e nova reauditoria. Estado máximo atual:
+`CANDIDATO DE ARQUITETURA; IMPLEMENTAÇÃO BLOQUEADA`.
 
 ## Próxima ação exata
 
-Revisar o diff staged, publicar novo SHA e pedir reauditoria. NEXT-01 permanece
-fechado.
+Revisar adversarialmente o desenho do grafo, publicar somente a documentação em
+hash imutável e pedir auditoria arquitetural. Não implementar o motor ainda.
+NEXT-01 permanece fechado.
 
 ## Referências
 
@@ -87,6 +102,8 @@ fechado.
 - `docs/plans/workstreams/financasbot-next-00-reaudit-resolution-v2.md`;
 - `docs/plans/workstreams/financasbot-next-00-reaudit-resolution-v3.md`;
 - `docs/plans/workstreams/financasbot-next-00-reaudit-resolution-v4.md`;
+- `docs/plans/workstreams/financasbot-next-00-reaudit-resolution-v5.md`;
+- `docs/plans/workstreams/financasbot-next-00-provenance-graph-design-v1.md`;
 - `docs/plans/workstreams/financasbot-next-00-golden-set-v1-validation.md`;
 - `docs/plans/workstreams/financasbot-next-00-final-validation-v1.md`;
 - `docs/contracts/next/`;
