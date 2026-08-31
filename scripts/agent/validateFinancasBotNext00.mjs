@@ -9,13 +9,16 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 
 const requiredFiles = [
   'docs/plans/workstreams/financasbot-next-roadmap-draft-v2.md',
+  'docs/plans/workstreams/financasbot-next-roadmap-review-resolution-v1.md',
   'docs/plans/workstreams/financasbot-next-roadmap-ratification-v1.md',
   'docs/plans/workstreams/financasbot-next-00.md',
+  'docs/agent-memory/workstreams/financasbot-next-00.md',
   'docs/plans/workstreams/financasbot-next-00-inventory-v1.md',
   'docs/plans/workstreams/financasbot-next-00-contracts-1-4-validation-v1.md',
   'docs/plans/workstreams/financasbot-next-00-contracts-5-8-validation-v1.md',
   'docs/plans/workstreams/financasbot-next-00-golden-set-v1-validation.md',
   'docs/plans/workstreams/financasbot-next-00-final-validation-v1.md',
+  'docs/plans/workstreams/financasbot-next-00-audit-resolution-v1.md',
   'docs/contracts/next/data-authority-contract-v0.md',
   'docs/contracts/next/coexistence-single-writer-contract-v0.md',
   'docs/contracts/next/conversation-proposal-contract-v0.md',
@@ -26,18 +29,20 @@ const requiredFiles = [
   'docs/contracts/next/quality-stability-retention-contract-v0.md',
   'tests/fixtures/financasbot-next/golden-financial-fixture-v1.json',
   'tests/fixtures/financasbot-next/golden-conversation-set-v1.json',
+  'tests/fixtures/financasbot-next/golden-claim-oracles-v1.json',
   'scripts/agent/validateFinancasBotNextGoldenSet.mjs',
-  'scripts/agent/validateFinancasBotNext00.mjs'
+  'scripts/agent/testValidateFinancasBotNextGoldenSet.mjs',
+  'scripts/agent/validateFinancasBotNext00.mjs',
+  'scripts/agent/validateAgentWorkflow.js'
 ];
-
 for (const file of requiredFiles) assert(fs.existsSync(path.join(root, file)), `missing required file: ${file}`);
 
 const normativeFiles = requiredFiles.filter(file => file.endsWith('.md'));
 const normativeText = normativeFiles.map(file => read(file)).join('\n');
 assert(!/\b(?:TODO|FIXME)\b/.test(normativeText), 'normative artifact contains TODO/FIXME');
-assert(!/(?:[:=]\s*|\|\s*)TBD(?:\s*$|\s*\|)/im.test(normativeText), 'normative artifact contains an unresolved TBD value');
+assert(!/(?:[:=]\s*|\|\s*)TBD(?:\s*$|\s*\|)/im.test(normativeText), 'normative artifact contains unresolved TBD');
 assert(!/-----BEGIN [A-Z ]+PRIVATE KEY-----/.test(normativeText), 'private key marker found');
-assert(!/\bsk-[A-Za-z0-9_-]{8,}\b/.test(normativeText), 'API key marker found');
+assert(!/\b(?:sk|AIza|ghp|github_pat)[-_][A-Za-z0-9_-]{8,}\b/i.test(normativeText), 'API key marker found');
 
 const charter = read('docs/plans/workstreams/financasbot-next-00.md');
 assert(charter.includes('ZERO IMPLEMENTAÇÃO FUNCIONAL'), 'charter lost zero-runtime boundary');
@@ -73,24 +78,59 @@ assert(sourceCaps.size === 30, `source capability ids: expected 30, found ${sour
 assert(tierCounts['1'] === 13 && tierCounts['2'] === 11 && tierCounts['3'] === 6 && tierCounts['4'] === 2,
   `tier counts differ: ${JSON.stringify(tierCounts)}`);
 
-const testSources = [
-  'docs/plans/workstreams/financasbot-next-00-contracts-1-4-validation-v1.md',
+const primaryContracts = [
+  'docs/contracts/next/data-authority-contract-v0.md',
+  'docs/contracts/next/coexistence-single-writer-contract-v0.md',
+  'docs/contracts/next/conversation-proposal-contract-v0.md',
+  'docs/contracts/next/model-data-boundary-contract-v0.md',
   'docs/contracts/next/integration-capability-manifest-v0.md',
   'docs/contracts/next/capability-cutover-matrix-v0.md',
   'docs/contracts/next/tool-budget-failure-policy-v0.md',
   'docs/contracts/next/quality-stability-retention-contract-v0.md'
 ];
-const testIds = new Set(testSources.flatMap(file => read(file).match(/\b(?:DA|SW|CP|MB|IM|CM|TB|QS)-\d{2}\b/g) ?? []));
-assert(testIds.size === 67, `documented contract tests: expected 67, found ${testIds.size}`);
+const testIds = new Set(primaryContracts.flatMap(file =>
+  read(file).match(/\b(?:DA|SW|CP|MB|IM|CM|TB|QS)-\d{2}\b/g) ?? []
+));
+const prefixCounts = Object.fromEntries(['DA','SW','CP','MB','IM','CM','TB','QS'].map(prefix => [
+  prefix, [...testIds].filter(id => id.startsWith(`${prefix}-`)).length
+]));
+assert(testIds.size === 67, `primary contract tests: expected 67, found ${testIds.size}`);
+assert(JSON.stringify(prefixCounts) === JSON.stringify({DA:6,SW:5,CP:5,MB:5,IM:12,CM:8,TB:12,QS:14}),
+  `contract id distribution differs: ${JSON.stringify(prefixCounts)}`);
 
-const numericMarkers = [
-  ['docs/contracts/next/tool-budget-failure-policy-v0.md', ['6', '12', '30']],
-  ['docs/contracts/next/quality-stability-retention-contract-v0.md', ['7', '14', '200', '500', '1.000', '0.05', '35']]
-];
-for (const [file, markers] of numericMarkers) {
-  const contents = read(file);
-  for (const marker of markers) assert(contents.includes(marker), `${file}: missing numeric marker ${marker}`);
+const toolBudget = read('docs/contracts/next/tool-budget-failure-policy-v0.md');
+const toolBudgetFields = {
+  soft_tool_calls: 6,
+  hard_tool_calls: 12,
+  max_same_tool_args_fingerprint: 2,
+  max_parallel_read_calls: 3,
+  max_sequential_decision_rounds: 4,
+  max_clarification_questions_per_turn: 2,
+  max_response_recompositions: 1,
+  total_trajectory_timeout_seconds: 30,
+  writer_commit_attempts_after_confirmation: 1,
+};
+for (const [field, value] of Object.entries(toolBudgetFields)) {
+  assert(new RegExp(`^${field}: ${value}$`, 'm').test(toolBudget), `${field}: expected ${value}`);
 }
+
+const quality = read('docs/contracts/next/quality-stability-retention-contract-v0.md');
+const qualityAssertions = [
+  [/^\| pergunta simples read-only \| <=4 s \| <=10 s \| 30 s \|$/m, 'simple latency'],
+  [/^\| investigação multi-tool \| <=8 s \| <=20 s \| 30 s \|$/m, 'multi-tool latency'],
+  [/^\| follow-up com cache\/evidência vigente \| <=3 s \| <=8 s \| 20 s \|$/m, 'follow-up latency'],
+  [/^\| dashboard snapshot \| <=1\.5 s \| <=3 s \| 5 s \|$/m, 'dashboard latency'],
+  [/^\| teto por conversa \| <=US\$0\.05 \|$/m, 'cost ceiling'],
+  [/- 7 dias consecutivos na mesma versão causal;/, 'beta 7 days'],
+  [/- mínimo de 200 conversas e 500 claims comparáveis;/, 'beta volume'],
+  [/- 14 dias consecutivos do conjunto de capabilities classes 1 e 2;/, 'cutover 14 days'],
+  [/- mínimo de 500 conversas, 1\.000 claims e 100 efeitos agregados;/, 'cutover volume'],
+  [/^\| ledger\/eventos\/propostas\/write ledger \| <=5 min \| <=60 min \|$/m, 'ledger RPO/RTO'],
+  [/- retenção rolling de backups: 35 dias;/, 'backup retention'],
+  [/^\| traces operacionais sanitizados \| 30 dias \|$/m, 'trace retention'],
+  [/^\| auditoria de segurança\/ownership sanitizada \| 180 dias \|$/m, 'audit retention'],
+];
+for (const [pattern, label] of qualityAssertions) assert(pattern.test(quality), `quality contract missing exact ${label}`);
 
 const base = 'fc577e5d5e21fdc5402ace1cf662a6ea1bef255f';
 const gitLines = args => execFileSync('git', args, { cwd: root, encoding: 'utf8' })
@@ -108,6 +148,7 @@ const allowedPath = file =>
   file === 'docs/agent-memory/workstreams/financasbot-next-roadmap.md' ||
   file === 'docs/agent-memory/workstreams/index.md' ||
   file === 'scripts/agent/validateFinancasBotNextGoldenSet.mjs' ||
+  file === 'scripts/agent/testValidateFinancasBotNextGoldenSet.mjs' ||
   file === 'scripts/agent/validateFinancasBotNext00.mjs' ||
   file.startsWith('tests/fixtures/financasbot-next/');
 for (const file of changedPaths) assert(allowedPath(file), `out-of-scope changed path: ${file}`);
@@ -126,9 +167,9 @@ if (failures.length > 0) {
 
 console.log('NEXT-00 DOCUMENTAL: PASS');
 console.log(`required_files=${requiredFiles.length}`);
-console.log(`inventory=30 capabilities,15 assets,12 do_not_port`);
+console.log('inventory=30 capabilities,15 assets,12 do_not_port');
 console.log(`manifests=${manifestSections.length},write_enabled_nonempty=0`);
 console.log(`capability_slices=${matrixRows.length},source_capabilities=${sourceCaps.size},tiers=${JSON.stringify(tierCounts)}`);
-console.log(`contract_tests=${testIds.size}/67`);
+console.log(`contract_tests=${testIds.size}/67,source=primary_contracts`);
 console.log(`changed_paths=${changedPaths.length},runtime_paths=0`);
 console.log(golden.stdout.trim());

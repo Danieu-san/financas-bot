@@ -203,6 +203,19 @@ Fixtures sintéticas devem provar:
   identidade econômica;
 - Calendar, reminders e Open Finance obedecem ao mesmo fencing.
 
+Catálogo normativo mínimo desta bateria:
+
+| ID | Propriedade causal | Fase da prova executável |
+|---|---|---|
+| SW-01 | duas instâncias disputam o mesmo owner e somente um lease fica ativo | NEXT-06 |
+| SW-02 | stale epoch tenta escrever e falha antes do efeito | NEXT-06 |
+| SW-03 | timeout após provável commit entra em `uncertain` e reconcilia | NEXT-06 |
+| SW-04 | shadow tenta avançar cursor e é bloqueado | NEXT-06 |
+| SW-05 | rollback emite epoch novo e não restaura autoridade antiga | NEXT-06 |
+
+Esses cinco IDs são propriedades de state machine/fault injection. Nenhum caso
+conversacional ou inspeção documental concede verde executável a eles.
+
 ## 11. Reaproveitamento permitido
 
 Rollout policies fail-closed, write ledger, operation keys, receipts, outbox e

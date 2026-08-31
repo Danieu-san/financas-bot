@@ -200,6 +200,8 @@ Precedência semântica de `evidence_state`:
 - `incomplete`: há evidência, mas a cobertura exigida não está completa;
 - `unavailable`: a fonte necessária não pôde responder.
 
+`realized` não é um `evidence_state`: é uma lente de consulta que inclui ocorrências efetivadas com estado `confirmed` ou `committed`, conforme a source policy e o time basis. Fixtures e eventos canônicos nunca persistem `realized` como estado.
+
 `projected` e `estimated` nunca são promovidos por texto da IA. Promoção exige
 nova observação e policy do kernel.
 
@@ -265,6 +267,21 @@ Uma implementação só é conforme se provar, com fixtures sintéticas:
 - IDs ou fonte sugeridos pelo modelo são ignorados/rejeitados;
 - corrida entre writer manual e proativo concede a identidade econômica a uma
   única operação.
+
+Catálogo normativo mínimo desta bateria:
+
+| ID | Propriedade causal | Fase da prova executável |
+|---|---|---|
+| DA-01 | replay da mesma source version produz um único evento | NEXT-02 |
+| DA-02 | projeção do Next reaparecendo no source é rejeitada pelo ingestor | NEXT-02 |
+| DA-03 | coverage parcial com soma zero resulta `incomplete`, nunca zero | NEXT-02 |
+| DA-04 | compra e pagamento de fatura contam consumo uma única vez | NEXT-02 |
+| DA-05 | duas pontas da transferência familiar são neutras no agregado | NEXT-02 |
+| DA-06 | totais iguais com identidades distintas não são fundidos | NEXT-02 |
+
+O Golden Set pode antecipar guards de conversa para DA-03 a DA-06, mas não
+substitui as propriedades do kernel. DA-01 e DA-02 são exclusivamente
+executáveis e não podem receber verde documental por mera referência textual.
 
 ## 10. Reaproveitamento permitido
 

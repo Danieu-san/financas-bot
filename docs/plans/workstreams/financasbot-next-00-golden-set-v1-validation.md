@@ -1,8 +1,8 @@
 # NEXT-00 — Validação do Golden Conversation Set v1
 
 Data: 2026-08-30
-Fatia: `NEXT00-04`
-Estado: `VALIDADO LOCALMENTE — CANDIDATO DOCUMENTAL`
+Fatia: `NEXT00-04`, corrigida durante `NEXT00-05`
+Estado: `VALIDADO LOCALMENTE APÓS AUDITORIA — AGUARDANDO REAUDITORIA`
 
 ## Escopo
 
@@ -14,13 +14,13 @@ dashboard, migração nem comportamento de produção.
 
 - `tests/fixtures/financasbot-next/golden-financial-fixture-v1.json`;
 - `tests/fixtures/financasbot-next/golden-conversation-set-v1.json`;
+- `tests/fixtures/financasbot-next/golden-claim-oracles-v1.json`;
 - `scripts/agent/validateFinancasBotNextGoldenSet.mjs`.
 
-O relógio de referência é fixo em `2042-06-15T12:00:00-03:00`. Família,
-pessoas, contas, cartões, categorias, eventos, propostas e valores são
-inteiramente fictícios.
+O relógio é fixo em `2042-06-15T12:00:00-03:00`. Família, pessoas, contas,
+cartões, categorias, eventos, propostas e valores são inteiramente fictícios.
 
-## Distribuição obrigatória
+## Distribuição obrigatória independente do corpus
 
 | Classe | Casos | IDs |
 |---|---:|---|
@@ -30,9 +30,32 @@ inteiramente fictícios.
 | negativa | 8 | `N-01` a `N-08` |
 | **total** | **48** | — |
 
+O validador fixa esses números e os 48 IDs no próprio contrato de teste; não
+aceita que o corpus reduza a exigência alterando `required_class_counts`.
+
+## Oracle factual
+
+Os 48 casos contêm 56 turnos. Cada turno referencia exatamente uma entrada do
+oracle tipado:
+
+- 44 respostas materializadas;
+- 6 insuficiências por coverage;
+- 2 indisponibilidades;
+- 3 bloqueios;
+- 1 recusa de estimativa.
+
+Toda claim materializada informa `metric`, valor tipado, unidade, entidade,
+período, base temporal, coverage, evidence state e referências sintéticas de
+evidência. Perguntas de total, comparação, ranking, saldo, fatura, orçamento,
+ritmo, renda, conta a pagar, zero, estorno, transferência e parcelas não podem
+mais ficar verdes apenas com marcadores como `ranking_from_kernel`.
+
+O validador também recalcula da fixture sentinelas centrais: total familiar,
+totais por pessoa, ranking, classes flexível/essencial e saldo da conta.
+
 ## Cobertura das dimensões críticas
 
-| Dimensão | Casos que a exercitam |
+| Dimensão | Casos |
 |---|---:|
 | pessoa/família | 14 |
 | conta/cartão | 18 |
@@ -49,66 +72,61 @@ inteiramente fictícios.
 | indisponível | 4 |
 | coverage de fonte | 14 |
 
-Todas superam ou igualam o mínimo normativo de três casos.
+As 14 dimensões e o piso de três casos são constantes independentes do JSON.
 
-## Rastreabilidade dos contratos
+## Rastreabilidade causal dos contratos
 
-A matriz `contract_traceability` cobre, sem lacuna ou ID desconhecido, os 67
-testes documentais: o índice versionado dos contratos 1 a 4 e as tabelas dos
-contratos 5 a 8:
+Os 67 IDs agora nascem diretamente dos oito contratos primários, incluindo os
+catálogos normativos `DA`, `SW`, `CP` e `MB`; o relatório intermediário dos
+contratos 1 a 4 deixou de ser fonte do inventário.
 
-- `DA-01..06`: 6;
-- `SW-01..05`: 5;
-- `CP-01..05`: 5;
-- `MB-01..05`: 5;
-- `IM-01..12`: 12;
-- `CM-01..08`: 8;
-- `TB-01..12`: 12;
-- `QS-01..14`: 14.
+Cada ID aparece uma única vez e obedece a uma policy independente:
 
-Cada entrada distingue `conversation_guard`, `corpus_evidence`,
-`deferred_executable` ou `mixed`, cita casos quando aplicável, informa a fase da
-prova executável e explica o vínculo causal. Assim, lease, retry, retenção e
-infraestrutura não recebem falso verde conversacional; suas provas de estado e
-fault injection continuam reservadas às fases definidas no roadmap.
-## Invariantes verificados pelo validador
+- `mixed`: guard conversacional atual, mas verde causal ainda depende da fase;
+- `documentary_static`: propriedade demonstrável no contrato/matriz atual;
+- `deferred_executable`: nenhuma conversa é apresentada como prova.
 
-1. JSON válido e `schema_version=1` nos artefatos;
-2. corpus e fixture marcados `synthetic=true` e com o mesmo relógio fixo;
-3. exatamente 48 IDs únicos e distribuição `16/16/8/8`;
-4. follow-ups com dois ou mais turnos e demais classes com um turno;
-5. negativas nunca classificadas como resposta simples;
-6. toda conversa possui dimensões, fixtures, contratos, claims e proibições;
-7. toda tool pertence à allowlist read-only do roadmap;
-8. toda referência de fixture resolve para uma entidade sintética existente;
-9. todas as 14 dimensões críticas têm cobertura mínima;
-10. matriz de rastreabilidade contém exatamente `67/67`, cada ID uma vez, com
-    modo, fase, justificativa e casos válidos quando aplicável;11. marcadores conhecidos de dados privados, produção, segredo ou chave não
-    aparecem no corpus.
+Lease, epoch, retry, timeout, split-brain, CAS concorrente, rollback, retenção,
+RPO/RTO, custo, latência, adapters e paridade runtime permanecem explicitamente
+deferidos. `67/67` significa inventário completo e classificação causal, não
+execução prematura de 67 propriedades.
+
+## Sanitização e vocabulário
+
+- eventos realizados usam o evidence state canônico `confirmed`;
+- `realized` permanece apenas uma lente de consulta documentada;
+- proposta apresentável usa `presented`, não `pending`;
+- toda categoria referenciada existe no registry sintético;
+- detecção cobre nomes reais conhecidos, URL, email, telefone, CPF/CNPJ, UUID,
+  hashes/tokens longos, JWT, chaves e credenciais comuns;
+- labels humanos permanecem na allowlist sintética `Pessoa A` a `Pessoa C`.
 
 ## Resultado reproduzível
-
-Comando:
 
 ```powershell
 node scripts/agent/validateFinancasBotNextGoldenSet.mjs
 ```
 
-Resultado:
-
 ```text
 NEXT00-04 GOLDEN SET: PASS
-cases=48
+cases=48,turns=56
 classes={"simple":16,"multi_tool":16,"follow_up":8,"negative":8}
 dimensions={"person_family":14,"account_card":18,"category":18,"period":26,"time_basis":17,"transfer":3,"invoice_payment":3,"refund":3,"projection":6,"zero":3,"empty":3,"incomplete":4,"unavailable":4,"source_coverage":14}
-contract_traceability=67/67
-fixture_ids=48
+oracles=56,dispositions={"materialized":44,"insufficient":6,"unavailable":2,"refused":1,"blocked":3}
+contract_traceability=67/67,source=primary_contracts,policy=causal-trace-v2
+fixture_ids=50
 ```
+
+## Prova negativa do validador
+
+O comando `node scripts/agent/testValidateFinancasBotNextGoldenSet.mjs`
+executa o baseline e sete mutações isoladas. Todas produziram RED no motivo
+causal esperado, incluindo oracle quantitativo, classificação executável,
+constantes autorreferenciais, sanitização, vocabulário e evidence ref.
 
 ## Interpretação
 
-O conjunto está apto a ser a especificação conversacional inicial do Next e a
-alimentar os replays futuros. Ele ainda não prova que um runtime responde
-corretamente: não existe runtime Next autorizado nesta fatia. O próximo gate
-deve verificar a coerência cruzada dos oito contratos, da matriz e deste corpus
-antes de qualquer implementação funcional.
+O conjunto agora congela tanto o comportamento conversacional quanto os fatos
+materiais esperados. Ele ainda não prova um runtime inexistente: todas as
+propriedades executáveis continuam nos gates futuros e NEXT-01 permanece
+fechado até reauditoria e decisão explícita de Daniel.

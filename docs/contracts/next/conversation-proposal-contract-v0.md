@@ -229,6 +229,20 @@ Fixtures sintéticas devem cobrir:
 - follow-up sem coverage suficiente não afirmar zero;
 - regra aprendida não dispensar preview/confirm.
 
+Catálogo normativo mínimo desta bateria:
+
+| ID | Propriedade causal | Fase da prova executável |
+|---|---|---|
+| CP-01 | “sim” com duas propostas exige correlação inequívoca | NEXT-01 |
+| CP-02 | preview não entregue torna a confirmação inválida | NEXT-06 |
+| CP-03 | observação material alterada supersede a proposta e exige novo preview | NEXT-06 |
+| CP-04 | duas confirmações concorrentes produzem um único vencedor CAS | NEXT-06 |
+| CP-05 | restart após efeito sem receipt reconcilia sem duplicar | NEXT-06 |
+
+CP-01 e CP-03 admitem guard conversacional antecipado, mas o verde causal
+depende da máquina de estado indicada. CP-02, CP-04 e CP-05 são exclusivamente
+executáveis.
+
 ## 13. Reaproveitamento permitido
 
 Estados duráveis, payload cifrado, operação idempotente, receipt, reconciliação,

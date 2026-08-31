@@ -214,6 +214,20 @@ Fixtures sintéticas devem provar:
 - troca de provider preserva schema, trace e Golden Set;
 - dev/test não aceitam dado real e production não aceita fixture com segredo.
 
+Catálogo normativo mínimo desta bateria:
+
+| ID | Propriedade causal | Fase da prova executável |
+|---|---|---|
+| MB-01 | token, ID, path ou payload bruto aninhado bloqueia a model call | NEXT-01 |
+| MB-02 | identificador/hash estável e correlacionável é bloqueado | NEXT-01 |
+| MB-03 | modelo tentando escolher scope/source tem a saída rejeitada | NEXT-01 |
+| MB-04 | provider não registrado ou indisponível falha fechado | NEXT-01 |
+| MB-05 | prompt injection em descrição é tratado como dado | NEXT-01 |
+
+MB-03 e MB-04 admitem guard conversacional antecipado; MB-01, MB-02 e MB-05
+exigem prova estrutural do envelope. Nenhum deles é provado apenas pela presença
+do ID no corpus.
+
 ## 14. Reaproveitamento permitido
 
 Allowlist de argumentos, escopo confiável server-side, sanitização de evidência,

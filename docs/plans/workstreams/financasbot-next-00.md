@@ -1,7 +1,7 @@
 # NEXT-00 — Charter e contratos do FinançasBot Next
 
 Atualizado em: 2026-08-30
-Estado: `OPEN — NEXT00-05 LOCAL CANDIDATE; AWAITING INDEPENDENT AUDIT; ZERO IMPLEMENTAÇÃO FUNCIONAL`
+Estado: `OPEN — NEXT00-05 AUDIT CORRECTION + BROAD PASS; REAUDIT PENDING; ZERO IMPLEMENTAÇÃO FUNCIONAL`
 Base: `fc577e5d5e21fdc5402ace1cf662a6ea1bef255f`
 Roadmap normativo: `911af93343210ccfe2d7b7fe0b898542044a1fdf`
 
@@ -25,7 +25,9 @@ critérios objetivos. Não produz runtime funcional.
 7. Tool Budget and Failure Policy;
 8. Quality, Stability and Retention Contract;
 9. inventário de capacidades do legado e taxonomia de reaproveitamento;
-10. Golden Conversation Set v1 sanitizado, versionado e revisado.
+10. Golden Conversation Set v1 sanitizado, versionado e revisado;
+11. oracle factual tipado dos 56 turnos;
+12. rastreabilidade causal dos 67 testes documentais.
 
 ## Não escopo
 
@@ -50,13 +52,17 @@ critérios objetivos. Não produz runtime funcional.
 8. Gasto por categoria permanece o primeiro vertical do produto.
 9. Zero, vazio, incompleto e indisponível continuam estados diferentes.
 10. Todo artefato deste gate é sanitizado e não contém dado financeiro privado.
+11. Pergunta quantitativa só recebe verde com oracle material tipado ou estado
+    fail-closed explícito.
+12. ID contratual executável não recebe verde por referência conversacional.
 
 ## Riscos controlados
 
 - contrato abstrato demais para ser testável;
 - duas fontes recuperarem autoridade semântica por caminhos diferentes;
 - números de estabilidade escolhidos depois de observar resultados;
-- Golden Set pequeno, enviesado ou contaminado por dados privados;
+- Golden Set pequeno, enviesado, sem oracle ou contaminado por dados privados;
+- rastreabilidade autorreferencial ou modo causal incorreto;
 - matriz de capacidades esconder perda funcional no cutover;
 - NEXT-00 virar implementação antecipada.
 
@@ -67,90 +73,67 @@ evidência rastreável que o contenha.
 
 ### NEXT00-01 — Inventário e taxonomia — `COMPLETE`
 
-- enumerar capacidades usadas e contratos aproveitáveis do legado;
-- classificar `PORT_AS_IS`, `PORT_BEHIND_NEW_CONTRACT`, `REWRITE`,
-  `REPLACE_WITH_TOOL` ou `DO_NOT_PORT`;
-- registrar dependências e evidências, sem inferir uso por mera existência.
+- 30 capacidades, 15 ativos e 12 itens `DO_NOT_PORT` classificados com
+  evidência, sem portar por mera existência.
 
 ### NEXT00-02 — Autoridade, coexistência e conversa — `COMPLETE`
 
-- contratos 1 a 4;
-- schemas mínimos, estados e máquinas de transição;
-- testes negativos e invariantes correspondentes.
-
-Artefatos congelados:
-
-- `docs/contracts/next/data-authority-contract-v0.md`;
-- `docs/contracts/next/coexistence-single-writer-contract-v0.md`;
-- `docs/contracts/next/conversation-proposal-contract-v0.md`;
-- `docs/contracts/next/model-data-boundary-contract-v0.md`;
-- `financasbot-next-00-contracts-1-4-validation-v1.md`.
+- contratos 1 a 4, schemas, estados, transições e catálogos normativos
+  `DA/SW/CP/MB`.
 
 ### NEXT00-03 — Integrações, capacidades, orçamento e retenção — `COMPLETE`
 
-- contratos 5 a 8;
-- matriz beta/cutover/retirement/pós-MVP preenchida;
-- limiares numéricos versionados, sem `TBD`.
+- contratos 5 a 8, nove manifests sem write, matriz `32/30`, tiers
+  `13/11/6/2` e limiares numéricos.
 
-Artefatos congelados:
+### NEXT00-04 — Golden Set v1 — `COMPLETE; CORRECTED AFTER AUDIT`
 
-- `docs/contracts/next/integration-capability-manifest-v0.md`;
-- `docs/contracts/next/capability-cutover-matrix-v0.md`;
-- `docs/contracts/next/tool-budget-failure-policy-v0.md`;
-- `docs/contracts/next/quality-stability-retention-contract-v0.md`;
-- `financasbot-next-00-contracts-5-8-validation-v1.md`.
+- 48 conversas: 16 simples, 16 multi-tool, 8 follow-ups e 8 negativas;
+- 56 turnos com oracle factual tipado;
+- 14 dimensões críticas com ao menos três casos;
+- fixture financeira sintética, relógio fixo e vocabulário canônico;
+- rastreabilidade `67/67` a partir dos contratos primários, com policy causal.
 
-### NEXT00-04 — Golden Set v1 — `COMPLETE`
+### NEXT00-05 — Coerência e auditoria — `LOCAL CORRECTION PASS`
 
-- 48 conversas sanitizadas: 16 simples, 16 multi-tool, 8 follow-ups e 8 negativas;
-- 14 dimensões críticas com ao menos três casos cada;
-- fixture financeira sintética e relógio fixo;
-- rastreabilidade completa aos 67 testes documentais dos contratos 1 a 8;
-- validação focal versionada em
-  `financasbot-next-00-golden-set-v1-validation.md`.
-
-### NEXT00-05 — Coerência e auditoria — `LOCAL CANDIDATE`
-
-- coerência, referências, cobertura e não escopo validados localmente;
-- validador documental final verde;
-- validação ampla única, commit sanitizado e auditoria independente ainda
+- candidato anterior recebeu Claude `APROVÁVEL` e Chat `APROVÁVEL APÓS
+  AJUSTES`;
+- dois HIGH de falso verde foram reproduzidos e corrigidos;
+- validador focal está verde;
+- validação ampla única está verde; novo commit sanitizado e reauditoria ainda
   bloqueiam o fechamento;
-- decisão humana continua obrigatória antes de qualquer NEXT-01.
+- decisão humana continua obrigatória antes de NEXT-01.
 
 ## Validação proporcional
 
-- inspeção adversarial local antes de cada contrato;
-- lint/validação estrutural focal dos artefatos alterados;
-- testes documentais de invariantes, matrizes e schemas;
-- uma única validação ampla do workflow no candidato estável;
-- uma auditoria independente final por hash imutável.
+- inspeção adversarial local;
+- RED/focal sobre oracles, rastreabilidade e vocabulário;
+- uma única validação ampla do workflow no candidato staged e estável;
+- uma reauditoria independente final por novo hash imutável.
 
 ## Critérios de GO
 
 1. os oito contratos estão versionados, coerentes e revisados;
-2. Golden Set v1 cumpre integralmente volume e cobertura mínimos;
-3. matriz de capacidades está preenchida e não oculta perda funcional;
-4. duração, percentuais, latência, custo, RTO e rollback possuem valores
-   numéricos; nenhum campo relevante permanece `TBD`;
-5. inventário e taxonomia citam evidência e não portam por inércia;
-6. zero código funcional, fonte real, writer, credencial, produção ou legado
-   foi acessado ou alterado;
-7. validação local e auditoria independente não possuem lacuna indispensável;
-8. Daniel decide explicitamente se autoriza abrir NEXT-01.
+2. Golden Set cumpre volume, cobertura e oracle factual de 56/56 turnos;
+3. rastreabilidade contém 67/67 IDs dos contratos primários, sem falso verde de
+   requisito executável;
+4. matriz está preenchida e não oculta perda funcional;
+5. limiares numéricos são verificados por campo/valor, sem `TBD`;
+6. inventário e taxonomia citam evidência e não portam por inércia;
+7. zero código funcional, fonte real, writer, credencial, produção ou legado foi
+   acessado ou alterado;
+8. validação local e auditoria independente não possuem lacuna indispensável;
+9. Daniel decide explicitamente se autoriza abrir NEXT-01.
 
 ## Critérios de NO-GO e condições de parada
 
-Parar diante de:
-
-- contradição entre contratos ou com o roadmap ratificado;
-- necessidade de dado privado ou acesso real para concluir documentação;
-- tentativa de antecipar implementação, integração ou migração;
-- limiar escolhido depois do teste que deveria julgá-lo;
-- fixture não sanitizada ou identidade financeira real;
-- escopo não resolvido, evidência insuficiente ou NO-GO independente.
+Parar diante de contradição entre contratos, oracle ausente/ambíguo, requisito
+executável classificado como verde documental, necessidade de dado privado,
+escopo funcional antecipado, fixture não sanitizada, limiar pós-hoc ou NO-GO
+independente.
 
 ## Próxima ação exata
 
-Executar uma única validação ampla do workflow no candidato estável, publicar o
-commit sanitizado e obter auditoria independente por hash. NEXT-01 continua
-fechado até parecer sem lacuna indispensável e decisão explícita de Daniel.
+Executar o focal final após registrar a suíte ampla, conferir o diff staged,
+publicar novo hash imutável e obter reauditoria independente. NEXT-01 continua fechado até parecer sem lacuna
+indispensável e decisão explícita de Daniel.

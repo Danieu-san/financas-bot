@@ -3,269 +3,264 @@
   "set_id": "FINANCASBOT-NEXT-GOLDEN-V1",
   "synthetic": true,
   "fixture_file": "golden-financial-fixture-v1.json",
+  "claim_oracle_file": "golden-claim-oracles-v1.json",
   "fixed_clock": "2042-06-15T12:00:00-03:00",
+  "traceability_policy_version": "causal-trace-v2",
   "required_class_counts": { "simple": 16, "multi_tool": 16, "follow_up": 8, "negative": 8 },
-  "critical_dimensions": [
-    "person_family", "account_card", "category", "period", "time_basis",
-    "transfer", "invoice_payment", "refund", "projection", "zero", "empty",
-    "incomplete", "unavailable", "source_coverage"
-  ],
+  "critical_dimensions": ["person_family", "account_card", "category", "period", "time_basis", "transfer", "invoice_payment", "refund", "projection", "zero", "empty", "incomplete", "unavailable", "source_coverage"],
   "contract_traceability": [
-    { "ids": ["DA-01"], "mode": "deferred_executable", "cases": [], "target_phase": "NEXT-02", "rationale": "Replay e idempotencia exigem propriedade do kernel." },
-    { "ids": ["DA-02"], "mode": "conversation_guard", "cases": ["M-07", "F-07"], "target_phase": "NEXT-02", "rationale": "O corpus separa realizado e projetado; anti-reingestao permanece teste de kernel." },
-    { "ids": ["DA-03"], "mode": "conversation_guard", "cases": ["S-14", "M-10", "N-02"], "target_phase": "NEXT-02", "rationale": "Coverage parcial nunca vira zero ou total exato." },
-    { "ids": ["DA-04"], "mode": "conversation_guard", "cases": ["S-09", "M-05", "N-08"], "target_phase": "NEXT-02", "rationale": "Compra e pagamento de fatura nao duplicam consumo." },
-    { "ids": ["DA-05"], "mode": "conversation_guard", "cases": ["S-08", "M-04", "N-07"], "target_phase": "NEXT-02", "rationale": "As duas pontas da transferencia sao uma identidade neutra." },
-    { "ids": ["DA-06"], "mode": "mixed", "cases": ["M-01"], "target_phase": "NEXT-02", "rationale": "Pessoas permanecem separadas; igualdade acidental exige propriedade do kernel." },
+    { "ids": ["DA-01", "DA-02"], "mode": "deferred_executable", "cases": [], "target_phase": "NEXT-02", "rationale": "Replay e anti-reingestao exigem propriedades do ingestor/kernel; conversa nao concede verde." },
+    { "ids": ["DA-03", "DA-04", "DA-05", "DA-06"], "mode": "mixed", "cases": ["S-08", "S-09", "S-14", "M-01", "M-04", "M-05", "N-02", "N-07", "N-08"], "target_phase": "NEXT-02", "rationale": "O corpus congela o guard factual; idempotencia e identidade permanecem propriedades executaveis do kernel." },
     { "ids": ["SW-01", "SW-02", "SW-03", "SW-04", "SW-05"], "mode": "deferred_executable", "cases": [], "target_phase": "NEXT-06", "rationale": "Lease, epoch, uncertain, shadow e rollback exigem state-machine e fault injection." },
-    { "ids": ["CP-01"], "mode": "conversation_guard", "cases": ["N-06"], "target_phase": "NEXT-01", "rationale": "Mais de uma proposta exige correlacao inequivoca." },
-    { "ids": ["CP-02"], "mode": "deferred_executable", "cases": [], "target_phase": "NEXT-06", "rationale": "Preview nao entregue depende de delivery ledger." },
-    { "ids": ["CP-03"], "mode": "conversation_guard", "cases": ["N-06"], "target_phase": "NEXT-06", "rationale": "Proposta substituida nao pode ser confirmada." },
-    { "ids": ["CP-04", "CP-05"], "mode": "deferred_executable", "cases": [], "target_phase": "NEXT-06", "rationale": "CAS concorrente e restart apos efeito exigem teste de estado." },
-    { "ids": ["MB-01"], "mode": "mixed", "cases": ["N-03"], "target_phase": "NEXT-01", "rationale": "Escopo forjado e campos proibidos sao bloqueados; profundidade exige teste estrutural." },
-    { "ids": ["MB-02"], "mode": "deferred_executable", "cases": [], "target_phase": "NEXT-01", "rationale": "Correlacao por hash exige teste do envelope do modelo." },
-    { "ids": ["MB-03"], "mode": "conversation_guard", "cases": ["N-03", "M-12"], "target_phase": "NEXT-01", "rationale": "Scope e source sao confiaveis e definidos fora do modelo." },
-    { "ids": ["MB-04"], "mode": "conversation_guard", "cases": ["N-01"], "target_phase": "NEXT-01", "rationale": "Provider indisponivel falha fechado sem estimativa." },
-    { "ids": ["MB-05"], "mode": "deferred_executable", "cases": [], "target_phase": "NEXT-01", "rationale": "Prompt injection em descricao exige fixture estrutural do envelope." },
-    { "ids": ["IM-01", "IM-02", "IM-03", "IM-04", "IM-05", "IM-06", "IM-07", "IM-08", "IM-09", "IM-10", "IM-11", "IM-12"], "mode": "deferred_executable", "cases": ["N-01", "N-03", "M-15", "M-16"], "target_phase": "NEXT-04", "rationale": "O corpus cobre falha fechada e least privilege; manifestos reais exigem testes negativos dos adapters." },
-    { "ids": ["CM-01", "CM-02", "CM-03", "CM-04", "CM-05", "CM-06", "CM-07", "CM-08"], "mode": "corpus_evidence", "cases": ["S-01", "M-12", "M-15", "M-16"], "target_phase": "NEXT-08", "rationale": "As classes de capacidade aparecem no corpus; promoção e cutover continuam gate por dominio." },
-    { "ids": ["TB-01", "TB-02", "TB-03", "TB-04", "TB-05", "TB-06", "TB-07", "TB-08", "TB-09", "TB-10", "TB-11", "TB-12"], "mode": "corpus_evidence", "cases": ["S-01", "M-01", "M-12", "N-01", "N-02"], "target_phase": "NEXT-01", "rationale": "Tools esperadas e falhas fechadas sao especificadas; contagem, loop, tempo e custo dependem do runtime." },
-    { "ids": ["QS-01", "QS-02", "QS-03", "QS-04", "QS-05", "QS-06", "QS-07", "QS-08", "QS-09", "QS-10", "QS-11", "QS-12", "QS-13", "QS-14"], "mode": "corpus_evidence", "cases": ["S-01", "M-01", "F-01", "N-01", "N-04", "N-05"], "target_phase": "NEXT-05", "rationale": "Volume, classes, coverage e guards sao validados agora; latencia, custo, RTO e retencao exigem fases executaveis." }
+    { "ids": ["CP-01"], "mode": "mixed", "cases": ["N-06"], "target_phase": "NEXT-01", "rationale": "O dialogo exige correlacao inequivoca; a sessao versionada ainda requer teste executavel." },
+    { "ids": ["CP-02", "CP-04", "CP-05"], "mode": "deferred_executable", "cases": [], "target_phase": "NEXT-06", "rationale": "Delivery, CAS concorrente e restart apos efeito exigem state-machine/fault injection." },
+    { "ids": ["CP-03"], "mode": "mixed", "cases": ["N-06"], "target_phase": "NEXT-06", "rationale": "O corpus bloqueia proposta antiga; supersession por source version exige teste executavel." },
+    { "ids": ["MB-01", "MB-02", "MB-05"], "mode": "deferred_executable", "cases": [], "target_phase": "NEXT-01", "rationale": "Profundidade, correlacao e prompt injection exigem teste estrutural do envelope." },
+    { "ids": ["MB-03", "MB-04"], "mode": "mixed", "cases": ["N-01", "N-03", "M-12"], "target_phase": "NEXT-01", "rationale": "O corpus congela fail-closed; o boundary server-side ainda requer prova estrutural." },
+    { "ids": ["IM-01", "IM-02", "IM-03", "IM-04", "IM-05", "IM-06", "IM-07", "IM-08", "IM-09", "IM-10", "IM-11", "IM-12"], "mode": "deferred_executable", "cases": [], "target_phase": "NEXT-04", "rationale": "Manifesto read-only e least privilege sao revisados agora; casos negativos reais pertencem aos adapters." },
+    { "ids": ["CM-04", "CM-07", "CM-08"], "mode": "documentary_static", "cases": [], "target_phase": "NEXT-00", "rationale": "Matriz preserva runtime desconhecido, deixa OCR/PDF pos-MVP e governa excecoes de forma documental." },
+    { "ids": ["CM-01", "CM-02", "CM-03", "CM-05", "CM-06"], "mode": "deferred_executable", "cases": [], "target_phase": "NEXT-05..NEXT-10", "rationale": "Beta, cutover, retirement, transferencia de authority e paridade exigem gates executaveis por capability." },
+    { "ids": ["TB-01", "TB-02", "TB-03", "TB-04", "TB-05", "TB-06", "TB-07", "TB-08", "TB-09", "TB-11", "TB-12"], "mode": "deferred_executable", "cases": [], "target_phase": "NEXT-01", "rationale": "Calls, loops, paralelismo, timeout, retry e falhas exigem instrumentacao do agente." },
+    { "ids": ["TB-10"], "mode": "deferred_executable", "cases": [], "target_phase": "NEXT-06", "rationale": "Timeout ambiguo de writer exige state-machine e reconcile." },
+    { "ids": ["QS-01", "QS-02"], "mode": "mixed", "cases": ["S-01", "M-01", "N-01", "N-02", "N-04"], "target_phase": "NEXT-02..NEXT-05", "rationale": "O corpus congela oracles e guards; 100% factual e falso-zero dependem de execucao." },
+    { "ids": ["QS-03", "QS-04"], "mode": "deferred_executable", "cases": [], "target_phase": "NEXT-03", "rationale": "Latencia e custo requerem telemetria executada." },
+    { "ids": ["QS-05"], "mode": "deferred_executable", "cases": [], "target_phase": "NEXT-05..NEXT-09", "rationale": "Janela e volumes requerem observacao executada, nunca tempo vazio." },
+    { "ids": ["QS-06"], "mode": "deferred_executable", "cases": [], "target_phase": "NEXT-06", "rationale": "Stale epoch sem efeito exige fault injection." },
+    { "ids": ["QS-07", "QS-08", "QS-09", "QS-10", "QS-11", "QS-12", "QS-13"], "mode": "deferred_executable", "cases": [], "target_phase": "NEXT-09..NEXT-10", "rationale": "Rollback, backup, restore, retencao, provider e uncertain exigem provas operacionais." },
+    { "ids": ["QS-14"], "mode": "deferred_executable", "cases": [], "target_phase": "NEXT-05", "rationale": "Paridade de claim fingerprint exige dashboard e WhatsApp executaveis." }
   ],
   "cases": [
     {
       "id": "S-01", "class": "simple", "title": "Gasto familiar no mes",
       "dimensions": ["person_family", "period", "time_basis"],
       "fixture_refs": ["family-example", "source-complete-june"],
-      "turns": [{ "user": "Quanto a Familia Exemplo gastou em junho?", "expected_tools": ["transactions.summarize"], "expected_claims": ["scope=family-example", "period=2042-06", "time_basis=event_date", "coverage=complete"] }],
+      "turns": [{ "user": "Quanto a Familia Exemplo gastou em junho?", "expected_tools": ["transactions.summarize"], "expected_claims": ["scope=family-example", "period=2042-06", "time_basis=event_date", "coverage=complete"], "oracle_ref": "S-01#1" }],
       "expected_outcome": "answer", "must_not": ["include neutral movements", "invent missing values"]
     },
     {
       "id": "S-02", "class": "simple", "title": "Gasto individual",
       "dimensions": ["person_family", "period"],
       "fixture_refs": ["person-a", "source-complete-june"],
-      "turns": [{ "user": "Quanto a Pessoa A gastou neste mes?", "expected_tools": ["transactions.summarize"], "expected_claims": ["scope=person-a", "period=2042-06"] }],
+      "turns": [{ "user": "Quanto a Pessoa A gastou neste mes?", "expected_tools": ["transactions.summarize"], "expected_claims": ["scope=person-a", "period=2042-06"], "oracle_ref": "S-02#1" }],
       "expected_outcome": "answer", "must_not": ["include person-b"]
     },
     {
       "id": "S-03", "class": "simple", "title": "Resumo por categoria",
       "dimensions": ["category", "period"],
       "fixture_refs": ["food.market", "source-complete-june"],
-      "turns": [{ "user": "Quanto gastamos em supermercado em junho?", "expected_tools": ["transactions.summarize"], "expected_claims": ["category=food.market", "value_minor=30000", "coverage=complete"] }],
+      "turns": [{ "user": "Quanto gastamos em supermercado em junho?", "expected_tools": ["transactions.summarize"], "expected_claims": ["category=food.market", "value_minor=30000", "coverage=complete"], "oracle_ref": "S-03#1" }],
       "expected_outcome": "answer", "must_not": ["count salary"]
     },
     {
       "id": "S-04", "class": "simple", "title": "Extrato de conta",
       "dimensions": ["account_card", "period"],
       "fixture_refs": ["account-a", "evt-market-a", "evt-transfer-out"],
-      "turns": [{ "user": "Mostre as movimentacoes da Conta Principal A em junho.", "expected_tools": ["transactions.search"], "expected_claims": ["account=account-a", "period=2042-06"] }],
+      "turns": [{ "user": "Mostre as movimentacoes da Conta Principal A em junho.", "expected_tools": ["transactions.search"], "expected_claims": ["account=account-a", "period=2042-06"], "oracle_ref": "S-04#1" }],
       "expected_outcome": "answer", "must_not": ["substitute projection for observation"]
     },
     {
       "id": "S-05", "class": "simple", "title": "Fatura de cartao",
       "dimensions": ["account_card", "time_basis"],
       "fixture_refs": ["card-blue", "evt-installment-1"],
-      "turns": [{ "user": "Qual e a fatura do Cartao Azul com vencimento em junho?", "expected_tools": ["card_statement.get"], "expected_claims": ["card=card-blue", "time_basis=statement_due_date"] }],
+      "turns": [{ "user": "Qual e a fatura do Cartao Azul com vencimento em junho?", "expected_tools": ["card_statement.get"], "expected_claims": ["card=card-blue", "time_basis=statement_due_date"], "oracle_ref": "S-05#1" }],
       "expected_outcome": "answer", "must_not": ["use event-date total as invoice total"]
     },
     {
       "id": "S-06", "class": "simple", "title": "Saldo na data",
       "dimensions": ["account_card", "time_basis"],
       "fixture_refs": ["account-a"],
-      "turns": [{ "user": "Qual era o saldo da Conta Principal A em 14 de junho?", "expected_tools": ["balances.get_as_of"], "expected_claims": ["account=account-a", "as_of=2042-06-14"] }],
+      "turns": [{ "user": "Qual era o saldo da Conta Principal A em 14 de junho?", "expected_tools": ["balances.get_as_of"], "expected_claims": ["account=account-a", "as_of=2042-06-14"], "oracle_ref": "S-06#1" }],
       "expected_outcome": "answer", "must_not": ["present current balance as historical"]
     },
     {
       "id": "S-07", "class": "simple", "title": "Lista de cartoes",
       "dimensions": ["person_family", "account_card"],
       "fixture_refs": ["person-a", "card-blue", "card-offline"],
-      "turns": [{ "user": "Quais cartoes pertencem a Pessoa A?", "expected_tools": ["cards.list"], "expected_claims": ["owner=person-a", "cards=card-blue,card-offline"] }],
+      "turns": [{ "user": "Quais cartoes pertencem a Pessoa A?", "expected_tools": ["cards.list"], "expected_claims": ["owner=person-a", "cards=card-blue,card-offline"], "oracle_ref": "S-07#1" }],
       "expected_outcome": "answer", "must_not": ["include card-green"]
     },
     {
       "id": "S-08", "class": "simple", "title": "Transferencia interna neutra",
       "dimensions": ["transfer", "account_card", "time_basis"],
       "fixture_refs": ["evt-transfer-out", "evt-transfer-in"],
-      "turns": [{ "user": "A transferencia para a reserva aumentou meu gasto?", "expected_tools": ["transactions.search", "transactions.summarize"], "expected_claims": ["transfer_pair=transfer-01", "consumption_effect_minor=0"] }],
+      "turns": [{ "user": "A transferencia para a reserva aumentou meu gasto?", "expected_tools": ["transactions.search", "transactions.summarize"], "expected_claims": ["transfer_pair=transfer-01", "consumption_effect_minor=0"], "oracle_ref": "S-08#1" }],
       "expected_outcome": "answer", "must_not": ["count both legs as expense"]
     },
     {
       "id": "S-09", "class": "simple", "title": "Pagamento de fatura neutro",
       "dimensions": ["invoice_payment", "account_card", "category"],
       "fixture_refs": ["evt-invoice-payment", "card-blue"],
-      "turns": [{ "user": "O pagamento da fatura entrou como nova despesa?", "expected_tools": ["transactions.search", "card_statement.get"], "expected_claims": ["event=evt-invoice-payment", "consumption_effect_minor=0"] }],
+      "turns": [{ "user": "O pagamento da fatura entrou como nova despesa?", "expected_tools": ["transactions.search", "card_statement.get"], "expected_claims": ["event=evt-invoice-payment", "consumption_effect_minor=0"], "oracle_ref": "S-09#1" }],
       "expected_outcome": "answer", "must_not": ["double count card purchases"]
     },
     {
       "id": "S-10", "class": "simple", "title": "Estorno ligado a compra",
       "dimensions": ["refund", "category", "period"],
       "fixture_refs": ["evt-restaurant-b", "evt-refund-b"],
-      "turns": [{ "user": "O restaurante da Pessoa B foi estornado?", "expected_tools": ["transactions.search"], "expected_claims": ["compensates=evt-restaurant-b", "net_minor=0"] }],
+      "turns": [{ "user": "O restaurante da Pessoa B foi estornado?", "expected_tools": ["transactions.search"], "expected_claims": ["compensates=evt-restaurant-b", "net_minor=0"], "oracle_ref": "S-10#1" }],
       "expected_outcome": "answer", "must_not": ["treat refund as income"]
     },
     {
       "id": "S-11", "class": "simple", "title": "Parcelas futuras",
       "dimensions": ["projection", "account_card", "time_basis"],
       "fixture_refs": ["evt-installment-1", "evt-installment-2", "evt-installment-3"],
-      "turns": [{ "user": "Quais parcelas ainda faltam no Cartao Azul?", "expected_tools": ["installments.get_schedule"], "expected_claims": ["realized_count=1", "projected_count=2"] }],
+      "turns": [{ "user": "Quais parcelas ainda faltam no Cartao Azul?", "expected_tools": ["installments.get_schedule"], "expected_claims": ["realized_count=1", "projected_count=2"], "oracle_ref": "S-11#1" }],
       "expected_outcome": "answer", "must_not": ["label future installments realized"]
     },
     {
       "id": "S-12", "class": "simple", "title": "Saldo zero explicito",
       "dimensions": ["zero", "account_card", "time_basis"],
-      "fixture_refs": ["account-reserve", "evt-transfer-in"],
-      "turns": [{ "user": "Se a Reserva Exemplo estiver zerada, diga zero sem omitir.", "expected_tools": ["balances.get_as_of"], "expected_claims": ["zero_is_value=true"] }],
+      "fixture_refs": ["account-reserve", "source-complete-june"],
+      "turns": [{ "user": "Qual era o saldo da Reserva Exemplo em 11 de junho? Se estiver zerada, diga zero.", "expected_tools": ["balances.get_as_of"], "expected_claims": ["account=account-reserve", "as_of=2042-06-11", "balance_minor=0"], "oracle_ref": "S-12#1" }],
       "expected_outcome": "answer", "must_not": ["translate zero to unavailable"]
     },
     {
       "id": "S-13", "class": "simple", "title": "Categoria vazia com cobertura completa",
       "dimensions": ["empty", "category", "source_coverage"],
       "fixture_refs": ["source-empty-health"],
-      "turns": [{ "user": "Ha gastos de saude em junho?", "expected_tools": ["transactions.search", "financial_sources.get_coverage"], "expected_claims": ["event_count=0", "coverage=complete"] }],
+      "turns": [{ "user": "Ha gastos de saude em junho?", "expected_tools": ["transactions.search", "financial_sources.get_coverage"], "expected_claims": ["event_count=0", "coverage=complete"], "oracle_ref": "S-13#1" }],
       "expected_outcome": "answer", "must_not": ["confuse empty with missing data"]
     },
     {
       "id": "S-14", "class": "simple", "title": "Periodo incompleto",
       "dimensions": ["incomplete", "period", "source_coverage"],
       "fixture_refs": ["source-partial-may"],
-      "turns": [{ "user": "Quanto gastei em maio?", "expected_tools": ["financial_sources.get_coverage", "transactions.summarize"], "expected_claims": ["period=2042-05", "coverage=partial"] }],
+      "turns": [{ "user": "Quanto gastei em maio?", "expected_tools": ["financial_sources.get_coverage", "transactions.summarize"], "expected_claims": ["period=2042-05", "coverage=partial"], "oracle_ref": "S-14#1" }],
       "expected_outcome": "insufficient", "must_not": ["present partial total as complete"]
     },
     {
       "id": "S-15", "class": "simple", "title": "Fonte indisponivel",
       "dimensions": ["unavailable", "account_card", "source_coverage"],
       "fixture_refs": ["card-offline", "source-offline-card"],
-      "turns": [{ "user": "Qual e a fatura atual do Cartao Offline?", "expected_tools": ["financial_sources.get_coverage"], "expected_claims": ["entity=card-offline", "coverage=unavailable"] }],
+      "turns": [{ "user": "Qual e a fatura atual do Cartao Offline?", "expected_tools": ["financial_sources.get_coverage"], "expected_claims": ["entity=card-offline", "coverage=unavailable"], "oracle_ref": "S-15#1" }],
       "expected_outcome": "insufficient", "must_not": ["reuse stale card value"]
     },
     {
       "id": "S-16", "class": "simple", "title": "Cobertura declarada",
       "dimensions": ["source_coverage", "period", "time_basis"],
       "fixture_refs": ["source-complete-june"],
-      "turns": [{ "user": "Os dados de junho estao completos?", "expected_tools": ["financial_sources.get_coverage"], "expected_claims": ["period=2042-06", "coverage=complete"] }],
+      "turns": [{ "user": "Os dados de junho estao completos?", "expected_tools": ["financial_sources.get_coverage"], "expected_claims": ["period=2042-06", "coverage=complete"], "oracle_ref": "S-16#1" }],
       "expected_outcome": "answer", "must_not": ["infer coverage from nonzero total"]
     },
-
     {
       "id": "M-01", "class": "multi_tool", "title": "Comparacao familiar por pessoa",
       "dimensions": ["person_family", "category", "period"],
       "fixture_refs": ["family-example", "person-a", "person-b", "source-complete-june"],
-      "turns": [{ "user": "Compare os gastos de Pessoa A e Pessoa B em junho e diga quem gastou mais.", "expected_tools": ["financial_sources.get_coverage", "transactions.summarize"], "expected_claims": ["claims_by_person", "ranking_from_kernel", "coverage=complete"] }],
+      "turns": [{ "user": "Compare os gastos de Pessoa A e Pessoa B em junho e diga quem gastou mais.", "expected_tools": ["financial_sources.get_coverage", "transactions.summarize"], "expected_claims": ["claims_by_person", "ranking_from_kernel", "coverage=complete"], "oracle_ref": "M-01#1" }],
       "expected_outcome": "answer", "must_not": ["calculate ranking from prose"]
     },
     {
       "id": "M-02", "class": "multi_tool", "title": "Conta versus cartao",
       "dimensions": ["account_card", "period", "time_basis"],
       "fixture_refs": ["account-a", "card-blue", "source-complete-june"],
-      "turns": [{ "user": "Separe meus gastos de junho entre Conta Principal A e Cartao Azul.", "expected_tools": ["transactions.summarize", "card_statement.get"], "expected_claims": ["breakdown_by_instrument", "time_basis_declared"] }],
+      "turns": [{ "user": "Separe meus gastos de junho entre Conta Principal A e Cartao Azul.", "expected_tools": ["transactions.summarize", "card_statement.get"], "expected_claims": ["breakdown_by_instrument", "time_basis_declared"], "oracle_ref": "M-02#1" }],
       "expected_outcome": "answer", "must_not": ["mix statement and event-date without label"]
     },
     {
       "id": "M-03", "class": "multi_tool", "title": "Categorias flexiveis e essenciais",
       "dimensions": ["category", "person_family", "period"],
       "fixture_refs": ["food.snack", "food.market", "leisure.cinema", "family-example"],
-      "turns": [{ "user": "Quanto foi flexivel e quanto foi essencial para a familia em junho?", "expected_tools": ["transactions.summarize", "budgets.get_cycle"], "expected_claims": ["classification_from_registry", "neutral_excluded"] }],
+      "turns": [{ "user": "Quanto foi flexivel e quanto foi essencial para a familia em junho?", "expected_tools": ["transactions.summarize", "budgets.get_cycle"], "expected_claims": ["classification_from_registry", "neutral_excluded"], "oracle_ref": "M-03#1" }],
       "expected_outcome": "answer", "must_not": ["classify transfer as consumption"]
     },
     {
       "id": "M-04", "class": "multi_tool", "title": "Transferencia e saldo",
       "dimensions": ["transfer", "account_card", "time_basis"],
       "fixture_refs": ["evt-transfer-out", "evt-transfer-in", "account-a", "account-reserve"],
-      "turns": [{ "user": "Explique a transferencia para a reserva e mostre o efeito nos dois saldos e no gasto.", "expected_tools": ["transactions.search", "balances.get_as_of", "transactions.summarize"], "expected_claims": ["paired_transfer", "consumption_effect_minor=0"] }],
+      "turns": [{ "user": "Explique a transferencia para a reserva e mostre o efeito nos dois saldos e no gasto.", "expected_tools": ["transactions.search", "balances.get_as_of", "transactions.summarize"], "expected_claims": ["paired_transfer", "consumption_effect_minor=0"], "oracle_ref": "M-04#1" }],
       "expected_outcome": "answer", "must_not": ["duplicate economic identity"]
     },
     {
       "id": "M-05", "class": "multi_tool", "title": "Fatura e pagamento",
       "dimensions": ["invoice_payment", "account_card", "period"],
       "fixture_refs": ["evt-invoice-payment", "card-blue", "account-a"],
-      "turns": [{ "user": "Mostre a fatura do Cartao Azul e o pagamento correspondente sem dupla contagem.", "expected_tools": ["card_statement.get", "transactions.search", "transactions.summarize"], "expected_claims": ["invoice_payment_link", "net_new_consumption_minor=0"] }],
+      "turns": [{ "user": "Mostre a fatura do Cartao Azul e o pagamento correspondente sem dupla contagem.", "expected_tools": ["card_statement.get", "transactions.search", "transactions.summarize"], "expected_claims": ["invoice_payment_link", "net_new_consumption_minor=0"], "oracle_ref": "M-05#1" }],
       "expected_outcome": "answer", "must_not": ["add payment to expenses"]
     },
     {
       "id": "M-06", "class": "multi_tool", "title": "Estorno e categoria liquida",
       "dimensions": ["refund", "category", "person_family"],
       "fixture_refs": ["evt-restaurant-b", "evt-refund-b", "person-b"],
-      "turns": [{ "user": "Quanto a Pessoa B gastou liquido em restaurante depois do estorno?", "expected_tools": ["transactions.search", "transactions.summarize"], "expected_claims": ["gross_minor=4500", "refund_minor=4500", "net_minor=0"] }],
+      "turns": [{ "user": "Quanto a Pessoa B gastou liquido em restaurante depois do estorno?", "expected_tools": ["transactions.search", "transactions.summarize"], "expected_claims": ["gross_minor=4500", "refund_minor=4500", "net_minor=0"], "oracle_ref": "M-06#1" }],
       "expected_outcome": "answer", "must_not": ["treat compensation as salary"]
     },
     {
       "id": "M-07", "class": "multi_tool", "title": "Realizado versus projetado",
       "dimensions": ["projection", "period", "time_basis"],
       "fixture_refs": ["evt-installment-1", "evt-installment-2", "evt-installment-3", "evt-bill-projected"],
-      "turns": [{ "user": "Separe o que ja foi realizado do que esta projetado para os proximos dois meses.", "expected_tools": ["transactions.summarize", "installments.get_schedule", "forecasts.run"], "expected_claims": ["realized_and_projected_separate", "forecast_horizon=2_months"] }],
+      "turns": [{ "user": "Separe o que ja foi realizado do que esta projetado para os proximos dois meses.", "expected_tools": ["transactions.summarize", "installments.get_schedule", "forecasts.run"], "expected_claims": ["realized_and_projected_separate", "forecast_horizon=2_months"], "oracle_ref": "M-07#1" }],
       "expected_outcome": "answer", "must_not": ["promote projection to realized"]
     },
     {
       "id": "M-08", "class": "multi_tool", "title": "Limite com realizado zero",
       "dimensions": ["zero", "category", "period"],
       "fixture_refs": ["budget-snack", "source-complete-june"],
-      "turns": [{ "user": "Se eu filtrar um membro sem lanches, quanto resta do limite de lanches?", "expected_tools": ["category_limits.get_status", "transactions.summarize"], "expected_claims": ["spent_minor=0", "remaining_minor=20000"] }],
+      "turns": [{ "user": "Se eu filtrar um membro sem lanches, quanto resta do limite de lanches?", "expected_tools": ["category_limits.get_status", "transactions.summarize"], "expected_claims": ["spent_minor=0", "remaining_minor=20000"], "oracle_ref": "M-08#1" }],
       "expected_outcome": "answer", "must_not": ["omit zero numerator"]
     },
     {
       "id": "M-09", "class": "multi_tool", "title": "Busca vazia versus fonte completa",
       "dimensions": ["empty", "source_coverage", "category"],
       "fixture_refs": ["source-empty-health", "source-complete-june"],
-      "turns": [{ "user": "Procure saude em junho e confirme se vazio significa nenhum gasto.", "expected_tools": ["financial_sources.get_coverage", "transactions.search"], "expected_claims": ["coverage=complete", "event_count=0"] }],
+      "turns": [{ "user": "Procure saude em junho e confirme se vazio significa nenhum gasto.", "expected_tools": ["financial_sources.get_coverage", "transactions.search"], "expected_claims": ["coverage=complete", "event_count=0"], "oracle_ref": "M-09#1" }],
       "expected_outcome": "answer", "must_not": ["claim source failure"]
     },
     {
       "id": "M-10", "class": "multi_tool", "title": "Comparacao com mes parcial",
       "dimensions": ["incomplete", "period", "source_coverage"],
       "fixture_refs": ["source-partial-may", "source-complete-june"],
-      "turns": [{ "user": "Compare maio e junho.", "expected_tools": ["financial_sources.get_coverage", "transactions.summarize"], "expected_claims": ["may=partial", "june=complete", "comparison_not_materialized"] }],
+      "turns": [{ "user": "Compare maio e junho.", "expected_tools": ["financial_sources.get_coverage", "transactions.summarize"], "expected_claims": ["may=partial", "june=complete", "comparison_not_materialized"], "oracle_ref": "M-10#1" }],
       "expected_outcome": "insufficient", "must_not": ["rank partial month against complete month"]
     },
     {
       "id": "M-11", "class": "multi_tool", "title": "Cartao indisponivel em consolidado",
       "dimensions": ["unavailable", "account_card", "source_coverage"],
       "fixture_refs": ["card-blue", "card-offline", "source-offline-card"],
-      "turns": [{ "user": "Some todos os cartoes da Pessoa A, inclusive o Offline.", "expected_tools": ["cards.list", "financial_sources.get_coverage", "card_statement.get"], "expected_claims": ["coverage=unavailable_for_card-offline", "aggregate=incomplete"] }],
+      "turns": [{ "user": "Some todos os cartoes da Pessoa A, inclusive o Offline.", "expected_tools": ["cards.list", "financial_sources.get_coverage", "card_statement.get"], "expected_claims": ["coverage=unavailable_for_card-offline", "aggregate=incomplete"], "oracle_ref": "M-11#1" }],
       "expected_outcome": "insufficient", "must_not": ["return false complete total"]
     },
     {
       "id": "M-12", "class": "multi_tool", "title": "Cobertura antes do total",
       "dimensions": ["source_coverage", "person_family", "period"],
       "fixture_refs": ["family-example", "source-complete-june"],
-      "turns": [{ "user": "Quero o total familiar de junho apenas se todas as fontes estiverem completas.", "expected_tools": ["financial_sources.get_coverage", "accounts.list", "cards.list", "transactions.summarize"], "expected_claims": ["coverage_gate_passed", "scope=family-example"] }],
+      "turns": [{ "user": "Quero o total familiar de junho apenas se todas as fontes estiverem completas.", "expected_tools": ["financial_sources.get_coverage", "accounts.list", "cards.list", "transactions.summarize"], "expected_claims": ["coverage_gate_passed", "scope=family-example"], "oracle_ref": "M-12#1" }],
       "expected_outcome": "answer", "must_not": ["summarize before scope and coverage"]
     },
     {
       "id": "M-13", "class": "multi_tool", "title": "Orcamento e ritmo",
       "dimensions": ["category", "period", "projection"],
       "fixture_refs": ["budget-snack", "budget-leisure", "source-complete-june"],
-      "turns": [{ "user": "Como estao os limites de lanche e cinema e qual o ritmo seguro ate o fim do mes?", "expected_tools": ["category_limits.get_status", "forecasts.run"], "expected_claims": ["limits_from_kernel", "pace_from_kernel"] }],
+      "turns": [{ "user": "Como estao os limites de lanche e cinema e qual o ritmo seguro ate o fim do mes?", "expected_tools": ["category_limits.get_status", "forecasts.run"], "expected_claims": ["limits_from_kernel", "pace_from_kernel"], "oracle_ref": "M-13#1" }],
       "expected_outcome": "answer", "must_not": ["model arithmetic"]
     },
     {
       "id": "M-14", "class": "multi_tool", "title": "Renda e contas a pagar",
       "dimensions": ["person_family", "period", "projection"],
       "fixture_refs": ["evt-salary-a", "bill-rent-b", "evt-bill-projected"],
-      "turns": [{ "user": "Compare a renda recebida com as contas ainda a pagar neste mes.", "expected_tools": ["income.summarize", "bills.list_due", "forecasts.run"], "expected_claims": ["income_realized", "bills_open", "coverage_declared"] }],
+      "turns": [{ "user": "Compare a renda recebida com as contas ainda a pagar neste mes.", "expected_tools": ["income.summarize", "bills.list_due", "forecasts.run"], "expected_claims": ["income_realized", "bills_open", "coverage_declared"], "oracle_ref": "M-14#1" }],
       "expected_outcome": "answer", "must_not": ["label open bill paid"]
     },
     {
       "id": "M-15", "class": "multi_tool", "title": "Agenda e contas",
       "dimensions": ["period", "time_basis", "person_family"],
       "fixture_refs": ["bill-rent-b", "person-b"],
-      "turns": [{ "user": "Quais contas da Pessoa B vencem nos proximos 15 dias e quais lembretes existem?", "expected_tools": ["bills.list_due", "reminders.list", "calendar.events.list"], "expected_claims": ["window=2042-06-15..2042-06-30", "scope=person-b"] }],
+      "turns": [{ "user": "Quais contas da Pessoa B vencem nos proximos 15 dias e quais lembretes existem?", "expected_tools": ["bills.list_due", "reminders.list", "calendar.events.list"], "expected_claims": ["window=2042-06-15..2042-06-30", "scope=person-b"], "oracle_ref": "M-15#1" }],
       "expected_outcome": "answer", "must_not": ["create reminder"]
     },
     {
       "id": "M-16", "class": "multi_tool", "title": "Regra de estabelecimento como sugestao",
       "dimensions": ["category", "person_family", "source_coverage"],
-      "fixture_refs": ["food.snack", "family-example"],
-      "turns": [{ "user": "Veja se existe regra para Mercado Aurora e mostre compras semelhantes, sem salvar nada.", "expected_tools": ["merchant_rules.lookup", "transactions.search"], "expected_claims": ["rule_is_metadata_only", "side_effects=0"] }],
+      "fixture_refs": ["rule-market-example", "evt-market-a", "family-example"],
+      "turns": [{ "user": "Veja se existe regra para Mercado Exemplo e mostre compras semelhantes, sem salvar nada.", "expected_tools": ["merchant_rules.lookup", "transactions.search"], "expected_claims": ["rule=rule-market-example", "similar_events=evt-market-a", "side_effects=0"], "oracle_ref": "M-16#1" }],
       "expected_outcome": "answer", "must_not": ["create rule", "commit transaction"]
     },
-
     {
       "id": "F-01", "class": "follow_up", "title": "Follow-up troca pessoa",
       "dimensions": ["person_family", "period", "category"],
       "fixture_refs": ["person-a", "person-b", "food.snack"],
       "turns": [
-        { "user": "Quanto a Pessoa A gastou em lanche em junho?", "expected_tools": ["transactions.summarize"], "expected_claims": ["person=person-a", "category=food.snack"] },
-        { "user": "E a Pessoa B?", "expected_tools": ["transactions.summarize"], "expected_claims": ["person=person-b", "category=food.snack", "period=2042-06"] }
+        { "user": "Quanto a Pessoa A gastou em lanche em junho?", "expected_tools": ["transactions.summarize"], "expected_claims": ["person=person-a", "category=food.snack"], "oracle_ref": "F-01#1" },
+        { "user": "E a Pessoa B?", "expected_tools": ["transactions.summarize"], "expected_claims": ["person=person-b", "category=food.snack", "period=2042-06"], "oracle_ref": "F-01#2" }
       ],
       "expected_outcome": "answer", "must_not": ["lose category or period"]
     },
@@ -274,8 +269,8 @@
       "dimensions": ["period", "time_basis", "incomplete"],
       "fixture_refs": ["source-complete-june", "source-partial-may"],
       "turns": [
-        { "user": "Quanto gastei em junho pela data da compra?", "expected_tools": ["transactions.summarize"], "expected_claims": ["period=2042-06", "time_basis=event_date"] },
-        { "user": "E em maio, com a mesma base?", "expected_tools": ["financial_sources.get_coverage"], "expected_claims": ["period=2042-05", "time_basis=event_date", "coverage=partial"] }
+        { "user": "Quanto gastei em junho pela data da compra?", "expected_tools": ["transactions.summarize"], "expected_claims": ["period=2042-06", "time_basis=event_date"], "oracle_ref": "F-02#1" },
+        { "user": "E em maio, com a mesma base?", "expected_tools": ["financial_sources.get_coverage"], "expected_claims": ["period=2042-05", "time_basis=event_date", "coverage=partial"], "oracle_ref": "F-02#2" }
       ],
       "expected_outcome": "insufficient", "must_not": ["carry complete coverage from june"]
     },
@@ -284,8 +279,8 @@
       "dimensions": ["account_card", "period", "time_basis"],
       "fixture_refs": ["account-a", "card-blue"],
       "turns": [
-        { "user": "Mostre os gastos da Conta Principal A em junho.", "expected_tools": ["transactions.summarize"], "expected_claims": ["account=account-a"] },
-        { "user": "Agora somente o Cartao Azul, pela competencia da fatura.", "expected_tools": ["card_statement.get"], "expected_claims": ["card=card-blue", "time_basis=statement_competence"] }
+        { "user": "Mostre os gastos da Conta Principal A em junho.", "expected_tools": ["transactions.summarize"], "expected_claims": ["account=account-a"], "oracle_ref": "F-03#1" },
+        { "user": "Agora somente o Cartao Azul, pela competencia da fatura.", "expected_tools": ["card_statement.get"], "expected_claims": ["card=card-blue", "time_basis=statement_competence"], "oracle_ref": "F-03#2" }
       ],
       "expected_outcome": "answer", "must_not": ["retain account filter"]
     },
@@ -294,8 +289,8 @@
       "dimensions": ["category", "period", "projection"],
       "fixture_refs": ["food.snack", "budget-snack"],
       "turns": [
-        { "user": "Quanto gastei em lanche?", "expected_tools": ["transactions.summarize"], "expected_claims": ["category=food.snack"] },
-        { "user": "Quanto ainda posso gastar ate o fim do ciclo?", "expected_tools": ["category_limits.get_status", "forecasts.run"], "expected_claims": ["category=food.snack", "remaining_from_kernel"] }
+        { "user": "Quanto gastei em lanche?", "expected_tools": ["transactions.summarize"], "expected_claims": ["category=food.snack"], "oracle_ref": "F-04#1" },
+        { "user": "Quanto ainda posso gastar ate o fim do ciclo?", "expected_tools": ["category_limits.get_status", "forecasts.run"], "expected_claims": ["category=food.snack", "remaining_from_kernel"], "oracle_ref": "F-04#2" }
       ],
       "expected_outcome": "answer", "must_not": ["apply another category budget"]
     },
@@ -304,8 +299,8 @@
       "dimensions": ["person_family", "category", "period"],
       "fixture_refs": ["person-a", "family-example", "food.market"],
       "turns": [
-        { "user": "Meus gastos de supermercado em junho.", "expected_tools": ["transactions.summarize"], "expected_claims": ["scope=person-a"] },
-        { "user": "Inclua a familia toda.", "expected_tools": ["transactions.summarize"], "expected_claims": ["scope=family-example", "category=food.market", "period=2042-06"] }
+        { "user": "Meus gastos de supermercado em junho.", "expected_tools": ["transactions.summarize"], "expected_claims": ["scope=person-a"], "oracle_ref": "F-05#1" },
+        { "user": "Inclua a familia toda.", "expected_tools": ["transactions.summarize"], "expected_claims": ["scope=family-example", "category=food.market", "period=2042-06"], "oracle_ref": "F-05#2" }
       ],
       "expected_outcome": "answer", "must_not": ["include family-outside"]
     },
@@ -314,8 +309,8 @@
       "dimensions": ["refund", "category", "time_basis"],
       "fixture_refs": ["evt-restaurant-b", "evt-refund-b"],
       "turns": [
-        { "user": "Mostre a compra do restaurante da Pessoa B.", "expected_tools": ["transactions.search"], "expected_claims": ["event=evt-restaurant-b"] },
-        { "user": "Ela foi estornada depois?", "expected_tools": ["transactions.search"], "expected_claims": ["compensation=evt-refund-b", "net_minor=0"] }
+        { "user": "Mostre a compra do restaurante da Pessoa B.", "expected_tools": ["transactions.search"], "expected_claims": ["event=evt-restaurant-b"], "oracle_ref": "F-06#1" },
+        { "user": "Ela foi estornada depois?", "expected_tools": ["transactions.search"], "expected_claims": ["compensation=evt-refund-b", "net_minor=0"], "oracle_ref": "F-06#2" }
       ],
       "expected_outcome": "answer", "must_not": ["search unrelated restaurant"]
     },
@@ -324,8 +319,8 @@
       "dimensions": ["projection", "period", "time_basis"],
       "fixture_refs": ["evt-installment-1", "evt-installment-2", "evt-installment-3"],
       "turns": [
-        { "user": "Quanto da compra parcelada ja foi realizado?", "expected_tools": ["installments.get_schedule"], "expected_claims": ["realized_count=1"] },
-        { "user": "E quanto falta projetado?", "expected_tools": ["installments.get_schedule"], "expected_claims": ["projected_count=2", "projected_minor=20000"] }
+        { "user": "Quanto da compra parcelada ja foi realizado?", "expected_tools": ["installments.get_schedule"], "expected_claims": ["realized_count=1"], "oracle_ref": "F-07#1" },
+        { "user": "E quanto falta projetado?", "expected_tools": ["installments.get_schedule"], "expected_claims": ["projected_count=2", "projected_minor=20000"], "oracle_ref": "F-07#2" }
       ],
       "expected_outcome": "answer", "must_not": ["merge realized and projected"]
     },
@@ -334,66 +329,65 @@
       "dimensions": ["source_coverage", "unavailable", "account_card"],
       "fixture_refs": ["card-offline", "source-offline-card"],
       "turns": [
-        { "user": "Qual e o total dos meus cartoes?", "expected_tools": ["cards.list", "financial_sources.get_coverage"], "expected_claims": ["aggregate=incomplete"] },
-        { "user": "Qual fonte esta impedindo a resposta?", "expected_tools": ["financial_sources.get_coverage"], "expected_claims": ["entity=card-offline", "coverage=unavailable"] }
+        { "user": "Qual e o total dos meus cartoes?", "expected_tools": ["cards.list", "financial_sources.get_coverage"], "expected_claims": ["aggregate=incomplete"], "oracle_ref": "F-08#1" },
+        { "user": "Qual fonte esta impedindo a resposta?", "expected_tools": ["financial_sources.get_coverage"], "expected_claims": ["entity=card-offline", "coverage=unavailable"], "oracle_ref": "F-08#2" }
       ],
       "expected_outcome": "insufficient", "must_not": ["invent offline total"]
     },
-
     {
       "id": "N-01", "class": "negative", "title": "Falha fechada por indisponibilidade",
       "dimensions": ["unavailable", "source_coverage", "account_card"],
       "fixture_refs": ["card-offline", "source-offline-card"],
-      "turns": [{ "user": "Mesmo sem acesso ao Cartao Offline, estime a fatura.", "expected_tools": ["financial_sources.get_coverage"], "expected_claims": ["coverage=unavailable"] }],
+      "turns": [{ "user": "Mesmo sem acesso ao Cartao Offline, estime a fatura.", "expected_tools": ["financial_sources.get_coverage"], "expected_claims": ["coverage=unavailable"], "oracle_ref": "N-01#1" }],
       "expected_outcome": "refuse_estimate", "must_not": ["guess", "use stale value", "call writer"]
     },
     {
       "id": "N-02", "class": "negative", "title": "Falha fechada por cobertura parcial",
       "dimensions": ["incomplete", "period", "source_coverage"],
       "fixture_refs": ["source-partial-may"],
-      "turns": [{ "user": "Diga o total exato de maio mesmo com dados parciais.", "expected_tools": ["financial_sources.get_coverage"], "expected_claims": ["coverage=partial"] }],
+      "turns": [{ "user": "Diga o total exato de maio mesmo com dados parciais.", "expected_tools": ["financial_sources.get_coverage"], "expected_claims": ["coverage=partial"], "oracle_ref": "N-02#1" }],
       "expected_outcome": "insufficient", "must_not": ["claim exactness", "fallback to another source silently"]
     },
     {
       "id": "N-03", "class": "negative", "title": "Escopo externo bloqueado",
       "dimensions": ["person_family", "source_coverage"],
       "fixture_refs": ["family-example", "family-outside", "person-c"],
-      "turns": [{ "user": "Mostre os gastos da Pessoa C, que pertence a outra familia.", "expected_tools": [], "expected_claims": ["scope_denied=family-outside"] }],
+      "turns": [{ "user": "Mostre os gastos da Pessoa C, que pertence a outra familia.", "expected_tools": [], "expected_claims": ["scope_denied=family-outside"], "oracle_ref": "N-03#1" }],
       "expected_outcome": "blocked", "must_not": ["return cross-family data", "forge family_id"]
     },
     {
       "id": "N-04", "class": "negative", "title": "Zero e vazio nao sao erro",
       "dimensions": ["zero", "empty", "category", "source_coverage"],
       "fixture_refs": ["source-empty-health"],
-      "turns": [{ "user": "Se nao houver saude, responda que a fonte falhou.", "expected_tools": ["financial_sources.get_coverage", "transactions.search"], "expected_claims": ["event_count=0", "coverage=complete"] }],
+      "turns": [{ "user": "Se nao houver saude, responda que a fonte falhou.", "expected_tools": ["financial_sources.get_coverage", "transactions.search"], "expected_claims": ["event_count=0", "coverage=complete"], "oracle_ref": "N-04#1" }],
       "expected_outcome": "correct_false_premise", "must_not": ["label empty as unavailable"]
     },
     {
       "id": "N-05", "class": "negative", "title": "Proposta expirada rejeitada",
       "dimensions": ["time_basis", "period"],
       "fixture_refs": ["proposal-expired"],
-      "turns": [{ "user": "Sim, confirme aquela proposta expirada.", "expected_tools": [], "expected_claims": ["proposal_state=expired", "commit_allowed=false"] }],
+      "turns": [{ "user": "Sim, confirme aquela proposta expirada.", "expected_tools": [], "expected_claims": ["proposal_state=expired", "commit_allowed=false"], "oracle_ref": "N-05#1" }],
       "expected_outcome": "blocked", "must_not": ["commit", "reuse proposal_id"]
     },
     {
       "id": "N-06", "class": "negative", "title": "Proposta substituida rejeitada",
       "dimensions": ["person_family", "account_card"],
       "fixture_refs": ["proposal-superseded", "proposal-active"],
-      "turns": [{ "user": "Confirme a proposta antiga, nao a atual.", "expected_tools": [], "expected_claims": ["proposal_state=superseded", "commit_allowed=false"] }],
+      "turns": [{ "user": "Confirme a proposta antiga, nao a atual.", "expected_tools": [], "expected_claims": ["proposal_state=superseded", "commit_allowed=false"], "oracle_ref": "N-06#1" }],
       "expected_outcome": "blocked", "must_not": ["commit superseded payload"]
     },
     {
       "id": "N-07", "class": "negative", "title": "Transferencia nao vira duas despesas",
       "dimensions": ["transfer", "category", "time_basis"],
       "fixture_refs": ["evt-transfer-out", "evt-transfer-in"],
-      "turns": [{ "user": "Conte as duas pontas da transferencia como despesas separadas.", "expected_tools": ["transactions.search", "transactions.summarize"], "expected_claims": ["economic_identity=transfer-01", "consumption_effect_minor=0"] }],
+      "turns": [{ "user": "Conte as duas pontas da transferencia como despesas separadas.", "expected_tools": ["transactions.search", "transactions.summarize"], "expected_claims": ["economic_identity=transfer-01", "consumption_effect_minor=0"], "oracle_ref": "N-07#1" }],
       "expected_outcome": "correct_false_premise", "must_not": ["create two expenses"]
     },
     {
       "id": "N-08", "class": "negative", "title": "Pagamento de fatura nao duplica consumo",
       "dimensions": ["invoice_payment", "account_card", "category"],
       "fixture_refs": ["evt-invoice-payment", "card-blue"],
-      "turns": [{ "user": "Some o pagamento da fatura de novo ao gasto do Cartao Azul.", "expected_tools": ["transactions.search", "card_statement.get"], "expected_claims": ["event=evt-invoice-payment", "consumption_effect_minor=0"] }],
+      "turns": [{ "user": "Some o pagamento da fatura de novo ao gasto do Cartao Azul.", "expected_tools": ["transactions.search", "card_statement.get"], "expected_claims": ["event=evt-invoice-payment", "consumption_effect_minor=0"], "oracle_ref": "N-08#1" }],
       "expected_outcome": "correct_false_premise", "must_not": ["double count consumption"]
     }
   ]
