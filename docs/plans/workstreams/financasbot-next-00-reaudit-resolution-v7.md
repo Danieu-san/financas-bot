@@ -43,8 +43,8 @@ for impossível, o gate falha com `UNSATISFIED_MUTATION_WITNESS`.
 ### Autoridade única
 
 O metric evaluator registry é a única autoridade de contract hash, artifact
-root e papéis. Claims guardam referências/bindings; traces carregam medições do
-loader; freeze manifest referencia o hash do registry.
+root e papéis. Claims guardam referências/bindings; loader mede e recorder
+materializa as medições nos traces; freeze manifest referencia o hash do registry.
 
 ## Endurecimento após a reauditoria focal
 
@@ -60,11 +60,31 @@ loader; freeze manifest referencia o hash do registry.
 - closure inclui todo byte comportamental pós-transformação, com helpers puros
   e sem I/O.
 
+## Harmonização final após a reauditoria de `62b17b2...`
+
+A reauditoria confirmou que o desenho fechou closure, TCB, runtime/CI, reads
+estruturais, freeze e witnesses ortogonais, mas encontrou três formulações
+residuais incompatíveis com as autoridades já definidas. O mesmo desenho foi
+harmonizado localmente, sem novo subsistema:
+
+- metric evaluator passou a ter autoridade somente sobre cálculo
+  content-addressed e resultado funcional tipado; trace e metadado causal
+  pertencem exclusivamente ao recorder externo;
+- evaluator contract deixou de publicar roles normativos; assinatura funcional,
+  unidade e propriedades algébricas permanecem no contrato, enquanto os roles
+  pertencem exclusivamente ao metric evaluator registry;
+- loader mede hashes/roots e os entrega internamente ao recorder; somente o
+  recorder materializa essas medições no trace.
+
+O veredito de `62b17b21a7a3179e8bce35d86b99119eaa093c9d` foi
+`APROVÁVEL APÓS AJUSTES`. Os dois HIGH e o MEDIUM foram confirmados como
+contradições textuais locais e corrigidos sem alterar as partes já fechadas.
+
 ## Fronteira
 
-O desenho continua não normativo. Não houve alteração de compiler, evaluator,
-operator, registry executável, corpus, fixture ou runtime. Implementação segue
-bloqueada até reauditoria focal do novo hash imutável.
+O desenho continua candidato aguardando reauditoria focal. Não houve alteração
+de compiler, evaluator, operator, registry executável, corpus, fixture ou runtime.
+Implementação segue bloqueada até reauditoria focal do novo hash imutável.
 
 NEXT-01, deploy, produção, writers, integrações e dados reais permanecem fora
 de escopo.

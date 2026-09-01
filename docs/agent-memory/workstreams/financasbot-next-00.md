@@ -1,7 +1,7 @@
 # Workstream — FinançasBot Next / NEXT-00
 
 Atualizado em: 2026-08-31
-Status: `PROVENANCE GRAPH DESIGN V3; FINAL FOCAL REAUDIT PENDING; IMPLEMENTATION BLOCKED; ZERO IMPLEMENTAÇÃO FUNCIONAL`
+Status: `PROVENANCE GRAPH DESIGN V3 HARMONIZED; FINAL FOCAL REAUDIT PENDING; IMPLEMENTATION BLOCKED; ZERO IMPLEMENTAÇÃO FUNCIONAL`
 
 ## Objetivo ativo
 
@@ -117,6 +117,18 @@ runtime funcional e sem abrir NEXT-01.
 - a solução preserva closure completo, recorder externo único, ausência de
   grupos atômicos e registry canônico.
 
+## Reauditoria da harmonização externa
+
+- objeto: `62b17b21a7a3179e8bce35d86b99119eaa093c9d`;
+- veredito: `APROVÁVEL APÓS AJUSTES`;
+- HIGH: a tabela ainda atribuía trace de leitura ao metric evaluator;
+- HIGH: evaluator contract ainda repetia roles normativos do registry;
+- MEDIUM: loader ainda aparecia como segundo writer do trace;
+- os três conflitos foram harmonizados localmente: evaluator retorna resultado,
+  registry possui roles, loader mede e recorder registra;
+- closure, TCB, runtime/CI, structural reads, freeze e witness ortogonal não
+  foram reabertos nem alterados.
+
 ## Critério de saída
 
 Ainda não satisfeito. A arquitetura do grafo precisa ser revisada e ratificada
@@ -126,8 +138,9 @@ precisarão de provas geradas e nova reauditoria. Estado máximo atual:
 
 ## Próxima ação exata
 
-Publicar somente a harmonização documental em novo hash imutável e pedir
-reauditoria focal. Não implementar o motor ainda. NEXT-01 permanece fechado.
+Publicar somente esta harmonização documental em novo hash imutável e pedir
+uma reauditoria focal final das três autoridades. Não implementar o motor ainda.
+NEXT-01 permanece fechado.
 
 ## Referências
 

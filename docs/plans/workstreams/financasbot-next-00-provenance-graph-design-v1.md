@@ -29,8 +29,9 @@ coincidem:
 2. **snapshot de evidência:** nós tipados, versionados e com fingerprint dos
    campos materialmente relevantes;
 3. **relações semânticas:** predicados que ligam os nós ao claim e entre si;
-4. **trace de derivação:** leitura efetivamente feita pelo avaliador
-   determinístico para produzir o valor.
+4. **trace de derivação:** observação externa, produzida exclusivamente pelo
+   recorder, dos acessos causalmente realizados durante a execução determinística
+   do metric evaluator para produzir o valor.
 
 O verde exige igualdade entre essas quatro visões. Valor correto com vínculo
 errado, ID correto com conteúdo alterado ou contrato correto sem leitura real
@@ -44,8 +45,8 @@ O desenho separa responsabilidades que não podem ser fundidas:
 |---|---|---|
 | claim contract | semântica revisada da pergunta | calcular o valor |
 | fixture/snapshot | mundo sintético observado | declarar sozinho que a relação é correta |
-| metric evaluator | cálculo determinístico content-addressed e trace de leitura | escolher o claim esperado |
-| evaluator contract | assinatura, papéis dos operandos e propriedades da fórmula | fornecer evidência ou resultado |
+| metric evaluator | cálculo determinístico content-addressed e resultado funcional tipado | escolher o claim esperado, produzir trace ou declarar metadado causal |
+| evaluator contract | assinatura funcional, unidade e propriedades algébricas da fórmula | fornecer evidência, resultado, artifact root ou roles normativos |
 | metric evaluator registry | única autoridade para contrato, closure, hashes e roles por evaluator | calcular valor ou repetir metadados em claims |
 | provenance graph | prova revisada das relações | produzir o resultado numérico |
 | value oracle | valor esperado apresentado | criar dimensões ou provenance |
@@ -393,9 +394,10 @@ operations:
 result: 1200
 ```
 
-O trace nasce da execução do avaliador, não do contrato. Ele é capturado por um
-proxy instrumentado de leitura, não escrito livremente por metric evaluator,
-graph evaluator ou operator implementation.
+O trace decorre causalmente da execução instrumentada, mas é produzido
+exclusivamente pelo recorder externo, nunca pelo código executado. O proxy expõe
+somente handles instrumentados e o recorder registra as observações
+correspondentes.
 O graph evaluator confronta o trace com `trace_contract`:
 
 - leitura usada e não declarada: erro;
@@ -407,9 +409,10 @@ O graph evaluator confronta o trace com `trace_contract`:
 
 O sistema conserva duas views do mesmo log externo de observação:
 
-- `derivation_trace`, capturado pelo proxy durante o cálculo;
-- `proof_trace`, capturado pelo mesmo proxy durante predicados, fingerprints e
-  obrigações.
+- `derivation_trace`, produzido pelo recorder a partir dos acessos instrumentados
+  pelo proxy durante o cálculo;
+- `proof_trace`, produzido pelo mesmo recorder a partir dos acessos
+  instrumentados pelo proxy durante predicados, fingerprints e obrigações.
 
 A fronteira de autoridade é absoluta: evaluators e operators não possuem API
 para escrever em `reads`, `selected_nodes`, `traversed_edges`, operações
@@ -433,10 +436,11 @@ O recorder, fora dos evaluators, marca cada acesso com `phase: derivation` ou
 recebem apenas handles tipados do proxy; nunca recebem snapshot, fixture ou
 objeto cru.
 
-Reads estruturais também são observações causais. O proxy registra acesso a
+Reads estruturais também são observações causais. O proxy instrumenta acesso a
 campo e, adicionalmente, existência de propriedade, enumeração de chaves,
 iteração, índice, ordem, membership, cardinalidade, `length` e traversal de
-aresta. API não instrumentada é inacessível dentro do runner hermético.
+aresta; o recorder registra as observações correspondentes. API não instrumentada
+é inacessível dentro do runner hermético.
 
 A instrumentação trata como observação causal não apenas leitura de valor, mas
 também toda operação cuja resposta possa alterar controle de fluxo ou resultado:
@@ -473,8 +477,10 @@ auditoria do contrato.
 O trace de inputs não prova, sozinho, a fórmula. Cada entrada do metric
 evaluator registry resolve `(evaluator_id, evaluator_version)` para dois hashes:
 
-- `evaluator_contract_hash`: hash integral do contrato revisado de assinatura,
-  unidade, papéis dos operandos e propriedades algébricas esperadas;
+- `evaluator_contract_hash`: hash integral do contrato revisado de assinatura
+  funcional, unidade e propriedades algébricas esperadas; os roles normativos
+  dos operandos pertencem exclusivamente à entrada correspondente do metric
+  evaluator registry;
 - `evaluator_artifact_hash`: Merkle root do closure executável hermético
   realmente carregado, não hash isolado do entry module.
 
@@ -514,7 +520,8 @@ O metric evaluator registry é a única autoridade de
 `(evaluator_id, evaluator_version) -> contract hash, artifact root, roles`.
 Claim guarda somente `evaluator_ref` e bindings de aliases aos roles; freeze
 manifest referencia o hash integral do registry; trace contém os valores
-medidos pelo loader. Claims, traces e manifestos não redefinem hashes ou roles.
+medidos pelo loader e materializados pelo recorder. Claims, traces e manifestos
+não redefinem hashes ou roles.
 
 Essa autoridade é não duplicável. Nenhum claim, trace, freeze manifest,
 fixture, provenance graph ou evaluator contract pode publicar segunda cópia
@@ -550,8 +557,10 @@ helper, configuração de evaluator ou resolução alternativa de módulo. Se
 fornecer elemento capaz de alterar a execução validada, ele precisa entrar no
 closure/root correspondente ou a execução falha fechada.
 
-Divergência falha antes do cálculo. O loader calcula os hashes e injeta os
-valores observados no trace; ele nunca confia em hash informado pelo evaluator.
+Divergência falha antes do cálculo. O loader calcula os hashes/roots dos bytes
+efetivamente carregados e fornece essas medições ao recorder pela interface
+interna do TCB. O recorder é o único componente que materializa esses valores no
+trace; nenhum valor de hash informado pelo evaluator é aceito.
 Isso reutiliza a autoridade determinística do kernel; o provenance graph não
 ganha uma segunda DSL de fórmulas.
 
@@ -559,8 +568,8 @@ Metric evaluator, graph evaluator e operators executam hermeticamente e só
 acessam operandos pelo proxy tipado. I/O, rede, relógio implícito, aleatoriedade,
 variável global, acesso direto à fixture ou leitura fora do proxy são proibidos.
 Relógio, policy e registry necessários entram como operandos explícitos e
-versionados. O proxy gera `reads`, roles e selected nodes a partir dos acessos
-reais; nenhum evaluator pode omiti-los.
+versionados. O proxy instrumenta os acessos reais e o recorder gera `reads`,
+roles observados e selected nodes; nenhum evaluator pode omiti-los.
 
 Operandos têm papéis tipados. Diferença declara `left` e `right`; razão declara
 `numerator` e `denominator`; ranking declara população, chave e direção. Aresta

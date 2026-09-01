@@ -1,7 +1,7 @@
 # NEXT-00 — Charter e contratos do FinançasBot Next
 
 Atualizado em: 2026-08-31
-Estado: `OPEN — PROVENANCE GRAPH DESIGN V3; FINAL FOCAL REAUDIT PENDING; IMPLEMENTATION BLOCKED; ZERO IMPLEMENTAÇÃO FUNCIONAL`
+Estado: `OPEN — PROVENANCE GRAPH DESIGN V3 HARMONIZED; FINAL FOCAL REAUDIT PENDING; IMPLEMENTATION BLOCKED; ZERO IMPLEMENTAÇÃO FUNCIONAL`
 Base: `fc577e5d5e21fdc5402ace1cf662a6ea1bef255f`
 Roadmap normativo: `911af93343210ccfe2d7b7fe0b898542044a1fdf`
 
@@ -146,6 +146,10 @@ evidência rastreável que o contenha.
   desenho v3 sem criar subsistema novo;
 - `6906256...` recebeu `APROVÁVEL APÓS AJUSTES`; contradições residuais sobre
   trace, bootstrap e freeze foram harmonizadas textualmente;
+- `62b17b2...` recebeu `APROVÁVEL APÓS AJUSTES`; as três formulações
+  residuais foram confirmadas e harmonizadas sem mudar a arquitetura: metric
+  evaluator produz resultado funcional, registry é a única autoridade de roles,
+  loader mede e somente recorder materializa trace;
 - decisão humana continua obrigatória antes de NEXT-01.
 
 ## Validação proporcional
@@ -179,7 +183,7 @@ independente ou terceira correção da mesma classe por exemplos especiais.
 
 ## Próxima ação exata
 
-Reauditar focalmente o desenho v3 em
-`financasbot-next-00-provenance-graph-design-v1.md` sem implementar compiler,
-evaluator, fixture ou validador. NEXT-01 continua fechado até parecer sem
-lacuna indispensável e decisão explícita de Daniel.
+Publicar a harmonização documental do desenho v3 em hash imutável e reauditar
+somente a exclusividade de trace, roles e escrita do recorder, sem implementar
+compiler, evaluator, fixture ou validador. NEXT-01 continua fechado até parecer
+sem lacuna indispensável e decisão explícita de Daniel.
