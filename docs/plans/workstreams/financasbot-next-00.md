@@ -1,7 +1,7 @@
 # NEXT-00 — Charter e contratos do FinançasBot Next
 
 Atualizado em: 2026-08-31
-Estado: `OPEN — PROVENANCE GRAPH DESIGN V2; REAUDIT PENDING; IMPLEMENTATION BLOCKED; ZERO IMPLEMENTAÇÃO FUNCIONAL`
+Estado: `OPEN — PROVENANCE GRAPH DESIGN V3; REAUDIT PENDING; IMPLEMENTATION BLOCKED; ZERO IMPLEMENTAÇÃO FUNCIONAL`
 Base: `fc577e5d5e21fdc5402ace1cf662a6ea1bef255f`
 Roadmap normativo: `911af93343210ccfe2d7b7fe0b898542044a1fdf`
 
@@ -70,6 +70,16 @@ critérios objetivos. Não produz runtime funcional.
 19. Todo campo lido causalmente é material; `non_material` não pode aparecer em
     trace de cálculo ou prova.
 20. Mutação enumerada sem witness discriminante falha o gate e nunca vira skip.
+21. Artifact hash cobre o closure executável hermético pós-transformação, não
+    apenas o entry module.
+22. Calculation e proof reads, inclusive estruturais, são observados pelo mesmo
+    recorder externo; nenhum evaluator autodeclara trace.
+23. Grupos atômicos são proibidos; impossibilidade de isolamento falha o gate.
+24. Metric evaluator registry é a única autoridade de hashes e roles; claims e
+    traces apenas referenciam ou medem.
+25. Loader, sandbox, proxy e recorder pertencem ao `validation_tcb_root`; a
+    fronteira externa restante é runtime/CI declarado, não código do projeto
+    fora do hash.
 
 ## Riscos controlados
 
@@ -127,6 +137,9 @@ evidência rastreável que o contenha.
   incorporados como invariantes genéricos no desenho v2;
 - o novo desenho exige provas ortogonais, evaluator content-addressed, leitura
   material e witness fail-closed;
+- `2a115dc...` recebeu `APROVÁVEL APÓS AJUSTES`; closure transitivo,
+  `proof_trace`, grupos atômicos e autoridade canônica foram corrigidos no
+  desenho v3 sem criar subsistema novo;
 - decisão humana continua obrigatória antes de NEXT-01.
 
 ## Validação proporcional
@@ -160,7 +173,7 @@ independente ou terceira correção da mesma classe por exemplos especiais.
 
 ## Próxima ação exata
 
-Revisar e reauditar o desenho v2 em
+Revisar e reauditar o desenho v3 em
 `financasbot-next-00-provenance-graph-design-v1.md` sem implementar compiler,
 evaluator, fixture ou validador. NEXT-01 continua fechado até parecer sem
 lacuna indispensável e decisão explícita de Daniel.
