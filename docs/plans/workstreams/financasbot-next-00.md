@@ -1,7 +1,7 @@
 # NEXT-00 — Charter e contratos do FinançasBot Next
 
 Atualizado em: 2026-09-01
-Estado: `OPEN — PROVENANCE GRAPH DESIGN V3 AUTHORITY-SEALED; FINAL FOCAL REAUDIT PENDING; IMPLEMENTATION BLOCKED; ZERO IMPLEMENTAÇÃO FUNCIONAL`
+Estado: `OPEN — PROVENANCE GRAPH DESIGN V3 CHANNEL-SEPARATED; FINAL FOCAL REAUDIT PENDING; IMPLEMENTATION BLOCKED; ZERO IMPLEMENTAÇÃO FUNCIONAL`
 Base: `fc577e5d5e21fdc5402ace1cf662a6ea1bef255f`
 Roadmap normativo: `911af93343210ccfe2d7b7fe0b898542044a1fdf`
 
@@ -88,6 +88,8 @@ critérios objetivos. Não produz runtime funcional.
     mede, sem determinar qualquer conteúdo materializado.
 29. Definir role e referenciar role são operações distintas; somente o metric
     evaluator registry define semântica normativa de operand roles.
+30. `R` funcional, `I` instrumentação, `M` medição e `L` estado de trace são
+    canais disjuntos; `T` projeta somente `L` e value oracle recebe somente `R`.
 
 ## Riscos controlados
 
@@ -157,6 +159,9 @@ evidência rastreável que o contenha.
 - `6214f90...` recebeu `APROVÁVEL APÓS AJUSTES`, com zero HIGH e um MEDIUM
   residual por sinônimos de autoria; writer de trace passou a ser definido pelo
   efeito de materialização, proxy ficou restrito a instrumentar e loader a medir;
+- `e1b3238...` recebeu `APROVÁVEL APÓS AJUSTES`, com zero HIGH e um MEDIUM na
+  presença de `result` dentro do trace; resultado e trace foram separados por
+  tipos e namespaces `R/I/M/L/T`, sem novo subsistema;
 - decisão humana continua obrigatória antes de NEXT-01.
 
 ## Validação proporcional
@@ -190,7 +195,7 @@ independente ou terceira correção da mesma classe por exemplos especiais.
 
 ## Próxima ação exata
 
-Publicar a selagem documental do desenho v3 em hash imutável e reauditar somente
-a autoria causal do trace e a autoridade normativa de roles, sem implementar
-compiler, evaluator, fixture ou validador. NEXT-01 continua fechado até parecer
-sem lacuna indispensável e decisão explícita de Daniel.
+Publicar a separação documental `R/I/M/L/T` em hash imutável e reauditar somente
+o cruzamento entre resultado funcional, instrumentação, medição e trace, sem
+implementar compiler, evaluator, fixture ou validador. NEXT-01 continua fechado
+até parecer sem lacuna indispensável e decisão explícita de Daniel.

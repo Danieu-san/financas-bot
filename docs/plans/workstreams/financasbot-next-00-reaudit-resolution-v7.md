@@ -6,7 +6,8 @@ Objetos reavaliados:
 - `2a115dc3274e14583fff309274e3a98cbeebe49c`;
 - `69062563f66f71127387d4a9d778e19da593ce7b`;
 - `62b17b21a7a3179e8bce35d86b99119eaa093c9d`;
-- `6214f9035cc88465a013a2247b85adbb41afe830`.
+- `6214f9035cc88465a013a2247b85adbb41afe830`;
+- `e1b3238f21a401acf8794cdbb68893e32726ed8f`.
 
 Vereditos externos: `APROVÁVEL APÓS AJUSTES`
 
@@ -99,6 +100,24 @@ terminologia inconsistente. A correção não altera a arquitetura:
 
 Closure, TCB, runtime/CI, freeze, structural reads, prototype-free e witness
 ortogonal permaneceram inalterados.
+
+## Separação de resultado e trace após `e1b3238...`
+
+A reauditoria de `e1b3238f21a401acf8794cdbb68893e32726ed8f` encontrou zero
+CRITICAL/HIGH e um MEDIUM: o exemplo ainda colocava `result` dentro do trace,
+contrariando a definição absoluta de writer. A correção foi focal:
+
+- `R` passou a ser o resultado funcional independente e é comparado ao oracle;
+- `I` transporta eventos instrumentados, preservando `E` exclusivamente para
+  arestas do grafo;
+- `M` transporta medições do loader e `L` é o estado exclusivo do recorder;
+- `T` contém somente projeções de `L`; não recebe resultado ou intermediário de
+  `R`;
+- trace validator e result validator permanecem separados e ambos são exigidos.
+
+Não houve varredura classificatória manual de toda a prosa histórica. A
+proteção foi colocada nos tipos, namespaces e condições de NO-GO normativas,
+evitando criar uma nova matriz autorreferencial.
 
 ## Fronteira
 

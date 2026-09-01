@@ -1,7 +1,7 @@
 # Workstream — FinançasBot Next / NEXT-00
 
 Atualizado em: 2026-09-01
-Status: `PROVENANCE GRAPH DESIGN V3 AUTHORITY-SEALED; FINAL FOCAL REAUDIT PENDING; IMPLEMENTATION BLOCKED; ZERO IMPLEMENTAÇÃO FUNCIONAL`
+Status: `PROVENANCE GRAPH DESIGN V3 CHANNEL-SEPARATED; FINAL FOCAL REAUDIT PENDING; IMPLEMENTATION BLOCKED; ZERO IMPLEMENTAÇÃO FUNCIONAL`
 
 ## Objetivo ativo
 
@@ -142,6 +142,16 @@ runtime funcional e sem abrir NEXT-01.
 - outputs do evaluator e definição/referência de roles receberam fronteiras
   exaustivas no mesmo contrato.
 
+## Reauditoria da separação resultado/trace
+
+- objeto: `e1b3238f21a401acf8794cdbb68893e32726ed8f`;
+- veredito: `APROVÁVEL APÓS AJUSTES`;
+- CRITICAL/HIGH: zero;
+- MEDIUM: `result` ainda aparecia dentro do trace e colidia com o writer único;
+- correção: `R` funcional, `I` instrumentação, `M` medição e `L` estado de
+  trace são canais tipados e disjuntos; `E` permanece reservado a edges;
+- result validator usa `R`; trace validator usa `T`; nenhum envelope os funde.
+
 ## Critério de saída
 
 Ainda não satisfeito. A arquitetura do grafo precisa ser revisada e ratificada
@@ -151,9 +161,9 @@ precisarão de provas geradas e nova reauditoria. Estado máximo atual:
 
 ## Próxima ação exata
 
-Publicar somente esta selagem documental em novo hash imutável e pedir uma
-reauditoria focal final da autoria do trace e dos roles. Não implementar o motor
-ainda. NEXT-01 permanece fechado.
+Publicar somente esta separação documental em novo hash imutável e pedir uma
+reauditoria focal final de `R/I/M/L/T`. Não implementar o motor ainda. NEXT-01
+permanece fechado.
 
 ## Referências
 

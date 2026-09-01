@@ -71,12 +71,20 @@ Para cada fato `F`, existe um grafo dirigido e tipado `G(F) = (N, E, P, T)`:
   partir da execução determinística instrumentada. Nenhum metric evaluator,
   graph evaluator ou operator implementation emite, fornece, completa ou
   autodeclara metadados de trace.
+- `R`: resultado funcional tipado produzido exclusivamente pelo metric evaluator
+  conforme sua assinatura registrada. `R` não pertence ao log interno do
+  recorder, a `derivation_trace`, a `proof_trace` nem a qualquer estrutura de
+  metadado causal.
 
 O resultado numérico pode ser produzido pelo metric evaluator, mas toda
 evidência causal sobre leituras, seleção, iteração, estrutura, traversal e uso
 de operandos pertence exclusivamente ao recorder externo. `derivation_trace` e
 `proof_trace` são projeções do mesmo log de observação, separadas apenas pelo
 campo `phase`.
+
+A validação recebe `R` e `T` como objetos independentes. Nenhuma etapa pode
+inserir `R`, seus campos ou seus outputs intermediários em `T`, no log interno do
+recorder ou em qualquer projeção de trace.
 
 Um fato recebe verde somente se:
 
@@ -89,7 +97,7 @@ AND every_predicate_is_true(P)
 AND material_edges_are_consumed(E)
 AND derivation_trace_matches_contract(T, G)
 AND evidence_set_is_exact(T, N)
-AND value_matches_oracle(T)
+AND value_matches_oracle(R)
 ```
 
 Qualquer operador, path, tipo, nó, versão ou aresta desconhecido resulta em
@@ -397,8 +405,18 @@ reads:
 traversed_edges: []
 operations:
   - {op: sum, inputs: [evt-snack-a.amount_minor], output: -1200}
-result: 1200
 ```
+
+Separadamente do objeto de trace, a interface funcional retorna:
+
+```yaml
+functional_result: 1200
+```
+
+Esse objeto é `R`, retornado pelo metric evaluator. Ele não pertence ao recorder,
+ao log interno ou a qualquer trace. O `output` de operação mostrado no trace é
+uma observação causal recebida pelo canal instrumentado, não uma cópia de `R` ou
+de seus intermediários funcionais.
 
 O trace decorre causalmente da execução instrumentada, mas é produzido
 exclusivamente pelo recorder externo, nunca pelo código executado. O proxy expõe
@@ -410,8 +428,11 @@ O graph evaluator confronta o trace com `trace_contract`:
 - leitura declarada e nunca usada: erro;
 - nó extra ou ausente: erro;
 - aresta material ignorada: erro;
-- evaluator id/versão divergente: erro;
-- resultado diferente do value oracle: erro.
+- evaluator id/versão divergente: erro.
+
+O trace validator confronta `T` com o contrato de provenance. Um result validator
+separado confronta `R` com o value oracle. A aceitação do fato exige ambos, sem
+fundir `R` e `T` ou construir envelope comum denominado trace.
 
 O sistema conserva duas views do mesmo log externo de observação:
 
@@ -444,25 +465,59 @@ evaluator, graph evaluator e operator implementation não podem criar, retornar,
 fornecer, completar, sugerir ou influenciar diretamente esses campos. Se código
 executado retornar estrutura desse tipo, a execução falha fechada.
 
+Outputs funcionais autorizados pertencem exclusivamente à assinatura funcional
+registrada. Nenhum output funcional pode possuir tipo, campo ou estrutura cuja
+finalidade seja comunicar `read`, `selected_node`, `traversed_edge`, observação
+estrutural, `phase`, role observado, evaluator identity observada, hash/root
+observado ou outro fato sobre como a execução chegou ao resultado. Intermediários
+funcionais não são canal de evidência e não podem substituir observação
+instrumentada.
+
 ### Invariante de autoria causal
 
 O recorder é o único proprietário e writer do estado de trace. Materializar ou
-escrever trace significa determinar existência, ausência, nome, valor, ordem,
-associação, agregação, serialização ou inclusão de qualquer campo de
-`derivation_trace`, `proof_trace` ou de seu log interno comum. A definição
-independe do verbo usado: criar, montar, capturar, registrar, preencher, anexar,
-emitir, produzir, completar ou serializar conteúdo de trace são atos de
+escrever trace significa transformar observação ou medição externa em estado do
+namespace de trace, inclusive determinar existência, ausência, nome, tipo,
+valor, ordem, associação, agregação, canonicalização, serialização ou inclusão
+em `L`, `derivation_trace` ou `proof_trace`. A definição independe do verbo usado:
+criar, montar, capturar, registrar, preencher, anexar, emitir, produzir,
+completar ou serializar conteúdo do namespace de trace são atos de
 materialização. Somente o recorder pode realizá-los.
+
+A fronteira de execução possui quatro domínios tipados e disjuntos. O símbolo `I`
+é usado para instrumentação porque `E` permanece reservado às arestas do grafo:
+
+1. `R` — functional output channel, produzido pelo metric evaluator, contendo
+   somente resultado funcional tipado e intermediários expressamente autorizados;
+2. `I` — instrumentation event channel, emitido transitoriamente pelo proxy e
+   consumido somente pelo recorder, com observações em tipos próprios que não são
+   estruturalmente compatíveis com trace;
+3. `M` — measurement channel, produzido transitoriamente pelo loader e consumido
+   somente pelo recorder, contendo apenas hashes/roots medidos, nunca valores
+   esperados ou autoridade normativa;
+4. `L` — recorder trace state, propriedade exclusiva do recorder e único
+   namespace do qual traces podem ser projetados.
+
+Formalmente:
+
+```text
+derivation_trace = project(L, phase=derivation)
+proof_trace = project(L, phase=proof)
+```
+
+Não existe fluxo autorizado de `R` para `L`, `derivation_trace` ou `proof_trace`.
+Fornecer evento bruto por `I`, medição bruta por `M` ou resultado funcional por
+`R` não constitui materialização porque esses objetos pertencem a namespaces e
+tipos distintos do trace.
 
 A divisão operacional é fechada:
 
-- proxy apenas instrumenta acessos, intercepta operações e comunica eventos à
-  interface interna do recorder; não persiste, agrega, estrutura, nomeia,
-  serializa nem produz trace ou view de trace;
+- proxy apenas instrumenta acessos, intercepta operações e emite eventos `I` à
+  interface interna do recorder; não recebe nem retorna tipos de trace, não
+  persiste, agrega, estrutura, nomeia, serializa nem produz trace ou view;
 - loader apenas mede hashes/roots dos bytes efetivamente carregados e fornece
-  essas medições, como valores internos ainda não materializados, à interface do
-  recorder; não recebe referência mutável ao trace, não cria campos e não
-  determina sua representação;
+  medições `M` à interface do recorder; não recebe nem retorna tipos de trace,
+  referência, builder ou callback de mutação e não determina representação;
 - recorder recebe eventos instrumentados e medições e é o único componente que
   os transforma em estado de trace, incluindo `reads`, `selected_nodes`,
   `traversed_edges`, operações estruturais, roles observados, hashes/roots
@@ -470,6 +525,13 @@ A divisão operacional é fechada:
 
 `derivation_trace` e `proof_trace` são exclusivamente projeções produzidas pelo
 recorder a partir do mesmo log interno, discriminadas por `phase`.
+
+Eventos `I` e medições `M` podem carregar fatos brutos, como path acessado ou
+digest medido, mas não escolhem nome, posição, agrupamento, canonicalização,
+serialização ou representação desses fatos em `L`. Somente o recorder realiza
+essa transformação. Se a mesma quantidade numérica de `R` for observável por
+instrumentação, a observação chega exclusivamente por `I`; nunca é copiada do
+functional output channel.
 
 O recorder, fora dos evaluators, marca cada acesso com `phase: derivation` ou
 `phase: proof` e só então produz as duas views. Graph evaluator e operadores
@@ -815,7 +877,7 @@ O futuro motor documental terá duas fases separadas:
 4. conferir `evaluator_artifact_hash` contra o closure pós-transformação
    efetivamente carregado antes da execução;
 5. executar metric evaluator no runner hermético, fornecendo exclusivamente
-   handles tipados do proxy;
+   handles tipados do proxy, e obter `R` pela interface funcional registrada;
 6. obter exclusivamente do recorder externo o `derivation_trace` da execução;
 7. executar graph evaluator e operators no mesmo modelo hermético, também
    exclusivamente por handles do proxy;
@@ -827,6 +889,8 @@ O futuro motor documental terá duas fases separadas:
 
 Nenhum passo de Evaluate aceita trace fornecido por metric evaluator, graph
 evaluator ou operator implementation.
+Nenhum passo insere `R` ou intermediário funcional no log ou nas projeções de
+trace, e nenhum envelope ou alias pode reunir `R` e `T` sob uma autoridade única.
 
 O compilador e o evaluator não podem importar nem consultar o value oracle para
 formar o contrato.
@@ -945,6 +1009,14 @@ São bloqueantes:
   o significado normativo de operand role;
 - aceitar de evaluator/operator qualquer output causal além do resultado
   funcional tipado e dos intermediários funcionais previstos pela assinatura;
+- incluir `R` ou output funcional intermediário em `L`, `derivation_trace` ou
+  `proof_trace`;
+- usar `T` na comparação com value oracle em vez de `R`;
+- permitir que proxy ou loader emitam objeto estruturalmente pertencente ao
+  namespace de trace;
+- permitir que recorder obtenha metadado causal de `R` em vez de `I` ou `M`;
+- criar envelope, alias ou sinônimo que reúna `R` e `T` como autoridade única;
+- permitir que evento `I` ou medição `M` declare sua representação em `L`;
 - agrupar átomos para evitar witness ortogonal;
 - ignorar mutação porque não foi possível gerar witness;
 - permitir `OR`, fallback ou coerção para fechar lacuna;
