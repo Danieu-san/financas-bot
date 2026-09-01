@@ -1,10 +1,12 @@
 # NEXT-00 — Fechamento focal da fronteira de execução do grafo
 
-Atualizado em: 2026-08-31
+Atualizado em: 2026-09-01
 Objetos reavaliados:
 
 - `2a115dc3274e14583fff309274e3a98cbeebe49c`;
-- `69062563f66f71127387d4a9d778e19da593ce7b`.
+- `69062563f66f71127387d4a9d778e19da593ce7b`;
+- `62b17b21a7a3179e8bce35d86b99119eaa093c9d`;
+- `6214f9035cc88465a013a2247b85adbb41afe830`.
 
 Vereditos externos: `APROVÁVEL APÓS AJUSTES`
 
@@ -25,10 +27,11 @@ resolução fora do closure são proibidos.
 
 ### Observação externa única
 
-`derivation_trace` e `proof_trace` passam a ser views do mesmo log capturado por
-proxy/recorder externo. Metric evaluator, graph evaluator e operators não
-recebem objetos crus e não autodeclaram reads. Operações estruturais também são
-registradas.
+`derivation_trace` e `proof_trace` são views produzidas exclusivamente pelo
+recorder a partir do mesmo log interno de observação; o proxy apenas instrumenta
+os acessos que o recorder observa. Metric evaluator, graph evaluator e operators
+não recebem objetos crus e não autodeclaram reads. Operações estruturais também
+são registradas pelo recorder.
 
 O freeze manifest fixa também `proof_engine_artifact_root` e
 `validation_tcb_root`, cobrindo todo código do repositório que avalia, carrega,
@@ -79,6 +82,23 @@ harmonizado localmente, sem novo subsistema:
 O veredito de `62b17b21a7a3179e8bce35d86b99119eaa093c9d` foi
 `APROVÁVEL APÓS AJUSTES`. Os dois HIGH e o MEDIUM foram confirmados como
 contradições textuais locais e corrigidos sem alterar as partes já fechadas.
+
+## Selagem da autoria causal após `6214f90...`
+
+A reauditoria de `6214f9035cc88465a013a2247b85adbb41afe830` fechou os dois
+HIGH anteriores e encontrou um único MEDIUM residual de autoria causal por
+terminologia inconsistente. A correção não altera a arquitetura:
+
+- `writer de trace` passou a ser definido pelo efeito de determinar qualquer
+  conteúdo materializado, independentemente do verbo usado;
+- recorder é o único proprietário e writer; proxy somente instrumenta e loader
+  somente mede;
+- metric evaluator possui uma lista exaustiva de outputs funcionais permitidos;
+- definir role e referenciar role foram formalmente separados, mantendo o
+  registry como única autoridade normativa.
+
+Closure, TCB, runtime/CI, freeze, structural reads, prototype-free e witness
+ortogonal permaneceram inalterados.
 
 ## Fronteira
 

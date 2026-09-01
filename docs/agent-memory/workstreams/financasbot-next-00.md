@@ -1,7 +1,7 @@
 # Workstream — FinançasBot Next / NEXT-00
 
-Atualizado em: 2026-08-31
-Status: `PROVENANCE GRAPH DESIGN V3 HARMONIZED; FINAL FOCAL REAUDIT PENDING; IMPLEMENTATION BLOCKED; ZERO IMPLEMENTAÇÃO FUNCIONAL`
+Atualizado em: 2026-09-01
+Status: `PROVENANCE GRAPH DESIGN V3 AUTHORITY-SEALED; FINAL FOCAL REAUDIT PENDING; IMPLEMENTATION BLOCKED; ZERO IMPLEMENTAÇÃO FUNCIONAL`
 
 ## Objetivo ativo
 
@@ -121,13 +121,26 @@ runtime funcional e sem abrir NEXT-01.
 
 - objeto: `62b17b21a7a3179e8bce35d86b99119eaa093c9d`;
 - veredito: `APROVÁVEL APÓS AJUSTES`;
-- HIGH: a tabela ainda atribuía trace de leitura ao metric evaluator;
+- HIGH: a tabela ainda atribuía autoridade causal indevida ao metric evaluator;
 - HIGH: evaluator contract ainda repetia roles normativos do registry;
 - MEDIUM: loader ainda aparecia como segundo writer do trace;
 - os três conflitos foram harmonizados localmente: evaluator retorna resultado,
   registry possui roles, loader mede e recorder registra;
 - closure, TCB, runtime/CI, structural reads, freeze e witness ortogonal não
   foram reabertos nem alterados.
+
+## Reauditoria da autoria causal
+
+- objeto: `6214f9035cc88465a013a2247b85adbb41afe830`;
+- veredito: `APROVÁVEL APÓS AJUSTES`;
+- CRITICAL/HIGH: zero;
+- MEDIUM: duas formulações residuais ainda atribuíam autoria causal conjunta a
+  componentes que apenas instrumentam ou medem;
+- writer passou a ser definido por qualquer efeito de materialização, e não por
+  uma lista aberta de verbos;
+- proxy somente instrumenta, loader somente mede e recorder é o único writer;
+- outputs do evaluator e definição/referência de roles receberam fronteiras
+  exaustivas no mesmo contrato.
 
 ## Critério de saída
 
@@ -138,9 +151,9 @@ precisarão de provas geradas e nova reauditoria. Estado máximo atual:
 
 ## Próxima ação exata
 
-Publicar somente esta harmonização documental em novo hash imutável e pedir
-uma reauditoria focal final das três autoridades. Não implementar o motor ainda.
-NEXT-01 permanece fechado.
+Publicar somente esta selagem documental em novo hash imutável e pedir uma
+reauditoria focal final da autoria do trace e dos roles. Não implementar o motor
+ainda. NEXT-01 permanece fechado.
 
 ## Referências
 

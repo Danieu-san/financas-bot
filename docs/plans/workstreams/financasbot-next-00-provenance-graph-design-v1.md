@@ -1,6 +1,6 @@
 # NEXT-00 — Desenho do contrato declarativo de provenance
 
-Atualizado em: 2026-08-31
+Atualizado em: 2026-09-01
 Estado: `CANDIDATO DE ARQUITETURA — NÃO NORMATIVO; IMPLEMENTAÇÃO BLOQUEADA`
 Revisão arquitetural: `3`
 Origem do finding: reauditoria do commit
@@ -369,11 +369,17 @@ correspondente. Se houver campo material, ele precisa ser consumido.
 
 ## 8. Trace determinístico de derivação
 
-Cada metric evaluator continua responsável pelo valor financeiro. Sua execução
-através do proxy produz observações externas estruturadas.
+Cada metric evaluator continua responsável pelo valor financeiro e possui
+exatamente uma autoridade de saída: retornar o resultado funcional tipado e,
+quando previstos pela assinatura revisada, outputs funcionais intermediários
+explicitamente tipados. Nenhum outro output é autorizado. Durante a execução, o
+proxy apenas instrumenta acessos e o recorder produz as observações externas
+estruturadas.
 
-O exemplo abaixo representa saída montada pelo recorder/loader externo após a
-execução. Ele não é um objeto retornado pelo metric evaluator. O campo
+O exemplo abaixo representa saída produzida exclusivamente pelo recorder após
+a execução, a partir dos acessos instrumentados pelo proxy e das medições
+fornecidas internamente pelo loader. Ele não é um objeto retornado pelo metric
+evaluator. O campo
 `evaluator_id` também é associado externamente à execução resolvida pelo
 registry; não é aceito como declaração de identidade proveniente do código
 evaluator.
@@ -430,6 +436,40 @@ acessos realizados durante `phase: proof`.
 
 Qualquer estrutura de trace recebida de código evaluator/operator é entrada
 inválida e causa falha fechada.
+
+Qualquer `read`, `selected_node`, `traversed_edge`, operação observada, role
+observado, evaluator identity observada, hash/root observado ou outro metadado
+que descreva como a execução chegou ao resultado é metadado causal. Metric
+evaluator, graph evaluator e operator implementation não podem criar, retornar,
+fornecer, completar, sugerir ou influenciar diretamente esses campos. Se código
+executado retornar estrutura desse tipo, a execução falha fechada.
+
+### Invariante de autoria causal
+
+O recorder é o único proprietário e writer do estado de trace. Materializar ou
+escrever trace significa determinar existência, ausência, nome, valor, ordem,
+associação, agregação, serialização ou inclusão de qualquer campo de
+`derivation_trace`, `proof_trace` ou de seu log interno comum. A definição
+independe do verbo usado: criar, montar, capturar, registrar, preencher, anexar,
+emitir, produzir, completar ou serializar conteúdo de trace são atos de
+materialização. Somente o recorder pode realizá-los.
+
+A divisão operacional é fechada:
+
+- proxy apenas instrumenta acessos, intercepta operações e comunica eventos à
+  interface interna do recorder; não persiste, agrega, estrutura, nomeia,
+  serializa nem produz trace ou view de trace;
+- loader apenas mede hashes/roots dos bytes efetivamente carregados e fornece
+  essas medições, como valores internos ainda não materializados, à interface do
+  recorder; não recebe referência mutável ao trace, não cria campos e não
+  determina sua representação;
+- recorder recebe eventos instrumentados e medições e é o único componente que
+  os transforma em estado de trace, incluindo `reads`, `selected_nodes`,
+  `traversed_edges`, operações estruturais, roles observados, hashes/roots
+  observados e qualquer outro campo causal.
+
+`derivation_trace` e `proof_trace` são exclusivamente projeções produzidas pelo
+recorder a partir do mesmo log interno, discriminadas por `phase`.
 
 O recorder, fora dos evaluators, marca cada acesso com `phase: derivation` ou
 `phase: proof` e só então produz as duas views. Graph evaluator e operadores
@@ -522,6 +562,18 @@ Claim guarda somente `evaluator_ref` e bindings de aliases aos roles; freeze
 manifest referencia o hash integral do registry; trace contém os valores
 medidos pelo loader e materializados pelo recorder. Claims, traces e manifestos
 não redefinem hashes ou roles.
+
+Definir role e referenciar role são operações distintas. O metric evaluator
+registry é o único artefato que define o conjunto normativo de operand roles,
+sua identidade semântica e o binding esperado para cada
+`(evaluator_id, evaluator_version)`. Outros artefatos podem somente referenciar
+identificadores de roles resolvidos do registry.
+
+Claim, evaluator contract, provenance graph, fixture, trace e freeze manifest
+não podem declarar o conjunto normativo de roles, alterar seu significado,
+introduzir role adicional, substituir role ou atribuir semântica normativa a um
+role. Nomes locais de parâmetros presentes no evaluator contract são
+identificadores funcionais locais e não constituem operand roles normativos.
 
 Essa autoridade é não duplicável. Nenhum claim, trace, freeze manifest,
 fixture, provenance graph ou evaluator contract pode publicar segunda cópia
@@ -886,6 +938,13 @@ São bloqueantes:
   incluídos em root;
 - manter segunda autoridade de contract hash, evaluator artifact root ou roles
   fora do metric evaluator registry;
+- permitir que componente diferente do recorder determine existência, nome,
+  valor, ordem, associação, agregação, serialização ou inclusão de conteúdo do
+  trace, independentemente do verbo usado para descrever o ato;
+- permitir que artefato diferente do metric evaluator registry defina ou altere
+  o significado normativo de operand role;
+- aceitar de evaluator/operator qualquer output causal além do resultado
+  funcional tipado e dos intermediários funcionais previstos pela assinatura;
 - agrupar átomos para evitar witness ortogonal;
 - ignorar mutação porque não foi possível gerar witness;
 - permitir `OR`, fallback ou coerção para fechar lacuna;

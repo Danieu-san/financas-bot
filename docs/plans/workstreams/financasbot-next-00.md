@@ -1,7 +1,7 @@
 # NEXT-00 — Charter e contratos do FinançasBot Next
 
-Atualizado em: 2026-08-31
-Estado: `OPEN — PROVENANCE GRAPH DESIGN V3 HARMONIZED; FINAL FOCAL REAUDIT PENDING; IMPLEMENTATION BLOCKED; ZERO IMPLEMENTAÇÃO FUNCIONAL`
+Atualizado em: 2026-09-01
+Estado: `OPEN — PROVENANCE GRAPH DESIGN V3 AUTHORITY-SEALED; FINAL FOCAL REAUDIT PENDING; IMPLEMENTATION BLOCKED; ZERO IMPLEMENTAÇÃO FUNCIONAL`
 Base: `fc577e5d5e21fdc5402ace1cf662a6ea1bef255f`
 Roadmap normativo: `911af93343210ccfe2d7b7fe0b898542044a1fdf`
 
@@ -84,6 +84,10 @@ critérios objetivos. Não produz runtime funcional.
     e operator não podem fornecer metadado causal.
 27. Freeze manifest referencia o hash do metric evaluator registry sem replicar
     contract hashes, artifact roots ou roles como segunda autoridade.
+28. Recorder é o único writer do estado de trace; proxy instrumenta e loader
+    mede, sem determinar qualquer conteúdo materializado.
+29. Definir role e referenciar role são operações distintas; somente o metric
+    evaluator registry define semântica normativa de operand roles.
 
 ## Riscos controlados
 
@@ -150,6 +154,9 @@ evidência rastreável que o contenha.
   residuais foram confirmadas e harmonizadas sem mudar a arquitetura: metric
   evaluator produz resultado funcional, registry é a única autoridade de roles,
   loader mede e somente recorder materializa trace;
+- `6214f90...` recebeu `APROVÁVEL APÓS AJUSTES`, com zero HIGH e um MEDIUM
+  residual por sinônimos de autoria; writer de trace passou a ser definido pelo
+  efeito de materialização, proxy ficou restrito a instrumentar e loader a medir;
 - decisão humana continua obrigatória antes de NEXT-01.
 
 ## Validação proporcional
@@ -183,7 +190,7 @@ independente ou terceira correção da mesma classe por exemplos especiais.
 
 ## Próxima ação exata
 
-Publicar a harmonização documental do desenho v3 em hash imutável e reauditar
-somente a exclusividade de trace, roles e escrita do recorder, sem implementar
+Publicar a selagem documental do desenho v3 em hash imutável e reauditar somente
+a autoria causal do trace e a autoridade normativa de roles, sem implementar
 compiler, evaluator, fixture ou validador. NEXT-01 continua fechado até parecer
 sem lacuna indispensável e decisão explícita de Daniel.
