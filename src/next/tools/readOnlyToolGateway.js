@@ -56,7 +56,12 @@ function argMatchesType(value, type) {
 }
 
 function selectArgs(rawArgs, schema) {
-    if (!rawArgs || typeof rawArgs !== 'object' || Array.isArray(rawArgs)) {
+    if (
+        !rawArgs ||
+        typeof rawArgs !== 'object' ||
+        Array.isArray(rawArgs) ||
+        Object.getPrototypeOf(rawArgs) !== Object.prototype
+    ) {
         return { ok: false, reason: 'tool_args_schema_violation' };
     }
     if (containsForbiddenModelKey(rawArgs)) {
@@ -95,7 +100,8 @@ function createReadOnlyToolGateway({ catalog = [], adapters = {} } = {}) {
         if (!budget || typeof budget.reserve !== 'function') {
             return { ok: false, reason: 'budget_missing', coverage: 'unavailable', tool };
         }
-        const selected = selectArgs(request.args || {}, definition.args);
+        const rawArgs = request.args === undefined ? {} : request.args;
+        const selected = selectArgs(rawArgs, definition.args);
         if (!selected.ok) {
             return { ok: false, reason: selected.reason, coverage: 'unavailable', tool };
         }

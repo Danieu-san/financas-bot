@@ -141,6 +141,7 @@
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
+    "acorn": "^8.15.0",
     "nodemon": "^3.0.1",
     "playwright": "^1.60.0"
   },

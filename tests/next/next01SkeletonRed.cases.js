@@ -200,7 +200,28 @@ test('NEXT01:N01-TOOL-002 tool gateway validates nested boundary and argument ty
         coverage: 'unavailable',
         tool: 'balance.get'
     });
+    let reservations = 0;
+    const budget = {
+        reserve() {
+            reservations += 1;
+            return { ok: true };
+        }
+    };
+    class InvalidArgs {}
+    for (const args of [null, false, 0, '', [], new Date(0), new InvalidArgs()]) {
+        assert.deepStrictEqual(await gateway.execute({
+            request: { tool: 'balance.get', args },
+            trustedContext: { familyId: 'family-a', actorId: 'person-a' },
+            budget
+        }), {
+            ok: false,
+            reason: 'tool_args_schema_violation',
+            coverage: 'unavailable',
+            tool: 'balance.get'
+        });
+    }
     assert.strictEqual(calls, 0);
+    assert.strictEqual(reservations, 0);
 });
 
 test('NEXT01:N01-SESSION-001 session store applies CAS and rejects stale state', () => {

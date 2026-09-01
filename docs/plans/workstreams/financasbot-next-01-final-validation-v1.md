@@ -2,7 +2,7 @@
 
 Atualizado em: 2026-09-01
 Base: `0b988e7d51544dbc02942b237b0d58d12b9af264`
-Estado: `CANDIDATO CORRIGIDO LOCAL VERDE — REAUDITORIA INDEPENDENTE PENDENTE`
+Estado: `CANDIDATO REAUDITADO E CORRIGIDO LOCAL VERDE — NOVA REAUDITORIA INDEPENDENTE PENDENTE`
 
 ## 1. Escopo validado
 
@@ -50,15 +50,33 @@ MEDIUM e um LOW encontrados, sem novo subsistema:
 - binding final obrigatório a HEAD, parent único, árvore limpa e arquivos
   tracked, incluindo detecção de paths ignorados no escopo.
 
+A reauditoria do SHA `3733ba57e8c9684e5d539ec8da4eb04f03445dd1`
+confirmou as correções anteriores e encontrou uma lacuna HIGH no domínio do
+analisador, uma MEDIUM no vínculo entre property ID e execução, e uma LOW no
+container de argumentos. O novo candidato fecha essas três classes sem ampliar
+o runtime:
+
+- o inventário de fontes executáveis é uma igualdade de paths e inclui
+  `.js`, `.mjs` e `.cjs`; fonte extra falha fechado;
+- imports e loaders são analisados pela AST com Acorn, imports relativos são
+  resolvidos por `realpath` dentro de `src/next/`, e mecanismos não
+  classificados ou capabilities dinâmicas falham fechado; os únicos imports
+  externos permitidos também exigem binding AST exato;
+- os 25 property IDs são extraídos das linhas `ok` efetivamente emitidas pelo
+  runner TAP, em vez de comentários ou tokens presentes no source;
+- somente ausência de `request.args` vira `{}`; `null`, falsy, array, `Date` e
+  instância de classe falham antes de budget e adapter.
+
 O validador documental/estrutural reporta:
 
-- `required_files=27`;
+- `required_files=29`;
 - `source_files=11`;
 - `focal_tests=25/25`;
 - `property_ids=25/25`;
-- `required_tracked=27/27` no candidato commitado;
+- `required_tracked=29/29` no candidato commitado;
 - `runtime_v1_imports=0`;
-- `dynamic_module_loads=0`;
+- `classified_module_loads=8`;
+- `unclassified_module_loaders=0`;
 - `forbidden_effect_capabilities=0`.
 
 O gate não infere “zero writer” de uma regex nominal. A evidência é composta:
@@ -95,7 +113,7 @@ corretamente bloqueados pelo tripwire da suíte hermética. A fixture passou a:
 Não foi liberado shell, rede, Git genérico, path externo ou comando remoto. O
 teste passou tanto isolado quanto sob o mesmo tripwire hermético da suíte ampla.
 
-A bateria afetada pós-auditoria, combinando NEXT-01, watcher e Open Finance,
+A bateria afetada do novo candidato, combinando NEXT-01, watcher e Open Finance,
 terminou em `55/55 PASS`. A bateria anterior de estabilização do baseline havia
 terminado em `64/64 PASS`.
 
@@ -105,7 +123,7 @@ Comando: `npm test`
 
 Resultado observado uma única vez após estabilização das correções auditadas:
 
-- duração: `834.430 ms`;
+- duração: `672.323 ms`;
 - arquivos descobertos: `176`;
 - entrypoints executados: `158`;
 - testes: `1.929`;
@@ -113,8 +131,8 @@ Resultado observado uma única vez após estabilização das correções auditad
 - falhas: `0`;
 - skips: `10`, todos na allowlist esperada;
 - todo: `0`;
-- line coverage: `91,82%`;
-- branch coverage: `75,07%`;
+- line coverage: `91,80%`;
+- branch coverage: `75,01%`;
 - function coverage: `91,25%`;
 - runner: `valid=true`, sem razão de invalidação;
 - rede: bloqueada para fetch/http/https/net e descendentes Node;

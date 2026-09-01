@@ -12,6 +12,8 @@ const base = '0b988e7d51544dbc02942b237b0d58d12b9af264';
 const errors = [];
 
 const requiredFiles = [
+    'package.json',
+    'package-lock.json',
     'docs/plans/workstreams/financasbot-next-01.md',
     'docs/plans/workstreams/financasbot-next-01-topology-reuse-v1.md',
     'docs/plans/workstreams/financasbot-next-01-final-validation-v1.md',
@@ -54,14 +56,20 @@ function listFiles(relativeDirectory) {
         for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
             const absolute = path.join(current, entry.name);
             if (entry.isDirectory()) pending.push(absolute);
-            else if (entry.isFile()) files.push(absolute);
+            else if (entry.isFile() || entry.isSymbolicLink()) files.push(absolute);
         }
     }
     return files;
 }
 
-const sourceFiles = listFiles('src/next').filter(file => /\.js$/.test(file));
+const sourceFiles = listFiles('src/next').filter(file => /\.(?:js|mjs|cjs)$/.test(file));
 const testFiles = listFiles('tests/next').filter(file => /\.cases\.js$/.test(file));
+
+const sourceInventory = validationPolicy.validateSourceInventory({
+    expectedPaths: validationPolicy.EXPECTED_NEXT_SOURCE_PATHS,
+    discoveredPaths: sourceFiles.map(file => path.relative(path.join(root, 'src/next'), file).replaceAll('\\', '/'))
+});
+errors.push(...sourceInventory.errors);
 
 const sourceAnalysis = validationPolicy.analyzeNextSourceFiles({
     nextRoot: path.join(root, 'src/next'),
@@ -69,13 +77,10 @@ const sourceAnalysis = validationPolicy.analyzeNextSourceFiles({
 });
 errors.push(...sourceAnalysis.errors);
 
-const testSources = testFiles.map(file => {
+for (const file of testFiles) {
     const value = fs.readFileSync(file, 'utf8');
     if (/\b(?:test|describe|it)\.skip\b/.test(value)) errors.push(`skipped_test:${path.relative(root, file)}`);
-    return value;
-});
-const propertyEvidence = validationPolicy.validatePropertyIds(testSources);
-errors.push(...propertyEvidence.errors);
+}
 
 function git(args) {
     return execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
@@ -105,6 +110,8 @@ for (const args of [
 }
 
 const allowedPath = value => (
+    value === 'package.json' ||
+    value === 'package-lock.json' ||
     value === 'docs/plans/workstreams/financasbot-next-01.md' ||
     value === 'docs/plans/workstreams/financasbot-next-01-topology-reuse-v1.md' ||
     value === 'docs/plans/workstreams/financasbot-next-01-final-validation-v1.md' ||
@@ -167,7 +174,7 @@ if (errors.length > 0) {
     process.exit(1);
 }
 
-const focal = spawnSync(process.execPath, ['--test', ...testFiles], {
+const focal = spawnSync(process.execPath, ['--test', '--test-reporter=tap', ...testFiles], {
     cwd: root,
     encoding: 'utf8'
 });
@@ -180,6 +187,12 @@ if (focal.status !== 0) {
 
 const passCount = (focal.stdout.match(/^# pass (\d+)$/m) || [])[1];
 const failCount = (focal.stdout.match(/^# fail (\d+)$/m) || [])[1];
+const propertyEvidence = validationPolicy.validateExecutedPropertyIds(focal.stdout);
+if (propertyEvidence.errors.length > 0) {
+    console.error(allowWorktree ? 'NEXT-01 PRECOMMIT: FAIL' : 'NEXT-01 GATE: FAIL');
+    for (const error of propertyEvidence.errors) console.error(`- ${error}`);
+    process.exit(1);
+}
 if (passCount !== String(validationPolicy.REQUIRED_PROPERTY_IDS.length) || failCount !== '0') {
     console.error(allowWorktree ? 'NEXT-01 PRECOMMIT: FAIL' : 'NEXT-01 GATE: FAIL');
     console.error(`unexpected_focal_result:pass=${passCount}:fail=${failCount}`);
@@ -194,7 +207,8 @@ console.log(`property_ids=${propertyEvidence.observedIds.length}/${validationPol
 console.log(`required_tracked=${requiredFiles.filter(file => trackedFiles.has(file)).length}/${requiredFiles.length}`);
 console.log(`changed_paths=${changedPaths.size}`);
 console.log(`runtime_v1_imports=${sourceAnalysis.runtimeV1Imports}`);
-console.log(`dynamic_module_loads=${sourceAnalysis.dynamicModuleLoads}`);
+console.log(`classified_module_loads=${sourceAnalysis.classifiedModuleLoads}`);
+console.log(`unclassified_module_loaders=${sourceAnalysis.unclassifiedModuleLoaders}`);
 console.log(`forbidden_effect_capabilities=${sourceAnalysis.forbiddenEffectImports}`);
 if (!allowWorktree) {
     console.log(`head_bound=${expectedHead}`);
