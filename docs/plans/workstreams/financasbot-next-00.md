@@ -1,7 +1,7 @@
 # NEXT-00 — Charter e contratos do FinançasBot Next
 
 Atualizado em: 2026-09-01
-Estado: `OPEN — PROVENANCE GRAPH DESIGN V3 CHANNEL-SEPARATED; FINAL FOCAL REAUDIT PENDING; IMPLEMENTATION BLOCKED; ZERO IMPLEMENTAÇÃO FUNCIONAL`
+Estado: `CLOSED — GO DOCUMENTAL; ARQUITETURA RATIFICADA; ZERO IMPLEMENTAÇÃO FUNCIONAL`
 Base: `fc577e5d5e21fdc5402ace1cf662a6ea1bef255f`
 Roadmap normativo: `911af93343210ccfe2d7b7fe0b898542044a1fdf`
 
@@ -162,7 +162,11 @@ evidência rastreável que o contenha.
 - `e1b3238...` recebeu `APROVÁVEL APÓS AJUSTES`, com zero HIGH e um MEDIUM na
   presença de `result` dentro do trace; resultado e trace foram separados por
   tipos e namespaces `R/I/M/L/T`, sem novo subsistema;
-- decisão humana continua obrigatória antes de NEXT-01.
+- o candidato final `f8137f0396fcdf41b1a3e2535040f663c4ed171a`
+  recebeu reauditoria focal independente `APROVÁVEL`, com zero finding
+  `CRITICAL`, `HIGH`, `MEDIUM` ou `LOW`;
+- Daniel autorizou explicitamente em 2026-09-01 o fechamento do NEXT-00 e a
+  abertura do NEXT-01.
 
 ## Validação proporcional
 
@@ -193,9 +197,13 @@ executável classificado como verde documental, necessidade de dado privado,
 escopo funcional antecipado, fixture não sanitizada, limiar pós-hoc, NO-GO
 independente ou terceira correção da mesma classe por exemplos especiais.
 
-## Próxima ação exata
+## Decisão de fechamento
 
-Publicar a separação documental `R/I/M/L/T` em hash imutável e reauditar somente
-o cruzamento entre resultado funcional, instrumentação, medição e trace, sem
-implementar compiler, evaluator, fixture ou validador. NEXT-01 continua fechado
-até parecer sem lacuna indispensável e decisão explícita de Daniel.
+Todos os critérios de GO foram satisfeitos no nível documental. O objeto técnico
+ratificado permanece o commit imutável
+`f8137f0396fcdf41b1a3e2535040f663c4ed171a`; este registro administrativo não
+altera aquele candidato nem reivindica prova de runtime.
+
+NEXT-00 está encerrado. NEXT-01 pode iniciar apenas em branch/worktree próprios,
+pelos limites do charter correspondente, sem writers, integrações reais,
+produção ou dados privados.

@@ -1,12 +1,13 @@
 # Workstream — FinançasBot Next / NEXT-00
 
 Atualizado em: 2026-09-01
-Status: `PROVENANCE GRAPH DESIGN V3 CHANNEL-SEPARATED; FINAL FOCAL REAUDIT PENDING; IMPLEMENTATION BLOCKED; ZERO IMPLEMENTAÇÃO FUNCIONAL`
+Status: `CLOSED — GO DOCUMENTAL; ARQUITETURA RATIFICADA; ZERO IMPLEMENTAÇÃO FUNCIONAL`
 
-## Objetivo ativo
+## Objetivo concluído
 
 Fechar documentalmente os contratos, corpus e critérios do NEXT-00 sem criar
-runtime funcional e sem abrir NEXT-01.
+runtime funcional. O gate foi encerrado e NEXT-01 foi aberto por autorização
+humana separada.
 
 ## Git e isolamento
 
@@ -14,7 +15,7 @@ runtime funcional e sem abrir NEXT-01.
 - worktree: `financasbot-next-00-worktree`;
 - base: `fc577e5d5e21fdc5402ace1cf662a6ea1bef255f`;
 - roadmap normativo: `911af93343210ccfe2d7b7fe0b898542044a1fdf`;
-- candidato reavaliado: `831d0c35c1d12ad60f96989e19133c5b4630ec44`;
+- candidato final auditado: `f8137f0396fcdf41b1a3e2535040f663c4ed171a`;
 - bot legado, produção, dados e credenciais permanecem intocados.
 
 ## Estado vigente
@@ -152,22 +153,24 @@ runtime funcional e sem abrir NEXT-01.
   trace são canais tipados e disjuntos; `E` permanece reservado a edges;
 - result validator usa `R`; trace validator usa `T`; nenhum envelope os funde.
 
-## Critério de saída
+## Fechamento
 
-Ainda não satisfeito. A arquitetura do grafo precisa ser revisada e ratificada
-antes de qualquer implementação. Depois disso, compiler/evaluator e corpus v2
-precisarão de provas geradas e nova reauditoria. Estado máximo atual:
-`CANDIDATO DE ARQUITETURA; IMPLEMENTAÇÃO BLOQUEADA`.
+- reauditoria focal final do candidato `f8137f...`: `APROVÁVEL`;
+- findings: zero `CRITICAL`, `HIGH`, `MEDIUM` ou `LOW`;
+- Daniel autorizou explicitamente em 2026-09-01 fechar NEXT-00 e abrir NEXT-01;
+- NEXT-00 encerra somente arquitetura, contratos, fixtures e critérios;
+- nenhuma propriedade futura de runtime foi declarada provada.
 
 ## Próxima ação exata
 
-Publicar somente esta separação documental em novo hash imutável e pedir uma
-reauditoria focal final de `R/I/M/L/T`. Não implementar o motor ainda. NEXT-01
-permanece fechado.
+Prosseguir no workstream `financasbot-next-01`, começando pelo mapa de
+reaproveitamento por conformidade e pelo esqueleto hermético read-only. Não
+alterar o candidato auditado nem antecipar NEXT-02, writers ou integrações reais.
 
 ## Referências
 
 - `docs/plans/workstreams/financasbot-next-00.md`;
+- `docs/plans/workstreams/financasbot-next-00-architecture-ratification-v1.md`;
 - `docs/plans/workstreams/financasbot-next-00-reaudit-resolution-v2.md`;
 - `docs/plans/workstreams/financasbot-next-00-reaudit-resolution-v3.md`;
 - `docs/plans/workstreams/financasbot-next-00-reaudit-resolution-v4.md`;

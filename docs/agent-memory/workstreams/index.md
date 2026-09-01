@@ -20,7 +20,8 @@ Cada conversa/worktree trabalha em um objetivo e preserva seu próprio estado.
 | `financial-roadmap-road01` | ROAD-01 OPEN; inventário consumer-first antes de implementação | `financial-roadmap-road01.md` | `../../plans/workstreams/financial-roadmap-road01.md` | schema/identidade/compatibilidade; sem migração real, deploy ou dados privados |
 | `chat-codex-orchestration` | ORCH-01 FINISHED — GO técnico local | `chat-codex-orchestration.md` | `../../plans/workstreams/chat-codex-orchestration.md` | GitHub autoritativo; ponte local sem bot, produção ou dados reais |
 | `chat-codex-channel` | ORCH-02 recovery schema da ponte aguardando reauditoria | `chat-codex-channel.md` | `../../plans/workstreams/chat-codex-channel.md` | Tarefas de repositório delimitadas; estado ocioso permanece aberto |
-| `financasbot-next-00` | NEXT-00 aberto; NEXT00-03 contratos 1–8 completos; NEXT00-04 pronto | `financasbot-next-00.md` | `../../plans/workstreams/financasbot-next-00.md` | somente contratos e fixtures sanitizadas; zero runtime, produção ou dados reais |
+| `financasbot-next-00` | NEXT-00 CLOSED; GO documental no candidato auditado `f8137f...` | `financasbot-next-00.md` | `../../plans/workstreams/financasbot-next-00.md` | histórico congelado; zero runtime, produção ou dados reais |
+| `financasbot-next-01` | NEXT-01 OPEN; charter criado; implementação ainda não iniciada | `financasbot-next-01.md` | `../../plans/workstreams/financasbot-next-01.md` | esqueleto hermético read-only; reaproveitar v1 somente após conformidade; zero writer/rede real |
 
 Se dois workstreams puderem escrever simultaneamente, usar branches/worktrees
 distintas. Atualizar somente a própria linha e seus arquivos.
