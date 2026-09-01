@@ -1,7 +1,7 @@
 # NEXT-00 — Charter e contratos do FinançasBot Next
 
 Atualizado em: 2026-08-31
-Estado: `OPEN — PROVENANCE GRAPH DESIGN V3; REAUDIT PENDING; IMPLEMENTATION BLOCKED; ZERO IMPLEMENTAÇÃO FUNCIONAL`
+Estado: `OPEN — PROVENANCE GRAPH DESIGN V3; FINAL FOCAL REAUDIT PENDING; IMPLEMENTATION BLOCKED; ZERO IMPLEMENTAÇÃO FUNCIONAL`
 Base: `fc577e5d5e21fdc5402ace1cf662a6ea1bef255f`
 Roadmap normativo: `911af93343210ccfe2d7b7fe0b898542044a1fdf`
 
@@ -80,6 +80,10 @@ critérios objetivos. Não produz runtime funcional.
 25. Loader, sandbox, proxy e recorder pertencem ao `validation_tcb_root`; a
     fronteira externa restante é runtime/CI declarado, não código do projeto
     fora do hash.
+26. Recorder externo é a única autoridade causal de ambos os traces; evaluator
+    e operator não podem fornecer metadado causal.
+27. Freeze manifest referencia o hash do metric evaluator registry sem replicar
+    contract hashes, artifact roots ou roles como segunda autoridade.
 
 ## Riscos controlados
 
@@ -140,6 +144,8 @@ evidência rastreável que o contenha.
 - `2a115dc...` recebeu `APROVÁVEL APÓS AJUSTES`; closure transitivo,
   `proof_trace`, grupos atômicos e autoridade canônica foram corrigidos no
   desenho v3 sem criar subsistema novo;
+- `6906256...` recebeu `APROVÁVEL APÓS AJUSTES`; contradições residuais sobre
+  trace, bootstrap e freeze foram harmonizadas textualmente;
 - decisão humana continua obrigatória antes de NEXT-01.
 
 ## Validação proporcional
@@ -173,7 +179,7 @@ independente ou terceira correção da mesma classe por exemplos especiais.
 
 ## Próxima ação exata
 
-Revisar e reauditar o desenho v3 em
+Reauditar focalmente o desenho v3 em
 `financasbot-next-00-provenance-graph-design-v1.md` sem implementar compiler,
 evaluator, fixture ou validador. NEXT-01 continua fechado até parecer sem
 lacuna indispensável e decisão explícita de Daniel.

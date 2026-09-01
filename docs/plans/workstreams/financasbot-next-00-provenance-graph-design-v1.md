@@ -66,7 +66,16 @@ Para cada fato `F`, existe um grafo dirigido e tipado `G(F) = (N, E, P, T)`:
 - `N`: nós de evidência resolvidos por identidade imutável;
 - `E`: arestas econômicas, temporais, de escopo ou ownership;
 - `P`: predicados declarativos sobre claim, nós, arestas e conjuntos;
-- `T`: trace de derivação emitido pelo avaliador determinístico.
+- `T`: trace de observação produzido exclusivamente pelo recorder externo a
+  partir da execução determinística instrumentada. Nenhum metric evaluator,
+  graph evaluator ou operator implementation emite, fornece, completa ou
+  autodeclara metadados de trace.
+
+O resultado numérico pode ser produzido pelo metric evaluator, mas toda
+evidência causal sobre leituras, seleção, iteração, estrutura, traversal e uso
+de operandos pertence exclusivamente ao recorder externo. `derivation_trace` e
+`proof_trace` são projeções do mesmo log de observação, separadas apenas pelo
+campo `phase`.
 
 Um fato recebe verde somente se:
 
@@ -360,12 +369,18 @@ correspondente. Se houver campo material, ele precisa ser consumido.
 ## 8. Trace determinístico de derivação
 
 Cada metric evaluator continua responsável pelo valor financeiro. Sua execução
-através do proxy produz um trace estruturado:
+através do proxy produz observações externas estruturadas.
+
+O exemplo abaixo representa saída montada pelo recorder/loader externo após a
+execução. Ele não é um objeto retornado pelo metric evaluator. O campo
+`evaluator_id` também é associado externamente à execução resolvida pelo
+registry; não é aceito como declaração de identidade proveniente do código
+evaluator.
 
 ```yaml
 evaluator_id: category_consumption@1
-evaluator_contract_hash: sha256:<reviewed-contract>
-evaluator_artifact_hash: sha256:<executed-artifact>
+observed_evaluator_contract_hash: sha256:<reviewed-contract>
+observed_evaluator_artifact_root: sha256:<executed-closure>
 selected_nodes: [evt-snack-a]
 reads:
   - {node: evt-snack-a, path: amount_minor}
@@ -396,6 +411,23 @@ O sistema conserva duas views do mesmo log externo de observação:
 - `proof_trace`, capturado pelo mesmo proxy durante predicados, fingerprints e
   obrigações.
 
+A fronteira de autoridade é absoluta: evaluators e operators não possuem API
+para escrever em `reads`, `selected_nodes`, `traversed_edges`, operações
+estruturais, roles observados ou qualquer outro metadado causal. Esses campos
+existem somente como saída do recorder externo.
+
+O metric evaluator pode retornar apenas seu resultado funcional tipado e,
+quando necessário pela assinatura revisada, valores intermediários
+explicitamente definidos como outputs funcionais. Esses outputs não constituem
+trace e não podem substituir observações do recorder.
+
+O graph evaluator e os operators também não fornecem `proof_trace`; eles
+executam contra handles instrumentados, e o recorder observa externamente os
+acessos realizados durante `phase: proof`.
+
+Qualquer estrutura de trace recebida de código evaluator/operator é entrada
+inválida e causa falha fechada.
+
 O recorder, fora dos evaluators, marca cada acesso com `phase: derivation` ou
 `phase: proof` e só então produz as duas views. Graph evaluator e operadores
 recebem apenas handles tipados do proxy; nunca recebem snapshot, fixture ou
@@ -405,6 +437,24 @@ Reads estruturais também são observações causais. O proxy registra acesso a
 campo e, adicionalmente, existência de propriedade, enumeração de chaves,
 iteração, índice, ordem, membership, cardinalidade, `length` e traversal de
 aresta. API não instrumentada é inacessível dentro do runner hermético.
+
+A instrumentação trata como observação causal não apenas leitura de valor, mas
+também toda operação cuja resposta possa alterar controle de fluxo ou resultado:
+
+- property existence;
+- enumeração de own keys;
+- iteração e obtenção de iterator;
+- acesso por índice;
+- ordem observada;
+- membership;
+- cardinalidade e `length`;
+- seleção e filtro;
+- traversal de edge;
+- early termination decorrente da estrutura observada.
+
+Nós de prova são records prototype-free; propriedade herdada é inválida, não
+uma fonte adicional de resolução. Não existe acesso estrutural gratuito fora do
+trace.
 
 O conjunto exato contratado é a união tipada de inputs do valor e nós exclusivos
 de prova. Um nó de coverage pode não entrar na soma, mas precisa aparecer no
@@ -434,6 +484,28 @@ estáticas, código gerado e configuração capaz de alterar comportamento. O ro
 manifesto canônico de paths/roles. Import dinâmico, resolução fora do closure,
 plugin não pinado e código carregado por rede são proibidos.
 
+Closure executável significa o conjunto fechado de todos os bytes controlados
+pelo projeto capazes de influenciar o comportamento daquela execução após
+transformação. Inclui necessariamente:
+
+- entry module;
+- imports diretos e transitivos;
+- helpers e módulos compartilhados;
+- tabelas e constantes comportamentais;
+- código gerado e templates compilados em código;
+- configuração comportamental;
+- helpers/adapters internos puros usados pela função;
+- qualquer recurso interpretado como lógica durante a execução.
+
+Helpers/adapters deste closure não podem realizar I/O nem acessar serviço
+externo. Resolução por lookup externo, fallback de filesystem, search path não
+congelado, dynamic import, plugin não pinado, código remoto ou carregamento
+condicional fora do manifesto são inválidos.
+
+Recurso puramente operand/evidence não entra no closure apenas por ser lido via
+proxy; qualquer recurso que altere lógica de avaliação, seleção, cálculo ou
+transformação é código/configuração comportamental e precisa estar no root.
+
 Build hermético registra também toolchain/build-recipe hash para
 reprodutibilidade, mas a identidade da função executada é o Merkle root dos
 bytes efetivos. O loader executa somente objetos resolvidos por esse root.
@@ -444,16 +516,39 @@ Claim guarda somente `evaluator_ref` e bindings de aliases aos roles; freeze
 manifest referencia o hash integral do registry; trace contém os valores
 medidos pelo loader. Claims, traces e manifestos não redefinem hashes ou roles.
 
+Essa autoridade é não duplicável. Nenhum claim, trace, freeze manifest,
+fixture, provenance graph ou evaluator contract pode publicar segunda cópia
+normativa de `contract hash`, `artifact root` ou `roles` para metric evaluator.
+
+`evaluator_ref` identifica a entrada do registry. `operand_bindings` liga
+aliases locais aos roles definidos pelo registry, mas não redefine esses roles.
+Loader mede hashes/roots dos bytes carregados e recorder registra os valores
+observados no trace. Essas medições precisam ser iguais ao registry e não
+constituem segunda autoridade. Divergência falha antes da aceitação do resultado.
+
 O freeze manifest também fixa:
 
 - `proof_engine_artifact_root`, closure de graph evaluator e operators;
 - `validation_tcb_root`, closure mínimo de loader, sandbox, proxy e recorder.
 
-Todo código do repositório capaz de carregar, isolar, transformar ou observar a
-execução pertence a um desses roots. Um bootstrap externo ao artefato confere
-os roots antes de carregar os módulos. O limite de confiança restante é o
-runtime/CI declarado e pinado pelo build environment; NEXT-00 não afirma provar
-o sistema operacional ou a plataforma de CI.
+Todo código controlado pelo projeto que verifica roots, resolve artefatos,
+transforma ou carrega módulos, cria ou configura sandbox, fornece proxies ou
+registra observações pertence ao `validation_tcb_root`.
+
+Isso inclui qualquer bootstrap mantido no repositório ou produzido pelo build
+do projeto que valide roots antes do carregamento. Não existe bootstrap
+controlado pelo projeto simultaneamente fora do `validation_tcb_root` e
+autorizado a decidir quais bytes serão executados.
+
+Fora do `validation_tcb_root` permanece somente a fronteira mínima declarada de
+runtime/CI necessária para iniciar e executar o TCB. Essa fronteira é
+explicitamente identificada e pinada pelo build environment. NEXT-00 não afirma
+provar sistema operacional, hypervisor, runner ou plataforma de CI.
+
+Runtime/CI externo não pode fornecer código comportamental do projeto, plugin,
+helper, configuração de evaluator ou resolução alternativa de módulo. Se
+fornecer elemento capaz de alterar a execução validada, ele precisa entrar no
+closure/root correspondente ou a execução falha fechada.
 
 Divergência falha antes do cálculo. O loader calcula os hashes e injeta os
 valores observados no trace; ele nunca confia em hash informado pelo evaluator.
@@ -654,12 +749,23 @@ O futuro motor documental terá duas fases separadas:
 
 1. resolver snapshots da fixture por `(kind, id, version)`;
 2. conferir fingerprints;
-3. receber o trace do metric evaluator;
-4. conferir os hashes content-addressed e os papéis dos operandos;
-5. executar predicados via operator registry;
-6. confrontar trace, conjunto exato e obrigações;
-7. confrontar o resultado com o value oracle;
-8. emitir violações por átomo ou PASS.
+3. resolver no metric evaluator registry o evaluator, contract hash, artifact
+   root e roles esperados;
+4. conferir `evaluator_artifact_hash` contra o closure pós-transformação
+   efetivamente carregado antes da execução;
+5. executar metric evaluator no runner hermético, fornecendo exclusivamente
+   handles tipados do proxy;
+6. obter exclusivamente do recorder externo o `derivation_trace` da execução;
+7. executar graph evaluator e operators no mesmo modelo hermético, também
+   exclusivamente por handles do proxy;
+8. obter exclusivamente do recorder externo o `proof_trace` da fase de prova;
+9. conferir hashes medidos, roles observados, trace, conjunto exato, leituras
+   estruturais e obrigações contra registry e contrato;
+10. confrontar o resultado funcional do metric evaluator com o value oracle;
+11. emitir violações por átomo ou PASS.
+
+Nenhum passo de Evaluate aceita trace fornecido por metric evaluator, graph
+evaluator ou operator implementation.
 
 O compilador e o evaluator não podem importar nem consultar o value oracle para
 formar o contrato.
@@ -671,7 +777,8 @@ O desenho propõe congelar separadamente:
 - schema do grafo;
 - operator registry;
 - material field registry;
-- metric evaluator registry, contratos e artefatos;
+- metric evaluator registry, cujo hash integral referencia canonicamente seus
+  evaluator contracts, evaluator artifact roots e roles;
 - compiler, graph evaluator e operator implementation artifacts quando
   existirem;
 - `validation_tcb_root` de loader, sandbox, proxy e recorder;
@@ -679,8 +786,22 @@ O desenho propõe congelar separadamente:
 - value oracle;
 - fixture sintética.
 
-O manifesto de freeze registra SHA-256 integral de cada artefato. Mudança em
-qualquer artefato exige:
+O freeze manifest registra hashes/roots das autoridades congeladas conforme sua
+fronteira.
+
+Para metric evaluators, registra somente o hash integral do metric evaluator
+registry como autoridade canônica. Contract hashes, evaluator artifact roots e
+roles permanecem conteúdos normativos desse registry e não são replicados em
+segunda tabela autoritativa no freeze manifest.
+
+O freeze manifest registra separadamente roots de outras autoridades
+executáveis que não pertencem ao metric evaluator registry, incluindo
+`proof_engine_artifact_root` e `validation_tcb_root`.
+
+Valores de evaluator observados em runtime aparecem somente como medições no
+trace e precisam coincidir com a resolução do registry.
+
+Mudança em qualquer autoridade congelada exige:
 
 1. justificativa causal;
 2. bateria de mutações regenerada;
@@ -749,6 +870,13 @@ São bloqueantes:
 - permitir acesso de metric/proof evaluator ou operator fora do proxy externo;
 - autodeclarar `proof_trace` ou omitir observação estrutural;
 - duplicar hashes/roles como autoridade em claim, trace ou freeze manifest;
+- aceitar trace, read-set, selected-node set, traversal ou metadado causal
+  fornecido pelo próprio metric evaluator, graph evaluator ou operator;
+- permitir bootstrap controlado pelo projeto fora do `validation_tcb_root`;
+- permitir runtime/CI externo injetar código ou configuração comportamental não
+  incluídos em root;
+- manter segunda autoridade de contract hash, evaluator artifact root ou roles
+  fora do metric evaluator registry;
 - agrupar átomos para evitar witness ortogonal;
 - ignorar mutação porque não foi possível gerar witness;
 - permitir `OR`, fallback ou coerção para fechar lacuna;

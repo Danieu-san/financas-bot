@@ -1,8 +1,12 @@
 # NEXT-00 — Fechamento focal da fronteira de execução do grafo
 
 Atualizado em: 2026-08-31
-Objeto reavaliado: `2a115dc3274e14583fff309274e3a98cbeebe49c`
-Veredito externo: `APROVÁVEL APÓS AJUSTES`
+Objetos reavaliados:
+
+- `2a115dc3274e14583fff309274e3a98cbeebe49c`;
+- `69062563f66f71127387d4a9d778e19da593ce7b`.
+
+Vereditos externos: `APROVÁVEL APÓS AJUSTES`
 
 ## Avaliação
 
@@ -41,6 +45,20 @@ for impossível, o gate falha com `UNSATISFIED_MUTATION_WITNESS`.
 O metric evaluator registry é a única autoridade de contract hash, artifact
 root e papéis. Claims guardam referências/bindings; traces carregam medições do
 loader; freeze manifest referencia o hash do registry.
+
+## Endurecimento após a reauditoria focal
+
+- recorder externo é a única autoridade causal de `derivation_trace` e
+  `proof_trace`;
+- toda semântica residual de trace emitido/fornecido por evaluator foi removida;
+- reads estruturais completos são observados e nós são prototype-free;
+- bootstrap controlado pelo projeto pertence ao `validation_tcb_root`;
+- runtime/CI ficou restrito à fronteira mínima declarada e não pode injetar
+  lógica do projeto;
+- metric evaluator registry permaneceu autoridade única; freeze manifest só
+  referencia seu hash e traces contêm medições;
+- closure inclui todo byte comportamental pós-transformação, com helpers puros
+  e sem I/O.
 
 ## Fronteira
 
