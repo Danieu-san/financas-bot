@@ -1,7 +1,7 @@
 # Workstream — FinançasBot Next / NEXT-00
 
 Atualizado em: 2026-08-31
-Status: `PROVENANCE GRAPH DESIGN DRAFT; IMPLEMENTATION BLOCKED; ZERO IMPLEMENTAÇÃO FUNCIONAL`
+Status: `PROVENANCE GRAPH DESIGN V2; REAUDIT PENDING; IMPLEMENTATION BLOCKED; ZERO IMPLEMENTAÇÃO FUNCIONAL`
 
 ## Objetivo ativo
 
@@ -83,6 +83,17 @@ runtime funcional e sem abrir NEXT-01.
 - suíte ampla única: `agent-workflow: OK` sobre 15 entradas staged;
 - zero caminho de runtime.
 
+## Auditoria arquitetural do grafo
+
+- objeto: `9b20c0fc49dea78cce9fc04ebc2a5bf47e3c5f86`;
+- veredito: `APROVÁVEL APÓS AJUSTES`;
+- H1: provas sobrepostas sem mutant ortogonal;
+- H2: fórmula não content-addressed e papéis de operandos ausentes;
+- H3: leitura causal possível de campo `non_material`;
+- M1: mutação sem witness não podia ser silenciosamente aceita;
+- resolução: `financasbot-next-00-reaudit-resolution-v6.md`;
+- desenho corrigido permanece documental e não normativo.
+
 ## Critério de saída
 
 Ainda não satisfeito. A arquitetura do grafo precisa ser revisada e ratificada
@@ -92,8 +103,8 @@ precisarão de provas geradas e nova reauditoria. Estado máximo atual:
 
 ## Próxima ação exata
 
-Revisar adversarialmente o desenho do grafo, publicar somente a documentação em
-hash imutável e pedir auditoria arquitetural. Não implementar o motor ainda.
+Revisar adversarialmente o desenho v2, publicar somente a documentação em novo
+hash imutável e pedir reauditoria arquitetural. Não implementar o motor ainda.
 NEXT-01 permanece fechado.
 
 ## Referências
@@ -103,6 +114,7 @@ NEXT-01 permanece fechado.
 - `docs/plans/workstreams/financasbot-next-00-reaudit-resolution-v3.md`;
 - `docs/plans/workstreams/financasbot-next-00-reaudit-resolution-v4.md`;
 - `docs/plans/workstreams/financasbot-next-00-reaudit-resolution-v5.md`;
+- `docs/plans/workstreams/financasbot-next-00-reaudit-resolution-v6.md`;
 - `docs/plans/workstreams/financasbot-next-00-provenance-graph-design-v1.md`;
 - `docs/plans/workstreams/financasbot-next-00-golden-set-v1-validation.md`;
 - `docs/plans/workstreams/financasbot-next-00-final-validation-v1.md`;

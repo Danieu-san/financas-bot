@@ -1,7 +1,7 @@
 # NEXT-00 — Charter e contratos do FinançasBot Next
 
 Atualizado em: 2026-08-31
-Estado: `OPEN — PROVENANCE GRAPH DESIGN DRAFT; IMPLEMENTATION BLOCKED; ZERO IMPLEMENTAÇÃO FUNCIONAL`
+Estado: `OPEN — PROVENANCE GRAPH DESIGN V2; REAUDIT PENDING; IMPLEMENTATION BLOCKED; ZERO IMPLEMENTAÇÃO FUNCIONAL`
 Base: `fc577e5d5e21fdc5402ace1cf662a6ea1bef255f`
 Roadmap normativo: `911af93343210ccfe2d7b7fe0b898542044a1fdf`
 
@@ -63,6 +63,13 @@ critérios objetivos. Não produz runtime funcional.
     é proibido.
 16. ID de evidência não prova provenance: conteúdo material, dimensões, arestas,
     conjunto exato e trace de derivação precisam coincidir.
+17. Cada átomo de prova possui mutant ortogonal e conjunto exato de violações
+    esperado; RED global não prova todas as barreiras.
+18. Evaluator executado é content-addressed e usa papéis tipados de operandos;
+    coincidência do Golden Set não prova fórmula.
+19. Todo campo lido causalmente é material; `non_material` não pode aparecer em
+    trace de cálculo ou prova.
+20. Mutação enumerada sem witness discriminante falha o gate e nunca vira skip.
 
 ## Riscos controlados
 
@@ -116,6 +123,10 @@ evidência rastreável que o contenha.
 - `bd53f70...` recebeu Chat `NO-GO`; o estado foi rebaixado;
 - o desenho do grafo declarativo de provenance está em revisão e nenhum motor
   será implementado antes de sua ratificação;
+- `9b20c0f...` recebeu `APROVÁVEL APÓS AJUSTES`; os três HIGH e o MEDIUM foram
+  incorporados como invariantes genéricos no desenho v2;
+- o novo desenho exige provas ortogonais, evaluator content-addressed, leitura
+  material e witness fail-closed;
 - decisão humana continua obrigatória antes de NEXT-01.
 
 ## Validação proporcional
@@ -149,7 +160,7 @@ independente ou terceira correção da mesma classe por exemplos especiais.
 
 ## Próxima ação exata
 
-Revisar e auditar o desenho
+Revisar e reauditar o desenho v2 em
 `financasbot-next-00-provenance-graph-design-v1.md` sem implementar compiler,
 evaluator, fixture ou validador. NEXT-01 continua fechado até parecer sem
 lacuna indispensável e decisão explícita de Daniel.

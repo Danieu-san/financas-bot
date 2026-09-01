@@ -43,7 +43,8 @@ O desenho separa responsabilidades que não podem ser fundidas:
 |---|---|---|
 | claim contract | semântica revisada da pergunta | calcular o valor |
 | fixture/snapshot | mundo sintético observado | declarar sozinho que a relação é correta |
-| metric evaluator | cálculo determinístico e trace de leitura | escolher o claim esperado |
+| metric evaluator | cálculo determinístico content-addressed e trace de leitura | escolher o claim esperado |
+| evaluator contract | assinatura, papéis dos operandos e propriedades da fórmula | fornecer evidência ou resultado |
 | provenance graph | prova revisada das relações | produzir o resultado numérico |
 | value oracle | valor esperado apresentado | criar dimensões ou provenance |
 | graph evaluator | verificar operadores e completude | ramificar por métrica ou fato |
@@ -91,6 +92,7 @@ migração, o v1 continua congelado e não é estendido com exceções.
 schema_version: 2
 operator_registry_version: 1
 material_field_registry_version: 1
+metric_evaluator_registry_version: 1
 authority: reviewed_provenance_semantics
 
 facts:
@@ -108,6 +110,13 @@ facts:
       time_basis: source_period
       coverage: complete
       evidence_state: confirmed
+      evaluator:
+        evaluator_id: source_coverage
+        evaluator_version: 1
+        evaluator_contract_hash: sha256:<reviewed-contract>
+        evaluator_artifact_hash: sha256:<executed-artifact>
+        operands:
+          source: {role: coverage_source, kind: source_state}
 
     evidence:
       nodes:
@@ -218,6 +227,12 @@ não pode conter ID, data financeira, valor, moeda, estado, coverage, ownership
 ou vínculo. Assim, adicionar um novo campo como `statement_id` não passa
 silenciosamente fora do fingerprint e das obrigações.
 
+`non_material` fica fora do namespace acessível aos evaluators. Todo path
+presente em `derivation_trace.reads` ou `proof_trace.reads` precisa resolver
+para `identity`, `dimension` ou `edge`. Se um evaluator tentar ler campo
+`non_material`, o compile falha; não existe exceção local. Campo lido para
+seleção, branch, ordenação, cálculo ou prova é material por definição.
+
 ### 5.4 Claims derivados
 
 Ranking, diferença, razão e comparação podem depender de fatos já calculados,
@@ -324,7 +339,8 @@ genéricas já existentes.
 
 Todo fato materializado precisa satisfazer estas obrigações, com IDs estáveis:
 
-1. `claim_semantics`: metric, unit e evaluator id/versão coincidem;
+1. `claim_semantics`: metric, unit, evaluator id/versão e os dois hashes
+   content-addressed coincidem;
 2. `node_identity`: kind, ID e versão de todos os nós;
 3. `semantic_integrity`: fingerprint dos campos materiais;
 4. `subject_scope`: sujeito do claim ligado aos nós usados;
@@ -343,11 +359,13 @@ correspondente. Se houver campo material, ele precisa ser consumido.
 
 ## 8. Trace determinístico de derivação
 
-Cada metric evaluator continua responsável pelo valor financeiro, mas passa a
-emitir junto um trace estruturado:
+Cada metric evaluator continua responsável pelo valor financeiro. Sua execução
+através do proxy produz um trace estruturado:
 
 ```yaml
 evaluator_id: category_consumption@1
+evaluator_contract_hash: sha256:<reviewed-contract>
+evaluator_artifact_hash: sha256:<executed-artifact>
 selected_nodes: [evt-snack-a]
 reads:
   - {node: evt-snack-a, path: amount_minor}
@@ -360,8 +378,9 @@ operations:
 result: 1200
 ```
 
-O trace nasce da execução do avaliador, não do contrato. O graph evaluator
-confronta o trace com `trace_contract`:
+O trace nasce da execução do avaliador, não do contrato. Ele é capturado por um
+proxy instrumentado de leitura, não escrito livremente pelo próprio evaluator.
+O graph evaluator confronta o trace com `trace_contract`:
 
 - leitura usada e não declarada: erro;
 - leitura declarada e nunca usada: erro;
@@ -372,7 +391,7 @@ confronta o trace com `trace_contract`:
 
 O sistema conserva dois traces distintos:
 
-- `derivation_trace`, emitido pelo metric evaluator e usado para cálculo;
+- `derivation_trace`, capturado pelo proxy durante o cálculo;
 - `proof_trace`, emitido pelo graph evaluator e usado para predicados,
   fingerprints e obrigações.
 
@@ -387,6 +406,38 @@ kernel de cálculo, onde fórmulas diferentes são semanticamente necessárias.
 Adicionar métrica não pode alterar o graph evaluator. Adicionar operador
 genérico exige nova versão do registry, ADR curto, mutações de propriedade e
 auditoria do contrato.
+
+### 8.1 Semântica content-addressed do evaluator
+
+O trace de inputs não prova, sozinho, a fórmula. Cada entrada do metric
+evaluator registry resolve `(evaluator_id, evaluator_version)` para dois hashes:
+
+- `evaluator_contract_hash`: hash integral do contrato revisado de assinatura,
+  unidade, papéis dos operandos e propriedades algébricas esperadas;
+- `evaluator_artifact_hash`: hash do módulo/artefato executável realmente
+  carregado pelo teste ou build.
+
+Os dois hashes entram no freeze manifest e no trace. Divergência falha antes do
+cálculo. O loader calcula os hashes dos bytes realmente carregados e injeta os
+valores no trace; ele nunca confia em hash informado pelo evaluator. Isso
+reutiliza a autoridade determinística do kernel; o provenance graph não ganha
+uma segunda DSL de fórmulas.
+
+Evaluator executa hermeticamente e só acessa operandos pelo proxy tipado. I/O,
+rede, relógio implícito, aleatoriedade, variável global, acesso direto à fixture
+ou leitura fora do proxy são proibidos. Relógio, policy e registry necessários
+entram como operandos explícitos e versionados. O proxy gera `reads`, roles e
+selected nodes a partir dos acessos reais; o evaluator não pode omiti-los.
+
+Operandos têm papéis tipados. Diferença declara `left` e `right`; razão declara
+`numerator` e `denominator`; ranking declara população, chave e direção. Aresta
+`derived_from` sem papel não é suficiente para operação sensível à ordem.
+
+Cada evaluator possui propriedades discriminantes independentes do Golden Set.
+Exemplos: trocar `left/right`, usar `abs(left-right)` ou inverter ordenação
+precisa falhar em witness sintético que produza resultado diferente. Se o
+corpus corrente não distingue duas fórmulas, o registry cria witness adicional;
+coincidência do Golden Set nunca prova a fórmula.
 
 ## 9. Exemplos causais obrigatórios
 
@@ -446,6 +497,34 @@ usar a palavra `correspondente`.
 A bateria não enumera exemplos. Ela deriva mutações do schema, do registry de
 campos materiais e de cada grafo.
 
+### 10.0 Átomos de prova e ortogonalidade
+
+Compiler e registries decompõem a validade em átomos identificáveis:
+
+`claim`, `identity`, `fingerprint`, `subject`, `period`, `time_basis`,
+`coverage`, `evidence_state`, `evidence_set`, `edge`, `trace`, `evaluator`.
+
+Cada mutant declara `expected_violations`. O harness compara o conjunto exato
+de violações observado, não apenas `RED` global.
+
+Toda classe precisa de mutant isolado em que as demais barreiras relevantes
+permaneçam válidas:
+
+- fingerprint: alterar somente o fingerprint esperado, mantendo conteúdo e
+  predicados;
+- predicado: alterar o conteúdo, recalcular fingerprint e manter estrutura,
+  para que apenas a relação semântica rejeite;
+- aresta: retargetar a relação, recalcular fingerprint e reparar representações
+  auxiliares sem mudar o claim;
+- trace: remover/trocar leitura com snapshots e predicados intactos;
+- evaluator: trocar artefato, hash, papel de operando ou fórmula usando witness
+  discriminante.
+
+Se dois átomos forem logicamente inseparáveis, o schema precisa declará-los
+como grupo atômico versionado antes das mutações; não se aceita descobrir a
+inseparabilidade depois de um RED. Grupos não podem ser definidos por métrica
+ou `fact_key`.
+
 ### 10.1 Nós
 
 Para cada nó:
@@ -501,6 +580,23 @@ mutations_expected =
 Não existe número hardcoded que possa continuar verde após inclusão de novo
 nó, campo, aresta ou fato.
 
+### 10.6 Witness obrigatório e fail-closed
+
+Cada mutação enumerada precisa produzir um witness schema-valid e
+discriminante. O gerador segue esta ordem:
+
+1. reutilizar alternativa válida do closed world;
+2. sintetizar alternativa mínima a partir do schema do kind;
+3. comprovar que somente os átomos declarados foram invalidados;
+4. executar o mutant e confrontar `expected_violations`.
+
+Se não conseguir materializar witness, o resultado é
+`UNSATISFIED_MUTATION_WITNESS` e o gate falha. Nunca há `skip`, redução da
+cardinalidade esperada ou aceitação por ausência de alternativa.
+
+O relatório registra `expected`, `generated`, `executed` e `matched`; os quatro
+totais precisam ser iguais.
+
 ## 11. Compilador e evaluator
 
 O futuro motor documental terá duas fases separadas:
@@ -511,18 +607,21 @@ O futuro motor documental terá duas fases separadas:
 2. resolver tipos e paths;
 3. construir o grafo;
 4. calcular obrigações pelo schema e campos materiais presentes;
-5. rejeitar nó, path, aresta ou predicado não consumido;
-6. produzir IR imutável, sem executar métrica.
+5. rejeitar qualquer trace-read de campo `non_material`;
+6. resolver evaluator contract/artifact e papéis tipados dos operandos;
+7. rejeitar nó, path, aresta ou predicado não consumido;
+8. produzir IR imutável, sem executar métrica.
 
 ### 11.2 Evaluate
 
 1. resolver snapshots da fixture por `(kind, id, version)`;
 2. conferir fingerprints;
 3. receber o trace do metric evaluator;
-4. executar predicados via operator registry;
-5. confrontar trace, conjunto exato e obrigações;
-6. confrontar o resultado com o value oracle;
-7. emitir lista completa de violações ou PASS.
+4. conferir os hashes content-addressed e os papéis dos operandos;
+5. executar predicados via operator registry;
+6. confrontar trace, conjunto exato e obrigações;
+7. confrontar o resultado com o value oracle;
+8. emitir violações por átomo ou PASS.
 
 O compilador e o evaluator não podem importar nem consultar o value oracle para
 formar o contrato.
@@ -534,6 +633,9 @@ O desenho propõe congelar separadamente:
 - schema do grafo;
 - operator registry;
 - material field registry;
+- metric evaluator registry, contratos e artefatos;
+- compiler, graph evaluator e operator implementation artifacts quando
+  existirem;
 - claim/provenance contract;
 - value oracle;
 - fixture sintética.
@@ -578,11 +680,16 @@ O desenho só pode virar contrato normativo se a revisão independente confirmar
 3. toda leitura real aparece no trace e todo nó contratado é consumido;
 4. campos materiais e arestas geram obrigações automaticamente;
 5. mutações são derivadas do schema, não de exemplos selecionados;
-6. um novo kind ou operador exige versão explícita e auditoria;
-7. a linguagem é pequena, tipada, fail-closed e sem código arbitrário;
-8. a migração substitui a abstração inteira, sem rollout por exceção;
-9. nenhum runtime, produção, writer, integração ou dado real entra no gate;
-10. não existe finding HIGH de completude causal.
+6. cada átomo tem mutant ortogonal e violação esperada verificada;
+7. evaluator e fórmula executados são content-addressed, com operandos tipados
+   e witnesses discriminantes;
+8. campo lido por qualquer trace é material e nunca `non_material`;
+9. witness ausente falha o gate em vez de reduzir a bateria;
+10. um novo kind ou operador exige versão explícita e auditoria;
+11. a linguagem é pequena, tipada, fail-closed e sem código arbitrário;
+12. a migração substitui a abstração inteira, sem rollout por exceção;
+13. nenhum runtime, produção, writer, integração ou dado real entra no gate;
+14. não existe finding HIGH de completude causal.
 
 ## 15. Condições de NO-GO
 
@@ -592,6 +699,10 @@ São bloqueantes:
 - adicionar relações por `fact_key` ou por métrica no evaluator;
 - manter strings sobrecarregadas como autoridade de escopo/período;
 - aceitar nós ou campos materiais não consumidos;
+- aceitar RED global sem conferir os átomos de violação esperados;
+- permitir leitura causal de campo `non_material`;
+- executar evaluator sem contract/artifact hash e papéis tipados;
+- ignorar mutação porque não foi possível gerar witness;
 - permitir `OR`, fallback ou coerção para fechar lacuna;
 - usar o oracle para gerar o contrato durante a validação;
 - testar apenas os quatro exemplos que motivaram o finding;
