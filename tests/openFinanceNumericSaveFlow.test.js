@@ -7,6 +7,9 @@ const test = require('node:test');
 const { OpenFinanceAlertOutbox } = require('../src/openFinance/openFinanceAlertOutbox');
 const { OpenFinanceRevocationJournal } = require('../src/openFinance/openFinanceRevocationJournal');
 const { OpenFinanceShadowPreviewStore } = require('../src/openFinance/openFinanceShadowPreviewStore');
+const {
+    OpenFinanceSaveProposalReviewStore
+} = require('../src/openFinance/openFinanceSaveProposalReviewStore');
 const { observationRef } = require('../src/openFinance/openFinanceRuntimeReconciliation');
 
 const {
@@ -24,6 +27,24 @@ const {
 } = require('../src/openFinance/openFinanceCanaryRuntime');
 
 const secret = 'open-finance-numeric-save-flow-secret-32-bytes';
+const numericSaveClock = () => new Date('2026-07-29T12:03:00.000Z');
+
+class FixedClockShadowPreviewStore extends OpenFinanceShadowPreviewStore {
+    constructor(options = {}) {
+        super({ ...options, clock: numericSaveClock });
+    }
+}
+
+class FixedClockSaveProposalReviewStore extends OpenFinanceSaveProposalReviewStore {
+    constructor(options = {}) {
+        super({ ...options, clock: numericSaveClock });
+    }
+}
+
+const fixedClockConversationDependencies = Object.freeze({
+    OpenFinanceShadowPreviewStore: FixedClockShadowPreviewStore,
+    OpenFinanceSaveProposalReviewStore: FixedClockSaveProposalReviewStore
+});
 
 function createBatchOutbox(size = 5) {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-numeric-save-'));
@@ -110,7 +131,7 @@ function createBatchPreview(size = 2) {
         ],
         familyConfirmationEnabled: true,
         confirmationTtlMinutes: 60,
-        clock: () => new Date('2026-07-29T12:02:00.000Z')
+        clock: numericSaveClock
     });
     const item = {
         id: 'item-daniel',
@@ -196,7 +217,8 @@ function createBatchPreview(size = 2) {
             OPEN_FINANCE_SHADOW_PREVIEW_DB: previewPath,
             OPEN_FINANCE_OUTBOX_DB: outboxPath,
             OPEN_FINANCE_VISIBILITY_POLICY_FILE: visibilityPath
-        }
+        },
+        conversationDependencies: fixedClockConversationDependencies
     };
 }
 
@@ -630,7 +652,8 @@ test('gate 32 turns a numeric selection into sequential real guided reviews', ()
             actorWhatsappId: 'daniel@c.us',
             proposals,
             reviewCatalog,
-            env: harness.env
+            env: harness.env,
+            dependencies: harness.conversationDependencies
         });
         assert.equal(selected.state, 'review_editing');
         assert.equal(selected.proposal_ref, harness.proposalRefs[0]);
@@ -642,7 +665,8 @@ test('gate 32 turns a numeric selection into sequential real guided reviews', ()
             actorWhatsappId: 'daniel@c.us',
             proposals,
             reviewCatalog,
-            env: harness.env
+            env: harness.env,
+            dependencies: harness.conversationDependencies
         });
         assert.equal(replayedSelection.state, 'review_editing');
         assert.equal(replayedSelection.proposal_ref, harness.proposalRefs[0]);
@@ -655,14 +679,16 @@ test('gate 32 turns a numeric selection into sequential real guided reviews', ()
             messageBody: 'cancelar',
             actorWhatsappId: 'daniel@c.us',
             expectedProposalRef: harness.proposalRefs[0],
-            env: harness.env
+            env: harness.env,
+            dependencies: harness.conversationDependencies
         });
         assert.equal(cancelled.state, 'cancelled');
         const advanced = advanceOpenFinanceSaveProposalBatch({
             batch: selected.batch,
             actorWhatsappId: 'daniel@c.us',
             reviewCatalog,
-            env: harness.env
+            env: harness.env,
+            dependencies: harness.conversationDependencies
         });
         assert.equal(advanced.state, 'review_editing');
         assert.equal(advanced.proposal_ref, harness.proposalRefs[1]);
@@ -672,7 +698,8 @@ test('gate 32 turns a numeric selection into sequential real guided reviews', ()
             batch: selected.batch,
             actorWhatsappId: 'daniel@c.us',
             reviewCatalog,
-            env: harness.env
+            env: harness.env,
+            dependencies: harness.conversationDependencies
         });
         assert.equal(replayedAdvance.state, 'review_editing');
         assert.equal(replayedAdvance.proposal_ref, harness.proposalRefs[1]);
@@ -728,7 +755,8 @@ test('gate 32 delivers one real numbered WhatsApp batch per family recipient', a
                     states.set(key, { value, ttl });
                 }
             },
-            excludedRecipients: new Set()
+            excludedRecipients: new Set(),
+            now: '2026-07-29T12:03:00.000Z'
         }), true);
         assert.equal(
             states.get('thais@c.us').value.action,
@@ -785,7 +813,8 @@ test('gate 32 lets only the first spouse reserve a shared numeric selection', as
                 recipientPrincipal: 'daniel'
             })),
             reviewCatalog,
-            env: harness.env
+            env: harness.env,
+            dependencies: harness.conversationDependencies
         });
         assert.equal(daniel.state, 'review_editing');
         const thais = handleOpenFinanceSaveProposalBatchReply({
@@ -797,7 +826,8 @@ test('gate 32 lets only the first spouse reserve a shared numeric selection', as
                 recipientPrincipal: 'thais'
             })),
             reviewCatalog,
-            env: harness.env
+            env: harness.env,
+            dependencies: harness.conversationDependencies
         });
         assert.equal(thais.state, 'selection_claimed_elsewhere');
         assert.equal(thais.keep_pending, false);

@@ -8,15 +8,32 @@ const { execFileSync } = require('node:child_process');
 const test = require('node:test');
 const { runCodex } = require('../scripts/agent/watchChatCodexOrchestration');
 
+function auditedGitPath() {
+    return process.env.EXHAUSTIVE_LOCAL_GIT_PATH || 'git';
+}
+
+function runFixtureGit(repoPath, args) {
+    return execFileSync(auditedGitPath(), [
+        '-c', `safe.directory=${repoPath}`,
+        '-C', repoPath,
+        ...args
+    ], {
+        cwd: repoPath,
+        encoding: 'utf8'
+    });
+}
+
 function fixture() {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'orch-watch-ignored-'));
+    const tempRoot = process.env.EXHAUSTIVE_AUDIT_TEMP_ROOT || os.tmpdir();
+    const root = fs.mkdtempSync(path.join(tempRoot, 'orch-watch-ignored-'));
     const codex = path.join(root, 'codex.exe');
-    execFileSync('git', ['init', '-q', root]);
+    execFileSync(auditedGitPath(), ['init', '-q'], { cwd: root });
     fs.writeFileSync(path.join(root, '.gitignore'), '.secret\n');
-    execFileSync('git', ['-C', root, 'add', '.gitignore']);
+    execFileSync(auditedGitPath(), ['add', '.gitignore'], { cwd: root });
     fs.writeFileSync(codex, 'fixture\n');
     return {
         root,
+        runGit: runFixtureGit,
         options: {
             codexPath: codex,
             powershellPath: codex,
@@ -30,6 +47,7 @@ function fixture() {
 test('cadeia Git real rejeita arquivo ignorado criado pelo executor', () => {
     const item = fixture();
     assert.throws(() => runCodex(item.options, {
+        runGit: item.runGit,
         spawnSync: () => {
             fs.writeFileSync(path.join(item.root, '.secret'), 'novo\n');
             return { status: 0, stdout: 'ok', stderr: '' };
@@ -42,6 +60,7 @@ test('ignorado preexistente impede o executor antes do spawn', () => {
     fs.writeFileSync(path.join(item.root, '.secret'), 'preexistente\n');
     let spawned = false;
     assert.throws(() => runCodex(item.options, {
+        runGit: item.runGit,
         spawnSync: () => { spawned = true; return { status: 0, stdout: '', stderr: '' }; }
     }), /worktree contém caminho ignorado: \.secret/);
     assert.equal(spawned, false);

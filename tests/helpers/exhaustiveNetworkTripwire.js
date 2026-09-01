@@ -112,6 +112,10 @@ function auditedGitDirectoryKind(options) {
         cwd,
         'financasbot-release-repo-'
     )) return 'release_fixture';
+    if (isDirectControlledDirectory(
+        cwd,
+        'orch-watch-ignored-'
+    )) return 'watcher_ignored_fixture';
     return null;
 }
 
@@ -163,6 +167,18 @@ function isAuditedLocalGitCommand(command, args, options) {
     if (directoryKind === 'release_fixture' &&
         args.length === 2 && args[0] === 'init' &&
         args[1] === '--quiet') return true;
+    if (directoryKind === 'watcher_ignored_fixture' &&
+        args.length === 2 && args[0] === 'init' &&
+        args[1] === '-q') return true;
+    if (directoryKind === 'watcher_ignored_fixture' &&
+        args.length === 2 && args[0] === 'add' &&
+        args[1] === '.gitignore') return true;
+    if (directoryKind === 'watcher_ignored_fixture' &&
+        args.length === 9 && args[0] === '-c' &&
+        args[1] === `safe.directory=${resolvedCwd(options)}` &&
+        args[2] === '-C' && samePath(args[3], resolvedCwd(options)) &&
+        args.slice(4).join(' ') ===
+            'ls-files -z --others --ignored --exclude-standard') return true;
     if (args.length === 3 && args[0] === 'add' &&
         directoryKind === 'release_fixture' &&
         args[1] === 'index.js' && args[2] === 'package.json') return true;

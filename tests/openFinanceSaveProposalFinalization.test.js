@@ -525,7 +525,8 @@ test('9P.4 revocation purges the proposal finalization before another confirmati
         confirmationActors: [{
             principal: 'daniel',
             whatsappId: actorWhatsappId
-        }]
+        }],
+        clock: () => new Date('2026-07-30T12:00:00.000Z')
     });
     let finalization;
     try {

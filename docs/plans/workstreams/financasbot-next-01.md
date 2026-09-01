@@ -1,7 +1,7 @@
 # NEXT-01 — Esqueleto isolado do FinançasBot Next
 
 Atualizado em: 2026-09-01
-Estado: `OPEN — CHARTER CRIADO; IMPLEMENTAÇÃO AINDA NÃO INICIADA`
+Estado: `CANDIDATO — VALIDAÇÃO LOCAL VERDE; AUDITORIA INDEPENDENTE PENDENTE`
 Predecessor ratificado: `f8137f0396fcdf41b1a3e2535040f663c4ed171a`
 Roadmap normativo: `911af93343210ccfe2d7b7fe0b898542044a1fdf`
 Ratificação: `financasbot-next-00-architecture-ratification-v1.md`
@@ -147,9 +147,62 @@ Parar diante de necessidade de fonte real, credencial, writer, alteração do
 legado, acesso de produção, nova autoridade semântica, fallback silencioso,
 dependência não hermética ou reaproveitamento sem contrato/teste de conformidade.
 
+## Evidência executável vigente
+
+O esqueleto mínimo está implementado sob `src/next/` sem import direto do
+runtime v1. A bateria focal cobre 18 propriedades e está verde:
+
+- query plan e Model Data Boundary recursiva;
+- Tool Gateway read-only, escopo confiável e output allowlisted;
+- catálogo de rotas declarando métrica e filtros materiais;
+- SessionState explícito com CAS e rejeição de campo arbitrário;
+- claim tipado ligado a entidade, período, time basis, coverage e evidence;
+- ledger vazio sem writer;
+- observabilidade sanitizada;
+- tool budget soft/hard, repetição, timeout, paralelismo, rodadas,
+  esclarecimentos e recomposição;
+- replay sintético inicial e follow-up com restauração de contexto;
+- scope divergente, claim de outra família, coverage incompleta, versão obsoleta
+  e budget ausente/excedido falhando fechados;
+- tripwire de `fetch` e módulos de rede;
+- manifesto executável de reaproveitamento e boundary física do Next.
+
+O runner atual é deliberadamente um tripwire em processo para o corpus
+sintético; ele não é alegado como sandbox de rede do sistema operacional nem
+como prova contra uma capability de rede capturada antes da execução. Nenhuma
+dessas capabilities é aceita pelo grafo de dependências do esqueleto.
+
+### Suíte ampla
+
+A primeira execução ampla revelou uma integração de inventário do novo teste e
+sete testes legados envelhecidos. Daniel autorizou estabilizar esse baseline
+antes da execução final, sem alterar produto ou produção.
+
+As correções foram causais e restritas a testes:
+
+- o entrypoint `tests/financasBotNext01.test.js` registra os módulos de casos
+  Next sem criar execução duplicada;
+- fixtures Open Finance passaram a injetar de forma completa o relógio já
+  previsto pelos stores, em vez de misturar julho de 2026 com o relógio real;
+- o teste do watcher usa somente o Git local auditado em uma raiz temporária
+  controlada; o tripwire libera exclusivamente `init`, `add .gitignore` e
+  `ls-files --others --ignored` nessa fixture, sem rede ou comando genérico.
+
+A única suíte hermética ampla final do candidato terminou em:
+
+- `1.922` testes;
+- `1.912` passes;
+- `0` falhas;
+- `10` skips esperados e `0` todo;
+- coverage: linhas `91,81%`, branches `75,03%`, funções `91,26%`;
+- `176` arquivos de teste descobertos e `158` entrypoints executados;
+- tripwire local válido, sem rede nem subprocesso fora da allowlist auditada.
+
+O relatório completo está em
+`docs/plans/workstreams/financasbot-next-01-final-validation-v1.md`.
+
 ## Próxima ação exata
 
-Produzir o mapa de topologia e o relatório de conformidade dos ativos v1
-prioritários; em seguida, escrever os primeiros testes RED das fronteiras de
-gateway, sessão e replay. Nenhum código funcional foi autorizado neste ato de
-abertura além do futuro escopo deste charter.
+Publicar um commit sanitizado imutável e submetê-lo à auditoria independente do
+Chat. NEXT-01 não fecha e NEXT-02 não abre antes de parecer auditável e decisão
+humana explícita. Não criar adapter, writer, modelo ou integração real.
