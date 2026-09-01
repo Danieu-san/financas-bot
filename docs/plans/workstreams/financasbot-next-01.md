@@ -1,7 +1,7 @@
 # NEXT-01 — Esqueleto isolado do FinançasBot Next
 
 Atualizado em: 2026-09-01
-Estado: `CANDIDATO — VALIDAÇÃO LOCAL VERDE; AUDITORIA INDEPENDENTE PENDENTE`
+Estado: `CANDIDATO CORRIGIDO — VALIDAÇÃO LOCAL VERDE; REAUDITORIA INDEPENDENTE PENDENTE`
 Predecessor ratificado: `f8137f0396fcdf41b1a3e2535040f663c4ed171a`
 Roadmap normativo: `911af93343210ccfe2d7b7fe0b898542044a1fdf`
 Ratificação: `financasbot-next-00-architecture-ratification-v1.md`
@@ -150,15 +150,16 @@ dependência não hermética ou reaproveitamento sem contrato/teste de conformid
 ## Evidência executável vigente
 
 O esqueleto mínimo está implementado sob `src/next/` sem import direto do
-runtime v1. A bateria focal cobre 18 propriedades e está verde:
+runtime v1. A bateria focal cobre 25 propriedades estáveis e está verde:
 
 - query plan e Model Data Boundary recursiva;
-- Tool Gateway read-only, escopo confiável e output allowlisted;
-- catálogo de rotas declarando métrica e filtros materiais;
+- Tool Gateway read-only, escopo confiável, argumentos tipados com boundary
+  recursiva e output allowlisted;
+- catálogo de rotas declarando métrica, tipo de período e filtros materiais;
 - SessionState explícito com CAS e rejeição de campo arbitrário;
 - claim tipado ligado a entidade, período, time basis, coverage e evidence;
 - ledger vazio sem writer;
-- observabilidade sanitizada;
+- observabilidade sanitizada por enums/códigos e tool allowlist;
 - tool budget soft/hard, repetição, timeout, paralelismo, rodadas,
   esclarecimentos e recomposição;
 - replay sintético inicial e follow-up com restauração de contexto;
@@ -166,6 +167,8 @@ runtime v1. A bateria focal cobre 18 propriedades e está verde:
   e budget ausente/excedido falhando fechados;
 - tripwire de `fetch` e módulos de rede;
 - manifesto executável de reaproveitamento e boundary física do Next.
+- validador vinculado a HEAD/parent/tracked e prova fail-closed do grafo de
+  imports, capabilities externas e IDs causais obrigatórios.
 
 O runner atual é deliberadamente um tripwire em processo para o corpus
 sintético; ele não é alegado como sandbox de rede do sistema operacional nem
@@ -188,13 +191,13 @@ As correções foram causais e restritas a testes:
   controlada; o tripwire libera exclusivamente `init`, `add .gitignore` e
   `ls-files --others --ignored` nessa fixture, sem rede ou comando genérico.
 
-A única suíte hermética ampla final do candidato terminou em:
+A única suíte hermética ampla executada após as correções auditadas terminou em:
 
-- `1.922` testes;
-- `1.912` passes;
+- `1.929` testes;
+- `1.919` passes;
 - `0` falhas;
 - `10` skips esperados e `0` todo;
-- coverage: linhas `91,81%`, branches `75,03%`, funções `91,26%`;
+- coverage: linhas `91,82%`, branches `75,07%`, funções `91,25%`;
 - `176` arquivos de teste descobertos e `158` entrypoints executados;
 - tripwire local válido, sem rede nem subprocesso fora da allowlist auditada.
 

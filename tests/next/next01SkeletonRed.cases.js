@@ -19,7 +19,7 @@ function loadNext(relativePath) {
     }
 }
 
-test('NEXT01 RED: query plan contract rejects identity supplied by the caller', () => {
+test('NEXT01:N01-PLAN-001 query plan rejects caller-supplied identity', () => {
     const { normalizeFinancialQueryPlan } = loadNext('contracts/financialQueryPlan');
     const safe = normalizeFinancialQueryPlan({
         kind: 'financial_query',
@@ -52,7 +52,7 @@ test('NEXT01 RED: query plan contract rejects identity supplied by the caller', 
     }).ok, false);
 });
 
-test('NEXT01 RED: tool gateway is read-only and resolves scope only from trusted context', async () => {
+test('NEXT01:N01-TOOL-001 tool gateway is read-only and uses trusted scope', async () => {
     const { createReadOnlyToolGateway } = loadNext('tools/readOnlyToolGateway');
     const { createToolBudgetTracker } = loadNext('policy/toolBudget');
     let calls = 0;
@@ -61,7 +61,7 @@ test('NEXT01 RED: tool gateway is read-only and resolves scope only from trusted
         catalog: [{
             name: 'balance.get',
             mode: 'read_only',
-            allowedArgs: ['period'],
+            args: { period: 'string' },
             allowedResultFields: ['ok', 'value', 'coverage']
         }],
         adapters: {
@@ -80,7 +80,7 @@ test('NEXT01 RED: tool gateway is read-only and resolves scope only from trusted
     assert.strictEqual(rejected.ok, false);
     assert.strictEqual(calls, 0);
 
-    const accepted = await gateway.execute({
+    const rejectedIdentity = await gateway.execute({
         request: {
             tool: 'balance.get',
             args: { period: '2042-06', familyId: 'caller-controlled' }
@@ -88,16 +88,29 @@ test('NEXT01 RED: tool gateway is read-only and resolves scope only from trusted
         trustedContext: { familyId: 'family-a', actorId: 'person-a' },
         budget: createToolBudgetTracker({ turnId: 'turn-a' })
     });
+    assert.deepStrictEqual(rejectedIdentity, {
+        ok: false,
+        reason: 'tool_args_boundary_violation',
+        coverage: 'unavailable',
+        tool: 'balance.get'
+    });
+    assert.strictEqual(calls, 0);
+
+    const accepted = await gateway.execute({
+        request: { tool: 'balance.get', args: { period: '2042-06' } },
+        trustedContext: { familyId: 'family-a', actorId: 'person-a' },
+        budget: createToolBudgetTracker({ turnId: 'turn-safe' })
+    });
     assert.strictEqual(accepted.ok, true);
     assert.strictEqual(received.authorizedContext.familyId, 'family-a');
-    assert.strictEqual(Object.hasOwn(received.args, 'familyId'), false);
+    assert.deepStrictEqual(received.args, { period: '2042-06' });
 
     assert.throws(() => createReadOnlyToolGateway({
-        catalog: [{ name: 'unsafe.write', mode: 'write', allowedArgs: [] }]
+        catalog: [{ name: 'unsafe.write', mode: 'write', args: {} }]
     }), /write_capability_forbidden/);
     assert.throws(() => createReadOnlyToolGateway({
         catalog: [{
-            name: 'unsafe tool name', mode: 'read_only', allowedArgs: [],
+            name: 'unsafe tool name', mode: 'read_only', args: {},
             allowedResultFields: ['ok']
         }]
     }), /invalid_tool_catalog/);
@@ -105,7 +118,7 @@ test('NEXT01 RED: tool gateway is read-only and resolves scope only from trusted
         catalog: [{
             name: 'unsafe.identity',
             mode: 'read_only',
-            allowedArgs: ['familyId'],
+            args: { familyId: 'string' },
             allowedResultFields: ['ok']
         }]
     }), /caller_identity_arg_forbidden/);
@@ -113,7 +126,7 @@ test('NEXT01 RED: tool gateway is read-only and resolves scope only from trusted
         catalog: [{
             name: 'unsafe.secret',
             mode: 'read_only',
-            allowedArgs: ['token'],
+            args: { token: 'string' },
             allowedResultFields: ['ok']
         }]
     }), /model_boundary_arg_forbidden/);
@@ -122,7 +135,7 @@ test('NEXT01 RED: tool gateway is read-only and resolves scope only from trusted
         catalog: [{
             name: 'leak.get',
             mode: 'read_only',
-            allowedArgs: [],
+            args: {},
             allowedResultFields: ['ok', 'value', 'coverage']
         }],
         adapters: {
@@ -145,7 +158,52 @@ test('NEXT01 RED: tool gateway is read-only and resolves scope only from trusted
     });
 });
 
-test('NEXT01 RED: session store applies monotonic CAS and rejects stale follow-up', () => {
+test('NEXT01:N01-TOOL-002 tool gateway validates nested boundary and argument types', async () => {
+    const { createReadOnlyToolGateway } = loadNext('tools/readOnlyToolGateway');
+    const { createToolBudgetTracker } = loadNext('policy/toolBudget');
+    let calls = 0;
+    const gateway = createReadOnlyToolGateway({
+        catalog: [{
+            name: 'balance.get',
+            mode: 'read_only',
+            args: { period: 'string', categories: 'string_array' },
+            allowedResultFields: ['ok', 'value', 'coverage']
+        }],
+        adapters: {
+            'balance.get': async () => {
+                calls += 1;
+                return { ok: true, value: 0, coverage: 'complete' };
+            }
+        }
+    });
+
+    assert.deepStrictEqual(await gateway.execute({
+        request: {
+            tool: 'balance.get',
+            args: { period: { value: '2042-06', token: 'private-token' } }
+        },
+        trustedContext: { familyId: 'family-a', actorId: 'person-a' },
+        budget: createToolBudgetTracker({ turnId: 'turn-nested' })
+    }), {
+        ok: false,
+        reason: 'tool_args_boundary_violation',
+        coverage: 'unavailable',
+        tool: 'balance.get'
+    });
+    assert.deepStrictEqual(await gateway.execute({
+        request: { tool: 'balance.get', args: { period: 204206 } },
+        trustedContext: { familyId: 'family-a', actorId: 'person-a' },
+        budget: createToolBudgetTracker({ turnId: 'turn-shape' })
+    }), {
+        ok: false,
+        reason: 'tool_args_schema_violation',
+        coverage: 'unavailable',
+        tool: 'balance.get'
+    });
+    assert.strictEqual(calls, 0);
+});
+
+test('NEXT01:N01-SESSION-001 session store applies CAS and rejects stale state', () => {
     const { createMemorySessionStore } = loadNext('session/memorySessionStore');
     const store = createMemorySessionStore({ now: () => '2042-06-15T12:00:00.000Z' });
     const created = store.create({
@@ -178,7 +236,7 @@ test('NEXT01 RED: session store applies monotonic CAS and rejects stale follow-u
     }), { ok: false, reason: 'invalid_session_patch_field' });
 });
 
-test('NEXT01 RED: typed evidence verifier never turns incomplete zero into a proven zero', () => {
+test('NEXT01:N01-EVIDENCE-001 evidence verifier rejects incomplete zero', () => {
     const { verifyTypedClaimEvidence } = loadNext('policy/typedEvidenceVerifier');
     const claim = {
         metric: 'expense_total',
@@ -203,7 +261,7 @@ test('NEXT01 RED: typed evidence verifier never turns incomplete zero into a pro
     assert.strictEqual(complete.ok, true);
 });
 
-test('NEXT01 RED: ledger starts empty and exposes no writer capability', () => {
+test('NEXT01:N01-LEDGER-001 ledger starts empty without writer capability', () => {
     const { createEmptyLedgerStore } = loadNext('ledger/emptyLedgerStore');
     const ledger = createEmptyLedgerStore();
 
@@ -213,7 +271,7 @@ test('NEXT01 RED: ledger starts empty and exposes no writer capability', () => {
     assert.strictEqual(typeof ledger.commit, 'undefined');
 });
 
-test('NEXT01 RED: observability rejects raw financial and identity payloads', () => {
+test('NEXT01:N01-TRACE-001 observability rejects raw payloads', () => {
     const { createSanitizedTraceRecorder } = loadNext('observability/sanitizedTraceRecorder');
     const recorder = createSanitizedTraceRecorder();
 
@@ -229,7 +287,31 @@ test('NEXT01 RED: observability rejects raw financial and identity payloads', ()
     ]);
 });
 
-test('NEXT01 RED: hermetic replay blocks network access', async () => {
+test('NEXT01:N01-TRACE-002 observability cannot persist private token values', () => {
+    const { createSanitizedTraceRecorder } = loadNext('observability/sanitizedTraceRecorder');
+    const recorder = createSanitizedTraceRecorder({ allowedTools: ['expenses.sum'] });
+    recorder.record({
+        event: 'turn_failed',
+        phase: 'read',
+        code: 'private_user_123456',
+        coverage: 'unavailable'
+    });
+    assert.deepStrictEqual(recorder.snapshot(), [{
+        event: 'turn_failed',
+        phase: 'read',
+        code: 'UNCLASSIFIED_FAILURE',
+        coverage: 'unavailable'
+    }]);
+    assert.throws(() => recorder.record({
+        event: 'turn_completed',
+        phase: 'verify',
+        code: 'OK',
+        coverage: 'complete',
+        tool: 'private_user_123456'
+    }), /unsafe_trace_payload/);
+});
+
+test('NEXT01:N01-REPLAY-001 hermetic replay blocks network access', async () => {
     const { runHermeticReplay } = loadNext('replay/hermeticReplayRunner');
     await assert.rejects(
         runHermeticReplay(async () => fetch('https://example.invalid')),
@@ -241,7 +323,7 @@ test('NEXT01 RED: hermetic replay blocks network access', async () => {
     );
 });
 
-test('NEXT01 RED: reuse manifest makes every priority decision executable', () => {
+test('NEXT01:N01-REUSE-001 reuse manifest makes decisions executable', () => {
     const { getReuseDecision } = loadNext('contracts/reuseManifest');
     assert.strictEqual(getReuseDecision('AST-01').decision, 'ADAPT');
     assert.strictEqual(getReuseDecision('AST-02').decision, 'ADAPT');
@@ -253,7 +335,7 @@ test('NEXT01 RED: reuse manifest makes every priority decision executable', () =
     assert.strictEqual(getReuseDecision('AST-15').decision, 'EXTRACT_BEHAVIOR');
 });
 
-test('NEXT01 RED: source boundary exists and contains no direct legacy/runtime dependency', () => {
+test('NEXT01:N01-BOUNDARY-001 source boundary excludes legacy runtime', () => {
     const nextRoot = path.join(ROOT, 'src', 'next');
     assert.ok(fs.existsSync(nextRoot), 'NEXT01_RED_next_source_tree_missing');
 

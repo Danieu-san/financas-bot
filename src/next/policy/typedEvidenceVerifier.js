@@ -25,6 +25,9 @@ function verifyTypedClaimEvidence({ claim, evidence, expected = {} } = {}) {
         claim.entity.kind !== expected.entity.kind ||
         claim.entity.ref !== expected.entity.ref
     )) return { ok: false, reason: 'claim_entity_mismatch' };
+    if (expected.periodType !== undefined && claim.period.type !== expected.periodType) {
+        return { ok: false, reason: 'claim_period_type_mismatch' };
+    }
     if (expected.periodValue !== undefined && claim.period.value !== expected.periodValue) {
         return { ok: false, reason: 'claim_period_mismatch' };
     }

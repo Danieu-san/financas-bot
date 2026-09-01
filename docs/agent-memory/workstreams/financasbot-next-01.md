@@ -1,7 +1,7 @@
 # Workstream — FinançasBot Next / NEXT-01
 
 Atualizado em: 2026-09-01
-Status: `CANDIDATO — VALIDAÇÃO LOCAL VERDE; AUDITORIA INDEPENDENTE PENDENTE`
+Status: `CANDIDATO CORRIGIDO — VALIDAÇÃO LOCAL VERDE; REAUDITORIA INDEPENDENTE PENDENTE`
 
 ## Objetivo ativo
 
@@ -40,31 +40,38 @@ mapear o que pode ser reaproveitado do v1 sob os contratos ratificados.
 - decisões principais: AST-01/02 `ADAPT`, AST-03/15 `EXTRACT_BEHAVIOR`, AST-04
   `DEFER`, AST-11/12/13 `PORT_AS_IS` somente como fixture/política.
 - RED inicial: `0/9 PASS`, `9/9 RED`, todas por módulo/boundary Next ausente;
-- execução focal vigente: `18/18 PASS`, zero skip;
+- execução focal vigente: `25/25 PASS`, zero skip, por IDs estáveis de
+  propriedades;
 - conversa inicial e follow-up passam pelo mesmo gateway read-only, restauram
   contexto versionado e usam CAS;
 - policy de budget executa soft `6`, hard `12`, repetição `2`, timeout `30 s`,
   paralelismo `3`, rodadas `4`, esclarecimentos `2` e recomposição `1`;
 - route contract fixa métrica e dimensões materiais; claim divergente de
-  família, métrica, período ou time basis falha fechado;
-- sessão rejeita campos arbitrários e o gateway bloqueia identidade inclusive
-  quando aninhada em output permitido;
+  família, métrica, tipo/valor de período ou time basis falha fechado;
+- sessão rejeita campos arbitrários e o gateway aplica schema declarativo e
+  boundary recursiva aos argumentos antes do adapter, além de bloquear
+  identidade aninhada em output permitido;
 - ledger continua vazio e não expõe `write` nem `commit`;
 - replay usa tripwire em processo contra `fetch` e módulos de rede; não é
   alegado como sandbox de rede do sistema operacional;
 - nenhum adapter real, writer, modelo, fonte externa ou runtime v1 foi ligado.
-- validador NEXT-01: `PASS`, `required_files=20`, `source_files=11`,
-  `focal_tests=18/18`, `runtime_v1_imports=0`, `writer_capabilities=0`;
+- validador NEXT-01 exige `required_files=27`, `source_files=11`,
+  `focal_tests=25/25`, `property_ids=25/25`, zero import do v1, zero carga
+  dinâmica e zero capability externa proibida; a ausência de writer é provada
+  em conjunto pelo closure e pela interface do ledger vazio, sem alegação
+  nominal mais forte que a evidência. O PASS final é vinculado a HEAD, parent
+  único, árvore limpa e arquivos tracked;
 - entrypoint da suíte ampla e inventário: `22/22 PASS` após registrar os três
   módulos de casos Next sem alterar o runner global;
 - a primeira suíte ampla revelou uma integração de inventário e sete testes
   legados envelhecidos; Daniel autorizou corrigir o baseline sem waiver;
 - fixtures Open Finance agora injetam o relógio deterministicamente em todas as
   reaberturas; o watcher usa somente Git local auditado em raiz temporária;
-- bateria causal combinada após os ajustes: `64/64 PASS`;
-- suíte hermética ampla final: `1.922` testes, `1.912 PASS`, `0 FAIL`, `10 SKIP`
+- bateria afetada pós-auditoria: `55/55 PASS`; bateria anterior de baseline:
+  `64/64 PASS`;
+- suíte hermética ampla pós-correção: `1.929` testes, `1.919 PASS`, `0 FAIL`, `10 SKIP`
   esperados, `0 TODO`;
-- coverage final: linhas `91,81%`, branches `75,03%`, funções `91,26%`;
+- coverage final: linhas `91,82%`, branches `75,07%`, funções `91,25%`;
 - nenhum runtime v1, adapter real, writer, fonte externa ou produção foi
   alterado; ajustes legados ficaram exclusivamente em testes e no tripwire do
   runner hermético.
@@ -78,9 +85,9 @@ auditoria independente antes de GO.
 
 ## Próxima ação exata
 
-Publicar o commit sanitizado imutável e solicitar auditoria independente do
-Chat. Parar nesse ponto. Não fechar NEXT-01 nem abrir NEXT-02 antes do parecer e
-da decisão humana explícita.
+Publicar o commit sanitizado imutável das correções e solicitar reauditoria
+focal independente do Chat. Parar nesse ponto. Não fechar NEXT-01 nem abrir
+NEXT-02 antes do parecer e da decisão humana explícita.
 
 ## Referências
 

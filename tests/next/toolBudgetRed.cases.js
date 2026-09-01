@@ -18,7 +18,7 @@ function loadNext(relativePath) {
     }
 }
 
-test('NEXT01 RED: budget enforces soft, hard, repeat and timeout limits', () => {
+test('NEXT01:N01-BUDGET-001 budget enforces call, repeat and timeout limits', () => {
     const { createToolBudgetTracker } = loadNext('policy/toolBudget');
     let now = 1000;
     const budget = createToolBudgetTracker({ turnId: 'turn-a', now: () => now });
@@ -60,7 +60,7 @@ test('NEXT01 RED: budget enforces soft, hard, repeat and timeout limits', () => 
     });
 });
 
-test('NEXT01 RED: budget exposes the remaining frozen envelope limits fail-closed', () => {
+test('NEXT01:N01-BUDGET-002 budget enforces the frozen envelope', () => {
     const { createToolBudgetTracker } = loadNext('policy/toolBudget');
     const budget = createToolBudgetTracker({ turnId: 'turn-envelope', now: () => 1000 });
 
@@ -83,12 +83,12 @@ test('NEXT01 RED: budget exposes the remaining frozen envelope limits fail-close
     });
 });
 
-test('NEXT01 RED: Tool Gateway refuses an allowed call without a trusted budget', async () => {
+test('NEXT01:N01-BUDGET-003 tool gateway refuses a call without trusted budget', async () => {
     const { createReadOnlyToolGateway } = loadNext('tools/readOnlyToolGateway');
     let calls = 0;
     const gateway = createReadOnlyToolGateway({
         catalog: [{
-            name: 'balance.get', mode: 'read_only', allowedArgs: [],
+            name: 'balance.get', mode: 'read_only', args: {},
             allowedResultFields: ['ok', 'value', 'coverage']
         }],
         adapters: {
@@ -111,7 +111,7 @@ test('NEXT01 RED: Tool Gateway refuses an allowed call without a trusted budget'
     assert.strictEqual(calls, 0);
 });
 
-test('NEXT01 RED: conversation maps an exhausted budget to fail-closed without tool execution', async () => {
+test('NEXT01:N01-BUDGET-004 conversation fails closed on exhausted budget', async () => {
     const { createMemorySessionStore } = loadNext('session/memorySessionStore');
     const { createReadOnlyToolGateway } = loadNext('tools/readOnlyToolGateway');
     const { createConversationGateway } = loadNext('conversation/conversationGateway');
@@ -121,7 +121,7 @@ test('NEXT01 RED: conversation maps an exhausted budget to fail-closed without t
     const toolGateway = createReadOnlyToolGateway({
         catalog: [{
             name: 'expenses.sum', mode: 'read_only',
-            allowedArgs: ['scope', 'period', 'timeBasis'],
+            args: { scope: 'string', period: 'string', timeBasis: 'string' },
             allowedResultFields: ['ok']
         }],
         adapters: { 'expenses.sum': async () => { calls += 1; return { ok: true }; } }
@@ -132,6 +132,7 @@ test('NEXT01 RED: conversation maps an exhausted budget to fail-closed without t
         toolRoutes: {
             'expenses.sum': {
                 tool: 'expenses.sum', claimMetric: 'expense_total',
+                periodType: 'month',
                 requiredFilters: ['scope', 'period']
             }
         },

@@ -203,15 +203,17 @@ seção seguinte; não descreve o estado atual do candidato.
 ## 12. Evidência GREEN do esqueleto
 
 Depois do RED inicial, foram implementadas somente as fronteiras previstas nesta
-topologia. A execução combinada abaixo terminou em `18/18 PASS`, zero skip:
+topologia. A execução focal vigente terminou em `25/25 PASS`, zero skip:
 
 `node --test tests/financasBotNext01.test.js`
 
-Os nove REDs originais ficaram verdes e foram adicionadas oito propriedades
-causais durante a revisão adversarial local: output aninhado sem identidade,
+Os nove REDs originais ficaram verdes e a bateria foi ampliada para 25
+propriedades causais durante as revisões adversariais local e independente:
+output aninhado sem identidade,
 claim de outra família, rota com dimensões obrigatórias, métrica esperada,
 campo de sessão arbitrário, envelope completo de budget, gateway sem budget e
-budget esgotado antes do adapter.
+budget esgotado antes do adapter; boundary recursiva e tipos dos argumentos,
+tipo de período, sanitização de tokens e quatro propriedades do gate estrutural.
 
 O `network_tripwire` bloqueia `fetch` e carregamento de módulos de rede durante
 o replay. Ele compra evidência para o corpus injetado e para o grafo de
@@ -234,6 +236,9 @@ teste, sem alteração de runtime legado:
   watcher dentro da raiz temporária da auditoria;
 - bateria causal combinada `64/64 PASS`.
 
-A única suíte hermética ampla final executou `1.922` testes: `1.912 PASS`, zero
+Depois da auditoria do primeiro SHA, a bateria afetada das correções executou
+`55/55 PASS`.
+
+A única suíte hermética ampla pós-correção executou `1.929` testes: `1.919 PASS`, zero
 falhas, dez skips esperados e zero todo. O tripwire permaneceu válido. Nenhum
 waiver foi criado.

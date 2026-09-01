@@ -2,7 +2,7 @@
 
 Atualizado em: 2026-09-01
 Base: `0b988e7d51544dbc02942b237b0d58d12b9af264`
-Estado: `CANDIDATO LOCAL VERDE — AUDITORIA INDEPENDENTE PENDENTE`
+Estado: `CANDIDATO CORRIGIDO LOCAL VERDE — REAUDITORIA INDEPENDENTE PENDENTE`
 
 ## 1. Escopo validado
 
@@ -34,15 +34,37 @@ Nenhum runtime legado recebeu `PORT_AS_IS`. O relatório causal completo está e
 
 O primeiro lote executou `9/9 RED`, todos pela ausência esperada das fronteiras
 Next, sem falha incidental. Depois da implementação mínima e da revisão
-adversarial local, o entrypoint focal executou `18/18 PASS`, zero skip.
+adversarial local, o entrypoint focal executou `25/25 PASS`, zero skip.
+
+Após a auditoria independente do SHA `4ba43ef5e3a68195e3b996b163bed9f4be35995f`,
+foram adicionadas sete propriedades causais para fechar os dois HIGH, três
+MEDIUM e um LOW encontrados, sem novo subsistema:
+
+- boundary recursiva e schema declarativo dos argumentos no Tool Gateway;
+- `period.type` vinculado ao contrato de rota e ao claim esperado;
+- observabilidade limitada a enums/códigos conhecidos e tools autorizadas;
+- análise fail-closed de todos os imports estáticos de `src/next/`, com carga
+  dinâmica e dependência externa ao Next proibidas;
+- prova de zero capability externa em todo o grafo Next;
+- IDs estáveis para as 25 propriedades focais, em vez de contagem de `test()`;
+- binding final obrigatório a HEAD, parent único, árvore limpa e arquivos
+  tracked, incluindo detecção de paths ignorados no escopo.
 
 O validador documental/estrutural reporta:
 
-- `required_files=25`;
+- `required_files=27`;
 - `source_files=11`;
-- `focal_tests=18/18`;
+- `focal_tests=25/25`;
+- `property_ids=25/25`;
+- `required_tracked=27/27` no candidato commitado;
 - `runtime_v1_imports=0`;
-- `writer_capabilities=0`.
+- `dynamic_module_loads=0`;
+- `forbidden_effect_capabilities=0`.
+
+O gate não infere “zero writer” de uma regex nominal. A evidência é composta:
+todo import relativo resolve dentro de `src/next/`, carga dinâmica é proibida,
+imports/capabilities externas são fail-closed e a interface do ledger vazio é
+testada sem método de mutação.
 
 ## 4. Correções do baseline amplo
 
@@ -73,26 +95,27 @@ corretamente bloqueados pelo tripwire da suíte hermética. A fixture passou a:
 Não foi liberado shell, rede, Git genérico, path externo ou comando remoto. O
 teste passou tanto isolado quanto sob o mesmo tripwire hermético da suíte ampla.
 
-A bateria combinada de NEXT-01, inventário, runner, watcher e Open Finance
-terminou em `64/64 PASS`.
+A bateria afetada pós-auditoria, combinando NEXT-01, watcher e Open Finance,
+terminou em `55/55 PASS`. A bateria anterior de estabilização do baseline havia
+terminado em `64/64 PASS`.
 
 ## 5. Suíte hermética ampla final
 
 Comando: `npm test`
 
-Resultado observado uma única vez após estabilização do candidato:
+Resultado observado uma única vez após estabilização das correções auditadas:
 
-- duração: `734.213 ms`;
+- duração: `834.430 ms`;
 - arquivos descobertos: `176`;
 - entrypoints executados: `158`;
-- testes: `1.922`;
-- passes: `1.912`;
+- testes: `1.929`;
+- passes: `1.919`;
 - falhas: `0`;
 - skips: `10`, todos na allowlist esperada;
 - todo: `0`;
-- line coverage: `91,81%`;
-- branch coverage: `75,03%`;
-- function coverage: `91,26%`;
+- line coverage: `91,82%`;
+- branch coverage: `75,07%`;
+- function coverage: `91,25%`;
 - runner: `valid=true`, sem razão de invalidação;
 - rede: bloqueada para fetch/http/https/net e descendentes Node;
 - subprocessos: bloqueados, exceto Git/Tar locais em operações auditadas.

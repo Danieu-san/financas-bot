@@ -2,6 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const validationPolicy = require('./financasBotNext01ValidationPolicy');
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const base = '0b988e7d51544dbc02942b237b0d58d12b9af264';
@@ -26,13 +30,15 @@ const requiredFiles = [
     'tests/next/conversationReplayRed.cases.js',
     'tests/next/next01SkeletonRed.cases.js',
     'tests/next/toolBudgetRed.cases.js',
+    'tests/next/validatorGate.cases.js',
     'tests/financasBotNext01.test.js',
     'tests/exhaustiveLocalTestAggregates.json',
     'tests/chatCodexWatcherIgnored.test.js',
     'tests/helpers/exhaustiveNetworkTripwire.js',
     'tests/openFinanceNumericSaveFlow.test.js',
     'tests/openFinanceSaveProposalFinalization.test.js',
-    'scripts/agent/validateFinancasBotNext01.mjs'
+    'scripts/agent/validateFinancasBotNext01.mjs',
+    'scripts/agent/financasBotNext01ValidationPolicy.js'
 ];
 
 for (const relativePath of requiredFiles) {
@@ -57,33 +63,34 @@ function listFiles(relativeDirectory) {
 const sourceFiles = listFiles('src/next').filter(file => /\.js$/.test(file));
 const testFiles = listFiles('tests/next').filter(file => /\.cases\.js$/.test(file));
 
-const forbiddenSourcePatterns = [
-    /require\(['"][^'"]*(?:handlers|jobs|services[\\/]google|messageHandler|legacyUsageTelemetry)[^'"]*['"]\)/,
-    /require\(['"](?:node:)?(?:http|https|net|tls|dns|dgram)['"]\)/,
-    /\bfetch\s*\(/
-];
-for (const file of sourceFiles) {
-    const value = fs.readFileSync(file, 'utf8');
-    if (file.endsWith(`${path.sep}hermeticReplayRunner.js`)) continue;
-    for (const pattern of forbiddenSourcePatterns) {
-        if (pattern.test(value)) errors.push(`forbidden_next_dependency:${path.relative(root, file)}`);
-    }
-}
+const sourceAnalysis = validationPolicy.analyzeNextSourceFiles({
+    nextRoot: path.join(root, 'src/next'),
+    sourceFiles
+});
+errors.push(...sourceAnalysis.errors);
 
-const ledgerSource = fs.readFileSync(path.join(root, 'src/next/ledger/emptyLedgerStore.js'), 'utf8');
-if (/\b(?:write|commit|append|insert|update|delete)\s*[:(]/.test(ledgerSource)) {
-    errors.push('empty_ledger_exposes_mutation');
-}
-
-const testCount = testFiles.reduce((total, file) => {
+const testSources = testFiles.map(file => {
     const value = fs.readFileSync(file, 'utf8');
     if (/\b(?:test|describe|it)\.skip\b/.test(value)) errors.push(`skipped_test:${path.relative(root, file)}`);
-    return total + (value.match(/^test\(/gm) || []).length;
-}, 0);
-if (testCount !== 18) errors.push(`unexpected_test_count:${testCount}`);
+    return value;
+});
+const propertyEvidence = validationPolicy.validatePropertyIds(testSources);
+errors.push(...propertyEvidence.errors);
 
 function git(args) {
     return execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
+}
+
+function option(name) {
+    const index = process.argv.indexOf(name);
+    return index >= 0 ? process.argv[index + 1] : null;
+}
+
+const allowWorktree = process.argv.includes('--allow-worktree');
+const expectedHead = option('--expected-head');
+const expectedParent = option('--expected-parent');
+if (!allowWorktree && (!/^[0-9a-f]{40}$/.test(expectedHead || '') || !/^[0-9a-f]{40}$/.test(expectedParent || ''))) {
+    errors.push('expected_git_binding_required');
 }
 
 const changedPaths = new Set();
@@ -103,6 +110,7 @@ const allowedPath = value => (
     value === 'docs/plans/workstreams/financasbot-next-01-final-validation-v1.md' ||
     value === 'docs/agent-memory/workstreams/financasbot-next-01.md' ||
     value === 'scripts/agent/validateFinancasBotNext01.mjs' ||
+    value === 'scripts/agent/financasBotNext01ValidationPolicy.js' ||
     value === 'tests/financasBotNext01.test.js' ||
     value === 'tests/exhaustiveLocalTestAggregates.json' ||
     value === 'tests/chatCodexWatcherIgnored.test.js' ||
@@ -115,6 +123,29 @@ const allowedPath = value => (
 for (const file of changedPaths) {
     if (!allowedPath(file)) errors.push(`changed_path_outside_gate:${file}`);
 }
+
+const trackedFiles = new Set(git(['ls-files']).split(/\r?\n/).filter(Boolean).map(value => value.replaceAll('\\', '/')));
+const ignoredOutput = git([
+    'ls-files', '--others', '--ignored', '--exclude-standard', '--',
+    'src/next', 'tests/next', 'tests/financasBotNext01.test.js',
+    'scripts/agent/validateFinancasBotNext01.mjs',
+    'scripts/agent/financasBotNext01ValidationPolicy.js',
+    'docs/plans/workstreams/financasbot-next-01.md',
+    'docs/plans/workstreams/financasbot-next-01-topology-reuse-v1.md',
+    'docs/plans/workstreams/financasbot-next-01-final-validation-v1.md',
+    'docs/agent-memory/workstreams/financasbot-next-01.md'
+]);
+const ignoredPaths = ignoredOutput.split(/\r?\n/).filter(Boolean).map(value => value.replaceAll('\\', '/'));
+errors.push(...validationPolicy.validateGitBindingEvidence({
+    expectedHead: allowWorktree ? null : expectedHead,
+    expectedParent: allowWorktree ? null : expectedParent,
+    actualHead: git(['rev-parse', 'HEAD']),
+    parentLine: git(['rev-list', '--parents', '-n', '1', 'HEAD']),
+    dirtyStatus: allowWorktree ? '' : git(['status', '--porcelain']),
+    requiredFiles,
+    trackedFiles,
+    ignoredPaths
+}));
 
 const secretPatterns = [
     /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/,
@@ -131,7 +162,7 @@ for (const relativePath of changedPaths) {
 }
 
 if (errors.length > 0) {
-    console.error('NEXT-01 GATE: FAIL');
+    console.error(allowWorktree ? 'NEXT-01 PRECOMMIT: FAIL' : 'NEXT-01 GATE: FAIL');
     for (const error of errors) console.error(`- ${error}`);
     process.exit(1);
 }
@@ -141,7 +172,7 @@ const focal = spawnSync(process.execPath, ['--test', ...testFiles], {
     encoding: 'utf8'
 });
 if (focal.status !== 0) {
-    console.error('NEXT-01 GATE: FAIL');
+    console.error(allowWorktree ? 'NEXT-01 PRECOMMIT: FAIL' : 'NEXT-01 GATE: FAIL');
     console.error('focal_tests_failed');
     process.stderr.write(focal.stderr || '');
     process.exit(1);
@@ -149,16 +180,23 @@ if (focal.status !== 0) {
 
 const passCount = (focal.stdout.match(/^# pass (\d+)$/m) || [])[1];
 const failCount = (focal.stdout.match(/^# fail (\d+)$/m) || [])[1];
-if (passCount !== '18' || failCount !== '0') {
-    console.error('NEXT-01 GATE: FAIL');
+if (passCount !== String(validationPolicy.REQUIRED_PROPERTY_IDS.length) || failCount !== '0') {
+    console.error(allowWorktree ? 'NEXT-01 PRECOMMIT: FAIL' : 'NEXT-01 GATE: FAIL');
     console.error(`unexpected_focal_result:pass=${passCount}:fail=${failCount}`);
     process.exit(1);
 }
 
-console.log('NEXT-01 GATE: PASS');
+console.log(allowWorktree ? 'NEXT-01 PRECOMMIT: PASS' : 'NEXT-01 GATE: PASS');
 console.log(`required_files=${requiredFiles.length}`);
 console.log(`source_files=${sourceFiles.length}`);
-console.log(`focal_tests=${passCount}/${testCount}`);
+console.log(`focal_tests=${passCount}/${validationPolicy.REQUIRED_PROPERTY_IDS.length}`);
+console.log(`property_ids=${propertyEvidence.observedIds.length}/${validationPolicy.REQUIRED_PROPERTY_IDS.length}`);
+console.log(`required_tracked=${requiredFiles.filter(file => trackedFiles.has(file)).length}/${requiredFiles.length}`);
 console.log(`changed_paths=${changedPaths.size}`);
-console.log('runtime_v1_imports=0');
-console.log('writer_capabilities=0');
+console.log(`runtime_v1_imports=${sourceAnalysis.runtimeV1Imports}`);
+console.log(`dynamic_module_loads=${sourceAnalysis.dynamicModuleLoads}`);
+console.log(`forbidden_effect_capabilities=${sourceAnalysis.forbiddenEffectImports}`);
+if (!allowWorktree) {
+    console.log(`head_bound=${expectedHead}`);
+    console.log(`parent_bound=${expectedParent}`);
+}

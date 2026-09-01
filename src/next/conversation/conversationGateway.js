@@ -54,6 +54,7 @@ function expectedClaimDimensions(plan, trustedContext, route) {
         return {
             metric: route.claimMetric,
             entity: { kind: 'family', ref: trustedContext.familyId },
+            periodType: route.periodType,
             periodValue: plan.filters.period,
             timeBasis: plan.timeBasis
         };
@@ -62,6 +63,7 @@ function expectedClaimDimensions(plan, trustedContext, route) {
         return {
             metric: route.claimMetric,
             entity: { kind: 'person', ref: trustedContext.actorId },
+            periodType: route.periodType,
             periodValue: plan.filters.period,
             timeBasis: plan.timeBasis
         };
@@ -77,15 +79,17 @@ function normalizeRoutes(toolRoutes) {
         if (!route || typeof route !== 'object' || Array.isArray(route)) throw new Error('invalid_tool_route');
         const tool = String(route.tool || '').trim();
         const claimMetric = String(route.claimMetric || '').trim();
+        const periodType = String(route.periodType || '').trim();
         const requiredFilters = Array.isArray(route.requiredFilters)
             ? [...new Set(route.requiredFilters.map(value => String(value || '').trim()))]
             : [];
-        if (!String(key).includes('.') || !tool || !claimMetric || requiredFilters.some(value => !value)) {
+        if (!String(key).includes('.') || !tool || !claimMetric || !periodType || requiredFilters.some(value => !value)) {
             throw new Error('invalid_tool_route');
         }
         return [key, Object.freeze({
             tool,
             claimMetric,
+            periodType,
             requiredFilters: Object.freeze(requiredFilters)
         })];
     })));

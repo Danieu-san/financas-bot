@@ -31,7 +31,9 @@ function createFixture() {
         catalog: [{
             name: 'expenses.sum',
             mode: 'read_only',
-            allowedArgs: ['period', 'scope', 'category', 'timeBasis'],
+            args: {
+                period: 'string', scope: 'string', category: 'string', timeBasis: 'string'
+            },
             allowedResultFields: ['ok', 'claim', 'evidence', 'coverage']
         }],
         adapters: {
@@ -57,7 +59,7 @@ function createFixture() {
             }
         }
     });
-    const traceRecorder = createSanitizedTraceRecorder();
+    const traceRecorder = createSanitizedTraceRecorder({ allowedTools: ['expenses.sum'] });
     const conversation = createConversationGateway({
         sessionStore,
         toolGateway,
@@ -66,6 +68,7 @@ function createFixture() {
             'expenses.sum': {
                 tool: 'expenses.sum',
                 claimMetric: 'expense_total',
+                periodType: 'month',
                 requiredFilters: ['scope', 'period']
             }
         }
@@ -73,7 +76,7 @@ function createFixture() {
     return { calls, conversation, sessionStore, traceRecorder };
 }
 
-test('NEXT01 RED: synthetic initial query traverses the read-only gateway without network', async () => {
+test('NEXT01:N01-CONVERSATION-001 initial query traverses read-only gateway', async () => {
     const { runHermeticReplay } = loadNext('replay/hermeticReplayRunner');
     const { calls, conversation, sessionStore } = createFixture();
 
@@ -101,7 +104,7 @@ test('NEXT01 RED: synthetic initial query traverses the read-only gateway withou
     });
 });
 
-test('NEXT01 RED: follow-up restores versioned context and stale version fails before tool execution', async () => {
+test('NEXT01:N01-CONVERSATION-002 follow-up restores context and rejects stale version', async () => {
     const { runHermeticReplay } = loadNext('replay/hermeticReplayRunner');
     const { calls, conversation } = createFixture();
 
@@ -156,7 +159,7 @@ test('NEXT01 RED: follow-up restores versioned context and stale version fails b
     assert.strictEqual(calls.length, 2);
 });
 
-test('NEXT01 RED: mismatched trusted scope and incomplete evidence fail closed', async () => {
+test('NEXT01:N01-CONVERSATION-003 scope and incomplete evidence fail closed', async () => {
     const { createMemorySessionStore } = loadNext('session/memorySessionStore');
     const { createReadOnlyToolGateway } = loadNext('tools/readOnlyToolGateway');
     const { createConversationGateway } = loadNext('conversation/conversationGateway');
@@ -168,7 +171,7 @@ test('NEXT01 RED: mismatched trusted scope and incomplete evidence fail closed',
         catalog: [{
             name: 'expenses.sum',
             mode: 'read_only',
-            allowedArgs: ['period', 'scope', 'timeBasis'],
+            args: { period: 'string', scope: 'string', timeBasis: 'string' },
             allowedResultFields: ['ok', 'claim', 'evidence', 'coverage']
         }],
         adapters: {
@@ -194,6 +197,7 @@ test('NEXT01 RED: mismatched trusted scope and incomplete evidence fail closed',
         toolRoutes: {
             'expenses.sum': {
                 tool: 'expenses.sum', claimMetric: 'expense_total',
+                periodType: 'month',
                 requiredFilters: ['scope', 'period']
             }
         }
@@ -216,7 +220,7 @@ test('NEXT01 RED: mismatched trusted scope and incomplete evidence fail closed',
     assert.strictEqual(calls, 1);
 });
 
-test('NEXT01 RED: a typed claim from another family is rejected as a scope violation', async () => {
+test('NEXT01:N01-CONVERSATION-004 cross-family claim is rejected', async () => {
     const { createMemorySessionStore } = loadNext('session/memorySessionStore');
     const { createReadOnlyToolGateway } = loadNext('tools/readOnlyToolGateway');
     const { createConversationGateway } = loadNext('conversation/conversationGateway');
@@ -226,7 +230,7 @@ test('NEXT01 RED: a typed claim from another family is rejected as a scope viola
     const toolGateway = createReadOnlyToolGateway({
         catalog: [{
             name: 'expenses.sum', mode: 'read_only',
-            allowedArgs: ['period', 'scope', 'timeBasis'],
+            args: { period: 'string', scope: 'string', timeBasis: 'string' },
             allowedResultFields: ['ok', 'claim', 'evidence', 'coverage']
         }],
         adapters: {
@@ -249,6 +253,7 @@ test('NEXT01 RED: a typed claim from another family is rejected as a scope viola
         toolRoutes: {
             'expenses.sum': {
                 tool: 'expenses.sum', claimMetric: 'expense_total',
+                periodType: 'month',
                 requiredFilters: ['scope', 'period']
             }
         }
@@ -266,7 +271,7 @@ test('NEXT01 RED: a typed claim from another family is rejected as a scope viola
     assert.deepStrictEqual(result, { ok: false, reason: 'scope_denied' });
 });
 
-test('NEXT01 RED: route contract rejects missing dimensions and wrong claim metric', async () => {
+test('NEXT01:N01-CONVERSATION-005 route rejects missing dimension and wrong metric', async () => {
     const { createMemorySessionStore } = loadNext('session/memorySessionStore');
     const { createReadOnlyToolGateway } = loadNext('tools/readOnlyToolGateway');
     const { createConversationGateway } = loadNext('conversation/conversationGateway');
@@ -276,7 +281,7 @@ test('NEXT01 RED: route contract rejects missing dimensions and wrong claim metr
     const toolGateway = createReadOnlyToolGateway({
         catalog: [{
             name: 'expenses.sum', mode: 'read_only',
-            allowedArgs: ['period', 'scope', 'timeBasis'],
+            args: { period: 'string', scope: 'string', timeBasis: 'string' },
             allowedResultFields: ['ok', 'claim', 'evidence', 'coverage']
         }],
         adapters: {
@@ -302,6 +307,7 @@ test('NEXT01 RED: route contract rejects missing dimensions and wrong claim metr
         toolRoutes: {
             'expenses.sum': {
                 tool: 'expenses.sum', claimMetric: 'expense_total',
+                periodType: 'month',
                 requiredFilters: ['scope', 'period']
             }
         }
@@ -326,4 +332,51 @@ test('NEXT01 RED: route contract rejects missing dimensions and wrong claim metr
         }
     }), { ok: false, reason: 'claim_metric_mismatch' });
     assert.strictEqual(calls, 1);
+});
+
+test('NEXT01:N01-CONVERSATION-006 route rejects a divergent period type', async () => {
+    const { createMemorySessionStore } = loadNext('session/memorySessionStore');
+    const { createReadOnlyToolGateway } = loadNext('tools/readOnlyToolGateway');
+    const { createConversationGateway } = loadNext('conversation/conversationGateway');
+    const sessionStore = createMemorySessionStore();
+    sessionStore.create({ sessionId: 'session-a', familyId: 'family-a', actorId: 'person-a' });
+    const toolGateway = createReadOnlyToolGateway({
+        catalog: [{
+            name: 'expenses.sum', mode: 'read_only',
+            args: { period: 'string', scope: 'string', timeBasis: 'string' },
+            allowedResultFields: ['ok', 'claim', 'evidence', 'coverage']
+        }],
+        adapters: {
+            'expenses.sum': async ({ args }) => ({
+                ok: true,
+                claim: {
+                    metric: 'expense_total', value: 100, unit: 'BRL_MINOR',
+                    entity: { kind: 'family', ref: 'family-a' },
+                    period: { type: 'day', value: args.period },
+                    timeBasis: args.timeBasis
+                },
+                evidence: { coverage: 'complete', state: 'confirmed', refs: ['source-a'] },
+                coverage: 'complete'
+            })
+        }
+    });
+    const conversation = createConversationGateway({
+        sessionStore,
+        toolGateway,
+        toolRoutes: {
+            'expenses.sum': {
+                tool: 'expenses.sum', claimMetric: 'expense_total', periodType: 'month',
+                requiredFilters: ['scope', 'period']
+            }
+        }
+    });
+    assert.deepStrictEqual(await conversation.executeTurn({
+        sessionId: 'session-a', expectedSessionVersion: 1,
+        trustedContext: { familyId: 'family-a', actorId: 'person-a' },
+        planInput: {
+            domain: 'expenses', operation: 'sum',
+            filters: { scope: 'family', period: '2042-06' },
+            timeBasis: 'transaction_date'
+        }
+    }), { ok: false, reason: 'claim_period_type_mismatch' });
 });
