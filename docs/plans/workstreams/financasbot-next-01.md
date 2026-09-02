@@ -169,11 +169,16 @@ runtime v1. A bateria focal cobre 25 propriedades estáveis e está verde:
 - manifesto executável de reaproveitamento e boundary física do Next.
 - validador vinculado a HEAD/parent/tracked e prova fail-closed do grafo de
   imports, capabilities externas e IDs causais obrigatórios;
-- inventário exato de fontes `.js/.mjs/.cjs`, análise sintática de loaders e
-  containment por `realpath`, com binding exato dos únicos imports externos
-  permitidos e sem depender de uma lista crescente de regex;
-- property IDs ligados às linhas TAP realmente aprovadas e container de
-  argumentos inválido rejeitado antes de budget/adapter.
+- inventário exato do tree inteiro de `src/next/`, sem filtro por extensão,
+  análise sintática de loaders e containment por `realpath`, com targets
+  relativos obrigatoriamente presentes no inventário e binding exato dos únicos
+  imports externos permitidos;
+- único runtime loader especial reconhecido por contrato AST fechado no replay
+  hermético, contabilizado separadamente dos oito imports estáticos; qualquer
+  outro loader ou uso de `_load` falha fechado;
+- property IDs derivados de eventos estruturados `node:test` realmente
+  aprovados, sem skip/todo, enquanto TAP permanece somente diagnóstico humano;
+  container de argumentos inválido continua rejeitado antes de budget/adapter.
 
 O runner atual é deliberadamente um tripwire em processo para o corpus
 sintético; ele não é alegado como sandbox de rede do sistema operacional nem
@@ -202,7 +207,7 @@ A única suíte hermética ampla executada após as correções auditadas termin
 - `1.919` passes;
 - `0` falhas;
 - `10` skips esperados e `0` todo;
-- coverage: linhas `91,80%`, branches `75,01%`, funções `91,25%`;
+- coverage: linhas `91,84%`, branches `75,13%`, funções `91,28%`;
 - `176` arquivos de teste descobertos e `158` entrypoints executados;
 - tripwire local válido, sem rede nem subprocesso fora da allowlist auditada.
 

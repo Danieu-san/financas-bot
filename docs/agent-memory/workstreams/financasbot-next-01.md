@@ -55,17 +55,21 @@ mapear o que pode ser reaproveitado do v1 sob os contratos ratificados.
 - replay usa tripwire em processo contra `fetch` e módulos de rede; não é
   alegado como sandbox de rede do sistema operacional;
 - nenhum adapter real, writer, modelo, fonte externa ou runtime v1 foi ligado.
-- validador NEXT-01 exige `required_files=29`, `source_files=11`,
-  `focal_tests=25/25`, `property_ids=25/25`, zero import do v1, zero carga
-  não classificada e zero capability externa proibida; o conjunto de fontes é
-  exato para `.js/.mjs/.cjs`, imports são analisados pela AST, os externos
-  permitidos exigem binding exato e targets relativos precisam permanecer em
-  `src/next/` também por `realpath`. A
+- validador NEXT-01 exige `required_files=29`, `source_tree_entries=11`,
+  `source_files=11`, `focal_tests=25/25`, `property_ids=25/25`, zero import do
+  v1, zero carga não classificada e zero capability externa proibida; o tree
+  inteiro de `src/next/` deve coincidir com os 11 paths esperados, sem filtro por
+  extensão, imports são analisados pela AST, os externos permitidos exigem
+  binding exato e targets relativos precisam permanecer em `src/next/` por
+  `realpath` e pertencer ao inventário. O único runtime loader especial é o
+  forwarder hermético reconhecido por contrato AST fechado e contabilizado
+  separadamente dos oito imports estáticos. A
   ausência de writer é provada em conjunto pelo closure e pela interface do
   ledger vazio, sem alegação nominal mais forte que a evidência. O PASS final é
   vinculado a HEAD, parent único, árvore limpa e arquivos tracked;
-- property IDs são observados nas linhas TAP efetivamente aprovadas, não por
-  presença lexical no source;
+- property IDs são derivados de eventos estruturados `node:test` efetivamente
+  aprovados, sem skip/todo; TAP é somente diagnóstico e presença lexical no
+  source ou stdout não conta;
 - container de argumentos fornecido precisa ser plain object; somente
   `undefined` representa ausência, e toda rejeição ocorre antes de budget e
   adapter;
@@ -79,7 +83,7 @@ mapear o que pode ser reaproveitado do v1 sob os contratos ratificados.
   `64/64 PASS`;
 - suíte hermética ampla pós-correção: `1.929` testes, `1.919 PASS`, `0 FAIL`, `10 SKIP`
   esperados, `0 TODO`;
-- coverage final: linhas `91,80%`, branches `75,01%`, funções `91,25%`;
+- coverage final: linhas `91,84%`, branches `75,13%`, funções `91,28%`;
 - nenhum runtime v1, adapter real, writer, fonte externa ou produção foi
   alterado; ajustes legados ficaram exclusivamente em testes e no tripwire do
   runner hermético.

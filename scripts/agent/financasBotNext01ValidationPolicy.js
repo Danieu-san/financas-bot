@@ -47,9 +47,22 @@ function uniqueSorted(values) {
     return [...new Set(values.map(value => String(value).replaceAll('\\', '/')))].sort();
 }
 
-function validateSourceInventory({ expectedPaths = [], discoveredPaths = [] } = {}) {
+function validateSourceInventory({
+    expectedPaths = [],
+    discoveredPaths = [],
+    discoveredEntries = null
+} = {}) {
     const expected = uniqueSorted(expectedPaths);
-    const discovered = uniqueSorted(discoveredPaths);
+    const entries = Array.isArray(discoveredEntries)
+        ? discoveredEntries.map(entry => ({
+            path: String(entry.path || '').replaceAll('\\', '/'),
+            type: String(entry.type || '')
+        }))
+        : discoveredPaths.map(entryPath => ({
+            path: String(entryPath).replaceAll('\\', '/'),
+            type: 'file'
+        }));
+    const discovered = uniqueSorted(entries.map(entry => entry.path));
     const expectedSet = new Set(expected);
     const discoveredSet = new Set(discovered);
     const errors = [];
@@ -59,12 +72,21 @@ function validateSourceInventory({ expectedPaths = [], discoveredPaths = [] } = 
     for (const file of discovered) {
         if (!expectedSet.has(file)) errors.push(`unexpected_executable_source:${file}`);
     }
+    for (const entry of entries) {
+        if (entry.type !== 'file') {
+            errors.push(`unexpected_source_entry_type:${entry.path}:${entry.type || 'unknown'}`);
+        }
+    }
     return { errors, expectedPaths: expected, discoveredPaths: discovered };
 }
 
 function resolveRelativeImport(file, specifier) {
     const target = path.resolve(path.dirname(file), specifier);
-    const candidates = [target, `${target}.js`, `${target}.mjs`, `${target}.cjs`, path.join(target, 'index.js')];
+    const candidates = [
+        target,
+        `${target}.js`, `${target}.json`, `${target}.node`,
+        path.join(target, 'index.js'), path.join(target, 'index.json'), path.join(target, 'index.node')
+    ];
     return candidates.find(candidate => fs.existsSync(candidate) && fs.statSync(candidate).isFile()) || null;
 }
 
@@ -96,6 +118,173 @@ function memberName(node) {
     return staticString(node.property);
 }
 
+function isIdentifier(node, name) {
+    return node?.type === 'Identifier' && node.name === name;
+}
+
+function isDirectMember(node, objectName, propertyName) {
+    return node?.type === 'MemberExpression' &&
+        node.computed === false &&
+        isIdentifier(node.object, objectName) &&
+        isIdentifier(node.property, propertyName);
+}
+
+function isExactRequireCall(node, specifier) {
+    return node?.type === 'CallExpression' &&
+        node.optional !== true &&
+        isIdentifier(node.callee, 'require') &&
+        node.arguments.length === 1 &&
+        staticString(node.arguments[0]) === specifier;
+}
+
+function isExactBlockedModuleGuard(node) {
+    const test = node?.test;
+    const normalizedRequest = test?.arguments?.[0];
+    const requestExpression = normalizedRequest?.arguments?.[0];
+    return node?.type === 'IfStatement' &&
+        node.alternate === null &&
+        test?.type === 'CallExpression' &&
+        isDirectMember(test.callee, 'BLOCKED_MODULES', 'has') &&
+        test.arguments.length === 1 &&
+        normalizedRequest?.type === 'CallExpression' &&
+        isIdentifier(normalizedRequest.callee, 'String') &&
+        normalizedRequest.arguments.length === 1 &&
+        requestExpression?.type === 'LogicalExpression' &&
+        requestExpression.operator === '||' &&
+        isIdentifier(requestExpression.left, 'request') &&
+        staticString(requestExpression.right) === '' &&
+        node.consequent?.type === 'ThrowStatement' &&
+        node.consequent.argument?.type === 'CallExpression' &&
+        isIdentifier(node.consequent.argument.callee, 'networkError') &&
+        node.consequent.argument.arguments.length === 0;
+}
+
+function isExactHermeticForward(node) {
+    const call = node?.argument;
+    return node?.type === 'ReturnStatement' &&
+        call?.type === 'CallExpression' &&
+        isDirectMember(call.callee, 'originalLoad', 'call') &&
+        call.arguments.length === 4 &&
+        call.arguments[0]?.type === 'ThisExpression' &&
+        isIdentifier(call.arguments[1], 'request') &&
+        isIdentifier(call.arguments[2], 'parent') &&
+        isIdentifier(call.arguments[3], 'isMain');
+}
+
+function inspectHermeticRuntimeLoader(ast) {
+    const allowedIdentifiers = new WeakSet();
+    const allowedMembers = new WeakSet();
+    const allowedRequireCalls = new WeakSet();
+    const moduleDeclarations = ast.body.filter(statement =>
+        statement.type === 'VariableDeclaration' &&
+        statement.kind === 'const' &&
+        statement.declarations.length === 1 &&
+        isIdentifier(statement.declarations[0].id, 'Module') &&
+        isExactRequireCall(statement.declarations[0].init, 'node:module')
+    );
+    const runFunctions = ast.body.filter(statement =>
+        statement.type === 'FunctionDeclaration' &&
+        isIdentifier(statement.id, 'runHermeticReplay')
+    );
+    let valid = moduleDeclarations.length === 1 && runFunctions.length === 1;
+    const moduleDeclaration = moduleDeclarations[0];
+    const moduleDeclarator = moduleDeclaration?.declarations[0];
+    const runFunction = runFunctions[0];
+    const runBody = runFunction?.body?.body || [];
+
+    const captures = runBody.filter(statement =>
+        statement.type === 'VariableDeclaration' &&
+        statement.kind === 'const' &&
+        statement.declarations.length === 1 &&
+        isIdentifier(statement.declarations[0].id, 'originalLoad') &&
+        isDirectMember(statement.declarations[0].init, 'Module', '_load')
+    );
+    const installations = runBody.filter(statement => {
+        const assignment = statement.type === 'ExpressionStatement' ? statement.expression : null;
+        const hook = assignment?.right;
+        return assignment?.type === 'AssignmentExpression' &&
+            assignment.operator === '=' &&
+            isDirectMember(assignment.left, 'Module', '_load') &&
+            hook?.type === 'FunctionExpression' &&
+            isIdentifier(hook.id, 'hermeticLoad') &&
+            hook.async === false && hook.generator === false &&
+            hook.params.length === 3 &&
+            isIdentifier(hook.params[0], 'request') &&
+            isIdentifier(hook.params[1], 'parent') &&
+            isIdentifier(hook.params[2], 'isMain') &&
+            hook.body?.body?.length === 2 &&
+            isExactBlockedModuleGuard(hook.body.body[0]) &&
+            isExactHermeticForward(hook.body.body[1]);
+    });
+    const restorations = [];
+    for (const statement of runBody) {
+        if (statement.type !== 'TryStatement' || !statement.finalizer) continue;
+        for (const finalizerStatement of statement.finalizer.body) {
+            const assignment = finalizerStatement.type === 'ExpressionStatement'
+                ? finalizerStatement.expression
+                : null;
+            if (assignment?.type === 'AssignmentExpression' &&
+                assignment.operator === '=' &&
+                isDirectMember(assignment.left, 'Module', '_load') &&
+                isIdentifier(assignment.right, 'originalLoad')) {
+                restorations.push(finalizerStatement);
+            }
+        }
+    }
+    valid = valid && captures.length === 1 && installations.length === 1 && restorations.length === 1;
+
+    const captureDeclarator = captures[0]?.declarations[0];
+    const installAssignment = installations[0]?.expression;
+    const hook = installAssignment?.right;
+    const forwardCall = hook?.body?.body?.[1]?.argument;
+    const restoreAssignment = restorations[0]?.expression;
+    const moduleIdentifiers = [];
+    const originalLoadIdentifiers = [];
+    const loadMembers = [];
+    walkAst(ast, null, node => {
+        if (isIdentifier(node, 'Module')) moduleIdentifiers.push(node);
+        if (isIdentifier(node, 'originalLoad')) originalLoadIdentifiers.push(node);
+        if (node.type === 'MemberExpression' && memberName(node) === '_load') loadMembers.push(node);
+    });
+    const expectedModuleIdentifiers = [
+        moduleDeclarator?.id,
+        captureDeclarator?.init?.object,
+        installAssignment?.left?.object,
+        restoreAssignment?.left?.object
+    ];
+    const expectedOriginalLoadIdentifiers = [
+        captureDeclarator?.id,
+        forwardCall?.callee?.object,
+        restoreAssignment?.right
+    ];
+    const expectedLoadMembers = [
+        captureDeclarator?.init,
+        installAssignment?.left,
+        restoreAssignment?.left
+    ];
+    const exactNodeSet = (actual, expected) =>
+        expected.every(Boolean) && actual.length === expected.length &&
+        actual.every(node => expected.includes(node));
+    valid = valid &&
+        exactNodeSet(moduleIdentifiers, expectedModuleIdentifiers) &&
+        exactNodeSet(originalLoadIdentifiers, expectedOriginalLoadIdentifiers) &&
+        exactNodeSet(loadMembers, expectedLoadMembers);
+
+    if (valid) {
+        for (const node of [...expectedModuleIdentifiers, ...expectedOriginalLoadIdentifiers]) {
+            allowedIdentifiers.add(node);
+        }
+        for (const node of expectedLoadMembers) allowedMembers.add(node);
+        allowedRequireCalls.add(moduleDeclarator.init);
+    }
+    return {
+        valid,
+        allowedIdentifiers,
+        allowedMembers,
+        allowedRequireCalls
+    };
+}
+
 function isAllowedHermeticGlobalThis(relative, node, parent) {
     if (relative !== 'replay/hermeticReplayRunner.js') return false;
     if (parent?.type === 'MemberExpression' && parent.object === node && memberName(parent) === 'fetch') {
@@ -122,25 +311,34 @@ function hasExactObjectBinding(pattern, expectedName) {
         pattern.properties[0].value.name === expectedName;
 }
 
-function isAllowedExternalBinding(relative, specifier, call, parent) {
+function isAllowedExternalBinding(relative, specifier, call, parent, parentByNode, hermeticLoader) {
     if (parent?.type !== 'VariableDeclarator' || parent.init !== call) return false;
     if (relative === 'replay/hermeticReplayRunner.js' && specifier === 'node:module') {
-        return parent.id?.type === 'Identifier' && parent.id.name === 'Module';
+        return hermeticLoader.allowedRequireCalls.has(call);
     }
     if (relative === 'policy/toolBudget.js' && specifier === 'node:crypto') {
-        return hasExactObjectBinding(parent.id, 'createHash');
+        return parentByNode.get(parent)?.type === 'VariableDeclaration' &&
+            parentByNode.get(parent).kind === 'const' &&
+            hasExactObjectBinding(parent.id, 'createHash');
     }
     return false;
 }
 
-function analyzeNextSourceFiles({ nextRoot, sourceFiles, realpath = fs.realpathSync.native } = {}) {
+function analyzeNextSourceFiles({
+    nextRoot,
+    sourceFiles,
+    expectedSourcePaths = EXPECTED_NEXT_SOURCE_PATHS,
+    realpath = fs.realpathSync.native
+} = {}) {
     const absoluteNextRoot = path.resolve(nextRoot);
     const rootRealPath = path.resolve(realpath(absoluteNextRoot));
     const errors = new Set();
     let forbiddenEffectImports = 0;
     let runtimeV1Imports = 0;
     let unclassifiedModuleLoaders = 0;
-    let classifiedModuleLoads = 0;
+    let classifiedStaticModuleLoads = 0;
+    let classifiedHermeticRuntimeLoaders = 0;
+    const expectedSourceSet = new Set(uniqueSorted(expectedSourcePaths));
 
     for (const file of sourceFiles || []) {
         const relative = normalizedRelative(absoluteNextRoot, file);
@@ -162,9 +360,31 @@ function analyzeNextSourceFiles({ nextRoot, sourceFiles, realpath = fs.realpathS
             continue;
         }
 
+        const parentByNode = new WeakMap();
+        walkAst(ast, null, (node, parent) => {
+            if (parent) parentByNode.set(node, parent);
+        });
+        const hermeticLoader = relative === 'replay/hermeticReplayRunner.js'
+            ? inspectHermeticRuntimeLoader(ast)
+            : {
+                valid: false,
+                allowedIdentifiers: new WeakSet(),
+                allowedMembers: new WeakSet(),
+                allowedRequireCalls: new WeakSet()
+            };
+        if (relative === 'replay/hermeticReplayRunner.js') {
+            if (hermeticLoader.valid) {
+                classifiedHermeticRuntimeLoaders += 1;
+            } else {
+                unclassifiedModuleLoaders += 1;
+                errors.add(`invalid_hermetic_loader_contract:${relative}`);
+                errors.add(`unclassified_module_loader:${relative}`);
+            }
+        }
+
         const acceptedRequireIdentifiers = new WeakSet();
         const classifySpecifier = specifier => {
-            classifiedModuleLoads += 1;
+            classifiedStaticModuleLoads += 1;
             if (specifier.startsWith('.')) {
                 const intendedTarget = path.resolve(path.dirname(file), specifier);
                 if (!insideRoot(absoluteNextRoot, intendedTarget)) {
@@ -181,6 +401,11 @@ function analyzeNextSourceFiles({ nextRoot, sourceFiles, realpath = fs.realpathS
                 if (!insideRoot(rootRealPath, targetRealPath)) {
                     runtimeV1Imports += 1;
                     errors.add(`relative_import_realpath_outside_next:${relative}:${specifier}`);
+                } else {
+                    const targetRelative = normalizedRelative(rootRealPath, targetRealPath);
+                    if (!expectedSourceSet.has(targetRelative)) {
+                        errors.add(`relative_import_target_not_in_inventory:${relative}:${specifier}`);
+                    }
                 }
                 return;
             }
@@ -204,7 +429,14 @@ function analyzeNextSourceFiles({ nextRoot, sourceFiles, realpath = fs.realpathS
                     classifySpecifier(specifier);
                     if (!specifier.startsWith('.') &&
                         (ALLOWED_EXTERNAL_IMPORTS.get(relative) || new Set()).has(specifier) &&
-                        !isAllowedExternalBinding(relative, specifier, node, parent)) {
+                        !isAllowedExternalBinding(
+                            relative,
+                            specifier,
+                            node,
+                            parent,
+                            parentByNode,
+                            hermeticLoader
+                        )) {
                         unclassifiedModuleLoaders += 1;
                         errors.add(`unclassified_module_loader:${relative}`);
                     }
@@ -263,15 +495,17 @@ function analyzeNextSourceFiles({ nextRoot, sourceFiles, realpath = fs.realpathS
                     errors.add(`unclassified_module_loader:${relative}`);
                 }
             }
-            if (node.type === 'Identifier' && node.name === 'Module') {
-                const allowedDeclaration = relative === 'replay/hermeticReplayRunner.js' &&
-                    parent?.type === 'VariableDeclarator' && parent.id === node;
-                const allowedLoadHook = relative === 'replay/hermeticReplayRunner.js' &&
-                    parent?.type === 'MemberExpression' && parent.object === node && memberName(parent) === '_load';
-                if (!allowedDeclaration && !allowedLoadHook) {
+            if (node.type === 'Identifier' && (
+                node.name === 'Module' || node.name === 'originalLoad'
+            )) {
+                if (!hermeticLoader.allowedIdentifiers.has(node)) {
                     unclassifiedModuleLoaders += 1;
                     errors.add(`unclassified_module_loader:${relative}`);
                 }
+            }
+            if (property === '_load' && !hermeticLoader.allowedMembers.has(node)) {
+                unclassifiedModuleLoaders += 1;
+                errors.add(`unclassified_module_loader:${relative}`);
             }
             if (property === 'createRequire' || property === 'getBuiltinModule' || property === 'require') {
                 unclassifiedModuleLoaders += 1;
@@ -309,28 +543,100 @@ function analyzeNextSourceFiles({ nextRoot, sourceFiles, realpath = fs.realpathS
         forbiddenEffectImports,
         runtimeV1Imports,
         unclassifiedModuleLoaders,
-        classifiedModuleLoads
+        classifiedStaticModuleLoads,
+        classifiedHermeticRuntimeLoaders
     };
 }
 
-function validateExecutedPropertyIds(tapOutput = '') {
-    const counts = new Map();
-    for (const match of String(tapOutput).matchAll(/^ok\s+\d+\s+-\s+NEXT01:(N01-[A-Z]+-\d{3})\b/gm)) {
-        counts.set(match[1], (counts.get(match[1]) || 0) + 1);
-    }
+function expectedPropertyFile(id) {
+    if (id.startsWith('N01-CONVERSATION-')) return 'tests/next/conversationReplayRed.cases.js';
+    if (id.startsWith('N01-BUDGET-')) return 'tests/next/toolBudgetRed.cases.js';
+    if (id.startsWith('N01-VALIDATOR-')) return 'tests/next/validatorGate.cases.js';
+    return 'tests/next/next01SkeletonRed.cases.js';
+}
+
+function validateExecutedPropertyEvents(events = []) {
     const required = new Set(REQUIRED_PROPERTY_IDS);
-    const errors = [];
-    for (const id of REQUIRED_PROPERTY_IDS) {
-        const count = counts.get(id) || 0;
-        if (count === 0) errors.push(`missing_property_id:${id}`);
-        if (count > 1) errors.push(`duplicate_property_id:${id}`);
+    const occurrences = new Map();
+    const approved = new Map();
+    const errors = new Set();
+    const testEvents = [];
+    for (const event of events) {
+        if (event?.type !== 'test:pass' && event?.type !== 'test:fail') continue;
+        testEvents.push(event);
+        const match = String(event.name || '').match(/^NEXT01:(N01-[A-Z]+-\d{3})(?:\s|$)/);
+        if (!match) continue;
+        const id = match[1];
+        occurrences.set(id, (occurrences.get(id) || 0) + 1);
+        if (!required.has(id)) {
+            errors.add(`unexpected_property_id:${id}`);
+            continue;
+        }
+        let valid = true;
+        if (event.type === 'test:fail') {
+            errors.add(`failed_property_id:${id}`);
+            valid = false;
+        }
+        if (event.skip) {
+            errors.add(`skipped_property_id:${id}`);
+            valid = false;
+        }
+        if (event.todo) {
+            errors.add(`todo_property_id:${id}`);
+            valid = false;
+        }
+        if (event.nesting !== 0) {
+            errors.add(`nested_property_id:${id}`);
+            valid = false;
+        }
+        if (event.testType !== undefined && event.testType !== null && event.testType !== 'test') {
+            errors.add(`invalid_property_test_type:${id}`);
+            valid = false;
+        }
+        const normalizedFile = String(event.file || '').replaceAll('\\', '/');
+        if (normalizedFile !== expectedPropertyFile(id)) {
+            errors.add(`property_file_mismatch:${id}`);
+            valid = false;
+        }
+        if (valid) approved.set(id, (approved.get(id) || 0) + 1);
     }
-    for (const id of counts.keys()) {
-        if (!required.has(id)) errors.push(`unexpected_property_id:${id}`);
+    for (const id of REQUIRED_PROPERTY_IDS) {
+        const occurrenceCount = occurrences.get(id) || 0;
+        const approvedCount = approved.get(id) || 0;
+        if (approvedCount === 0) errors.add(`missing_property_id:${id}`);
+        if (occurrenceCount > 1) errors.add(`duplicate_property_id:${id}`);
+    }
+    const evidenceCounts = {
+        tests: testEvents.filter(event => event.testType !== 'suite').length,
+        failed: testEvents.filter(event => event.type === 'test:fail').length,
+        passed: testEvents.filter(event =>
+            event.type === 'test:pass' && !event.skip && !event.todo && event.testType !== 'suite'
+        ).length,
+        skipped: testEvents.filter(event => Boolean(event.skip)).length,
+        todo: testEvents.filter(event => Boolean(event.todo)).length,
+        topLevel: testEvents.filter(event => event.nesting === 0 && event.testType !== 'suite').length,
+        suites: testEvents.filter(event => event.testType === 'suite').length
+    };
+    const expectedCounts = {
+        tests: REQUIRED_PROPERTY_IDS.length,
+        failed: 0,
+        passed: REQUIRED_PROPERTY_IDS.length,
+        skipped: 0,
+        todo: 0,
+        topLevel: REQUIRED_PROPERTY_IDS.length,
+        suites: 0
+    };
+    for (const [field, expected] of Object.entries(expectedCounts)) {
+        if (evidenceCounts[field] !== expected) {
+            errors.add(`unexpected_test_evidence:${field}:${evidenceCounts[field]}`);
+        }
     }
     return {
-        errors,
-        observedIds: REQUIRED_PROPERTY_IDS.filter(id => counts.get(id) === 1)
+        errors: [...errors],
+        observedIds: REQUIRED_PROPERTY_IDS.filter(id =>
+            (occurrences.get(id) || 0) === 1 && (approved.get(id) || 0) === 1
+        ),
+        counts: evidenceCounts
     };
 }
 
@@ -362,7 +668,7 @@ module.exports = {
     EXPECTED_NEXT_SOURCE_PATHS,
     REQUIRED_PROPERTY_IDS,
     analyzeNextSourceFiles,
-    validateExecutedPropertyIds,
+    validateExecutedPropertyEvents,
     validateGitBindingEvidence,
     validateSourceInventory
 };

@@ -53,8 +53,8 @@ MEDIUM e um LOW encontrados, sem novo subsistema:
 A reauditoria do SHA `3733ba57e8c9684e5d539ec8da4eb04f03445dd1`
 confirmou as correções anteriores e encontrou uma lacuna HIGH no domínio do
 analisador, uma MEDIUM no vínculo entre property ID e execução, e uma LOW no
-container de argumentos. O novo candidato fecha essas três classes sem ampliar
-o runtime:
+container de argumentos. O candidato seguinte fechou essas três classes sem
+ampliar o runtime:
 
 - o inventário de fontes executáveis é uma igualdade de paths e inclui
   `.js`, `.mjs` e `.cjs`; fonte extra falha fechado;
@@ -62,27 +62,55 @@ o runtime:
   resolvidos por `realpath` dentro de `src/next/`, e mecanismos não
   classificados ou capabilities dinâmicas falham fechado; os únicos imports
   externos permitidos também exigem binding AST exato;
-- os 25 property IDs são extraídos das linhas `ok` efetivamente emitidas pelo
-  runner TAP, em vez de comentários ou tokens presentes no source;
+- os 25 property IDs são ligados à execução focal, em vez de comentários ou
+  tokens presentes no source;
 - somente ausência de `request.args` vira `{}`; `null`, falsy, array, `Date` e
   instância de classe falham antes de budget e adapter.
+
+A reauditoria do SHA `d5f4a49543221ba962a4b4473e5909d5ed51f47c`
+confirmou a correção do container de argumentos e encontrou duas lacunas no
+gate: a exceção ampla de `Module._load` podia ocultar outro loader, e linhas TAP
+com `SKIP` ou `TODO` ainda podiam ser confundidas com property aprovada. O novo
+candidato fecha as classes, sem acrescentar runtime ou dependência:
+
+- o tree inteiro de `src/next/` é inventariado, sem filtro por extensão, e deve
+  coincidir exatamente com os 11 arquivos esperados; arquivo, symlink ou target
+  relativo fora do inventário falha fechado;
+- o único loader dinâmico permitido é o forwarder do replay hermético,
+  reconhecido por contrato AST fechado: binding, captura, instalação, corpo,
+  único forwarding e restauração precisam coincidir estruturalmente;
+- acessos diretos ou computados a `_load`, aliases, `.apply`, `Reflect.apply`,
+  forwarding alterado ou duplicado e mutação dos argumentos são rejeitados;
+- os 25 property IDs são derivados dos eventos estruturados da mesma execução
+  `node:test`; `skip`, `todo`, falha, suite, nesting, arquivo divergente,
+  duplicidade e ID inesperado falham fechado;
+- TAP é somente a projeção diagnóstica humana da mesma execução e nunca alimenta
+  a decisão do gate.
 
 O validador documental/estrutural reporta:
 
 - `required_files=29`;
+- `source_tree_entries=11`;
 - `source_files=11`;
 - `focal_tests=25/25`;
+- `focal_test_events=25`;
+- `focal_failures=0`;
+- `focal_skipped=0`;
+- `focal_todo=0`;
 - `property_ids=25/25`;
 - `required_tracked=29/29` no candidato commitado;
 - `runtime_v1_imports=0`;
-- `classified_module_loads=8`;
+- `classified_static_module_loads=8`;
+- `classified_hermetic_runtime_loaders=1`;
 - `unclassified_module_loaders=0`;
 - `forbidden_effect_capabilities=0`.
 
 O gate não infere “zero writer” de uma regex nominal. A evidência é composta:
-todo import relativo resolve dentro de `src/next/`, carga dinâmica é proibida,
-imports/capabilities externas são fail-closed e a interface do ledger vazio é
-testada sem método de mutação.
+todo import relativo resolve para o tree inventariado de `src/next/`, carga
+dinâmica não classificada é proibida, imports/capabilities externas são
+fail-closed e a interface do ledger vazio é testada sem método de mutação. O
+forwarder hermético é contabilizado explicitamente; não é apresentado como
+ausência de loader dinâmico.
 
 ## 4. Correções do baseline amplo
 
@@ -121,9 +149,9 @@ terminado em `64/64 PASS`.
 
 Comando: `npm test`
 
-Resultado observado uma única vez após estabilização das correções auditadas:
+Resultado observado uma única vez após estabilização desta correção causal:
 
-- duração: `672.323 ms`;
+- duração: `716.660 ms`;
 - arquivos descobertos: `176`;
 - entrypoints executados: `158`;
 - testes: `1.929`;
@@ -131,16 +159,16 @@ Resultado observado uma única vez após estabilização das correções auditad
 - falhas: `0`;
 - skips: `10`, todos na allowlist esperada;
 - todo: `0`;
-- line coverage: `91,80%`;
-- branch coverage: `75,01%`;
-- function coverage: `91,25%`;
+- line coverage: `91,84%`;
+- branch coverage: `75,13%`;
+- function coverage: `91,28%`;
 - runner: `valid=true`, sem razão de invalidação;
 - rede: bloqueada para fetch/http/https/net e descendentes Node;
 - subprocessos: bloqueados, exceto Git/Tar locais em operações auditadas.
 
-A suíte ampla verde não foi repetida porque não houve mudança causal de código
-ou teste após essa execução; somente este relatório e o estado do workstream
-foram atualizados.
+A suíte ampla verde não foi repetida depois dessa execução porque não houve
+mudança causal de código ou teste; somente este relatório e o estado do
+workstream foram atualizados.
 
 ## 6. Limites da evidência
 
