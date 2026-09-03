@@ -21,7 +21,7 @@ function hermeticReplaySource() {
     return fs.readFileSync(
         path.join(__dirname, '..', '..', 'src', 'next', 'replay', 'hermeticReplayRunner.js'),
         'utf8'
-    );
+    ).replace(/\r\n/g, '\n');
 }
 
 function mutateHermeticForward(forwarding) {

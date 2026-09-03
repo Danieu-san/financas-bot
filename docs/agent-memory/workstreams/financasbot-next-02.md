@@ -1,7 +1,7 @@
 # Workstream — FinançasBot Next / NEXT-02
 
 Atualizado em: 2026-09-03
-Status: `OPEN — AUTORIZADO; IMPLEMENTAÇÃO A INICIAR`
+Status: `OPEN — N02-A CANDIDATO; LOCAL VERDE; AUDITORIA PENDENTE`
 
 ## Git e isolamento
 
@@ -21,8 +21,18 @@ candidato aprovado para uma auditoria duplicada.
 
 Charter: `docs/plans/workstreams/financasbot-next-02.md`.
 Vertical sintético read-only de gastos por categoria/pessoa/instrumento/período.
-Próxima ação: inspecionar AST-04 e testes do projector v1; registrar o mapa de
-reutilização e propriedades críticas; iniciar RED focal.
-Nenhum código funcional NEXT-02 foi implementado nesta abertura.
+Reutilização e escopo da fatia: `docs/plans/workstreams/financasbot-next-02-kernel-reuse-v1.md`.
+Evidências: `docs/plans/workstreams/financasbot-next-02-validation-v1.md`.
+N02-A: observações/versionamento e consumo transaction_date com gateway
+read-only; 20/20 propriedades focais, 86/86 na bateria afetada.
+Suíte ampla única: 1.949 testes, 1.939 PASS, 0 FAIL, 10 SKIP previstos,
+0 TODO, runner valid=true. Workflow OK.
+Próxima ação: obter o parecer N02-A pelo bot/canal de retorno existente,
+confrontá-lo com o código e continuar a próxima fatia. Não declarar
+fechamento do NEXT-02 nem repetir auditoria automática do mesmo hash.
+Parcelas, outras bases temporais, Golden Set completo e motor de provenance
+continuam pendentes. O ledger do v1 não foi importado nem alterado.
+Telemetria opcional: coletor configurado, mas parado/não saudável na consulta
+inicial; métricas desta tarefa indisponíveis, não zero.
 NEXT-03, adapters reais, writers, deploy e produção continuam fora do escopo.
 Capacidade recomendada para a implementação entre módulos: Codex / Sol / Alto.
