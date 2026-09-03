@@ -34,5 +34,18 @@ Parcelas, outras bases temporais, Golden Set completo e motor de provenance
 continuam pendentes. O ledger do v1 não foi importado nem alterado.
 Telemetria opcional: coletor configurado, mas parado/não saudável na consulta
 inicial; métricas desta tarefa indisponíveis, não zero.
+
+## Publicação e tentativa de auditoria
+
+Candidato imutável: `af83a4e0cd79de5e582ce2bd030eb0328da32d52`.
+Parent: `5d4339f46a9ec412d6c86894853435c7238dbcf1`.
+Gate final vinculado a esses hashes: PASS. Push e hash remoto confirmados.
+
+Em 2026-09-03, uma tentativa pelo bot local terminou com timeout de 90 segundos
+aguardando login/abertura da conversa. Envio não confirmado; nenhum parecer
+recebido. Não repetir automaticamente nem usar envio direto pelo navegador.
+Próxima ação exige restabelecer a sessão do perfil dedicado com Daniel; depois
+retomar o envio autorizado do mesmo candidato, sem refazer implementação ou
+suíte. Este registro posterior não altera o commit objeto da auditoria.
 NEXT-03, adapters reais, writers, deploy e produção continuam fora do escopo.
 Capacidade recomendada para a implementação entre módulos: Codex / Sol / Alto.
