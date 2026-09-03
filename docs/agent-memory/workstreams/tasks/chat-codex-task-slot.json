@@ -1,21 +1,23 @@
 {
   "schema": "financasbot-chat-codex-task-v1",
-  "task_id": "ORCH-02-CHANNEL-SMOKE-20260903",
-  "objective": "Smoke mínimo do canal permanente. Não altere código. Crie somente o result_file autorizado contendo uma linha de identificação da tarefa, a linha `CHANNEL_SMOKE_OK` e uma nota curta de que a tarefa foi recebida pelo Codex. Depois siga a sequência mecânica do watcher até deixar o estado local em CHAT_READY. O objetivo deste trabalho é apenas provar Chat -> GitHub -> watcher -> Codex e permitir que o retorno CHAT_READY seja entregue ao Chat pelo bot local.",
+  "task_id": "FIN-NEXT01-AST-AUDIT-RETURN-20260903",
+  "objective": "Parecer independente concluído para o candidato NEXT-01 9b0cfd848d08b85ed94016b65f07820ca89dbbfb, parent ccff4711c4e70c6d1b8c1227ebf70d91f89f3552: APROVÁVEL. O relatório foi publicado na branch codex/financasbot-next-01 no commit 29791be6ba3f80fc8033bd6cb715484e7275a3c5, path docs/agent-memory/workstreams/results/FIN-NEXT01-AST-REAUDIT-20260903.md. Findings CRITICAL/HIGH/MEDIUM/LOW: nenhum. Nota não-bloqueante: o SHA-256 da AST integral é deliberadamente rígido e pode gerar falso RED de manutenção em mudança futura de shape/Acorn, mas não há rota causal de falso verde no runner atual. Consuma este parecer e registre no result_file que o NEXT-01 pode seguir para fechamento documental conforme o plano. Não abra NEXT-02, não faça implementação e não altere a branch de produto nesta tarefa do canal; NEXT-02 continua exigindo autorização humana explícita.",
   "required_files": [],
   "allowed_paths": [
-    "docs/agent-memory/workstreams/results/ORCH-02-CHANNEL-SMOKE-20260903.md"
+    "docs/agent-memory/workstreams/results/FIN-NEXT01-AST-AUDIT-RETURN-20260903.md"
   ],
-  "result_file": "docs/agent-memory/workstreams/results/ORCH-02-CHANNEL-SMOKE-20260903.md",
+  "result_file": "docs/agent-memory/workstreams/results/FIN-NEXT01-AST-AUDIT-RETURN-20260903.md",
   "validation": [
-    "O result_file contém `CHANNEL_SMOKE_OK`.",
-    "Nenhum código, teste, configuração ou outro documento é alterado.",
-    "A worktree termina com mudanças somente no state file mecânico e no result_file autorizado antes da publicação pelo watcher."
+    "O result_file registra o SHA auditado 9b0cfd848d08b85ed94016b65f07820ca89dbbfb e o veredito APROVÁVEL.",
+    "O result_file registra que não houve findings CRITICAL/HIGH/MEDIUM/LOW e separa a nota de rigidez do hash como manutenção não-bloqueante.",
+    "O result_file registra a próxima ação como fechamento documental do NEXT-01 na worktree própria, sem abrir NEXT-02 nesta tarefa.",
+    "Nenhum código, teste, configuração ou documento fora do result_file é alterado."
   ],
   "constraints": [
-    "Não executar testes, builds ou suítes.",
-    "Não acessar produção, OCI, WhatsApp, navegador, Google, Pluggy, segredos, sessões, .env ou dados privados.",
-    "Não fazer git fetch, add, commit ou push; o watcher publica o resultado.",
-    "Não editar scripts do canal nem tentar corrigir o canal durante este smoke."
+    "Não executar testes ou builds nesta tarefa de retorno do parecer.",
+    "Não alterar a branch codex/financasbot-next-01 a partir desta tarefa do canal.",
+    "Não abrir NEXT-02 sem autorização humana explícita.",
+    "Não acessar produção, deploy, OCI, WhatsApp, Google, Pluggy, segredos, sessões, .env ou dados privados.",
+    "Não fazer git fetch, add, commit ou push; o watcher publica somente o result_file autorizado e o estado mecânico."
   ]
 }
