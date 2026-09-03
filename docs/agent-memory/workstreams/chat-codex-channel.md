@@ -11,7 +11,7 @@ Daniel. O fechamento do gate que construiu o canal não encerra o serviço.
 
 ## Estado operacional
 
-`ORCH-02 PROTOCOLO ASSIMÉTRICO SEM RECURSÃO EM CANDIDATO; AUDITORIA PENDENTE`.
+`ORCH-02 RECUPERAÇÃO MÍNIMA; CÓDIGO APROVADO RESTAURADO; VALIDAÇÃO OPERACIONAL PENDENTE`.
 
 ### Localização canônica no GitHub
 
@@ -96,34 +96,21 @@ O envio e o retorno têm mecanismos diferentes por propósito:
 
 `Codex -> bot local -> Chat`: depois de publicar um candidato sanitizado e
 imutável, o Codex invoca deliberadamente o bot com o prompt completo da
-auditoria. O bot não faz parte do watcher nem da tarefa agendada.
+auditoria em linha única. O script do bot permanece inalterado. O notificador
+opcional existe no watcher aprovado, mas não deve ser configurado na tarefa.
 
 `Chat -> GitHub/CODEX_READY -> watcher -> Codex`: o Chat publica o parecer pelo
 canal versionado; o watcher valida o manifesto e acorda o Codex somente para
 `CODEX_READY`.
 
 Depois que o Codex consome o parecer e publica `CHAT_READY`, a tarefa termina.
-Nesse estado o watcher não chama o bot, não usa a ponte direta e não começa uma
-segunda auditoria. Argumentos legados de notificador são inertes. GitHub segue
+Sem `--chat-notifier-script` e `--chat-notifier-sha256` na tarefa, o watcher não
+chama o bot nesse estado. No modo de fila, remover também `--chat-url`, mantendo
+`--app-wake-request`. Não desativar o watcher inteiro: ele recebe os pareceres.
+Os argumentos de notificador não são inertes no código aprovado e devem estar
+ausentes da configuração operacional. GitHub segue
 como autoridade do código, do estado e do parecer recebido; a conversa é apenas
 o transporte da solicitação de auditoria.
-
-## Achado e recovery
-
-O primeiro parecer independente recusou o candidato porque variantes como
-`.env.local` e `config/secrets.json` ainda podiam ser declaradas no manifesto.
-O recovery amplia a recusa nominal de recipientes e extensões de segredo antes
-do modelo, com testes negativos simétricos para leitura e escrita.
-
-A primeira tarefa operacional alcançou `CHAT_READY`, mas a campainha foi
-rejeitada pelo Chat porque a ponte ainda usava a constante histórica
-`ORCH-01`. O recovery seguinte transporta no pedido validado a tarefa e o
-caminho exatos do estado remoto, de modo que o Chat consulte o canal ORCH-02.
-
-A auditoria desse recovery encontrou que o instalador ainda produzia
-`config-v1` enquanto o worker atualizado exigia `config-v2`. O literal foi
-alinhado e um teste cruzado passou a comparar o schema do instalador com a
-constante exportada pelo worker.
 
 ## Histórico relevante do retorno
 
@@ -175,24 +162,36 @@ Os artefatos que causaram o incidente foram preservados fora da worktree em
 
 ## Evidência local do protocolo assimétrico
 
-O candidato remove o notificador automático do watcher e do instalador, apaga
-o módulo dedicado a esse retorno e mantém a ponte direta somente no ramo
-`CODEX_READY`. A bateria focal do canal passou `49/49`; os testes reais de Git,
+Histórico: o candidato `378cc293` removeu código desnecessariamente e a pausa
+do watcher interrompeu o recebimento. Esta recuperação restaura os oito arquivos
+de código/testes/validador ao conteúdo Git do parent aprovado `9cae58d21b176dcde501d5322afc36446f532a0c`;
+a solução operacional usa a opção já existente de não configurar notificador.
+A restauração passou `53/53` testes focais, sem skips/todos. Não se repetiu a
+suíte ampla: não há implementação nova em relação aos arquivos aprovados, e a
+limitação da ampla anterior permanece explicitamente registrada abaixo.
+A bateria focal do candidato anterior passou `49/49`; os testes reais de Git,
 ignored paths e validador do clone passaram isoladamente `8/8`.
 
 A única suíte hermética ampla foi válida como runner, mas terminou com
 `1885 PASS`, `8 FAIL` e `10 SKIP`. Quatro falhas eram de áreas financeiras fora
 deste delta. As quatro atribuídas ao canal no agregado passaram na reprodução
-isolada acima, indicando interferência do runner concorrente, não regressão
-reproduzida. Por precisão, o candidato não é rotulado como suíte ampla verde e
+isolada acima. A causa dessa diferença não foi demonstrada; não afirmar
+interferência concorrente como diagnóstico confirmado. Por precisão, o candidato anterior não é rotulado como suíte ampla verde e
 continua aguardando auditoria independente.
+
+O script local do bot mantém SHA-256
+`14fb3c08c73471bc7203aa011f84ef435e01167392f6aed037d1c7d58068415b`,
+igual ao pin instalado. `DryRun` de linha única passou; `DryRun` multilinha
+falhou na igualdade do texto do editor, antes de enviar. A divergência exata do
+DOM ainda não foi medida; usar linha única é compatibilidade do chamador, não
+uma alegação de correção interna do bot.
 
 ## Próxima ação
 
-Publicar e auditar o candidato do protocolo assimétrico por invocação direta do
-bot. Após GO independente, reinstalar o watcher sem parâmetros de notificador e
-executar um único smoke documental, confirmando que `CHAT_READY` não chama bot
-nem ponte e que `CODEX_READY` continua acordando o Codex.
+Publicar a restauração mínima, remover apenas argumentos de notificação da
+tarefa existente e reativar o recebimento com código já aprovado. Validar o
+prompt completo em linha única sem envio antes de pedir revisão da recuperação.
+O NEXT-01 já aprovado não precisa de nova auditoria por acusar recebimento.
 
 ## Capacidade
 

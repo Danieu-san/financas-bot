@@ -45,16 +45,36 @@ function completeChatCodexAppExecution(context, deps) {
         throw error;
     }
 
-    deps.saveCache(context.cachePath, {
+    const cache = deps.saveCache(context.cachePath, {
         ...context.cache,
         observed_hash: finalHash,
         observed_state: 'CHAT_READY',
         launch_status: 'succeeded'
     }, deps.now?.() || new Date());
+    const finalWake = deps.maybeWakeCodexApp({
+        cache,
+        cachePath: context.cachePath,
+        options: context.options,
+        observedHash: finalHash,
+        state: finalState
+    }, deps);
+    const finalNotification = context.options['chat-notifier-script']
+        ? deps.maybeNotifyChat({
+            cache: finalWake.cache,
+            cachePath: context.cachePath,
+            options: context.options,
+            observedHash: finalHash,
+            remoteCommitSha: deps.resolveFetchedCommitSha(context.repoPath, context.gitDeps),
+            state: finalState,
+            powershellPath: context.powershellPath
+        }, deps)
+        : { cache: finalWake.cache, action: null };
     return {
         action: 'app_result_published',
         hash: finalHash,
-        state: 'CHAT_READY'
+        state: 'CHAT_READY',
+        appWake: finalWake.action,
+        chatNotification: finalNotification.action
     };
 }
 

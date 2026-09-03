@@ -1,6 +1,6 @@
 # Plano — canal permanente Chat ↔ Codex
 
-Status: `ORCH-02 protocolo assimétrico sem recursão em candidato; auditoria pendente`.
+Status: `ORCH-02 recuperação mínima da configuração; código aprovado restaurado; validação operacional pendente`.
 
 ## Objetivo
 
@@ -36,7 +36,8 @@ sem manter modelo ocioso e sem encerrar o canal ao concluir um trabalho.
 13. [em andamento] Separar os sentidos do canal: o Codex invoca deliberadamente
     o bot local com o prompt completo após publicar um candidato auditável; o
     Chat devolve o parecer por GitHub/`CODEX_READY`; `CHAT_READY` apenas publica
-    o resultado e nunca aciona bot ou nova auditoria.
+    o resultado. Usar o watcher aprovado sem seus argumentos opcionais de bot;
+    não remover componentes nem desativar o recebimento para evitar recursão.
 
 O Chat editará um manifesto-slot preexistente em commit inerte e depois o
 estado em commit separado; isso respeita a limitação observada do conector sem
@@ -52,11 +53,12 @@ perder a ordenação causal.
 - duas tarefas diferentes completam no mesmo canal;
 - entre tarefas, o canal volta a `CHAT_WORKING` e continua armado;
 - GitHub continua sendo a autoridade do código, do estado e do parecer recebido;
-- `CHAT_READY` nunca chama bot, nunca enfileira ponte direta e nunca inicia auditoria;
+- na configuração operacional sem notificador, `CHAT_READY` não chama bot nem inicia auditoria;
 - a ponte direta permanece exclusiva de `CODEX_READY`;
 - o bot recebe do Codex um prompt completo somente quando há novo commit que
   realmente exige auditoria;
-- argumentos legados de notificador não podem reativar retorno automático.
+- a tarefa agendada não contém argumentos de notificador; sua presença invalida
+  esta configuração (o recurso opcional continua existindo no código aprovado).
 
 ## Não escopo
 
@@ -68,7 +70,8 @@ perder a ordenação causal.
 
 ## Próxima ação
 
-Publicar o candidato e pedir auditoria independente por uma invocação direta do
-bot com o prompt completo. Somente após GO, reinstalar o watcher sem URL ou
-script de notificação e executar um smoke que prove que `CHAT_READY` permanece
-silencioso. Não tocar produção.
+Restaurar os arquivos executáveis/testes aos bytes Git já aprovados, retirar
+apenas os argumentos opcionais de notificação da tarefa existente e reativar o
+recebimento. Testar o prompt completo em linha única com `DryRun`; só depois
+enviar a revisão da recuperação. Não reenviar a auditoria já aprovada do NEXT-01
+nem tocar produção.
