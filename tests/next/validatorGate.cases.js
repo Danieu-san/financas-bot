@@ -17,25 +17,28 @@ function sourceFixture(contents, relativePath = 'probe.js') {
     return { root, nextRoot, file };
 }
 
-function hermeticReplaySource(forwarding = 'return originalLoad.call(this, request, parent, isMain);') {
-    return `'use strict';
-const Module = require('node:module');
-const BLOCKED_MODULES = new Set(['node:fs']);
-function networkError() { return new Error('blocked'); }
-async function runHermeticReplay(execution) {
-    const originalLoad = Module._load;
-    Module._load = function hermeticLoad(request, parent, isMain) {
-        if (BLOCKED_MODULES.has(String(request || ''))) throw networkError();
-        ${forwarding}
-    };
-    try {
-        return await execution();
-    } finally {
-        Module._load = originalLoad;
-    }
+function hermeticReplaySource() {
+    return fs.readFileSync(
+        path.join(__dirname, '..', '..', 'src', 'next', 'replay', 'hermeticReplayRunner.js'),
+        'utf8'
+    );
 }
-module.exports = { runHermeticReplay };
-`;
+
+function mutateHermeticForward(forwarding) {
+    return hermeticReplaySource().replace(
+        'return originalLoad.call(this, request, parent, isMain);',
+        forwarding
+    );
+}
+
+function removeBlockedModule(specifier) {
+    const source = hermeticReplaySource();
+    const quoted = `'${specifier}'`;
+    const candidate = source.includes(`${quoted},`)
+        ? source.replace(`${quoted},`, '')
+        : source.replace(`, ${quoted}`, '');
+    assert.notStrictEqual(candidate, source);
+    return candidate;
 }
 
 function propertyFile(id) {
@@ -96,6 +99,36 @@ test('NEXT01:N01-VALIDATOR-001 validator rejects legacy and dynamic module loadi
         hermeticReplaySource(),
         'replay/hermeticReplayRunner.js'
     );
+    const blockedModuleDrifts = [
+        'http', 'node:http', 'https', 'node:https', 'net', 'node:net', 'tls',
+        'node:tls', 'dns', 'node:dns', 'dgram', 'node:dgram', 'undici'
+    ].map(removeBlockedModule);
+    const restoreBeforeExecution = hermeticReplaySource()
+        .replace(
+            '    try {\n        return await execution();\n    } finally {',
+            '    try {\n        // execution is no longer protected\n    } finally {'
+        )
+        .replace(
+            '        activeReplay = false;\n    }\n}',
+            '        activeReplay = false;\n    }\n    return execution();\n}'
+        );
+    const installBlock = `    Module._load = function hermeticLoad(request, parent, isMain) {
+        if (BLOCKED_MODULES.has(String(request || ''))) throw networkError();
+        return originalLoad.call(this, request, parent, isMain);
+    };
+`;
+    const installAfterTry = hermeticReplaySource()
+        .replace(installBlock, '')
+        .replace(
+            '        activeReplay = false;\n    }\n}',
+            `        activeReplay = false;\n    }\n${installBlock}}`
+        );
+    const captureAfterInstall = hermeticReplaySource()
+        .replace('    const originalLoad = Module._load;\n', '')
+        .replace(installBlock, `${installBlock}    const originalLoad = Module._load;\n`);
+    for (const mutation of [restoreBeforeExecution, installAfterTry, captureAfterInstall]) {
+        assert.notStrictEqual(mutation, hermeticReplaySource());
+    }
     const invalidHermeticLoaders = [
         hermeticReplaySource().replace(
             "const originalLoad = Module._load;",
@@ -105,23 +138,27 @@ test('NEXT01:N01-VALIDATOR-001 validator rejects legacy and dynamic module loadi
             "const originalLoad = Module._load;",
             "const originalLoad = Module._load;\n    Module['_load']('node:fs');"
         ),
-        hermeticReplaySource("return originalLoad('node:fs');"),
-        hermeticReplaySource("return originalLoad.apply(this, [request, parent, isMain]);"),
-        hermeticReplaySource("return Reflect.apply(originalLoad, null, ['node:fs']);"),
-        hermeticReplaySource("return originalLoad.call(this, 'node:fs', parent, isMain);"),
-        hermeticReplaySource(
+        mutateHermeticForward("return originalLoad('node:fs');"),
+        mutateHermeticForward("return originalLoad.apply(this, [request, parent, isMain]);"),
+        mutateHermeticForward("return Reflect.apply(originalLoad, null, ['node:fs']);"),
+        mutateHermeticForward("return originalLoad.call(this, 'node:fs', parent, isMain);"),
+        mutateHermeticForward(
             "originalLoad.call(this, request, parent, isMain);\n        return originalLoad.call(this, request, parent, isMain);"
         ),
-        hermeticReplaySource(
+        mutateHermeticForward(
             "request = 'node:fs';\n        return originalLoad.call(this, request, parent, isMain);"
         ),
-        hermeticReplaySource(
+        mutateHermeticForward(
             "arguments[0] = 'node:fs';\n        return originalLoad.call(this, request, parent, isMain);"
         ),
         hermeticReplaySource().replace(
             "const originalLoad = Module._load;",
             "const originalLoad = Module._load;\n    const loader = originalLoad;"
-        )
+        ),
+        ...blockedModuleDrifts,
+        restoreBeforeExecution,
+        installAfterTry,
+        captureAfterInstall
     ].map(source => sourceFixture(source, 'replay/hermeticReplayRunner.js'));
     try {
         assert.deepStrictEqual(policy.validateSourceInventory({
@@ -168,6 +205,10 @@ test('NEXT01:N01-VALIDATOR-001 validator rejects legacy and dynamic module loadi
         });
         assert.deepStrictEqual(validHermeticResult.errors, []);
         assert.strictEqual(validHermeticResult.classifiedHermeticRuntimeLoaders, 1);
+        assert.strictEqual(
+            validHermeticResult.hermeticReplayAstSha256,
+            policy.HERMETIC_REPLAY_CANONICAL_AST_SHA256
+        );
         for (const fixture of invalidHermeticLoaders) {
             assert.ok(policy.analyzeNextSourceFiles({
                 nextRoot: fixture.nextRoot,

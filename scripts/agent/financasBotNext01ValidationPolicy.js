@@ -2,7 +2,11 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { createHash } = require('node:crypto');
 const acorn = require('acorn');
+
+const HERMETIC_REPLAY_CANONICAL_AST_SHA256 =
+    '00e18c3734a593b432ac0335af43353a189132513b4c0107aa825abcecbcf0be';
 
 const REQUIRED_PROPERTY_IDS = Object.freeze([
     'N01-PLAN-001',
@@ -118,167 +122,49 @@ function memberName(node) {
     return staticString(node.property);
 }
 
-function isIdentifier(node, name) {
-    return node?.type === 'Identifier' && node.name === name;
+const OMITTED_AST_KEYS = new Set(['start', 'end', 'loc', 'range', 'raw']);
+
+function canonicalAstValue(value) {
+    if (Array.isArray(value)) return value.map(canonicalAstValue);
+    if (!value || typeof value !== 'object') return value;
+    const result = {};
+    for (const key of Object.keys(value).sort()) {
+        if (!OMITTED_AST_KEYS.has(key)) result[key] = canonicalAstValue(value[key]);
+    }
+    return result;
 }
 
-function isDirectMember(node, objectName, propertyName) {
-    return node?.type === 'MemberExpression' &&
-        node.computed === false &&
-        isIdentifier(node.object, objectName) &&
-        isIdentifier(node.property, propertyName);
-}
-
-function isExactRequireCall(node, specifier) {
-    return node?.type === 'CallExpression' &&
-        node.optional !== true &&
-        isIdentifier(node.callee, 'require') &&
-        node.arguments.length === 1 &&
-        staticString(node.arguments[0]) === specifier;
-}
-
-function isExactBlockedModuleGuard(node) {
-    const test = node?.test;
-    const normalizedRequest = test?.arguments?.[0];
-    const requestExpression = normalizedRequest?.arguments?.[0];
-    return node?.type === 'IfStatement' &&
-        node.alternate === null &&
-        test?.type === 'CallExpression' &&
-        isDirectMember(test.callee, 'BLOCKED_MODULES', 'has') &&
-        test.arguments.length === 1 &&
-        normalizedRequest?.type === 'CallExpression' &&
-        isIdentifier(normalizedRequest.callee, 'String') &&
-        normalizedRequest.arguments.length === 1 &&
-        requestExpression?.type === 'LogicalExpression' &&
-        requestExpression.operator === '||' &&
-        isIdentifier(requestExpression.left, 'request') &&
-        staticString(requestExpression.right) === '' &&
-        node.consequent?.type === 'ThrowStatement' &&
-        node.consequent.argument?.type === 'CallExpression' &&
-        isIdentifier(node.consequent.argument.callee, 'networkError') &&
-        node.consequent.argument.arguments.length === 0;
-}
-
-function isExactHermeticForward(node) {
-    const call = node?.argument;
-    return node?.type === 'ReturnStatement' &&
-        call?.type === 'CallExpression' &&
-        isDirectMember(call.callee, 'originalLoad', 'call') &&
-        call.arguments.length === 4 &&
-        call.arguments[0]?.type === 'ThisExpression' &&
-        isIdentifier(call.arguments[1], 'request') &&
-        isIdentifier(call.arguments[2], 'parent') &&
-        isIdentifier(call.arguments[3], 'isMain');
+function canonicalAstSha256(ast) {
+    return createHash('sha256')
+        .update(JSON.stringify(canonicalAstValue(ast)))
+        .digest('hex');
 }
 
 function inspectHermeticRuntimeLoader(ast) {
     const allowedIdentifiers = new WeakSet();
     const allowedMembers = new WeakSet();
     const allowedRequireCalls = new WeakSet();
-    const moduleDeclarations = ast.body.filter(statement =>
-        statement.type === 'VariableDeclaration' &&
-        statement.kind === 'const' &&
-        statement.declarations.length === 1 &&
-        isIdentifier(statement.declarations[0].id, 'Module') &&
-        isExactRequireCall(statement.declarations[0].init, 'node:module')
-    );
-    const runFunctions = ast.body.filter(statement =>
-        statement.type === 'FunctionDeclaration' &&
-        isIdentifier(statement.id, 'runHermeticReplay')
-    );
-    let valid = moduleDeclarations.length === 1 && runFunctions.length === 1;
-    const moduleDeclaration = moduleDeclarations[0];
-    const moduleDeclarator = moduleDeclaration?.declarations[0];
-    const runFunction = runFunctions[0];
-    const runBody = runFunction?.body?.body || [];
-
-    const captures = runBody.filter(statement =>
-        statement.type === 'VariableDeclaration' &&
-        statement.kind === 'const' &&
-        statement.declarations.length === 1 &&
-        isIdentifier(statement.declarations[0].id, 'originalLoad') &&
-        isDirectMember(statement.declarations[0].init, 'Module', '_load')
-    );
-    const installations = runBody.filter(statement => {
-        const assignment = statement.type === 'ExpressionStatement' ? statement.expression : null;
-        const hook = assignment?.right;
-        return assignment?.type === 'AssignmentExpression' &&
-            assignment.operator === '=' &&
-            isDirectMember(assignment.left, 'Module', '_load') &&
-            hook?.type === 'FunctionExpression' &&
-            isIdentifier(hook.id, 'hermeticLoad') &&
-            hook.async === false && hook.generator === false &&
-            hook.params.length === 3 &&
-            isIdentifier(hook.params[0], 'request') &&
-            isIdentifier(hook.params[1], 'parent') &&
-            isIdentifier(hook.params[2], 'isMain') &&
-            hook.body?.body?.length === 2 &&
-            isExactBlockedModuleGuard(hook.body.body[0]) &&
-            isExactHermeticForward(hook.body.body[1]);
-    });
-    const restorations = [];
-    for (const statement of runBody) {
-        if (statement.type !== 'TryStatement' || !statement.finalizer) continue;
-        for (const finalizerStatement of statement.finalizer.body) {
-            const assignment = finalizerStatement.type === 'ExpressionStatement'
-                ? finalizerStatement.expression
-                : null;
-            if (assignment?.type === 'AssignmentExpression' &&
-                assignment.operator === '=' &&
-                isDirectMember(assignment.left, 'Module', '_load') &&
-                isIdentifier(assignment.right, 'originalLoad')) {
-                restorations.push(finalizerStatement);
-            }
-        }
-    }
-    valid = valid && captures.length === 1 && installations.length === 1 && restorations.length === 1;
-
-    const captureDeclarator = captures[0]?.declarations[0];
-    const installAssignment = installations[0]?.expression;
-    const hook = installAssignment?.right;
-    const forwardCall = hook?.body?.body?.[1]?.argument;
-    const restoreAssignment = restorations[0]?.expression;
-    const moduleIdentifiers = [];
-    const originalLoadIdentifiers = [];
-    const loadMembers = [];
-    walkAst(ast, null, node => {
-        if (isIdentifier(node, 'Module')) moduleIdentifiers.push(node);
-        if (isIdentifier(node, 'originalLoad')) originalLoadIdentifiers.push(node);
-        if (node.type === 'MemberExpression' && memberName(node) === '_load') loadMembers.push(node);
-    });
-    const expectedModuleIdentifiers = [
-        moduleDeclarator?.id,
-        captureDeclarator?.init?.object,
-        installAssignment?.left?.object,
-        restoreAssignment?.left?.object
-    ];
-    const expectedOriginalLoadIdentifiers = [
-        captureDeclarator?.id,
-        forwardCall?.callee?.object,
-        restoreAssignment?.right
-    ];
-    const expectedLoadMembers = [
-        captureDeclarator?.init,
-        installAssignment?.left,
-        restoreAssignment?.left
-    ];
-    const exactNodeSet = (actual, expected) =>
-        expected.every(Boolean) && actual.length === expected.length &&
-        actual.every(node => expected.includes(node));
-    valid = valid &&
-        exactNodeSet(moduleIdentifiers, expectedModuleIdentifiers) &&
-        exactNodeSet(originalLoadIdentifiers, expectedOriginalLoadIdentifiers) &&
-        exactNodeSet(loadMembers, expectedLoadMembers);
-
+    const actualAstSha256 = canonicalAstSha256(ast);
+    const valid = actualAstSha256 === HERMETIC_REPLAY_CANONICAL_AST_SHA256;
     if (valid) {
-        for (const node of [...expectedModuleIdentifiers, ...expectedOriginalLoadIdentifiers]) {
-            allowedIdentifiers.add(node);
-        }
-        for (const node of expectedLoadMembers) allowedMembers.add(node);
-        allowedRequireCalls.add(moduleDeclarator.init);
+        walkAst(ast, null, node => {
+            if (node.type === 'Identifier' && (
+                node.name === 'Module' || node.name === 'originalLoad'
+            )) allowedIdentifiers.add(node);
+            if (node.type === 'MemberExpression' && memberName(node) === '_load') {
+                allowedMembers.add(node);
+            }
+            if (node.type === 'CallExpression' &&
+                node.callee?.type === 'Identifier' && node.callee.name === 'require' &&
+                node.optional !== true && node.arguments.length === 1 &&
+                staticString(node.arguments[0]) === 'node:module') {
+                allowedRequireCalls.add(node);
+            }
+        });
     }
     return {
         valid,
+        actualAstSha256,
         allowedIdentifiers,
         allowedMembers,
         allowedRequireCalls
@@ -338,6 +224,7 @@ function analyzeNextSourceFiles({
     let unclassifiedModuleLoaders = 0;
     let classifiedStaticModuleLoads = 0;
     let classifiedHermeticRuntimeLoaders = 0;
+    let hermeticReplayAstSha256 = null;
     const expectedSourceSet = new Set(uniqueSorted(expectedSourcePaths));
 
     for (const file of sourceFiles || []) {
@@ -373,6 +260,7 @@ function analyzeNextSourceFiles({
                 allowedRequireCalls: new WeakSet()
             };
         if (relative === 'replay/hermeticReplayRunner.js') {
+            hermeticReplayAstSha256 = hermeticLoader.actualAstSha256;
             if (hermeticLoader.valid) {
                 classifiedHermeticRuntimeLoaders += 1;
             } else {
@@ -544,7 +432,8 @@ function analyzeNextSourceFiles({
         runtimeV1Imports,
         unclassifiedModuleLoaders,
         classifiedStaticModuleLoads,
-        classifiedHermeticRuntimeLoaders
+        classifiedHermeticRuntimeLoaders,
+        hermeticReplayAstSha256
     };
 }
 
@@ -666,6 +555,7 @@ function validateGitBindingEvidence({
 
 module.exports = {
     EXPECTED_NEXT_SOURCE_PATHS,
+    HERMETIC_REPLAY_CANONICAL_AST_SHA256,
     REQUIRED_PROPERTY_IDS,
     analyzeNextSourceFiles,
     validateExecutedPropertyEvents,

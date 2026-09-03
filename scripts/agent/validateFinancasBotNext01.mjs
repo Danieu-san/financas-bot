@@ -255,6 +255,7 @@ console.log(`changed_paths=${changedPaths.size}`);
 console.log(`runtime_v1_imports=${sourceAnalysis.runtimeV1Imports}`);
 console.log(`classified_static_module_loads=${sourceAnalysis.classifiedStaticModuleLoads}`);
 console.log(`classified_hermetic_runtime_loaders=${sourceAnalysis.classifiedHermeticRuntimeLoaders}`);
+console.log(`hermetic_replay_ast_sha256=${sourceAnalysis.hermeticReplayAstSha256}`);
 console.log(`unclassified_module_loaders=${sourceAnalysis.unclassifiedModuleLoaders}`);
 console.log(`forbidden_effect_capabilities=${sourceAnalysis.forbiddenEffectImports}`);
 if (!allowWorktree) {

@@ -1,6 +1,6 @@
 # Workstream — FinançasBot Next / NEXT-01
 
-Atualizado em: 2026-09-01
+Atualizado em: 2026-09-03
 Status: `CANDIDATO REAUDITADO E CORRIGIDO — VALIDAÇÃO LOCAL VERDE; NOVA REAUDITORIA INDEPENDENTE PENDENTE`
 
 ## Objetivo ativo
@@ -62,8 +62,10 @@ mapear o que pode ser reaproveitado do v1 sob os contratos ratificados.
   extensão, imports são analisados pela AST, os externos permitidos exigem
   binding exato e targets relativos precisam permanecer em `src/next/` por
   `realpath` e pertencer ao inventário. O único runtime loader especial é o
-  forwarder hermético reconhecido por contrato AST fechado e contabilizado
-  separadamente dos oito imports estáticos. A
+  forwarder hermético reconhecido pelo SHA-256 integral de sua AST canônica e
+  contabilizado separadamente dos oito imports estáticos. O contrato integral
+  congela o conjunto bloqueado, o controle de fluxo e a ordem causal entre
+  captura, instalação, execução protegida e restauração. A
   ausência de writer é provada em conjunto pelo closure e pela interface do
   ledger vazio, sem alegação nominal mais forte que a evidência. O PASS final é
   vinculado a HEAD, parent único, árvore limpa e arquivos tracked;
@@ -83,7 +85,7 @@ mapear o que pode ser reaproveitado do v1 sob os contratos ratificados.
   `64/64 PASS`;
 - suíte hermética ampla pós-correção: `1.929` testes, `1.919 PASS`, `0 FAIL`, `10 SKIP`
   esperados, `0 TODO`;
-- coverage final: linhas `91,84%`, branches `75,13%`, funções `91,28%`;
+- coverage final: linhas `91,83%`, branches `75,13%`, funções `91,27%`;
 - nenhum runtime v1, adapter real, writer, fonte externa ou produção foi
   alterado; ajustes legados ficaram exclusivamente em testes e no tripwire do
   runner hermético.

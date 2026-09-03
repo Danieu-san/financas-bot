@@ -1,6 +1,6 @@
 # NEXT-01 — Esqueleto isolado do FinançasBot Next
 
-Atualizado em: 2026-09-01
+Atualizado em: 2026-09-03
 Estado: `CANDIDATO REAUDITADO E CORRIGIDO — VALIDAÇÃO LOCAL VERDE; NOVA REAUDITORIA INDEPENDENTE PENDENTE`
 Predecessor ratificado: `f8137f0396fcdf41b1a3e2535040f663c4ed171a`
 Roadmap normativo: `911af93343210ccfe2d7b7fe0b898542044a1fdf`
@@ -173,9 +173,10 @@ runtime v1. A bateria focal cobre 25 propriedades estáveis e está verde:
   análise sintática de loaders e containment por `realpath`, com targets
   relativos obrigatoriamente presentes no inventário e binding exato dos únicos
   imports externos permitidos;
-- único runtime loader especial reconhecido por contrato AST fechado no replay
-  hermético, contabilizado separadamente dos oito imports estáticos; qualquer
-  outro loader ou uso de `_load` falha fechado;
+- único runtime loader especial reconhecido pelo SHA-256 integral de sua AST
+  canônica, contabilizado separadamente dos oito imports estáticos; qualquer
+  drift executável no conjunto bloqueado, controle de fluxo, ordem,
+  instalação/forwarding/restauração ou outro uso de `_load` falha fechado;
 - property IDs derivados de eventos estruturados `node:test` realmente
   aprovados, sem skip/todo, enquanto TAP permanece somente diagnóstico humano;
   container de argumentos inválido continua rejeitado antes de budget/adapter.
@@ -207,7 +208,7 @@ A única suíte hermética ampla executada após as correções auditadas termin
 - `1.919` passes;
 - `0` falhas;
 - `10` skips esperados e `0` todo;
-- coverage: linhas `91,84%`, branches `75,13%`, funções `91,28%`;
+- coverage: linhas `91,83%`, branches `75,13%`, funções `91,27%`;
 - `176` arquivos de teste descobertos e `158` entrypoints executados;
 - tripwire local válido, sem rede nem subprocesso fora da allowlist auditada.
 

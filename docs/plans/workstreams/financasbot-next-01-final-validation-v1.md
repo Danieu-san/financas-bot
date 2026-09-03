@@ -1,6 +1,6 @@
 # NEXT-01 — Validação final local v1
 
-Atualizado em: 2026-09-01
+Atualizado em: 2026-09-03
 Base: `0b988e7d51544dbc02942b237b0d58d12b9af264`
 Estado: `CANDIDATO REAUDITADO E CORRIGIDO LOCAL VERDE — NOVA REAUDITORIA INDEPENDENTE PENDENTE`
 
@@ -87,6 +87,27 @@ candidato fecha as classes, sem acrescentar runtime ou dependência:
 - TAP é somente a projeção diagnóstica humana da mesma execução e nunca alimenta
   a decisão do gate.
 
+A reauditoria do SHA `ccff4711c4e70c6d1b8c1227ebf70d91f89f3552`
+confirmou o inventário integral e a evidência estruturada de properties, mas
+encontrou uma HIGH e uma MEDIUM no recognizer seletivo do loader: o conteúdo de
+`BLOCKED_MODULES` e a ordem causal entre captura, instalação, execução protegida
+e restauração ainda não pertenciam ao contrato verificado.
+
+Em vez de acrescentar novos casos especiais ao recognizer, o candidato atual
+substitui essa abstração parcial por um contrato integral da AST canônica de
+`src/next/replay/hermeticReplayRunner.js`:
+
+- a AST inteira é canonicalizada sem posições, formatação ou comentários e
+  comparada a um SHA-256 normativo;
+- qualquer drift executável de literal, conjunto bloqueado, controle de fluxo,
+  ordem, instalação, forwarding, execução, restauração ou export invalida o
+  contrato hermético;
+- a suíte remove individualmente cada um dos 13 specifiers bloqueados e exige
+  RED, além de testar restauração antes da execução, instalação depois do
+  `try` e captura depois da instalação;
+- o runtime hermético permaneceu inalterado; o gate apenas congela e mede sua
+  estrutura executável já validada dinamicamente.
+
 O validador documental/estrutural reporta:
 
 - `required_files=29`;
@@ -102,6 +123,7 @@ O validador documental/estrutural reporta:
 - `runtime_v1_imports=0`;
 - `classified_static_module_loads=8`;
 - `classified_hermetic_runtime_loaders=1`;
+- `hermetic_replay_ast_sha256=00e18c3734a593b432ac0335af43353a189132513b4c0107aa825abcecbcf0be`;
 - `unclassified_module_loaders=0`;
 - `forbidden_effect_capabilities=0`.
 
@@ -151,7 +173,7 @@ Comando: `npm test`
 
 Resultado observado uma única vez após estabilização desta correção causal:
 
-- duração: `716.660 ms`;
+- duração: `1.221.758 ms`;
 - arquivos descobertos: `176`;
 - entrypoints executados: `158`;
 - testes: `1.929`;
@@ -159,9 +181,9 @@ Resultado observado uma única vez após estabilização desta correção causal
 - falhas: `0`;
 - skips: `10`, todos na allowlist esperada;
 - todo: `0`;
-- line coverage: `91,84%`;
+- line coverage: `91,83%`;
 - branch coverage: `75,13%`;
-- function coverage: `91,28%`;
+- function coverage: `91,27%`;
 - runner: `valid=true`, sem razão de invalidação;
 - rede: bloqueada para fetch/http/https/net e descendentes Node;
 - subprocessos: bloqueados, exceto Git/Tar locais em operações auditadas.
