@@ -1,6 +1,6 @@
 # Plano — canal permanente Chat ↔ Codex
 
-Status: `ORCH-02 retorno CHAT_READY pelo bot local em candidato; auditoria pendente`.
+Status: `ORCH-02 protocolo assimétrico sem recursão em candidato; auditoria pendente`.
 
 ## Objetivo
 
@@ -33,9 +33,10 @@ sem manter modelo ocioso e sem encerrar o canal ao concluir um trabalho.
     branch fixa, revisão e runtime físico, tornar `failed:sync_error` recuperável e
     repetir o preflight de tracked/untracked/ignored imediatamente antes do App
     ou CLI.
-13. [em andamento] Substituir somente a campainha de retorno direta por um bot
-    local pinado: após confirmar `CHAT_READY` remoto, enviar `task_id`, SHA Git
-    imutável e paths canônicos ao Chat; preservar a ponte para `CODEX_READY`.
+13. [em andamento] Separar os sentidos do canal: o Codex invoca deliberadamente
+    o bot local com o prompt completo após publicar um candidato auditável; o
+    Chat devolve o parecer por GitHub/`CODEX_READY`; `CHAT_READY` apenas publica
+    o resultado e nunca aciona bot ou nova auditoria.
 
 O Chat editará um manifesto-slot preexistente em commit inerte e depois o
 estado em commit separado; isso respeita a limitação observada do conector sem
@@ -50,11 +51,12 @@ perder a ordenação causal.
 - alterações sensíveis, extras ou destrutivas falham fechadas;
 - duas tarefas diferentes completam no mesmo canal;
 - entre tarefas, o canal volta a `CHAT_WORKING` e continua armado;
-- retorno Browser continua sendo somente campainha; GitHub é a autoridade.
-- `CHAT_READY` nunca chama nem enfileira a ponte direta; o retorno exige o bot;
-- bot só roda após `CHAT_READY` remoto e commit imutável confirmados;
-- mesmo hash não reenvia após confirmação; falha ou dispatch interrompido é rearmável;
-- alteração do script local após instalação falha pela divergência SHA-256.
+- GitHub continua sendo a autoridade do código, do estado e do parecer recebido;
+- `CHAT_READY` nunca chama bot, nunca enfileira ponte direta e nunca inicia auditoria;
+- a ponte direta permanece exclusiva de `CODEX_READY`;
+- o bot recebe do Codex um prompt completo somente quando há novo commit que
+  realmente exige auditoria;
+- argumentos legados de notificador não podem reativar retorno automático.
 
 ## Não escopo
 
@@ -66,6 +68,7 @@ perder a ordenação causal.
 
 ## Próxima ação
 
-Publicar o candidato, pedir auditoria independente pelo bot e, somente após GO,
-reinstalar o watcher com a URL da conversa e o script local pinado. Executar um
-smoke documental sem tocar produção.
+Publicar o candidato e pedir auditoria independente por uma invocação direta do
+bot com o prompt completo. Somente após GO, reinstalar o watcher sem URL ou
+script de notificação e executar um smoke que prove que `CHAT_READY` permanece
+silencioso. Não tocar produção.

@@ -6,7 +6,6 @@ param(
     [string]$RunAsUser,
     [string]$AppThreadId,
     [string]$ChatUrl,
-    [string]$ChatNotifierScript,
     [string]$AppWakeRequestPath,
     [string]$StatePath = 'docs/agent-memory/workstreams/chat-codex-channel.state.json'
 )
@@ -111,11 +110,8 @@ function Assert-WatcherRepositorySafe {
 if ($AppThreadId -and -not $ChatUrl) {
     throw 'AppThreadId exige ChatUrl.'
 }
-if ($ChatUrl -and -not ($AppThreadId -or $ChatNotifierScript)) {
-    throw 'ChatUrl exige AppThreadId ou ChatNotifierScript.'
-}
-if ($Action -eq 'Install' -and (-not $ChatNotifierScript -or -not $ChatUrl)) {
-    throw 'Install exige ChatNotifierScript e ChatUrl para o retorno CHAT_READY.'
+if ($ChatUrl -and -not $AppThreadId) {
+    throw 'ChatUrl exige AppThreadId.'
 }
 if ($AppWakeRequestPath -and $AppThreadId) {
     throw 'AppWakeRequestPath e exclusivo de AppThreadId.'
@@ -137,24 +133,6 @@ if ($AppThreadId) {
         throw 'AppThreadId invalido.'
     }
     $arguments += @('--app-thread-id', (Quote-Argument $AppThreadId))
-}
-if ($ChatNotifierScript) {
-    if (-not $ChatUrl) { throw 'ChatNotifierScript exige ChatUrl.' }
-    if (-not [System.IO.Path]::IsPathRooted($ChatNotifierScript) -or
-        -not (Test-Path -LiteralPath $ChatNotifierScript -PathType Leaf) -or
-        [System.IO.Path]::GetExtension($ChatNotifierScript) -ne '.ps1') {
-        throw 'ChatNotifierScript deve apontar para um arquivo PowerShell absoluto existente.'
-    }
-    $notifierItem = Get-Item -LiteralPath $ChatNotifierScript -Force
-    if ($notifierItem.Attributes -band [IO.FileAttributes]::ReparsePoint) {
-        throw 'ChatNotifierScript nao pode ser link ou reparse point.'
-    }
-    $notifierPath = $notifierItem.FullName
-    $notifierHash = (Get-FileHash -LiteralPath $notifierPath -Algorithm SHA256).Hash.ToLowerInvariant()
-    $arguments += @(
-        '--chat-notifier-script', (Quote-Argument $notifierPath),
-        '--chat-notifier-sha256', (Quote-Argument $notifierHash)
-    )
 }
 if ($AppWakeRequestPath) {
     if (-not [System.IO.Path]::IsPathRooted($AppWakeRequestPath)) {

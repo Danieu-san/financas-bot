@@ -77,11 +77,13 @@ test('CHAT_READY nunca acorda o Codex App diretamente', () => {
     const calls = [];
     const options = watcherOptions(item, {
         'app-thread-id': '11111111-2222-4333-8444-555555555555',
-        'chat-url': 'https://chatgpt.com/c/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
+        'chat-url': 'https://chatgpt.com/c/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
+        'chat-notifier-script': path.join(item.repo, 'legacy-notifier.ps1')
     });
     const deps = {
         fetchRemoteState: () => item.raw,
-        wakeCodexApp: value => calls.push(value)
+        wakeCodexApp: value => calls.push(value),
+        maybeNotifyChat: () => assert.fail('CHAT_READY não pode acionar o bot')
     };
     assert.equal(pollOnce(options, deps).action, 'observed');
     assert.equal(pollOnce(options, deps).action, 'unchanged');
@@ -212,7 +214,7 @@ test('CODEX_READY validado acorda App e não chama CLI', () => {
     assert.equal(request.repo_path, item.repo);
 });
 
-test('modo App confirma CHAT_READY remoto e só então aciona o bot do Chat', () => {
+test('modo App publica CHAT_READY sem acionar bot nem iniciar nova auditoria', () => {
     const item = fixture('CODEX_READY');
     const queue = path.join(item.runtime, 'bridge', 'request.json');
     const statePath = 'docs/agent-memory/workstreams/chat-codex-channel.state.json';
@@ -228,18 +230,11 @@ test('modo App confirma CHAT_READY remoto e só então aciona o bot do Chat', ()
             events.push('published');
             remoteRaw = fs.readFileSync(stateFile, 'utf8');
         },
-        resolveFetchedCommitSha: () => 'c'.repeat(40),
-        maybeNotifyChat(context) {
-            assert.equal(JSON.parse(remoteRaw).orchestration_state, 'CHAT_READY');
-            assert.equal(context.remoteCommitSha, 'c'.repeat(40));
-            events.push('notified');
-            return { cache: context.cache, action: 'sent' };
-        }
+        maybeNotifyChat: () => assert.fail('publicação de resultado não pode acionar o bot')
     });
     const options = watcherOptions(item, {
         'app-wake-request': queue,
-        'chat-url': 'https://chatgpt.com/c/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
-        'chat-notifier-script': path.join(item.repo, 'notificar_chatgpt.ps1')
+        'chat-notifier-script': path.join(item.repo, 'legacy-notifier.ps1')
     });
 
     assert.equal(pollOnce(options, deps).action, 'app_task_queued');
@@ -252,9 +247,9 @@ test('modo App confirma CHAT_READY remoto e só então aciona o bot do Chat', ()
     const completed = pollOnce(options, deps);
     assert.equal(completed.action, 'app_result_published');
     assert.equal(completed.state, 'CHAT_READY');
-    assert.equal(completed.appWake, null);
-    assert.equal(completed.chatNotification, 'sent');
-    assert.deepEqual(events, ['published', 'notified']);
+    assert.equal(Object.hasOwn(completed, 'appWake'), false);
+    assert.equal(Object.hasOwn(completed, 'chatNotification'), false);
+    assert.deepEqual(events, ['published']);
     assert.equal(readCache(path.join(item.runtime, 'watcher-state.json')).launch_status,
         'succeeded');
     assert.equal(JSON.parse(fs.readFileSync(queue, 'utf8')).mode, 'execute');

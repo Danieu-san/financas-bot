@@ -11,7 +11,7 @@ Daniel. O fechamento do gate que construiu o canal não encerra o serviço.
 
 ## Estado operacional
 
-`ORCH-02 RETORNO PELO BOT LOCAL EM CANDIDATO; AUDITORIA PENDENTE`.
+`ORCH-02 PROTOCOLO ASSIMÉTRICO SEM RECURSÃO EM CANDIDATO; AUDITORIA PENDENTE`.
 
 ### Localização canônica no GitHub
 
@@ -21,10 +21,9 @@ Daniel. O fechamento do gate que construiu o canal não encerra o serviço.
 - manifesto-slot: `docs/agent-memory/workstreams/tasks/chat-codex-task-slot.json`;
 - resultados: `docs/agent-memory/workstreams/results/<task_id>.md`.
 
-Toda campainha de retorno inclui o SHA Git completo que contém `CHAT_READY`.
-Chat e Codex leem estado e resultado nesse commit imutável; não procuram a
-resposta na `main`, em outra branch, na posição visual da conversa ou em arquivo
-local.
+Toda auditoria referencia o SHA Git completo do candidato. Chat e Codex leem
+estado e resultado no commit imutável indicado; não procuram a resposta na
+`main`, em outra branch, na posição visual da conversa ou em arquivo local.
 
 ### Fronteira congelada
 
@@ -91,25 +90,23 @@ e segredos continuam fora do executor automático; necessidade privada deve ser
 registrada no resultado e encaminhada ao Codex App por fluxo separado, sem
 ampliar silenciosamente a tarefa.
 
-## Retorno pelo bot local
+## Protocolo assimétrico de auditoria
 
-Quando o watcher confirma no GitHub um estado remoto `CHAT_READY`, ele deixa de
-usar a campainha direta do Codex App e executa exclusivamente o notificador
-PowerShell local configurado. O notificador recebe a URL exata da conversa e
-uma mensagem curta com `notification_id`, `task_id`, commit imutável, branch,
-state path, result path e URLs GitHub. O Chat consulta a evidência no GitHub e
-devolve seu parecer pelo canal versionado.
+O envio e o retorno têm mecanismos diferentes por propósito:
 
-O caminho local do notificador e a URL privada da conversa não entram no Git.
-O instalador grava ambos somente nos argumentos da tarefa local e fixa o
-SHA-256 do script; alteração posterior do arquivo falha antes de abrir o
-navegador. O cache não reenvia um hash já confirmado e o aviso carrega
-`notification_id` para deduplicação. Falha ou dispatch interrompido permite
-retry; queda entre envio e persistência pode repetir o aviso sem mudar a
-autoridade Git.
+`Codex -> bot local -> Chat`: depois de publicar um candidato sanitizado e
+imutável, o Codex invoca deliberadamente o bot com o prompt completo da
+auditoria. O bot não faz parte do watcher nem da tarefa agendada.
 
-`CODEX_READY` continua podendo usar a ponte local para iniciar o executor. A
-substituição vale somente para o retorno `CHAT_READY -> Chat`.
+`Chat -> GitHub/CODEX_READY -> watcher -> Codex`: o Chat publica o parecer pelo
+canal versionado; o watcher valida o manifesto e acorda o Codex somente para
+`CODEX_READY`.
+
+Depois que o Codex consome o parecer e publica `CHAT_READY`, a tarefa termina.
+Nesse estado o watcher não chama o bot, não usa a ponte direta e não começa uma
+segunda auditoria. Argumentos legados de notificador são inertes. GitHub segue
+como autoridade do código, do estado e do parecer recebido; a conversa é apenas
+o transporte da solicitação de auditoria.
 
 ## Achado e recovery
 
@@ -132,9 +129,10 @@ constante exportada pelo worker.
 
 Em 2026-08-25, uma prova isolada confirmou que a antiga campainha MCP conseguia
 acordar a conversa sem clique. Ela dependia de endpoint/túnel e não provava
-persistência após reboot. O retorno atual substitui essa rota somente no
-`CHAT_READY`: o bot local abre a conversa já configurada, enquanto GitHub segue
-como fonte única do estado e do resultado.
+persistência após reboot. Em 2026-09-03, o smoke do bot local confirmou o envio
+à conversa e a volta do parecer pelo canal, mas também revelou que acionar o bot
+automaticamente em todo `CHAT_READY` criava uma auditoria recursiva. O protocolo
+assimétrico atual elimina esse gatilho automático.
 
 ## Incidente de sincronização em 2026-08-26
 
@@ -175,13 +173,27 @@ filesystem e acrescentou negativos causais sem alterar o protocolo do canal.
 Os artefatos que causaram o incidente foram preservados fora da worktree em
 `%LOCALAPPDATA%\FinancasBot\orchestration-artifacts\20260827-sync-error`.
 
+## Evidência local do protocolo assimétrico
+
+O candidato remove o notificador automático do watcher e do instalador, apaga
+o módulo dedicado a esse retorno e mantém a ponte direta somente no ramo
+`CODEX_READY`. A bateria focal do canal passou `49/49`; os testes reais de Git,
+ignored paths e validador do clone passaram isoladamente `8/8`.
+
+A única suíte hermética ampla foi válida como runner, mas terminou com
+`1885 PASS`, `8 FAIL` e `10 SKIP`. Quatro falhas eram de áreas financeiras fora
+deste delta. As quatro atribuídas ao canal no agregado passaram na reprodução
+isolada acima, indicando interferência do runner concorrente, não regressão
+reproduzida. Por precisão, o candidato não é rotulado como suíte ampla verde e
+continua aguardando auditoria independente.
+
 ## Próxima ação
 
-Publicar e auditar o candidato do retorno pelo bot. Após GO independente,
-reinstalar o watcher no clone dedicado com o notificador pinado e executar um
-único smoke documental `CHAT_READY -> bot -> Chat`, confirmando que a ponte
-direta não foi chamada.
+Publicar e auditar o candidato do protocolo assimétrico por invocação direta do
+bot. Após GO independente, reinstalar o watcher sem parâmetros de notificador e
+executar um único smoke documental, confirmando que `CHAT_READY` não chama bot
+nem ponte e que `CODEX_READY` continua acordando o Codex.
 
 ## Capacidade
 
-`Codex App -> Sol -> Alto -> auditar e provar o retorno CHAT_READY pelo bot local.`
+`Codex App -> Sol -> Médio -> auditar e provar o protocolo assimétrico sem recursão.`
