@@ -1,10 +1,24 @@
 # NEXT-01 — Esqueleto isolado do FinançasBot Next
 
 Atualizado em: 2026-09-03
-Estado: `CANDIDATO REAUDITADO E CORRIGIDO — VALIDAÇÃO LOCAL VERDE; NOVA REAUDITORIA INDEPENDENTE PENDENTE`
+Estado: `NEXT-01 CLOSED — APROVÁVEL; RATIFICAÇÃO HUMANA EM 2026-09-03`
 Predecessor ratificado: `f8137f0396fcdf41b1a3e2535040f663c4ed171a`
 Roadmap normativo: `911af93343210ccfe2d7b7fe0b898542044a1fdf`
 Ratificação: `financasbot-next-00-architecture-ratification-v1.md`
+
+## Encerramento vigente
+
+O parecer independente em
+`docs/agent-memory/workstreams/results/FIN-NEXT01-AST-REAUDIT-20260903.md`
+aprovou o candidato `9b0cfd848d08b85ed94016b65f07820ca89dbbfb`, sem findings.
+O commit `29791be6ba3f80fc8033bd6cb715484e7275a3c5` acrescentou somente
+esse parecer, sem alterar o candidato funcional. Daniel autorizou nesta
+conversa o encerramento e a passagem ao NEXT-02 em 2026-09-03.
+
+As referências abaixo a auditoria pendente e NEXT-02 fechado registram o
+estado anterior à ratificação. O estado vigente é este encerramento e o
+charter `financasbot-next-02.md`. A aprovação foi estática; não representa
+execução independente da suíte pelo Chat nem autorização de produção.
 
 ## Objetivo material
 

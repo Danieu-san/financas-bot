@@ -1,7 +1,19 @@
 # Workstream — FinançasBot Next / NEXT-01
 
 Atualizado em: 2026-09-03
-Status: `CANDIDATO REAUDITADO E CORRIGIDO — VALIDAÇÃO LOCAL VERDE; NOVA REAUDITORIA INDEPENDENTE PENDENTE`
+Status: `NEXT-01 CLOSED — APROVÁVEL; RATIFICADO POR DANIEL EM 2026-09-03`
+
+## Encerramento vigente
+
+Auditoria independente: `results/FIN-NEXT01-AST-REAUDIT-20260903.md`.
+Candidato aprovado: `9b0cfd848d08b85ed94016b65f07820ca89dbbfb`.
+Registro do parecer: `29791be6ba3f80fc8033bd6cb715484e7275a3c5`.
+Zero findings no delta focal; suíte local previamente registrada, não
+reexecutada pelo auditor. Daniel autorizou seguir ao NEXT-02.
+
+Próxima ação e estado ativo: `financasbot-next-02.md`.
+O restante deste checkpoint preserva evidência pré-ratificação; menções a
+auditoria pendente ou NEXT-02 fechado abaixo são históricas.
 
 ## Objetivo ativo
 
