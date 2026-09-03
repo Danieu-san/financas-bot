@@ -6,6 +6,7 @@ param(
     [string]$RunAsUser,
     [string]$AppThreadId,
     [string]$ChatUrl,
+    [string]$ChatNotifierScript,
     [string]$AppWakeRequestPath,
     [string]$StatePath = 'docs/agent-memory/workstreams/chat-codex-channel.state.json'
 )
@@ -107,16 +108,19 @@ function Assert-WatcherRepositorySafe {
         throw "Clone dedicado recusado: $($validationOutput -join ' ')"
     }
 }
-if ([bool]$AppThreadId -xor [bool]$ChatUrl) {
-    throw 'AppThreadId e ChatUrl devem ser informados juntos.'
+if ($AppThreadId -and -not $ChatUrl) {
+    throw 'AppThreadId exige ChatUrl.'
 }
-if ($AppWakeRequestPath -and ($AppThreadId -or $ChatUrl)) {
-    throw 'AppWakeRequestPath e exclusivo de AppThreadId/ChatUrl.'
+if ($ChatUrl -and -not ($AppThreadId -or $ChatNotifierScript)) {
+    throw 'ChatUrl exige AppThreadId ou ChatNotifierScript.'
 }
-if ($AppThreadId -and $ChatUrl) {
-    if ($AppThreadId -notmatch '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$') {
-        throw 'AppThreadId invalido.'
-    }
+if ($Action -eq 'Install' -and (-not $ChatNotifierScript -or -not $ChatUrl)) {
+    throw 'Install exige ChatNotifierScript e ChatUrl para o retorno CHAT_READY.'
+}
+if ($AppWakeRequestPath -and $AppThreadId) {
+    throw 'AppWakeRequestPath e exclusivo de AppThreadId.'
+}
+if ($ChatUrl) {
     $parsedChatUrl = $null
     if (-not [Uri]::TryCreate($ChatUrl, [UriKind]::Absolute, [ref]$parsedChatUrl) -or
         $parsedChatUrl.Scheme -ne 'https' -or
@@ -126,9 +130,30 @@ if ($AppThreadId -and $ChatUrl) {
         $parsedChatUrl.AbsolutePath -notmatch '^/(?:g/[^/]+/)?c/[0-9a-fA-F-]+/?$') {
         throw 'ChatUrl deve apontar para uma conversa HTTPS do chatgpt.com.'
     }
+    $arguments += @('--chat-url', (Quote-Argument $ChatUrl))
+}
+if ($AppThreadId) {
+    if ($AppThreadId -notmatch '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$') {
+        throw 'AppThreadId invalido.'
+    }
+    $arguments += @('--app-thread-id', (Quote-Argument $AppThreadId))
+}
+if ($ChatNotifierScript) {
+    if (-not $ChatUrl) { throw 'ChatNotifierScript exige ChatUrl.' }
+    if (-not [System.IO.Path]::IsPathRooted($ChatNotifierScript) -or
+        -not (Test-Path -LiteralPath $ChatNotifierScript -PathType Leaf) -or
+        [System.IO.Path]::GetExtension($ChatNotifierScript) -ne '.ps1') {
+        throw 'ChatNotifierScript deve apontar para um arquivo PowerShell absoluto existente.'
+    }
+    $notifierItem = Get-Item -LiteralPath $ChatNotifierScript -Force
+    if ($notifierItem.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+        throw 'ChatNotifierScript nao pode ser link ou reparse point.'
+    }
+    $notifierPath = $notifierItem.FullName
+    $notifierHash = (Get-FileHash -LiteralPath $notifierPath -Algorithm SHA256).Hash.ToLowerInvariant()
     $arguments += @(
-        '--app-thread-id', (Quote-Argument $AppThreadId),
-        '--chat-url', (Quote-Argument $ChatUrl)
+        '--chat-notifier-script', (Quote-Argument $notifierPath),
+        '--chat-notifier-sha256', (Quote-Argument $notifierHash)
     )
 }
 if ($AppWakeRequestPath) {

@@ -27,6 +27,22 @@ Rotular com precisão revisão estática, teste executado, inferência e prova d
 5. Informar sempre as duas capacidades: `Chat → Modelo → Esforço → auditoria solicitada` e `Codex → Modelo → Esforço → validação da resposta recebida`.
 6. Se o Chat não abrir os arquivos imutáveis, seu parecer é apenas revisão lógica do relato e não sustenta GO independente.
 
+### Retorno automatizado pelo canal permanente
+
+Quando a auditoria usar o canal permanente, a localização canônica é o
+repositório `Danieu-san/financas-bot`, branch
+`chat/chat-codex-orchestration-20260824`, estado
+`docs/agent-memory/workstreams/chat-codex-channel.state.json` e resultado
+apontado pelo próprio estado. O watcher somente aciona o bot local depois de
+confirmar `CHAT_READY` no remoto e envia ao Chat `task_id`, SHA Git imutável,
+hash mecânico e URLs do estado e do resultado.
+
+Não enviar campainha diretamente ao Chat por Codex App em `CHAT_READY`; essa
+rota usa exclusivamente o bot local. O navegador é apenas transporte do aviso;
+GitHub continua sendo a autoridade.
+O Chat deve confirmar o SHA lido e devolver o parecer pelo canal versionado
+antes de qualquer GO.
+
 ## Veredito
 
 Confrontar a resposta externa com código, testes e escopo. O executor não aprova sozinho seu próprio trabalho, e o auditor não implementa correções durante o mesmo gate de revisão.

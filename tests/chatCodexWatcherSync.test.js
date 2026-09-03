@@ -8,6 +8,7 @@ const test = require('node:test');
 const { serializeState, stateHash } = require('../scripts/agent/manageChatCodexOrchestration');
 const {
     defaultCache,
+    maybeWakeCodexApp,
     pollOnce,
     queueCodexAppWakeRequest,
     readCache,
@@ -71,7 +72,7 @@ function executorDeps(deps = {}) {
     };
 }
 
-test('CHAT_READY acorda Codex App uma vez por hash', () => {
+test('CHAT_READY nunca acorda o Codex App diretamente', () => {
     const item = fixture('CHAT_READY');
     const calls = [];
     const options = watcherOptions(item, {
@@ -82,37 +83,22 @@ test('CHAT_READY acorda Codex App uma vez por hash', () => {
         fetchRemoteState: () => item.raw,
         wakeCodexApp: value => calls.push(value)
     };
-    assert.equal(pollOnce(options, deps).action, 'app_wake_accepted');
+    assert.equal(pollOnce(options, deps).action, 'observed');
     assert.equal(pollOnce(options, deps).action, 'unchanged');
-    assert.equal(calls.length, 1);
-    assert.equal(calls[0].taskId, 'ORCH-01');
+    assert.equal(calls.length, 0);
     const cache = readCache(path.join(item.runtime, 'watcher-state.json'));
-    assert.equal(cache.app_wake_status, 'accepted');
-    assert.equal(cache.app_wake_hash.length, 64);
+    assert.equal(cache.app_wake_status, null);
+    assert.equal(cache.app_wake_hash, null);
 });
 
-test('CHAT_READY enfileira hash, tarefa e estado exatos para a ponte S4U', () => {
+test('CHAT_READY não enfileira retorno na ponte S4U', () => {
     const item = fixture('CHAT_READY');
     const queue = path.join(item.runtime, 'bridge', 'request.json');
     fs.mkdirSync(path.dirname(queue), { recursive: true });
     const options = watcherOptions(item, { 'app-wake-request': queue });
-    assert.equal(pollOnce(options, { fetchRemoteState: () => item.raw }).action,
-        'app_wake_queued');
+    assert.equal(pollOnce(options, { fetchRemoteState: () => item.raw }).action, 'observed');
     assert.equal(pollOnce(options, { fetchRemoteState: () => item.raw }).action, 'unchanged');
-    const request = JSON.parse(fs.readFileSync(queue, 'utf8'));
-    assert.deepEqual(Object.keys(request), [
-        'schema', 'observed_hash', 'task_id', 'state_path', 'mode', 'branch', 'repo_path',
-        'created_at'
-    ]);
-    assert.equal(request.schema, 'financasbot-codex-app-wake-request-v3');
-    assert.equal(request.observed_hash, stateHash(item.raw));
-    assert.equal(request.task_id, 'ORCH-01');
-    assert.equal(request.state_path,
-        'docs/agent-memory/workstreams/chat-codex-channel.state.json');
-    assert.equal(request.mode, 'return');
-    assert.equal(request.branch, 'chat/chat-codex-orchestration-20260824');
-    assert.equal(request.repo_path, item.repo);
-    assert.equal(readCache(path.join(item.runtime, 'watcher-state.json')).app_wake_status, 'queued');
+    assert.equal(fs.existsSync(queue), false);
 });
 
 test('fila da ponte exige caminho absoluto e recusa symlink', t => {
@@ -174,22 +160,25 @@ test('launcher recusa aceite IPC sem cliente do Codex App confirmado', () => {
 });
 
 test('wake falho fica terminal para o mesmo hash', () => {
-    const item = fixture('CHAT_READY');
+    const item = fixture('CODEX_READY');
+    const cachePath = path.join(item.runtime, 'watcher-state.json');
     let calls = 0;
     const options = watcherOptions(item, {
         'app-thread-id': '11111111-2222-4333-8444-555555555555',
         'chat-url': 'https://chatgpt.com/c/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
     });
-    assert.throws(() => pollOnce(options, {
-        fetchRemoteState: () => item.raw,
+    const context = {
+        cache: readCache(cachePath), cachePath, options,
+        observedHash: stateHash(item.raw), state: JSON.parse(item.raw)
+    };
+    assert.throws(() => maybeWakeCodexApp(context, {
         wakeCodexApp() { calls += 1; throw new Error('IPC indisponível'); }
     }), /IPC indisponível/);
-    assert.equal(pollOnce(options, {
-        fetchRemoteState: () => item.raw,
+    assert.equal(maybeWakeCodexApp({ ...context, cache: readCache(cachePath) }, {
         wakeCodexApp() { calls += 1; }
-    }).action, 'unchanged');
+    }).action, 'already_dispatched');
     assert.equal(calls, 1);
-    assert.equal(readCache(path.join(item.runtime, 'watcher-state.json')).app_wake_status, 'failed');
+    assert.equal(readCache(cachePath).app_wake_status, 'failed');
 });
 
 test('hash novo de CODEX_READY permite novo disparo', () => {
@@ -223,7 +212,7 @@ test('CODEX_READY validado acorda App e não chama CLI', () => {
     assert.equal(request.repo_path, item.repo);
 });
 
-test('modo App publica CHAT_READY local e só então sinaliza sucesso remoto', () => {
+test('modo App confirma CHAT_READY remoto e só então aciona o bot do Chat', () => {
     const item = fixture('CODEX_READY');
     const queue = path.join(item.runtime, 'bridge', 'request.json');
     const statePath = 'docs/agent-memory/workstreams/chat-codex-channel.state.json';
@@ -232,30 +221,43 @@ test('modo App publica CHAT_READY local e só então sinaliza sucesso remoto', (
     fs.mkdirSync(path.dirname(stateFile), { recursive: true });
     fs.writeFileSync(stateFile, item.raw);
     let remoteRaw = item.raw;
-    let publications = 0;
+    const events = [];
     const deps = executorDeps({
         fetchRemoteState: () => remoteRaw,
         publishLocalResult: () => {
-            publications += 1;
+            events.push('published');
             remoteRaw = fs.readFileSync(stateFile, 'utf8');
+        },
+        resolveFetchedCommitSha: () => 'c'.repeat(40),
+        maybeNotifyChat(context) {
+            assert.equal(JSON.parse(remoteRaw).orchestration_state, 'CHAT_READY');
+            assert.equal(context.remoteCommitSha, 'c'.repeat(40));
+            events.push('notified');
+            return { cache: context.cache, action: 'sent' };
         }
     });
-    const options = watcherOptions(item, { 'app-wake-request': queue });
+    const options = watcherOptions(item, {
+        'app-wake-request': queue,
+        'chat-url': 'https://chatgpt.com/c/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
+        'chat-notifier-script': path.join(item.repo, 'notificar_chatgpt.ps1')
+    });
 
     assert.equal(pollOnce(options, deps).action, 'app_task_queued');
     fs.writeFileSync(stateFile, withState(item.raw, 'CODEX_RUNNING'));
     assert.equal(pollOnce(options, deps).action, 'unchanged');
-    assert.equal(publications, 0);
+    assert.deepEqual(events, []);
 
     fs.writeFileSync(stateFile, withState(item.raw, 'CHAT_READY'));
     fs.writeFileSync(path.join(item.repo, 'docs', 'result.md'), 'ok\n');
     const completed = pollOnce(options, deps);
     assert.equal(completed.action, 'app_result_published');
     assert.equal(completed.state, 'CHAT_READY');
-    assert.equal(publications, 1);
+    assert.equal(completed.appWake, null);
+    assert.equal(completed.chatNotification, 'sent');
+    assert.deepEqual(events, ['published', 'notified']);
     assert.equal(readCache(path.join(item.runtime, 'watcher-state.json')).launch_status,
         'succeeded');
-    assert.equal(JSON.parse(fs.readFileSync(queue, 'utf8')).mode, 'return');
+    assert.equal(JSON.parse(fs.readFileSync(queue, 'utf8')).mode, 'execute');
 });
 
 test('modo App falha fechado se publicação de CHAT_READY falhar', () => {

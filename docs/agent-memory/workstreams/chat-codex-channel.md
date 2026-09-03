@@ -1,6 +1,6 @@
 # Canal permanente Chat ↔ Codex
 
-Atualizado em: 2026-08-27
+Atualizado em: 2026-09-03
 
 ## Objetivo
 
@@ -11,7 +11,20 @@ Daniel. O fechamento do gate que construiu o canal não encerra o serviço.
 
 ## Estado operacional
 
-`ORCH-02 CANAL BIDIRECIONAL PROVADO; RECOVERY DO WATCHER EM REAUDITORIA`.
+`ORCH-02 RETORNO PELO BOT LOCAL EM CANDIDATO; AUDITORIA PENDENTE`.
+
+### Localização canônica no GitHub
+
+- repositório: `https://github.com/Danieu-san/financas-bot`;
+- branch operacional: `chat/chat-codex-orchestration-20260824`;
+- estado: `docs/agent-memory/workstreams/chat-codex-channel.state.json`;
+- manifesto-slot: `docs/agent-memory/workstreams/tasks/chat-codex-task-slot.json`;
+- resultados: `docs/agent-memory/workstreams/results/<task_id>.md`.
+
+Toda campainha de retorno inclui o SHA Git completo que contém `CHAT_READY`.
+Chat e Codex leem estado e resultado nesse commit imutável; não procuram a
+resposta na `main`, em outra branch, na posição visual da conversa ou em arquivo
+local.
 
 ### Fronteira congelada
 
@@ -78,6 +91,26 @@ e segredos continuam fora do executor automático; necessidade privada deve ser
 registrada no resultado e encaminhada ao Codex App por fluxo separado, sem
 ampliar silenciosamente a tarefa.
 
+## Retorno pelo bot local
+
+Quando o watcher confirma no GitHub um estado remoto `CHAT_READY`, ele deixa de
+usar a campainha direta do Codex App e executa exclusivamente o notificador
+PowerShell local configurado. O notificador recebe a URL exata da conversa e
+uma mensagem curta com `notification_id`, `task_id`, commit imutável, branch,
+state path, result path e URLs GitHub. O Chat consulta a evidência no GitHub e
+devolve seu parecer pelo canal versionado.
+
+O caminho local do notificador e a URL privada da conversa não entram no Git.
+O instalador grava ambos somente nos argumentos da tarefa local e fixa o
+SHA-256 do script; alteração posterior do arquivo falha antes de abrir o
+navegador. O cache não reenvia um hash já confirmado e o aviso carrega
+`notification_id` para deduplicação. Falha ou dispatch interrompido permite
+retry; queda entre envio e persistência pode repetir o aviso sem mudar a
+autoridade Git.
+
+`CODEX_READY` continua podendo usar a ponte local para iniciar o executor. A
+substituição vale somente para o retorno `CHAT_READY -> Chat`.
+
 ## Achado e recovery
 
 O primeiro parecer independente recusou o candidato porque variantes como
@@ -95,41 +128,13 @@ A auditoria desse recovery encontrou que o instalador ainda produzia
 alinhado e um teste cruzado passou a comparar o schema do instalador com a
 constante exportada pelo worker.
 
-## Prova isolada do retorno em 2026-08-25
+## Histórico relevante do retorno
 
-O MCP local expôs uma ação sem argumentos e um widget com mensagem fixa
-`ORCH_PLUGIN_WAKE_POC`. A versão `v7` usou nomes novos de ferramenta e recurso
-para impedir reutilização do snapshot congelado do app anterior.
-
-Evidência causal observada numa única tentativa, sem clique no widget:
-
-- o Chat executou `open_chat_wake_poc_v7` uma vez;
-- o widget aguardou 15 segundos para o turno originador encerrar;
-- o widget exibiu `Wake enviado` com a mensagem fixa;
-- o Chat produziu uma nova resposta contendo `ORCH_PLUGIN_WAKE_POC` e registrou
-  o wake às `12:32:55` no fuso de Brasília;
-- o caminho de ida, watcher, launcher e manifesto não foram alterados.
-
-O endpoint usado nessa prova era temporário. Tailscale HTTPS foi
-habilitado no tailnet, porém o cliente Windows não sincroniza com
-`controlplane.tailscale.com`; por isso nenhum Funnel foi criado. A alternativa
-adotada foi o Secure MCP Tunnel oficial, sem exposição pública do servidor.
-
-## Endpoint definitivo em 2026-08-25
-
-O app `FinancasBot Chat Wake Definitivo` foi criado e conectado ao Secure MCP
-Tunnel oficial. O servidor permanece restrito a `127.0.0.1:3210`, expõe apenas
-`open_financasbot_chat_wake` e entrega o SDK do componente embutido no próprio
-recurso `ui://financasbot/chat-wake-definitive-v1.html`. Não há dependência do
-Cloudflare Quick Tunnel nem carregamento de JavaScript por endereço local no
-iframe do Chat.
-
-O runtime do túnel foi reiniciado e ficou `ready`; o smoke MCP local confirmou
-somente a ferramenta definitiva e o recurso novo. O processo corrente continua
-ativo fora do ciclo do Codex App. A instalação de um watchdog no logon do
-Windows não foi aplicada porque a elevação recusou a persistência sem uma
-autorização específica posterior; isso não invalida a sessão atual, mas impede
-de declarar sobrevivência a reboot.
+Em 2026-08-25, uma prova isolada confirmou que a antiga campainha MCP conseguia
+acordar a conversa sem clique. Ela dependia de endpoint/túnel e não provava
+persistência após reboot. O retorno atual substitui essa rota somente no
+`CHAT_READY`: o bot local abre a conversa já configurada, enquanto GitHub segue
+como fonte única do estado e do resultado.
 
 ## Incidente de sincronização em 2026-08-26
 
@@ -164,23 +169,19 @@ com clones Git temporários, incluindo worktree vinculada, origem divergente,
 revisão atrasada, untracked, ignored, runtime interno/junction, branch
 divergente e watcher ausente.
 
-O segundo candidato, `7b3c4d5af97393089ff652fa4b6604bc74855206`,
-fechou o preflight App, mas recebeu `NO-GO` porque a branch ainda era parâmetro
-do instalador, o runtime era comparado apenas lexicalmente e faltavam negativos
-causais dessas fronteiras. O recovery atual remove o parâmetro de branch,
-canonicaliza o runtime através do filesystem e acrescenta essas provas sem
-alterar o protocolo do canal.
+O recovery final removeu a branch configurável, canonicalizou o runtime pelo
+filesystem e acrescentou negativos causais sem alterar o protocolo do canal.
 
 Os artefatos que causaram o incidente foram preservados fora da worktree em
 `%LOCALAPPDATA%\FinancasBot\orchestration-artifacts\20260827-sync-error`.
 
 ## Próxima ação
 
-Publicar e auditar o recovery, provisionar o clone dedicado, reinstalar o
-watcher e repetir uma única vez a tarefa remota ainda preservada em
-`CODEX_READY`. O smoke deve alcançar `CHAT_READY` e retornar ao Chat sem reenvio
-manual da tarefa.
+Publicar e auditar o candidato do retorno pelo bot. Após GO independente,
+reinstalar o watcher no clone dedicado com o notificador pinado e executar um
+único smoke documental `CHAT_READY -> bot -> Chat`, confirmando que a ponte
+direta não foi chamada.
 
 ## Capacidade
 
-`Codex App -> Sol -> Alto -> instalar e provar o watcher isolado e recuperável.`
+`Codex App -> Sol -> Alto -> auditar e provar o retorno CHAT_READY pelo bot local.`

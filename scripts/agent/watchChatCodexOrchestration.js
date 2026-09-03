@@ -6,11 +6,21 @@ const { spawnSync } = require('node:child_process');
 const { parseState, stateHash, writeAtomically } = require('./manageChatCodexOrchestration');
 const { loadTaskDefinition } = require('./chatCodexTaskContract');
 const { completeChatCodexAppExecution } = require('./completeChatCodexAppExecution');
+const {
+    WAKE_REQUEST_SCHEMA,
+    maybeWakeCodexApp: dispatchCodexAppWake,
+    queueCodexAppWakeRequest,
+    wakeCodexApp
+} = require('./chatCodexAppWake');
+const {
+    buildChatAuditMessage,
+    maybeNotifyChat: notifyChat,
+    resolveFetchedCommitSha: resolveRemoteCommitSha
+} = require('./chatAuditNotifier');
 
 const CACHE_SCHEMA = 'financasbot-chat-codex-watcher-v1';
 const DEFAULT_BRANCH = 'chat/chat-codex-orchestration-20260824';
 const DEFAULT_STATE_PATH = 'docs/agent-memory/workstreams/chat-codex-channel.state.json';
-const WAKE_REQUEST_SCHEMA = 'financasbot-codex-app-wake-request-v3';
 
 function parseArgs(argv) {
     const options = {};
@@ -88,6 +98,8 @@ function defaultCache() {
         launch_status: null,
         app_wake_hash: null,
         app_wake_status: null,
+        chat_notify_hash: null,
+        chat_notify_status: null,
         updated_at: null
     };
 }
@@ -110,6 +122,32 @@ function saveCache(cachePath, cache, now = new Date()) {
     const next = { ...cache, schema: CACHE_SCHEMA, updated_at: now.toISOString() };
     writeAtomically(cachePath, `${JSON.stringify(next, null, 2)}\n`);
     return next;
+}
+
+function maybeNotifyChat(context, deps = {}) {
+    return notifyChat({
+        ...context,
+        options: {
+            branch: DEFAULT_BRANCH,
+            'state-path': DEFAULT_STATE_PATH,
+            ...context.options
+        }
+    }, { ...deps, saveCache: deps.saveCache || saveCache });
+}
+
+function resolveFetchedCommitSha(repoPath, deps = {}) {
+    return resolveRemoteCommitSha(repoPath, { ...deps, runGit: deps.runGit || runGit });
+}
+
+function maybeWakeCodexApp(context, deps = {}) {
+    return dispatchCodexAppWake({
+        ...context,
+        options: {
+            branch: DEFAULT_BRANCH,
+            'state-path': DEFAULT_STATE_PATH,
+            ...context.options
+        }
+    }, { ...deps, saveCache: deps.saveCache || saveCache });
 }
 
 function processIsAlive(pid) {
@@ -159,125 +197,6 @@ function withWatcherLock(cachePath, callback, deps = {}) {
 
 function quotePowerShellLiteral(value) {
     return `'${value.replaceAll("'", "''")}'`;
-}
-
-function wakeCodexApp({ branch, chatUrl, mode, observedHash, repoPath, statePath, taskId, threadId }, deps = {}) {
-    const spawn = deps.spawnSync || spawnSync;
-    const helper = path.join(__dirname, 'wakeCodexAppViaIpc.js');
-    const result = spawn(process.execPath, [
-        helper,
-        '--thread-id', threadId,
-        '--chat-url', chatUrl,
-        '--hash', observedHash,
-        '--task-id', taskId,
-        '--state-path', statePath,
-        '--mode', mode,
-        '--branch', branch,
-        '--repo-path', repoPath
-    ], {
-        encoding: 'utf8',
-        windowsHide: true,
-        timeout: 15_000
-    });
-    if (result.error) throw result.error;
-    if (result.status !== 0) {
-        throw new Error(`Codex App wake falhou: ${(result.stderr || '').trim() || result.status}`);
-    }
-    const response = JSON.parse(result.stdout);
-    if (response.status !== 'accepted') throw new Error('Codex App não aceitou o wake');
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-        .test(response.handledByClientId || '')) {
-        throw new Error('wake IPC não confirmou o cliente do Codex App');
-    }
-    return response;
-}
-
-function queueCodexAppWakeRequest({ branch, mode, observedHash, repoPath, requestPath, statePath, taskId }, deps = {}) {
-    if (!path.isAbsolute(requestPath)) throw new Error('app-wake-request deve ser absoluto');
-    const parent = fs.realpathSync(path.dirname(requestPath));
-    if (!fs.statSync(parent).isDirectory()) {
-        throw new Error('diretório de app-wake-request inválido');
-    }
-    const target = path.join(parent, path.basename(requestPath));
-    if (fs.existsSync(target) && fs.lstatSync(target).isSymbolicLink()) {
-        throw new Error('app-wake-request não pode ser link simbólico');
-    }
-    const now = deps.now?.() || new Date();
-    writeAtomically(target, `${JSON.stringify({
-        schema: WAKE_REQUEST_SCHEMA,
-        observed_hash: observedHash,
-        task_id: taskId,
-        state_path: statePath,
-        mode,
-        branch,
-        repo_path: repoPath,
-        created_at: now.toISOString()
-    }, null, 2)}\n`);
-    return { status: 'queued', requestPath: target };
-}
-
-function maybeWakeCodexApp({ cache, cachePath, options, observedHash, state }, deps = {}) {
-    if (!['CODEX_READY', 'CHAT_READY'].includes(state.orchestration_state)) {
-        return { cache, action: null };
-    }
-    const mode = state.orchestration_state === 'CODEX_READY' ? 'execute' : 'return';
-    const threadId = options['app-thread-id'];
-    const chatUrl = options['chat-url'];
-    const requestPath = options['app-wake-request'];
-    if (requestPath && (threadId || chatUrl)) {
-        throw new Error('app-wake-request é exclusivo de app-thread-id/chat-url');
-    }
-    if (!threadId && !chatUrl && !requestPath) return { cache, action: null };
-    if (!requestPath && (!threadId || !chatUrl)) {
-        throw new Error('app-thread-id e chat-url devem ser informados juntos');
-    }
-    if (cache.app_wake_hash === observedHash) return { cache, action: 'already_dispatched' };
-
-    let nextCache = saveCache(cachePath, {
-        ...cache,
-        observed_hash: observedHash,
-        observed_state: state.orchestration_state,
-        app_wake_hash: observedHash,
-        app_wake_status: 'dispatching'
-    }, deps.now?.() || new Date());
-    let dispatchStatus;
-    try {
-        if (requestPath) {
-            (deps.queueCodexAppWakeRequest || queueCodexAppWakeRequest)({
-                observedHash,
-                branch: options.branch || DEFAULT_BRANCH,
-                mode,
-                repoPath: options.repo,
-                requestPath,
-                statePath: options['state-path'] || DEFAULT_STATE_PATH,
-                taskId: state.task_id
-            }, deps);
-            dispatchStatus = 'queued';
-        } else {
-            (deps.wakeCodexApp || wakeCodexApp)({
-                chatUrl,
-                branch: options.branch || DEFAULT_BRANCH,
-                mode,
-                observedHash,
-                repoPath: options.repo,
-                statePath: options['state-path'] || DEFAULT_STATE_PATH,
-                taskId: state.task_id,
-                threadId
-            }, deps);
-            dispatchStatus = 'accepted';
-        }
-    } catch (error) {
-        nextCache = saveCache(cachePath, {
-            ...nextCache,
-            app_wake_status: 'failed'
-        }, deps.now?.() || new Date());
-        throw error;
-    }
-    nextCache = saveCache(cachePath, {
-        ...nextCache,
-        app_wake_status: dispatchStatus
-    }, deps.now?.() || new Date());
-    return { cache: nextCache, action: dispatchStatus };
 }
 
 function buildExecutorPrompt({ branch, gitPath, observedHash, repoPath, statePath, task, taskFile }) {
@@ -454,6 +373,7 @@ function pollOnce(options, deps = {}) {
     const gitPath = assertAbsoluteExistingFile(options.git, 'git');
     const gitDeps = { ...deps, gitCommand: gitPath };
     const powershellPath = path.extname(codexPath).toLowerCase() === '.ps1'
+        || Boolean(options['chat-notifier-script'])
         ? assertAbsoluteExistingFile(options.powershell, 'powershell')
         : null;
     const branch = options.branch || DEFAULT_BRANCH;
@@ -479,15 +399,26 @@ function pollOnce(options, deps = {}) {
             && cache.launch_status === 'running'
             ? completeChatCodexAppExecution(
                 { repoPath, branch, statePath, observedHash, initialState: state,
-                    gitDeps, cache, cachePath, options },
+                    gitDeps, cache, cachePath, options, powershellPath },
                 { loadTaskDefinition, publishLocalResult, fetchRemoteState,
-                    saveCache, maybeWakeCodexApp, ...deps })
+                    saveCache, maybeWakeCodexApp, maybeNotifyChat,
+                    resolveFetchedCommitSha, ...deps })
             : null;
         if (completion) return completion;
         const appWake = state.orchestration_state === 'CHAT_READY'
             ? maybeWakeCodexApp({ cache, cachePath, options, observedHash, state }, deps)
             : { cache, action: null };
         cache = appWake.cache;
+        const chatNotification = state.orchestration_state === 'CHAT_READY'
+            && options['chat-notifier-script']
+            ? maybeNotifyChat({
+                cache, cachePath, options, observedHash, state, powershellPath,
+                remoteCommitSha: (deps.resolveFetchedCommitSha || resolveFetchedCommitSha)(
+                    repoPath, gitDeps
+                )
+            }, deps)
+            : { cache, action: null };
+        cache = chatNotification.cache;
 
         const observationUnchanged = cache.observed_hash === observedHash
             && cache.observed_state === state.orchestration_state;
@@ -498,7 +429,9 @@ function pollOnce(options, deps = {}) {
             return {
                 action: appWake.action === 'accepted'
                     ? 'app_wake_accepted'
-                    : appWake.action === 'queued' ? 'app_wake_queued' : 'unchanged',
+                    : appWake.action === 'queued' ? 'app_wake_queued'
+                        : chatNotification.action === 'sent' ? 'chat_notified'
+                            : 'unchanged',
                 hash: observedHash,
                 state: state.orchestration_state
             };
@@ -649,13 +582,28 @@ function pollOnce(options, deps = {}) {
             observedHash: finalHash,
             state: finalState
         }, deps);
+        const finalNotification = finalState.orchestration_state === 'CHAT_READY'
+            && options['chat-notifier-script']
+            ? maybeNotifyChat({
+                cache: finalWake.cache,
+                cachePath,
+                options,
+                observedHash: finalHash,
+                remoteCommitSha: (deps.resolveFetchedCommitSha || resolveFetchedCommitSha)(
+                    repoPath, gitDeps
+                ),
+                state: finalState,
+                powershellPath
+            }, deps)
+            : { cache: finalWake.cache, action: null };
         return {
             action: 'launched',
             exitCode,
             hash: observedHash,
             state: state.orchestration_state,
             finalState: finalState.orchestration_state,
-            appWake: finalWake.action
+            appWake: finalWake.action,
+            chatNotification: finalNotification.action
         };
     }, deps);
 }
@@ -688,8 +636,10 @@ module.exports = {
     DEFAULT_STATE_PATH,
     WAKE_REQUEST_SCHEMA,
     buildExecutorPrompt,
+    buildChatAuditMessage,
     loadTaskDefinition,
     maybeWakeCodexApp,
+    maybeNotifyChat,
     assertNoIgnoredPaths,
     assertWatcherWorktreeClean,
     listIgnoredPaths,
@@ -700,6 +650,7 @@ module.exports = {
     publishLocalResult,
     queueCodexAppWakeRequest,
     readCache,
+    resolveFetchedCommitSha,
     runCodex,
     runGit,
     saveCache,

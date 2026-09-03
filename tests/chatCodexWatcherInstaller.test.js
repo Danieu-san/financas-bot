@@ -20,11 +20,17 @@ test('instalador recusa apagar lock sem provar PID morto', () => {
     assert.equal((installer.match(/Remove-Item -LiteralPath \$lockPath -Force/g) || []).length, 1);
     assert.match(installer, /Assert-WatcherLifecycleSafe[\s\S]*?'Install' \{\s*Assert-WatcherLifecycleSafe/);
     assert.match(installer, /'Remove' \{\s*Assert-WatcherLifecycleSafe/);
-    assert.match(installer, /AppThreadId e ChatUrl devem ser informados juntos/);
+    assert.match(installer, /AppThreadId exige ChatUrl/);
+    assert.match(installer, /ChatNotifierScript exige ChatUrl/);
+    assert.match(installer, /Install exige ChatNotifierScript e ChatUrl/);
     assert.match(installer, /AppThreadId invalido/);
     assert.match(installer, /ChatUrl deve apontar para uma conversa HTTPS do chatgpt\.com/);
     assert.match(installer, /'--app-thread-id'/);
     assert.match(installer, /'--chat-url'/);
+    assert.match(installer, /'--chat-notifier-script'/);
+    assert.match(installer, /'--chat-notifier-sha256'/);
+    assert.match(installer, /Get-FileHash -LiteralPath \$notifierPath -Algorithm SHA256/);
+    assert.match(installer, /ChatNotifierScript nao pode ser link ou reparse point/);
     assert.match(installer, /AppWakeRequestPath e exclusivo/);
     assert.match(installer, /'--app-wake-request'/);
     assert.match(installer, /'--state-path', \(Quote-Argument \$StatePath\)/);

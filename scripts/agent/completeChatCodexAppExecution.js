@@ -58,11 +58,23 @@ function completeChatCodexAppExecution(context, deps) {
         observedHash: finalHash,
         state: finalState
     }, deps);
+    const finalNotification = context.options['chat-notifier-script']
+        ? deps.maybeNotifyChat({
+            cache: finalWake.cache,
+            cachePath: context.cachePath,
+            options: context.options,
+            observedHash: finalHash,
+            remoteCommitSha: deps.resolveFetchedCommitSha(context.repoPath, context.gitDeps),
+            state: finalState,
+            powershellPath: context.powershellPath
+        }, deps)
+        : { cache: finalWake.cache, action: null };
     return {
         action: 'app_result_published',
         hash: finalHash,
         state: 'CHAT_READY',
-        appWake: finalWake.action
+        appWake: finalWake.action,
+        chatNotification: finalNotification.action
     };
 }
 
