@@ -61,6 +61,15 @@ Evidência após a correção: gate 20/20; bateria afetada 86/86; suíte ampla �
 1.949 testes, 1.939 PASS, 0 FAIL, 10 SKIP previstos, runner valid=true. Novo
 hash ainda precisa ser publicado e reauditado; esses verdes não são GO.
 
+Candidato corretivo imutável publicado em
+`4a6396000d15d98969b8291d6c162e5aafcd04b9`, parent direto
+`5d4339f46a9ec412d6c86894853435c7238dbcf1`, branch
+`codex/financasbot-next-02-n02a-v2`. Gate final vinculado aos dois hashes:
+PASS; SHA remoto confirmado. A única tentativa automática de reauditoria foi
+enviada e confirmada pelo bot em 2026-09-05. Aguardar o retorno auditável sem
+reenviar o mesmo hash; o acompanhamento automático já aponta para esse
+candidato.
+
 Em 2026-09-05, Daniel autorizou a continuidade autônoma em esforço Alto após o
 retorno da auditoria, inclusive correções, validações proporcionais, commits e
 pushes necessários dentro do NEXT-02, sem novas pausas para troca de capacidade.
