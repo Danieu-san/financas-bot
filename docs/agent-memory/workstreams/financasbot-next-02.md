@@ -1,7 +1,7 @@
 # Workstream — FinançasBot Next / NEXT-02
 
-Atualizado em: 2026-09-03
-Status: `OPEN — N02-A CANDIDATO; LOCAL VERDE; AUDITORIA PENDENTE`
+Atualizado em: 2026-09-05
+Status: `OPEN — N02-A CORRIGIDO; LOCAL VERDE; REAUDITORIA PENDENTE`
 
 ## Git e isolamento
 
@@ -27,8 +27,8 @@ N02-A: observações/versionamento e consumo transaction_date com gateway
 read-only; 20/20 propriedades focais, 86/86 na bateria afetada.
 Suíte ampla única: 1.949 testes, 1.939 PASS, 0 FAIL, 10 SKIP previstos,
 0 TODO, runner valid=true. Workflow OK.
-Próxima ação: obter o parecer N02-A pelo bot/canal de retorno existente,
-confrontá-lo com o código e continuar a próxima fatia. Não declarar
+Próxima ação: publicar o novo candidato corretivo e obter reauditoria pelo
+bot/canal de retorno existente. Não declarar
 fechamento do NEXT-02 nem repetir auditoria automática do mesmo hash.
 Parcelas, outras bases temporais, Golden Set completo e motor de provenance
 continuam pendentes. O ledger do v1 não foi importado nem alterado.
@@ -48,6 +48,18 @@ conversa configurada. Auditoria em andamento; nenhum parecer recebido ainda.
 Não repetir automaticamente, não usar envio direto pelo navegador e não refazer
 implementação ou suíte enquanto o retorno estiver pendente. Este registro
 posterior não altera o commit objeto da auditoria.
+
+O retorno auditável chegou em 2026-09-05 com NO-GO focal: a boundary pública
+expunha/aceitava IDs internos, coverage completa podia terminar depois de
+`as_of`, e pagamento de fatura perdia `settles_card_id`. O delta corretivo
+traduz labels públicas somente no adapter, usa handles de evidência locais à
+resposta, exige fim integral do intervalo para coverage completa e preserva o
+cartão liquidado com proveniência de campo. Gateway NEXT-01, runtime v1,
+adapters reais, writers e produção não foram alterados.
+
+Evidência após a correção: gate 20/20; bateria afetada 86/86; suíte ampla única
+1.949 testes, 1.939 PASS, 0 FAIL, 10 SKIP previstos, runner valid=true. Novo
+hash ainda precisa ser publicado e reauditado; esses verdes não são GO.
 
 Em 2026-09-05, Daniel autorizou a continuidade autônoma em esforço Alto após o
 retorno da auditoria, inclusive correções, validações proporcionais, commits e

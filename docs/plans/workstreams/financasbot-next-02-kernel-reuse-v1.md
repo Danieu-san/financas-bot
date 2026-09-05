@@ -48,7 +48,14 @@ contas têm titular único nesta policy inicial. Refund aponta para compra exata
 pessoa/instrumento/moeda/categoria e não ultrapassa cumulativamente a compra.
 Transferências requerem duas pontas distintas, mesma família/data/moeda e soma
 zero. Pagamento aponta para cartão da família; é neutro para consumo, sem
-alegar que quitou uma fatura específica.
+alegar que quitou uma fatura específica. O `settles_card_id` observado é
+preservado como `card_id` canônico do pagamento e mantém proveniência explícita;
+não vira link evento→evento enquanto N02-A não possui evento de fatura.
+
+A porta pública `expenses.sum` nunca expõe os IDs internos usados pelo kernel.
+Labels server-side completas traduzem filtros públicos na entrada e voltam no
+claim; entidade usa label pública e evidências usam handles locais à resposta.
+Essa tradução é boundary do adapter, não nova autoridade financeira.
 
 ## Critérios da fatia
 

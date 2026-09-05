@@ -7,7 +7,7 @@ const {
 } = require('../src/next/kernel/observationKernel');
 const { createExpenseReadModel, createExpenseToolGateway } = require('../src/next/kernel/expenseReadModel');
 
-const clock = '2042-06-15T12:00:00.000Z';
+const clock = '2042-06-30T23:59:59.999Z';
 function catalog() {
     return {
         family_id: 'family-example',
@@ -142,7 +142,13 @@ test('NEXT02:DA-04 purchase and invoice payment have separate economic types', (
         observation('payment', { record_type: 'invoice_payment', category_id: null, settles_card_id: 'card-a' })
     ]);
     assert.deepEqual(r.events.map(e => e.event_kind).sort(), ['invoice_payment', 'purchase']);
-    assert.equal(r.events.find(e => e.event_kind === 'invoice_payment').amount_minor, 1200);
+    const payment = r.events.find(e => e.event_kind === 'invoice_payment');
+    assert.equal(payment.amount_minor, 1200);
+    assert.equal(payment.account_id, 'account-a');
+    assert.equal(payment.card_id, 'card-a');
+    assert.deepEqual(payment.field_provenance.card_id, {
+        observation_id: 'obs-payment', field: 'settles_card_id'
+    });
 });
 
 test('NEXT02:DA-05 transfer pairs require opposite directions and same economic dimensions', () => {
@@ -213,6 +219,18 @@ test('NEXT02:DA-03 partial coverage never produces numeric zero or empty', () =>
         start: '2042-06-01', end: '2042-06-30', as_of: clock, completeness: 'partial'
     } });
     assert.equal(model([partial]).readConsumption(query, context).coverage, 'incomplete');
+    assert.throws(() => model([], { coverage: {
+        start: '2042-06-01', end: '2042-06-30',
+        as_of: '2042-06-15T12:00:00.000Z', completeness: 'complete'
+    } }), /read_coverage_as_of_invalid/);
+    assert.throws(() => model([], { coverage: {
+        start: '2042-06-01', end: '2042-06-30',
+        as_of: '2042-06-30T00:00:00.000Z', completeness: 'complete'
+    } }), /read_coverage_as_of_invalid/);
+    assert.throws(() => project([observation('future-complete', {}, { coverage: {
+        start: '2042-06-01', end: '2042-06-30',
+        as_of: '2042-06-15T12:00:00.000Z', completeness: 'complete'
+    } })]), /coverage_as_of_invalid/);
 });
 
 test('NEXT02:VALUE-ZERO-EMPTY neutral movements do not count consumption', () => {
@@ -260,9 +278,17 @@ test('NEXT02:OVERFLOW sum of individually safe amounts fails without rounding', 
 });
 
 test('NEXT02:TOOL uses the existing boundary and only public claim/evidence fields', async () => {
+    const publicLabels = {
+        family: 'Família de teste',
+        people: { 'person-a': 'Pessoa A', 'person-b': 'Pessoa B' },
+        accounts: { 'account-a': 'Conta A', 'account-b': 'Conta B' },
+        cards: { 'card-a': 'Cartão A' },
+        categories: { food: 'Alimentação', salary: 'Salário' }
+    };
     const gateway = createExpenseToolGateway({
         observations: [observation('a')], catalog: catalog(), sourceInstanceRef: 'synthetic-import',
-        coverage: { start: '2042-06-01', end: '2042-06-30', as_of: clock, completeness: 'complete' }
+        coverage: { start: '2042-06-01', end: '2042-06-30', as_of: clock, completeness: 'complete' },
+        publicLabels
     });
     let reserved = 0;
     const budget = { reserve() { reserved++; return { ok: true }; } };
@@ -271,20 +297,48 @@ test('NEXT02:TOOL uses the existing boundary and only public claim/evidence fiel
     });
     assert.equal(result.ok, true);
     assert.equal(result.claim.value, 1200);
+    assert.deepEqual(result.claim.entity, { kind: 'family', label: 'Família de teste' });
+    assert.ok(result.evidence.refs.every(ref => /^eph_1_[1-9]\d*$/.test(ref)));
     assert.equal(reserved, 1);
-    assert.doesNotMatch(JSON.stringify(result), /source_record_ref|observation_id|normalized_payload/);
+    assert.doesNotMatch(JSON.stringify(result),
+        /source_record_ref|observation_id|normalized_payload|family-example|person-a|account-a|card-a/);
+    const filtered = await gateway.execute({ request: { tool: 'expenses.sum', args: {
+        period: query.period, scope: query.scope, timeBasis: query.timeBasis,
+        account: 'Conta A', category: 'Alimentação'
+    } }, trustedContext: context, budget });
+    assert.equal(filtered.ok, true);
+    assert.deepEqual(filtered.claim.filters, { category: 'Alimentação', account: 'Conta A' });
+    assert.doesNotMatch(JSON.stringify(filtered), /account-a|food|family-example|person-a/);
+    assert.notDeepEqual(filtered.evidence.refs, result.evidence.refs);
+    const personal = await gateway.execute({ request: { tool: 'expenses.sum', args: {
+        ...query, scope: 'personal'
+    } }, trustedContext: context, budget });
+    assert.equal(personal.ok, true);
+    assert.deepEqual(personal.claim.entity, { kind: 'person', label: 'Pessoa A' });
+    const rejectedInternal = await gateway.execute({ request: { tool: 'expenses.sum', args: {
+        period: query.period, scope: query.scope, timeBasis: query.timeBasis, account: 'account-a'
+    } }, trustedContext: context, budget });
+    assert.equal(rejectedInternal.ok, false);
     await gateway.execute({ request: { tool: 'expenses.sum', args: { ...query, familyId: 'other' } },
         trustedContext: context, budget });
-    assert.equal(reserved, 1);
+    assert.equal(reserved, 4);
+    const unsafeLabels = structuredClone(publicLabels);
+    unsafeLabels.accounts['account-a'] = 'ACCOUNT-A';
+    assert.throws(() => createExpenseToolGateway({
+        observations: [observation('a')], catalog: catalog(), sourceInstanceRef: 'synthetic-import',
+        coverage: { start: '2042-06-01', end: '2042-06-30', as_of: clock, completeness: 'complete' },
+        publicLabels: unsafeLabels
+    }), /public_labels_invalid/);
 });
 
 test('NEXT02:ADVERSARIAL resealed semantic drift and getters cannot produce a green snapshot', () => {
     assert.throws(() => model([observation('a')], { coverage: {
-        start: '2042-06-01', end: '2042-06-30', as_of: '2042-06-14T12:00:00.000Z', completeness: 'complete'
+        start: '2042-06-01', end: '2042-06-14', as_of: '2042-06-14T23:59:59.999Z', completeness: 'complete'
     } }), /snapshot_as_of_mismatch/);
     const dateDrift = observation('a');
     dateDrift.coverage.start = '2042-07-01';
     dateDrift.coverage.end = '2042-07-31';
+    dateDrift.coverage.as_of = '2042-07-31T23:59:59.999Z';
     assert.throws(() => project([resign(dateDrift)]), /observation_coverage_mismatch/);
     const wrongProvenance = observation('a');
     wrongProvenance.field_provenance.amount_minor = 'obs-other';

@@ -1,7 +1,7 @@
 # NEXT-02 — Vertical de gastos por categoria
 
-Atualizado em: 2026-09-03
-Estado: `OPEN — N02-A CANDIDATO; LOCAL VERDE; AUDITORIA PENDENTE`
+Atualizado em: 2026-09-05
+Estado: `OPEN — N02-A CORRIGIDO; LOCAL VERDE; REAUDITORIA PENDENTE`
 Base: `29791be6ba3f80fc8033bd6cb715484e7275a3c5`
 Branch: `codex/financasbot-next-02`
 Predecessor: NEXT-01 aprovado e ratificado por Daniel em 2026-09-03.
@@ -64,7 +64,7 @@ expansão além do gate; falha de teste não autoriza relaxar contrato.
 
 ## Próxima ação exata
 
-Obter e confrontar auditoria independente da fatia N02-A descrita em
+Publicar e reauditar o delta corretivo da fatia N02-A descrita em
 `financasbot-next-02-kernel-reuse-v1.md`. O primeiro núcleo implementa
 observações/versionamento, compras/receitas/transferências/pagamentos/estornos,
 consumo transaction_date, coverage e expenses.sum pelo gateway existente.
@@ -72,6 +72,12 @@ Reaproveitamento AST-04 é por comportamento e serialização adaptada, não imp
 do módulo legado. O NEXT-01 permanece congelado em seu hash aprovado; a
 análise compartilhada agora aceita contratos explícitos por gate, mantendo
 os defaults NEXT-01. O gate N02-A declara seu inventário de 14 fontes.
+
+O parecer de 2026-09-05 sobre o primeiro candidato bloqueou IDs internos na
+boundary pública, coverage completa antes do fim do intervalo e perda de
+`settles_card_id`. As três classes foram corrigidas localmente sem alterar o
+gateway compartilhado, importar runtime v1 ou ampliar a fatia. O novo hash
+continua dependendo de auditoria independente antes de qualquer ratificação.
 
 Ainda não concluídos: parcelas, demais lentes temporais, Golden Set completo
 e o motor de provenance. A conclusão de N02-A não fecha NEXT-02.

@@ -117,6 +117,9 @@ function validateObservation(o, sourceInstanceRef, indices) {
     const bounded = date(o.coverage.start) && date(o.coverage.end) && o.coverage.start <= o.coverage.end;
     requireThat(bounded || (o.coverage.start === null && o.coverage.end === null &&
         o.coverage.completeness !== 'complete'), 'coverage_range_invalid');
+    requireThat(o.coverage.completeness !== 'complete' ||
+        o.coverage.as_of >= o.coverage.end + 'T23:59:59.999Z',
+        'coverage_as_of_invalid');
 
     const p = o.normalized_payload;
     exactKeys(p, PAYLOAD_FIELDS, 'payload_schema_invalid');
@@ -157,9 +160,11 @@ function validateObservation(o, sourceInstanceRef, indices) {
 function eventFromObservation(o, familyId, catalogRef, transferTargets) {
     const p = o.normalized_payload;
     const identity = digest([familyId, ...recordIdentity(o)]);
+    const canonicalCardId = p.record_type === 'invoice_payment' ? p.settles_card_id : p.card_id;
     const fieldSources = {
         event_kind: 'record_type', person_id: 'person_id', account_id: 'account_id',
-        card_id: 'card_id', category_id: 'category_id', amount_minor: 'amount_minor',
+        card_id: p.record_type === 'invoice_payment' ? 'settles_card_id' : 'card_id',
+        category_id: 'category_id', amount_minor: 'amount_minor',
         currency: 'currency', transaction_date: 'transaction_date', status: 'status'
     };
     const event = {
@@ -167,7 +172,7 @@ function eventFromObservation(o, familyId, catalogRef, transferTargets) {
         event_version: o.observation_version,
         previous_event_version: o.observation_version === 1 ? null : o.observation_version - 1,
         event_kind: p.record_type, family_id: familyId, person_id: p.person_id,
-        account_id: p.account_id, card_id: p.card_id, category_id: p.category_id,
+        account_id: p.account_id, card_id: canonicalCardId, category_id: p.category_id,
         amount_minor: p.amount_minor, currency: p.currency,
         transaction_date: p.transaction_date, billing_period: null, due_date: null,
         settlement_date: null, as_of: o.coverage.as_of, status: p.status,

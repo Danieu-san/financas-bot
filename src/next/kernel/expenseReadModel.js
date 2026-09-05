@@ -22,6 +22,43 @@ function validDate(value) {
     return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
 
+function completeCoverageEndsByAsOf(coverage) {
+    return coverage.completeness !== 'complete' ||
+        coverage.as_of >= coverage.end + 'T23:59:59.999Z';
+}
+
+function publicSelectorMaps(publicLabels, catalog) {
+    if (!publicLabels || Array.isArray(publicLabels) || typeof publicLabels !== 'object' ||
+        Object.keys(publicLabels).sort().join(',') !== 'accounts,cards,categories,family,people') {
+        throw new Error('public_labels_invalid');
+    }
+    const allInternalIds = [catalog.family_id, ...catalog.people.map(v => v.id),
+        ...catalog.accounts.map(v => v.id), ...catalog.cards.map(v => v.id),
+        ...catalog.categories.map(v => v.id)];
+    const validLabel = value => typeof value === 'string' && value === value.trim() &&
+        value.length >= 1 && value.length <= 80 && !/[\u0000-\u001f\u007f]/.test(value) &&
+        !allInternalIds.some(id => value.toLowerCase().includes(id.toLowerCase()));
+    if (!validLabel(publicLabels.family)) throw new Error('public_labels_invalid');
+    const result = { family: publicLabels.family };
+    for (const [name, entries] of [['people', catalog.people], ['accounts', catalog.accounts],
+        ['cards', catalog.cards], ['categories', catalog.categories]]) {
+        const labels = publicLabels[name];
+        if (!labels || Array.isArray(labels) || typeof labels !== 'object' ||
+            Object.keys(labels).sort().join(',') !== entries.map(entry => entry.id).sort().join(',')) {
+            throw new Error('public_labels_invalid');
+        }
+        const byLabel = new Map(), byId = new Map();
+        for (const entry of entries) {
+            const label = labels[entry.id];
+            if (!validLabel(label) || byLabel.has(label)) throw new Error('public_labels_invalid');
+            byLabel.set(label, entry.id);
+            byId.set(entry.id, label);
+        }
+        result[name] = { byLabel, byId };
+    }
+    return result;
+}
+
 function createExpenseReadModel(input) {
     const { observations, catalog, sourceInstanceRef, coverage } = JSON.parse(canonicalValue(input));
     if (Object.keys(input).sort().join(',') !== 'catalog,coverage,observations,sourceInstanceRef') {
@@ -34,6 +71,7 @@ function createExpenseReadModel(input) {
         !(validDate(coverage.start) && validDate(coverage.end) && coverage.start <= coverage.end)) {
         throw new Error('read_coverage_invalid');
     }
+    if (!completeCoverageEndsByAsOf(coverage)) throw new Error('read_coverage_as_of_invalid');
     const snapshot = projectObservations({ observations, catalog, sourceInstanceRef });
     if (snapshot.observations.some(o => o.observed_at > coverage.as_of ||
         o.coverage.as_of > coverage.as_of)) throw new Error('snapshot_as_of_mismatch');
@@ -108,7 +146,19 @@ function createExpenseReadModel(input) {
 }
 
 function createExpenseToolGateway(input) {
-    const model = createExpenseReadModel(input);
+    const safe = JSON.parse(canonicalValue(input));
+    if (!safe || Object.keys(safe).sort().join(',') !==
+        'catalog,coverage,observations,publicLabels,sourceInstanceRef') {
+        throw new Error('tool_model_input_invalid');
+    }
+    const { publicLabels, ...modelInput } = safe;
+    const model = createExpenseReadModel(modelInput);
+    const selectors = publicSelectorMaps(publicLabels, modelInput.catalog);
+    let responseSequence = 0;
+    const requestLocalEvidenceRefs = refs => {
+        responseSequence += 1;
+        return refs.map((_, index) => `eph_${responseSequence}_${index + 1}`);
+    };
     return createReadOnlyToolGateway({
         catalog: [{
             name: 'expenses.sum', mode: 'read_only',
@@ -116,8 +166,33 @@ function createExpenseToolGateway(input) {
                 category: 'string', account: 'string', card: 'string' },
             allowedResultFields: ['ok', 'coverage', 'reason', 'resultKind', 'claim', 'evidence']
         }],
-        adapters: { 'expenses.sum': ({ args, authorizedContext }) =>
-            model.readConsumption(args, authorizedContext) }
+        adapters: { 'expenses.sum': ({ args, authorizedContext }) => {
+            const internal = { ...args };
+            for (const [field, selector] of [['category', selectors.categories],
+                ['account', selectors.accounts], ['card', selectors.cards]]) {
+                if (!Object.hasOwn(args, field)) continue;
+                const internalId = selector.byLabel.get(args[field]);
+                if (!internalId) return reject('query_filter_invalid');
+                internal[field] = internalId;
+            }
+            const result = model.readConsumption(internal, authorizedContext);
+            if (!result.ok) return result;
+            return {
+                ...result,
+                claim: {
+                    ...result.claim,
+                    entity: {
+                        kind: result.claim.entity.kind,
+                        label: result.claim.entity.kind === 'family'
+                            ? selectors.family
+                            : selectors.people.byId.get(authorizedContext.actorId)
+                    },
+                    filters: Object.fromEntries(['category', 'account', 'card']
+                        .filter(field => Object.hasOwn(args, field)).map(field => [field, args[field]]))
+                },
+                evidence: { ...result.evidence, refs: requestLocalEvidenceRefs(result.evidence.refs) }
+            };
+        } }
     });
 }
 
