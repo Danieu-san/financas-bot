@@ -1,26 +1,27 @@
 {
   "schema": "financasbot-chat-codex-task-v1",
-  "task_id": "FIN-NEXT02-N02A-REAUDIT-RETURN-20260905",
-  "objective": "Consuma o parecer independente focal de N02-A publicado em docs/agent-memory/workstreams/results/FIN-NEXT02-N02A-REAUDIT-20260905.md. Objeto auditado: af83a4e0cd79de5e582ce2bd030eb0328da32d52; parent único: 5d4339f46a9ec412d6c86894853435c7238dbcf1; veredito: NO-GO. Registre no result_file o recebimento do parecer e os findings HIGH-01 (expenses.sum aceita/egressa IDs internos pela boundary), MEDIUM-01 (coverage complete pode sustentar ausência além do as_of) e MEDIUM-02 (invoice_payment perde o vínculo settles_card_id no evento canônico). Não altere a implementação nesta tarefa de retorno e não solicite auditoria duplicada deste hash.",
+  "task_id": "FIN-NEXT02-N02A-CORRECTED-REAUDIT-RETURN-20260905",
+  "objective": "Consuma o parecer independente focal do N02-A corrigido publicado em docs/agent-memory/workstreams/results/FIN-NEXT02-N02A-CORRECTED-REAUDIT-20260905.md. Objeto auditado: 4a6396000d15d98969b8291d6c162e5aafcd04b9; parent único: 5d4339f46a9ec412d6c86894853435c7238dbcf1; veredito: APROVÁVEL para a fatia N02-A. Registre no result_file o recebimento do parecer e que os três findings do SHA af83a4e0cd79de5e582ce2bd030eb0328da32d52 foram corrigidos causalmente: labels públicas/handles locais na boundary expenses.sum, coverage complete somente após fim integral do intervalo, e settles_card_id preservado como card_id canônico com provenance. Não altere implementação nesta tarefa de retorno e não solicite auditoria duplicada deste novo hash.",
   "required_files": [
-    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02A-REAUDIT-20260905.md"
+    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02A-CORRECTED-REAUDIT-20260905.md"
   ],
   "allowed_paths": [
-    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02A-REAUDIT-RETURN-20260905.md"
+    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02A-CORRECTED-REAUDIT-RETURN-20260905.md"
   ],
-  "result_file": "docs/agent-memory/workstreams/results/FIN-NEXT02-N02A-REAUDIT-RETURN-20260905.md",
+  "result_file": "docs/agent-memory/workstreams/results/FIN-NEXT02-N02A-CORRECTED-REAUDIT-RETURN-20260905.md",
   "validation": [
-    "Registra SHA af83a4e0cd79de5e582ce2bd030eb0328da32d52, parent 5d4339f46a9ec412d6c86894853435c7238dbcf1 e veredito NO-GO.",
-    "Registra HIGH-01 como finding bloqueante de boundary: account/card IDs internos são aceitos e ecoados pela interface expenses.sum.",
-    "Registra MEDIUM-01 e MEDIUM-02 sem ampliar suas cadeias causais além do relatório.",
-    "Não converte os resultados locais relatados em prova independente e não reaudita o mesmo hash.",
+    "Registra SHA 4a6396000d15d98969b8291d6c162e5aafcd04b9, parent 5d4339f46a9ec412d6c86894853435c7238dbcf1 e veredito APROVÁVEL para N02-A.",
+    "Registra que HIGH-01 anterior foi fechado por tradução label pública -> ID apenas dentro do adapter e egress sem IDs internos.",
+    "Registra que MEDIUM-01 anterior foi fechado por exigir as_of após o fim integral de coverage complete.",
+    "Registra que MEDIUM-02 anterior foi fechado preservando settles_card_id em event.card_id com field_provenance.",
+    "Não converte 20/20, 86/86 ou 1939 PASS em testes reexecutados pelo auditor.",
     "Não altera nenhum arquivo além do result_file e do state mecânico produzido pela transição canônica."
   ],
   "constraints": [
     "Não alterar o candidato auditado, testes, policies, gate, documentos NEXT-02 ou runtime nesta tarefa de retorno.",
     "Não encerrar NEXT-02 e não abrir NEXT-03.",
     "Não executar deploy, produção, writers, adapters reais, OCI, WhatsApp, Google, Pluggy, dados reais, segredos, sessões ou .env.",
-    "Não solicitar auditoria duplicada do SHA af83a4e0cd79de5e582ce2bd030eb0328da32d52.",
-    "Não alegar que 20/20, 86/86 ou 1939 PASS foram reexecutados por esta auditoria."
+    "Não solicitar auditoria duplicada do SHA 4a6396000d15d98969b8291d6c162e5aafcd04b9.",
+    "Não interpretar APROVÁVEL de N02-A como GO do NEXT-02 completo."
   ]
 }
