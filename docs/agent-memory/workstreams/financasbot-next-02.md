@@ -48,5 +48,14 @@ conversa configurada. Auditoria em andamento; nenhum parecer recebido ainda.
 Não repetir automaticamente, não usar envio direto pelo navegador e não refazer
 implementação ou suíte enquanto o retorno estiver pendente. Este registro
 posterior não altera o commit objeto da auditoria.
+
+Em 2026-09-05, Daniel autorizou a continuidade autônoma em esforço Alto após o
+retorno da auditoria, inclusive correções, validações proporcionais, commits e
+pushes necessários dentro do NEXT-02, sem novas pausas para troca de capacidade.
+Um acompanhamento silencioso desta conversa deve permanecer inerte enquanto o
+parecer não chegar e retomar o workstream quando houver retorno auditável. Essa
+autorização não inclui NEXT-03, deploy, produção, dados reais, writers ou
+adapters reais e não remove a auditoria independente obrigatória de cada novo
+hash material.
 NEXT-03, adapters reais, writers, deploy e produção continuam fora do escopo.
 Capacidade recomendada para a implementação entre módulos: Codex / Sol / Alto.
