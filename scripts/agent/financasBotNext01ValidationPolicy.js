@@ -197,15 +197,16 @@ function hasExactObjectBinding(pattern, expectedName) {
         pattern.properties[0].value.name === expectedName;
 }
 
-function isAllowedExternalBinding(relative, specifier, call, parent, parentByNode, hermeticLoader) {
+function isAllowedExternalBinding(relative, specifier, call, parent, parentByNode, hermeticLoader, namedBindings) {
     if (parent?.type !== 'VariableDeclarator' || parent.init !== call) return false;
     if (relative === 'replay/hermeticReplayRunner.js' && specifier === 'node:module') {
         return hermeticLoader.allowedRequireCalls.has(call);
     }
-    if (relative === 'policy/toolBudget.js' && specifier === 'node:crypto') {
+    const name = namedBindings.get(relative)?.get(specifier);
+    if (name) {
         return parentByNode.get(parent)?.type === 'VariableDeclaration' &&
             parentByNode.get(parent).kind === 'const' &&
-            hasExactObjectBinding(parent.id, 'createHash');
+            hasExactObjectBinding(parent.id, name);
     }
     return false;
 }
@@ -214,6 +215,8 @@ function analyzeNextSourceFiles({
     nextRoot,
     sourceFiles,
     expectedSourcePaths = EXPECTED_NEXT_SOURCE_PATHS,
+    allowedExternalImports = ALLOWED_EXTERNAL_IMPORTS,
+    namedExternalBindings = new Map([['policy/toolBudget.js', new Map([['node:crypto', 'createHash']])]]),
     realpath = fs.realpathSync.native
 } = {}) {
     const absoluteNextRoot = path.resolve(nextRoot);
@@ -297,7 +300,7 @@ function analyzeNextSourceFiles({
                 }
                 return;
             }
-            const allowed = ALLOWED_EXTERNAL_IMPORTS.get(relative) || new Set();
+            const allowed = allowedExternalImports.get(relative) || new Set();
             if (!allowed.has(specifier)) {
                 forbiddenEffectImports += 1;
                 errors.add(`forbidden_effect_import:${relative}:${specifier}`);
@@ -316,14 +319,14 @@ function analyzeNextSourceFiles({
                     acceptedRequireIdentifiers.add(node.callee);
                     classifySpecifier(specifier);
                     if (!specifier.startsWith('.') &&
-                        (ALLOWED_EXTERNAL_IMPORTS.get(relative) || new Set()).has(specifier) &&
+                        (allowedExternalImports.get(relative) || new Set()).has(specifier) &&
                         !isAllowedExternalBinding(
                             relative,
                             specifier,
                             node,
                             parent,
                             parentByNode,
-                            hermeticLoader
+                            hermeticLoader, namedExternalBindings
                         )) {
                         unclassifiedModuleLoaders += 1;
                         errors.add(`unclassified_module_loader:${relative}`);
