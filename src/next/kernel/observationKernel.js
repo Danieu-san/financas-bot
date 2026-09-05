@@ -1,8 +1,11 @@
 'use strict';
 
 const { canonicalValue, digest, freezeDeep } = require('./canonicalValue');
+const { projectInstallmentSchedule } = require('./installmentSchedule');
 
 const POLICY = 'next02-import-v1';
+const INSTALLMENT_POLICY = 'next02-import-v2';
+const INSTALLMENT_FIELDS = ['installment_total', 'installment_index', 'installment_purchase_ref', 'billing_period'];
 const PAYLOAD_FIELDS = [
     'record_type', 'person_id', 'account_id', 'card_id', 'category_id',
     'amount_minor', 'currency', 'transaction_date', 'status',
@@ -20,7 +23,8 @@ const KIND_RULES = Object.freeze({
     income: { category: 'income', instrument: 'account' },
     transfer: { category: null, instrument: 'account', relation: 'transfer_ref' },
     invoice_payment: { category: null, instrument: 'account', relation: 'settles_card_id' },
-    refund: { category: 'expense', instrument: 'either', relation: 'related_record_ref' }
+    refund: { category: 'expense', instrument: 'either', relation: 'related_record_ref' },
+    installment: { category: 'expense', instrument: 'card' }
 });
 
 function requireThat(condition, code) {
@@ -94,12 +98,12 @@ function validateCatalog(c) {
     return { people, accounts, cards, categories };
 }
 
-function validateObservation(o, sourceInstanceRef, indices) {
+function validateObservation(o, sourceInstanceRef, indices, policy) {
     exactKeys(o, OBSERVATION_FIELDS, 'observation_schema_invalid');
     requireThat(o.integrity_hash === observationDigest(o), 'observation_integrity_invalid');
     requireThat(o.origin_runtime === null && o.origin_operation_id === null, 'observation_origin_forbidden');
     requireThat(o.schema_version === 0 && o.source_type === 'import' &&
-        o.source_instance_ref === sourceInstanceRef && o.ingestion_policy_version === POLICY,
+        o.source_instance_ref === sourceInstanceRef && o.ingestion_policy_version === policy,
     'source_policy_violation');
     for (const key of ['observation_id', 'source_record_ref', 'source_version']) {
         requireThat(ref(o[key]), 'observation_identity_invalid');
@@ -122,10 +126,30 @@ function validateObservation(o, sourceInstanceRef, indices) {
         'coverage_as_of_invalid');
 
     const p = o.normalized_payload;
-    exactKeys(p, PAYLOAD_FIELDS, 'payload_schema_invalid');
-    exactKeys(o.field_provenance, PAYLOAD_FIELDS, 'field_provenance_invalid');
-    requireThat(PAYLOAD_FIELDS.every(field => o.field_provenance[field] === o.observation_id), 'field_provenance_invalid');
-    requireThat(Object.hasOwn(KIND_RULES, p.record_type), 'event_kind_unsupported');
+    const fields = policy === INSTALLMENT_POLICY ? [...PAYLOAD_FIELDS, ...INSTALLMENT_FIELDS] : PAYLOAD_FIELDS;
+    exactKeys(p, fields, 'payload_schema_invalid');
+    exactKeys(o.field_provenance, fields, 'field_provenance_invalid');
+    requireThat(fields.every(field => o.field_provenance[field] === o.observation_id), 'field_provenance_invalid');
+    requireThat(Object.hasOwn(KIND_RULES, p.record_type) &&
+        (p.record_type !== 'installment' || policy === INSTALLMENT_POLICY), 'event_kind_unsupported');
+    if (policy === INSTALLMENT_POLICY) {
+        const scheduled = p.record_type === 'installment' ||
+            (p.record_type === 'purchase' && p.installment_total !== null);
+        if (scheduled) {
+            requireThat(Number.isInteger(p.installment_total) && p.installment_total >= 2 &&
+                p.installment_total <= 999 && p.card_id !== null && p.account_id === null &&
+                p.amount_minor > 0, 'installment_schema');
+        }
+        if (p.record_type === 'installment') {
+            requireThat(Number.isInteger(p.installment_index) && p.installment_index >= 1 &&
+                p.installment_index <= p.installment_total && ref(p.installment_purchase_ref) &&
+                typeof p.billing_period === 'string' && /^[1-9]\d{3}-(0[1-9]|1[0-2])$/.test(p.billing_period) &&
+                ['confirmed', 'projected'].includes(o.evidence_state), 'installment_schema');
+        } else {
+            requireThat(p.installment_index === null && p.installment_purchase_ref === null &&
+                p.billing_period === null && (scheduled || p.installment_total === null), 'installment_schema');
+        }
+    }
     requireThat(date(p.transaction_date), 'payload_date_invalid');
     requireThat(!bounded || (p.transaction_date >= o.coverage.start && p.transaction_date <= o.coverage.end),
         'observation_coverage_mismatch');
@@ -139,6 +163,7 @@ function validateObservation(o, sourceInstanceRef, indices) {
     const card = p.card_id !== null ? indices.cards.get(p.card_id) : null;
     requireThat((Boolean(account) !== Boolean(card)) &&
         (rule.instrument !== 'account' || Boolean(account)) &&
+        (rule.instrument !== 'card' || Boolean(card)) &&
         (p.account_id === null || Boolean(account)) && (p.card_id === null || Boolean(card)), 'instrument_invalid');
     // A family card can be used by another family member (v1 behavior).
     // Accounts remain person-owned in this first normalized import policy.
@@ -182,8 +207,14 @@ function eventFromObservation(o, familyId, catalogRef, transferTargets) {
             [field, { observation_id: o.observation_id, field: source }])),
         links: [], economic_identity_key: identity, idempotency_key: o.deduplication_key,
         origin_operation_id: null, receipt_ref: null,
-        source_policy_version: POLICY, created_at: o.observed_at
+        source_policy_version: o.ingestion_policy_version, created_at: o.observed_at
     };
+    if (o.ingestion_policy_version === INSTALLMENT_POLICY) {
+        for (const field of INSTALLMENT_FIELDS) {
+            event[field] = p[field];
+            event.field_provenance[field] = { observation_id: o.observation_id, field };
+        }
+    }
     event.field_provenance.family_id = { catalog_ref: catalogRef, field: 'family_id' };
     for (const field of ['coverage', 'evidence_state']) {
         event.field_provenance[field] = { observation_id: o.observation_id, field };
@@ -251,13 +282,15 @@ function validateRelations(current, observationById) {
 
 function projectObservations(input) {
     // Defensive copy once, with no getters/non-JSON coercion at the boundary.
-    const { observations, catalog, sourceInstanceRef } = JSON.parse(canonicalValue(input));
-    exactKeys(input, ['observations', 'catalog', 'sourceInstanceRef'], 'kernel_input_invalid');
+    const { observations, catalog, sourceInstanceRef, policyVersion = POLICY } = JSON.parse(canonicalValue(input));
+    exactKeys(input, ['observations', 'catalog', 'sourceInstanceRef',
+        ...(Object.hasOwn(input, 'policyVersion') ? ['policyVersion'] : [])], 'kernel_input_invalid');
+    requireThat([POLICY, INSTALLMENT_POLICY].includes(policyVersion), 'source_policy_violation');
     requireThat(Array.isArray(observations) && ref(sourceInstanceRef), 'kernel_input_invalid');
     const indices = validateCatalog(catalog);
     const byId = new Map(), byDedup = new Map(), chains = new Map();
     for (const o of observations) {
-        validateObservation(o, sourceInstanceRef, indices);
+        validateObservation(o, sourceInstanceRef, indices, policyVersion);
         const prior = byId.get(o.observation_id) || byDedup.get(o.deduplication_key);
         if (prior) {
             requireThat(canonicalValue(prior) === canonicalValue(o), 'observation_identity_conflict');
@@ -293,13 +326,52 @@ function projectObservations(input) {
         events.push(eventFromObservation(chain[chain.length - 1], catalog.family_id, catalogRef, transferTargets));
     }
     validateRelations(events, byId);
+    const schedules = [];
+    if (policyVersion === INSTALLMENT_POLICY) {
+        const active = events.filter(e => e.status === 'active');
+        const byRecord = new Map(active.map(e => [byId.get(e.observation_refs[0]).source_record_ref, e]));
+        for (const part of active.filter(e => e.event_kind === 'installment')) {
+            const target = byRecord.get(part.installment_purchase_ref);
+            requireThat(target && target.event_kind === 'purchase' && target.installment_total !== null &&
+                part.transaction_date === target.transaction_date &&
+                (part.evidence_state !== 'confirmed' || target.evidence_state === 'confirmed'), 'installment_target_invalid');
+            part.links = [link(part, target, 'installment_of', 'installment_purchase_ref')];
+        }
+        const dimensions = ['family_id', 'person_id', 'card_id', 'category_id', 'currency'];
+        for (const purchase of active.filter(e => e.event_kind === 'purchase' && e.installment_total !== null)) {
+            const parts = active.filter(e => e.event_kind === 'installment' &&
+                e.links[0].to_event_id === purchase.event_id);
+            const dims = e => Object.fromEntries(dimensions.map(k => [k, e[k]]));
+            const schedule = projectInstallmentSchedule({
+                purchase: { ...dims(purchase), event_id: purchase.event_id,
+                    amount_minor: purchase.amount_minor, installment_total: purchase.installment_total },
+                installments: parts.map(e => ({ ...dims(e), event_id: e.event_id,
+                    purchase_ref: purchase.event_id, index: e.installment_index, total: e.installment_total,
+                    billing_period: e.billing_period, amount_minor: e.amount_minor, evidence_state: e.evidence_state }))
+            });
+            const sourceFields = { index: 'installment_index', total: 'installment_total', purchase_ref: 'links' };
+            const partById = new Map(parts.map(e => [e.event_id, e]));
+            schedules.push({ ...schedule,
+                purchase_field_provenance: { event_id: purchase.event_id,
+                    event_version: purchase.event_version, field: 'amount_minor' },
+                installments: schedule.installments.map(item => ({ ...item,
+                    field_provenance: Object.fromEntries(Object.keys(item.field_provenance).map(field =>
+                        [field, { event_id: item.event_id, event_version: partById.get(item.event_id).event_version,
+                            field: sourceFields[field] || field,
+                            ...(field === 'purchase_ref' ? { link_type: 'installment_of',
+                                target_event_version: purchase.event_version } : {}) }]))
+                }))
+            });
+        }
+    }
     // Each historical event is a projection of its immutable observation.
     // Current relations are resolved only against the complete current snapshot.
     return freezeDeep({
-        policy_version: POLICY,
+        policy_version: policyVersion,
         family_id: catalog.family_id,
         observations: [...byId.values()].sort((a, b) => a.observation_id < b.observation_id ? -1 : 1),
-        history, events
+        history, events,
+        ...(policyVersion === INSTALLMENT_POLICY ? { installment_schedules: schedules } : {})
     });
 }
 

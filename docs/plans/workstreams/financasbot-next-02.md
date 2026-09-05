@@ -1,7 +1,7 @@
 # NEXT-02 — Vertical de gastos por categoria
 
 Atualizado em: 2026-09-05
-Estado: `OPEN — N02-A CORRIGIDO; LOCAL VERDE; REAUDITORIA PENDENTE`
+Estado: `OPEN — N02-A APROVÁVEL; N02-B EM VALIDAÇÃO LOCAL`
 Base: `29791be6ba3f80fc8033bd6cb715484e7275a3c5`
 Branch: `codex/financasbot-next-02`
 Predecessor: NEXT-01 aprovado e ratificado por Daniel em 2026-09-03.
@@ -63,6 +63,31 @@ Parar por ambiguidade normativa material, necessidade de dados reais ou
 expansão além do gate; falha de teste não autoriza relaxar contrato.
 
 ## Próxima ação exata
+
+Escopo estabilizado de N02-B: agenda interna derivada de observações sintéticas,
+com opt-in next02-import-v2, vínculo installment_of, valores explícitos,
+histórico e provenance de campos/versões. Não inclui consulta pública
+billing_period, coverage dessa lente nem estornos por competência. A agenda
+completa não promove parcelas projetadas a consumo confirmado.
+Gate `--slice N02-B`: 15 fontes, 31 propriedades; parent final esperado
+`4a6396000d15d98969b8291d6c162e5aafcd04b9`. Bateria afetada: 104/104 PASS.
+Suíte ampla única concluída: 1.960 testes, 1.950 PASS, zero falhas,
+10 SKIP previstos e runner válido. Próxima ação: publicar candidato para
+auditoria independente. O restante do NEXT-02 segue pendente.
+
+### Retorno N02-A e planejamento precedente
+
+Retorno recebido em 2026-09-05: N02-A APROVÁVEL no SHA
+`4a6396000d15d98969b8291d6c162e5aafcd04b9`, parent
+`5d4339f46a9ec412d6c86894853435c7238dbcf1`. O parecer e o recebimento
+estão no canal de orquestração; recebimento publicado em
+`be77a942e36970010e2a7548f63dd21cb45e7548`.
+Não reenviar esse objeto para auditoria. A próxima ação é mapear parcelas e
+lentes temporais nos contratos/Golden Set e no v1, delimitar a próxima fatia
+e seus REDs antes de implementar. Motor de provenance e conclusão integral
+do gate continuam pendentes. Nenhuma autorização de NEXT-03 ou operação real.
+
+### Histórico da fatia N02-A antes do retorno
 
 Publicar e reauditar o delta corretivo da fatia N02-A descrita em
 `financasbot-next-02-kernel-reuse-v1.md`. O primeiro núcleo implementa

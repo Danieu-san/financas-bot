@@ -1,4 +1,26 @@
-# NEXT-02 N02-A — Evidência local
+# NEXT-02 — Evidência local por fatia
+
+## N02-B — candidato interno em validação
+
+Parent esperado: `4a6396000d15d98969b8291d6c162e5aafcd04b9`.
+Escopo: agenda derivada de observações v2, não consulta pública por competência.
+Gate precommit `--slice N02-B --worktree`: PASS; 15 fontes, 31/31 IDs por
+eventos estruturados (20 N02-A + 11 N02-B), sem skips/todos.
+Bateria afetada: 104/104 PASS, zero fail/skip/todo. Inclui NEXT-01,
+N02-A, N02-B, canonicalLedgerProjector, canonicalLedgerReceiptProjector e
+canonicalInstallmentSchedule. REDs comportamentais reproduzidos: agenda
+parcial monetariamente inviável e provenance de aliases sem resolução canônica.
+Suíte ampla N02-B executada uma única vez após estabilização:
+178 arquivos descobertos / 160 entrypoints; 1.960 testes, 1.950 PASS,
+0 FAIL, 10 SKIP previstos, 0 TODO, 0 cancelados. Runner valid=true,
+exit_status=0, validation_reasons vazio; duração 686.919 ms.
+Coverage: 91,87% linhas, 75,33% branches, 91,44% funções.
+Os skips são os mesmos cinco testes de instalação e cinco grupos funcionais
+dependentes de integração; nenhum skip focal. A execução real WhatsApp fica
+explicitamente excluída pelo runner, não foi acessada.
+Auditoria independente por novo hash ainda obrigatória; não é GO do NEXT-02.
+
+## Histórico N02-A
 
 Estado: correção pós-auditoria localmente verde; novo candidato N02-A a publicar
 e submeter à reauditoria.

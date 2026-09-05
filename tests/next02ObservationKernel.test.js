@@ -358,7 +358,8 @@ test('NEXT02:GATE exact source tree and structured properties reject false green
     const path = require('node:path');
     const policy = require('../scripts/agent/financasBotNext02ValidationPolicy');
     const prior = require('../scripts/agent/financasBotNext01ValidationPolicy');
-    assert.deepEqual(policy.inspectSources(path.join(__dirname, '../src/next')).errors, []);
+    assert.deepEqual(policy.inspectSources(path.join(__dirname, '../src/next'), 'N02-B').errors, []);
+    assert.equal(policy.EXPECTED_PATHS.length, 14);
     assert.ok(prior.validateSourceInventory({
         expectedPaths: policy.EXPECTED_PATHS,
         discoveredPaths: [...policy.EXPECTED_PATHS, 'escape.node']
