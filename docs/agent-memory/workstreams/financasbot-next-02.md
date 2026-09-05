@@ -42,10 +42,11 @@ Parent: `5d4339f46a9ec412d6c86894853435c7238dbcf1`.
 Gate final vinculado a esses hashes: PASS. Push e hash remoto confirmados.
 
 Em 2026-09-03, uma tentativa pelo bot local terminou com timeout de 90 segundos
-aguardando login/abertura da conversa. Envio não confirmado; nenhum parecer
-recebido. Não repetir automaticamente nem usar envio direto pelo navegador.
-Próxima ação exige restabelecer a sessão do perfil dedicado com Daniel; depois
-retomar o envio autorizado do mesmo candidato, sem refazer implementação ou
-suíte. Este registro posterior não altera o commit objeto da auditoria.
+aguardando login/abertura da conversa. Em 2026-09-05, após Daniel restabelecer
+a sessão e autorizar a retomada, o bot confirmou o envio do prompt completo à
+conversa configurada. Auditoria em andamento; nenhum parecer recebido ainda.
+Não repetir automaticamente, não usar envio direto pelo navegador e não refazer
+implementação ou suíte enquanto o retorno estiver pendente. Este registro
+posterior não altera o commit objeto da auditoria.
 NEXT-03, adapters reais, writers, deploy e produção continuam fora do escopo.
 Capacidade recomendada para a implementação entre módulos: Codex / Sol / Alto.
