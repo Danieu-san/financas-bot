@@ -1,25 +1,26 @@
 {
   "schema": "financasbot-chat-codex-task-v1",
-  "task_id": "ORCH-02-MIN-RECOVERY-AUDIT-RETURN-20260903",
-  "objective": "Consuma o parecer independente da recuperação mínima ORCH-02 publicado em docs/agent-memory/workstreams/results/ORCH-02-MIN-RECOVERY-AUDIT-20260903.md. O commit auditado foi 0c2377c8688e4b665e35cf025c2837b8c281160c, parent 378cc293db0083f5445b822a33a70288c1a6f935. Veredito: APROVÁVEL, com um LOW não bloqueante: o instalador restaurado ainda exige ChatNotifierScript+ChatUrl em Install e por isso não recria diretamente a configuração assimétrica já aplicada à Scheduled Task; o watcher em runtime permanece correto sem chat-notifier-script e preserva app-wake-request. Registre no result_file o recebimento do parecer, o veredito, a restrição de não reinstalar inadvertidamente com notifier e a próxima validação operacional permitida. Não altere a implementação auditada, não reabra NEXT-01 e não abra NEXT-02.",
+  "task_id": "FIN-NEXT02-N02A-REAUDIT-RETURN-20260905",
+  "objective": "Consuma o parecer independente focal de N02-A publicado em docs/agent-memory/workstreams/results/FIN-NEXT02-N02A-REAUDIT-20260905.md. Objeto auditado: af83a4e0cd79de5e582ce2bd030eb0328da32d52; parent único: 5d4339f46a9ec412d6c86894853435c7238dbcf1; veredito: NO-GO. Registre no result_file o recebimento do parecer e os findings HIGH-01 (expenses.sum aceita/egressa IDs internos pela boundary), MEDIUM-01 (coverage complete pode sustentar ausência além do as_of) e MEDIUM-02 (invoice_payment perde o vínculo settles_card_id no evento canônico). Não altere a implementação nesta tarefa de retorno e não solicite auditoria duplicada deste hash.",
   "required_files": [
-    "docs/agent-memory/workstreams/results/ORCH-02-MIN-RECOVERY-AUDIT-20260903.md"
+    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02A-REAUDIT-20260905.md"
   ],
   "allowed_paths": [
-    "docs/agent-memory/workstreams/results/ORCH-02-MIN-RECOVERY-AUDIT-RETURN-20260903.md"
+    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02A-REAUDIT-RETURN-20260905.md"
   ],
-  "result_file": "docs/agent-memory/workstreams/results/ORCH-02-MIN-RECOVERY-AUDIT-RETURN-20260903.md",
+  "result_file": "docs/agent-memory/workstreams/results/FIN-NEXT02-N02A-REAUDIT-RETURN-20260905.md",
   "validation": [
-    "Registra commit 0c2377c8688e4b665e35cf025c2837b8c281160c, parent 378cc293db0083f5445b822a33a70288c1a6f935 e veredito APROVÁVEL.",
-    "Registra o LOW do instalador como restrição não bloqueante de reprodutibilidade, sem afirmar que o notificador foi removido do código.",
-    "Registra que CHAT_READY é silencioso quando chat-notifier-script está ausente e que app-wake-request permanece o caminho de recebimento em CODEX_READY.",
+    "Registra SHA af83a4e0cd79de5e582ce2bd030eb0328da32d52, parent 5d4339f46a9ec412d6c86894853435c7238dbcf1 e veredito NO-GO.",
+    "Registra HIGH-01 como finding bloqueante de boundary: account/card IDs internos são aceitos e ecoados pela interface expenses.sum.",
+    "Registra MEDIUM-01 e MEDIUM-02 sem ampliar suas cadeias causais além do relatório.",
+    "Não converte os resultados locais relatados em prova independente e não reaudita o mesmo hash.",
     "Não altera nenhum arquivo além do result_file e do state mecânico produzido pela transição canônica."
   ],
   "constraints": [
-    "Não alterar a implementação auditada, testes, instalador, watcher, notificador ou documentação nesta tarefa de retorno.",
-    "Não reabrir a auditoria NEXT-01 já aprovada e não abrir NEXT-02.",
-    "Não executar deploy, produção, OCI, WhatsApp, Google, Pluggy, dados reais, segredos, sessões ou .env.",
-    "Não alegar suíte ampla verde; a ampla anterior permanece 1885 PASS, 8 FAIL, 10 SKIP com causa das falhas do canal não demonstrada.",
-    "Não fazer git fetch, add, commit ou push; o watcher publica deterministicamente o result_file autorizado e o estado mecânico."
+    "Não alterar o candidato auditado, testes, policies, gate, documentos NEXT-02 ou runtime nesta tarefa de retorno.",
+    "Não encerrar NEXT-02 e não abrir NEXT-03.",
+    "Não executar deploy, produção, writers, adapters reais, OCI, WhatsApp, Google, Pluggy, dados reais, segredos, sessões ou .env.",
+    "Não solicitar auditoria duplicada do SHA af83a4e0cd79de5e582ce2bd030eb0328da32d52.",
+    "Não alegar que 20/20, 86/86 ou 1939 PASS foram reexecutados por esta auditoria."
   ]
 }
