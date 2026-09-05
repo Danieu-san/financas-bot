@@ -1,0 +1,46 @@
+'use strict';
+
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const test = require('node:test');
+
+test('instalador recusa apagar lock sem provar PID morto', () => {
+    const installer = fs.readFileSync(path.join(
+        __dirname, '..', 'scripts', 'agent', 'Install-ChatCodexOrchestrationWatcher.ps1'
+    ), 'utf8');
+    assert.match(installer, /Get-Command powershell\.exe -ErrorAction Stop/);
+    assert.match(installer, /Get-ChildItem[\s\S]*?-Filter 'codex\.exe'/);
+    assert.doesNotMatch(installer, /AppData\\Roaming\\npm\\codex\.ps1/);
+    assert.match(installer, /if \(\$task -and \$task\.State -eq 'Running'\)/);
+    assert.match(installer, /ConvertFrom-Json -ErrorAction Stop/);
+    assert.match(installer, /Get-Process -Id \$lockPid -ErrorAction SilentlyContinue/);
+    assert.match(installer, /Lock pertence ao processo vivo/);
+    assert.match(installer, /Lock malformado/);
+    assert.equal((installer.match(/Remove-Item -LiteralPath \$lockPath -Force/g) || []).length, 1);
+    assert.match(installer, /Assert-WatcherLifecycleSafe[\s\S]*?'Install' \{\s*Assert-WatcherLifecycleSafe/);
+    assert.match(installer, /'Remove' \{\s*Assert-WatcherLifecycleSafe/);
+    assert.match(installer, /AppThreadId exige ChatUrl/);
+    assert.match(installer, /ChatNotifierScript exige ChatUrl/);
+    assert.match(installer, /Install exige ChatNotifierScript e ChatUrl/);
+    assert.match(installer, /AppThreadId invalido/);
+    assert.match(installer, /ChatUrl deve apontar para uma conversa HTTPS do chatgpt\.com/);
+    assert.match(installer, /'--app-thread-id'/);
+    assert.match(installer, /'--chat-url'/);
+    assert.match(installer, /'--chat-notifier-script'/);
+    assert.match(installer, /'--chat-notifier-sha256'/);
+    assert.match(installer, /Get-FileHash -LiteralPath \$notifierPath -Algorithm SHA256/);
+    assert.match(installer, /ChatNotifierScript nao pode ser link ou reparse point/);
+    assert.match(installer, /AppWakeRequestPath e exclusivo/);
+    assert.match(installer, /'--app-wake-request'/);
+    assert.match(installer, /'--state-path', \(Quote-Argument \$StatePath\)/);
+    assert.match(installer, /StatePath deve ser um caminho relativo seguro/);
+    assert.match(installer, /Assert-WatcherRepositorySafe/);
+    assert.match(installer, /Clone dedicado recusado/);
+    assert.match(installer, /validateChatCodexWatcherRepository\.js/);
+    assert.match(installer, /'--git' \$git/);
+    assert.match(installer, /--expected-origin/);
+    assert.match(installer, /\$branch = 'chat\/chat-codex-orchestration-20260824'/);
+    assert.doesNotMatch(installer, /\[string\]\$Branch/);
+    assert.doesNotMatch(installer, /chatgpt\.com\/c\/[0-9a-f-]{16,}/i);
+});

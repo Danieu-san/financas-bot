@@ -5231,9 +5231,9 @@ test('google user spreadsheet mapping keeps legacy card flows compatible', (t) =
         mapRowForUserSpreadsheet(
             'Cartão Nome Amigável',
             ['10/02/2026', 'mercado', 'Alimentação', 50, '1/1', 'Fevereiro de 2026', 'user-1'],
-            { cardId: 'card-stable-123' }
+            { cardId: 'card-stable-123', cardDisplayName: 'Nome canônico' }
         ),
-        ['10/02/2026', 'mercado', 'Alimentação', 50, '1/1', 'Fevereiro de 2026', 'card-stable-123', 'Cartão Nome Amigável', '', 'user-1']
+        ['10/02/2026', 'mercado', 'Alimentação', 50, '1/1', 'Fevereiro de 2026', 'card-stable-123', 'Nome canônico', '', 'user-1']
     );
 
     assert.deepStrictEqual(
@@ -5245,6 +5245,34 @@ test('google user spreadsheet mapping keeps legacy card flows compatible', (t) =
             ['Data', 'Descrição', 'Categoria', 'Valor Parcela', 'Parcela', 'Mês de Cobrança', 'user_id'],
             ['10/02/2026', 'mercado', 'Alimentação', 50, '1/1', 'Fevereiro de 2026', 'user-1']
         ]
+    );
+});
+
+test('card writes preserve explicit identity separately from legacy route and display', () => {
+    const {
+        buildPersonalCreditCardOptionsFromRows,
+        canonicalCardId,
+        canonicalCardDisplayName,
+        buildCardWriteOptions,
+        buildImportedCreditCardRow
+    } = messageHandler.__test__;
+    const [option] = buildPersonalCreditCardOptionsFromRows([
+        ['card_id', 'Nome', 'Banco', 'Dia de Fechamento', 'Dia de Vencimento', 'Ativo'],
+        ['nubank-daniel', 'Nubank - Daniel', 'Nubank', '8', '15', 'SIM']
+    ]);
+
+    assert.strictEqual(option.cardInfo.sheetName, 'Cartão Nubank - Daniel');
+    assert.strictEqual(canonicalCardId({ cardId: 'nubank-daniel', key: 'wrong-derived-id' }), 'nubank-daniel');
+    assert.strictEqual(canonicalCardId({ key: 'legacy-only-key' }), '');
+    assert.strictEqual(canonicalCardDisplayName(option.cardInfo), 'Nubank - Daniel');
+    assert.deepStrictEqual(buildCardWriteOptions(option.cardInfo, { userId: 'user-1' }), {
+        userId: 'user-1',
+        cardId: 'nubank-daniel',
+        cardDisplayName: 'Nubank - Daniel'
+    });
+    assert.deepStrictEqual(
+        buildImportedCreditCardRow({ descricao: 'mercado', valor: 50, data: '10/02/2026' }, option.cardInfo, 'user-1'),
+        ['10/02/2026', 'mercado', 'Outros', 50, '1/1', 'Março de 2026', 'user-1']
     );
 });
 

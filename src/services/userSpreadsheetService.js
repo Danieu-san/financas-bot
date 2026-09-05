@@ -265,7 +265,7 @@ function buildManualRows({ user = {} } = {}) {
 
 function buildInvoiceSummaryRows({ dataStartRow = 2 } = {}) {
     return [[
-        '=QUERY(\'Lançamentos Cartão\'!A2:J;"select H, F, sum(D), count(D), min(A), max(A) where J is not null and H is not null group by H, F label H \'Cartão\', F \'Mês de Cobrança\', sum(D) \'Total da Fatura\', count(D) \'Parcelas Lançadas\', min(A) \'Primeira Compra\', max(A) \'Última Compra\'";0)',
+        '=QUERY(\'Lançamentos Cartão\'!A2:J;"select G, F, sum(D), count(D), min(A), max(A) where J is not null and G is not null group by G, F label G \'Cartão\', F \'Mês de Cobrança\', sum(D) \'Total da Fatura\', count(D) \'Parcelas Lançadas\', min(A) \'Primeira Compra\', max(A) \'Última Compra\'";0)',
         '',
         '',
         '',
