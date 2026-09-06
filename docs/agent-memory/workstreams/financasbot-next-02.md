@@ -1,11 +1,58 @@
 # Workstream — FinançasBot Next / NEXT-02
 
-Atualizado em: 2026-09-05
-Status: `OPEN — N02-A APROVÁVEL; N02-B LOCAL VERDE; AUDITORIA PENDENTE`
+Atualizado em: 2026-09-06
+Status: `OPEN — N02-A/N02-B APROVÁVEIS; N02-C CANDIDATO VALIDADO, AUDITORIA PENDENTE`
+
+## Estado vigente e alinhamento ao roadmap
+
+N02-B recebeu APROVÁVEL no SHA `8d987dab960e0ad8f9b112326464b69caa5dfe58`,
+parent `4a6396000d15d98969b8291d6c162e5aafcd04b9`, sem finding causal
+CRITICAL/HIGH/MEDIUM/LOW no escopo focal. Parecer do canal:
+`results/FIN-NEXT02-N02B-AUDIT-20260905.md`, commit
+`4e4565a65bfbae40e518347bb82a9c898d3379d5`; recibo publicado em `a96a14b`.
+O auditor não reexecutou os testes locais. Não repetir a auditoria N02-B.
+
+Roadmap conferido: `financasbot-next-roadmap-draft-v2.md`, seções 9.2, 11 e 12,
+ratificado por `financasbot-next-roadmap-ratification-v1.md`. A fase continua
+NEXT-02: o GO requer kernel properties e Golden Set com 100% dos invariantes
+críticos. N02-A cobre o primeiro consumo por transaction_date; N02-B cobre
+somente agenda interna. Essas duas aprovações não fecham o vertical.
+
+Unidade atual: N02-C, consulta por billing_period com coverage
+específica e seleção explícita de estado. Plano focal:
+`docs/plans/workstreams/financasbot-next-02-n02c-billing-read-v1.md`.
+Caracterização v1 realizada: estorno com competência explícita e compensação,
+sem copiar heurísticas de data ou ratear entre parcelas. Policy v3 opt-in,
+coverage por lente/estado e seleção de confirmado/projetado implementadas nos
+módulos existentes. Inventário permanece em 15 fontes.
+Gate precommit: 44/44 propriedades, sem skip/todo. Bateria afetada: 117/117,
+zero fail/skip/todo. RED causal adicional reproduziu agenda com origem parcial
+indevidamente aceita como completa; corrigido com prova da agenda inteira.
+Suíte hermética ampla única concluída, sessão local `60354` encerrada:
+1.973 testes, 1.963 PASS, zero FAIL/CANCELLED/TODO, 10 SKIP previstos;
+runner valid=true, exit_status=0. Nenhum skip focal. Workflow/diff válidos.
+Próxima ação: commit com parent único `8d987dab960e0ad8f9b112326464b69caa5dfe58`,
+gate final vinculado ao novo SHA, push/confirmar remoto e uma tentativa de prompt
+pelo bot. Ativar acompanhamento de cinco minutos somente após o envio; não
+reenviar o mesmo hash nem repetir a ampla verde sem mudança causal.
+Codex → Astra → Alto para confrontar o parecer com a evidência causal.
+
+Os registros abaixo sobre envio pendente N02-B são históricos, superados pelo
+parecer e recibo acima. O bot não faz parte desta worktree de produto.
 
 ## Checkpoint N02-B em desenvolvimento
 
 ### Estado atual consolidado
+
+Publicado: `8d987dab960e0ad8f9b112326464b69caa5dfe58`, parent único
+`4a6396000d15d98969b8291d6c162e5aafcd04b9`; remoto confirmado. Gate final
+vinculado: 31/31 PASS, 15 fontes. Em 2026-09-05T21:28Z, reservada a única
+tentativa de envio N02-B pelo bot local (hash do script conferido). Resultado
+de entrega ainda pendente; não reenviar automaticamente este candidato.
+Resultado da tentativa: bot encerrou com exit 1, "O texto nao apareceu
+corretamente no campo de mensagem". Entrega não confirmada; não houve retry.
+O candidato continua aguardando auditoria, não GO. É necessária recuperação
+manual/autorização específica de novo envio; não alterar bot nesta fatia.
 
 N02-B está limitado à agenda interna derivada de observações v2, sem consulta
 pública billing_period. Gate precommit 31/31; bateria afetada 104/104.

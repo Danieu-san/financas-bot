@@ -1,7 +1,7 @@
 # NEXT-02 — Vertical de gastos por categoria
 
-Atualizado em: 2026-09-05
-Estado: `OPEN — N02-A APROVÁVEL; N02-B EM VALIDAÇÃO LOCAL`
+Atualizado em: 2026-09-06
+Estado: `OPEN — N02-A/N02-B APROVÁVEIS; N02-C CANDIDATO VALIDADO, AUDITORIA PENDENTE`
 Base: `29791be6ba3f80fc8033bd6cb715484e7275a3c5`
 Branch: `codex/financasbot-next-02`
 Predecessor: NEXT-01 aprovado e ratificado por Daniel em 2026-09-03.
@@ -63,6 +63,18 @@ Parar por ambiguidade normativa material, necessidade de dados reais ou
 expansão além do gate; falha de teste não autoriza relaxar contrato.
 
 ## Próxima ação exata
+
+N02-B aprovado focalmente no SHA `8d987dab960e0ad8f9b112326464b69caa5dfe58`;
+recibo no canal `a96a14b`. Conferência do roadmap ratificado realizada em
+2026-09-06: NEXT-02 continua aberto até cobertura integral dos invariantes
+críticos por kernel properties e Golden Set. N02-C implementado conforme
+`financasbot-next-02-n02c-billing-read-v1.md`: policy v3 opt-in, coverage por
+lente/estado, sem dupla contagem. Gate precommit 44/44, afetados 117/117.
+Suíte ampla única: 1.973 testes, 1.963 PASS, zero falhas, 10 SKIP previstos,
+runner valid=true. Publicar candidato imutável, executar gate vinculado e
+enviar pelo bot para auditoria. Ainda não é GO de N02-C/NEXT-02.
+Os parágrafos seguintes registram o
+estado histórico do candidato N02-B antes da aprovação.
 
 Escopo estabilizado de N02-B: agenda interna derivada de observações sintéticas,
 com opt-in next02-import-v2, vínculo installment_of, valores explícitos,

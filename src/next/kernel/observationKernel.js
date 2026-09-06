@@ -5,6 +5,8 @@ const { projectInstallmentSchedule } = require('./installmentSchedule');
 
 const POLICY = 'next02-import-v1';
 const INSTALLMENT_POLICY = 'next02-import-v2';
+const BILLING_POLICY = 'next02-import-v3';
+const hasInstallments = policy => [INSTALLMENT_POLICY, BILLING_POLICY].includes(policy);
 const INSTALLMENT_FIELDS = ['installment_total', 'installment_index', 'installment_purchase_ref', 'billing_period'];
 const PAYLOAD_FIELDS = [
     'record_type', 'person_id', 'account_id', 'card_id', 'category_id',
@@ -126,13 +128,13 @@ function validateObservation(o, sourceInstanceRef, indices, policy) {
         'coverage_as_of_invalid');
 
     const p = o.normalized_payload;
-    const fields = policy === INSTALLMENT_POLICY ? [...PAYLOAD_FIELDS, ...INSTALLMENT_FIELDS] : PAYLOAD_FIELDS;
+    const fields = hasInstallments(policy) ? [...PAYLOAD_FIELDS, ...INSTALLMENT_FIELDS] : PAYLOAD_FIELDS;
     exactKeys(p, fields, 'payload_schema_invalid');
     exactKeys(o.field_provenance, fields, 'field_provenance_invalid');
     requireThat(fields.every(field => o.field_provenance[field] === o.observation_id), 'field_provenance_invalid');
     requireThat(Object.hasOwn(KIND_RULES, p.record_type) &&
-        (p.record_type !== 'installment' || policy === INSTALLMENT_POLICY), 'event_kind_unsupported');
-    if (policy === INSTALLMENT_POLICY) {
+        (p.record_type !== 'installment' || hasInstallments(policy)), 'event_kind_unsupported');
+    if (hasInstallments(policy)) {
         const scheduled = p.record_type === 'installment' ||
             (p.record_type === 'purchase' && p.installment_total !== null);
         if (scheduled) {
@@ -146,8 +148,12 @@ function validateObservation(o, sourceInstanceRef, indices, policy) {
                 typeof p.billing_period === 'string' && /^[1-9]\d{3}-(0[1-9]|1[0-2])$/.test(p.billing_period) &&
                 ['confirmed', 'projected'].includes(o.evidence_state), 'installment_schema');
         } else {
+            const explicitBilling = policy === BILLING_POLICY && p.card_id !== null && !scheduled &&
+                ['purchase', 'refund'].includes(p.record_type);
             requireThat(p.installment_index === null && p.installment_purchase_ref === null &&
-                p.billing_period === null && (scheduled || p.installment_total === null), 'installment_schema');
+                (p.billing_period === null || (explicitBilling && typeof p.billing_period === 'string' &&
+                    /^[1-9]\d{3}-(0[1-9]|1[0-2])$/.test(p.billing_period))) &&
+                (scheduled || p.installment_total === null), 'installment_schema');
         }
     }
     requireThat(date(p.transaction_date), 'payload_date_invalid');
@@ -209,7 +215,7 @@ function eventFromObservation(o, familyId, catalogRef, transferTargets) {
         origin_operation_id: null, receipt_ref: null,
         source_policy_version: o.ingestion_policy_version, created_at: o.observed_at
     };
-    if (o.ingestion_policy_version === INSTALLMENT_POLICY) {
+    if (hasInstallments(o.ingestion_policy_version)) {
         for (const field of INSTALLMENT_FIELDS) {
             event[field] = p[field];
             event.field_provenance[field] = { observation_id: o.observation_id, field };
@@ -285,7 +291,7 @@ function projectObservations(input) {
     const { observations, catalog, sourceInstanceRef, policyVersion = POLICY } = JSON.parse(canonicalValue(input));
     exactKeys(input, ['observations', 'catalog', 'sourceInstanceRef',
         ...(Object.hasOwn(input, 'policyVersion') ? ['policyVersion'] : [])], 'kernel_input_invalid');
-    requireThat([POLICY, INSTALLMENT_POLICY].includes(policyVersion), 'source_policy_violation');
+    requireThat([POLICY, INSTALLMENT_POLICY, BILLING_POLICY].includes(policyVersion), 'source_policy_violation');
     requireThat(Array.isArray(observations) && ref(sourceInstanceRef), 'kernel_input_invalid');
     const indices = validateCatalog(catalog);
     const byId = new Map(), byDedup = new Map(), chains = new Map();
@@ -327,7 +333,7 @@ function projectObservations(input) {
     }
     validateRelations(events, byId);
     const schedules = [];
-    if (policyVersion === INSTALLMENT_POLICY) {
+    if (hasInstallments(policyVersion)) {
         const active = events.filter(e => e.status === 'active');
         const byRecord = new Map(active.map(e => [byId.get(e.observation_refs[0]).source_record_ref, e]));
         for (const part of active.filter(e => e.event_kind === 'installment')) {
@@ -371,7 +377,7 @@ function projectObservations(input) {
         family_id: catalog.family_id,
         observations: [...byId.values()].sort((a, b) => a.observation_id < b.observation_id ? -1 : 1),
         history, events,
-        ...(policyVersion === INSTALLMENT_POLICY ? { installment_schedules: schedules } : {})
+        ...(hasInstallments(policyVersion) ? { installment_schedules: schedules } : {})
     });
 }
 

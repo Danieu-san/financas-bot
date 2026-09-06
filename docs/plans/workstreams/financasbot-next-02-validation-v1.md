@@ -1,6 +1,37 @@
 # NEXT-02 — Evidência local por fatia
 
-## N02-B — candidato interno em validação
+## N02-C — candidato local, auditoria independente pendente
+
+Parent esperado: `8d987dab960e0ad8f9b112326464b69caa5dfe58`.
+Contrato focal: `financasbot-next-02-n02c-billing-read-v1.md`.
+RED inicial: leitura v3 recusada por schema anterior (read_model_input_invalid).
+RED comportamental adicional: origem parcial da agenda ainda produzia complete;
+reproduzido e corrigido antes da suíte ampla. A prova agora verifica e referencia
+todos os eventos da agenda relevante, com suas versões.
+
+- Gate `node scripts/agent/validateFinancasBotNext02.mjs --slice N02-C --worktree`:
+  44/44 propriedades por eventos estruturados (20 A + 11 B + 13 C), sem skip/todo.
+- Inventário: 15 fontes, zero import v1, zero loader não classificado, zero
+  import de efeito proibido e um forwarder hermético reconhecido.
+- Syntax checks: dois módulos, duas políticas/gate e teste novo válidos.
+- Bateria afetada: 117/117 PASS, zero fail/skip/todo; NEXT-01, N02-A/B/C,
+  canonicalLedgerProjector, canonicalLedgerReceiptProjector, canonicalInstallmentSchedule.
+- Casos adicionais de estados simultâneos na mesma competência e transferência
+  neutra: 2/2 PASS, após a bateria e antes da ampla; não houve mudança de produto.
+- Suíte hermética ampla: uma execução por `npm test`, 179 arquivos descobertos,
+  161 entrypoints; 1.973 testes, 1.963 PASS, zero FAIL/CANCELLED/TODO e os mesmos
+  10 SKIP previstos. Nenhum skip focal. Runner `valid=true`, `exit_status=0`,
+  `validation_reasons=[]`; duração 916.961 ms. Coverage: 91,92% linhas,
+  75,60% branches e 91,48% funções. WhatsApp real excluído pelo runner.
+- `agent-workflow: OK`; `git diff --check` sem erros. Não repetir a ampla
+  sem mudança causal posterior.
+
+O gate final exigirá o SHA novo e parent acima; o PASS precommit não é uma
+execução já vinculada a commit. Auditoria independente obrigatória após publicação.
+Não houve mudança de package/lockfile, runtime v1, runner hermético ou fonte real.
+NEXT-02 integral, NEXT-03 e produção não estão aprovados por esta evidência.
+
+## Histórico N02-B — aprovado focalmente em 2026-09-05
 
 Parent esperado: `4a6396000d15d98969b8291d6c162e5aafcd04b9`.
 Escopo: agenda derivada de observações v2, não consulta pública por competência.
