@@ -1,26 +1,27 @@
 {
   "schema": "financasbot-chat-codex-task-v1",
-  "task_id": "FIN-NEXT02-N02B-AUDIT-RETURN-20260905",
-  "objective": "Consuma o parecer independente focal de N02-B publicado em docs/agent-memory/workstreams/results/FIN-NEXT02-N02B-AUDIT-20260905.md. Objeto auditado: 8d987dab960e0ad8f9b112326464b69caa5dfe58; parent único: 4a6396000d15d98969b8291d6c162e5aafcd04b9; veredito: APROVÁVEL somente para a agenda interna sintética N02-B. Registre no result_file o recebimento do parecer, a ausência de finding CRITICAL/HIGH/MEDIUM/LOW demonstrado e os limites preservados: sem consulta pública billing_period, coverage/estornos por competência, outras lentes, Golden Set completo ou motor integral de provenance. Não altere implementação nesta tarefa de retorno e não repita recebimento ou auditoria N02-A.",
+  "task_id": "FIN-NEXT02-N02C-AUDIT-RETURN-20260906",
+  "objective": "Consuma e valide o parecer independente focal N02-C publicado em docs/agent-memory/workstreams/results/FIN-NEXT02-N02C-AUDIT-20260906.md. Objeto auditado: 3bb1f93aeacecab547cc1402c9e04c01f6ddb5a2; parent único: 8d987dab960e0ad8f9b112326464b69caa5dfe58; veredito: APROVÁVEL somente para a fatia N02-C. Registre no result_file o recebimento do parecer, a ausência de finding CRITICAL/HIGH/MEDIUM/LOW demonstrado e os limites preservados. Esta tarefa é exclusivamente de recebimento/validação do parecer; não edite produto e não reaudite N02-B.",
   "required_files": [
-    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02B-AUDIT-20260905.md"
+    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02C-AUDIT-20260906.md"
   ],
   "allowed_paths": [
-    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02B-AUDIT-RETURN-20260905.md"
+    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02C-AUDIT-RETURN-20260906.md"
   ],
-  "result_file": "docs/agent-memory/workstreams/results/FIN-NEXT02-N02B-AUDIT-RETURN-20260905.md",
+  "result_file": "docs/agent-memory/workstreams/results/FIN-NEXT02-N02C-AUDIT-RETURN-20260906.md",
   "validation": [
-    "Registra SHA 8d987dab960e0ad8f9b112326464b69caa5dfe58, parent 4a6396000d15d98969b8291d6c162e5aafcd04b9 e veredito APROVÁVEL para N02-B somente.",
+    "Registra SHA 3bb1f93aeacecab547cc1402c9e04c01f6ddb5a2, parent único 8d987dab960e0ad8f9b112326464b69caa5dfe58 e veredito APROVÁVEL somente para N02-C.",
     "Registra que a auditoria não demonstrou finding CRITICAL, HIGH, MEDIUM ou LOW no escopo focal.",
-    "Registra que N02-B permanece limitado à agenda interna derivada de observações sintéticas e não implementa billing_period público, coverage/estornos por competência, outras lentes, Golden Set completo ou provenance integral.",
-    "Não converte 31/31, 104/104 ou 1950 PASS em testes reexecutados pelo auditor.",
-    "Não repete recebimento ou auditoria N02-A e não altera nenhum arquivo além do result_file e do state mecânico produzido pela transição canônica."
+    "Registra que a auditoria foi estática e não reexecutou 44/44, 117/117, 1963 PASS ou runner valid=true.",
+    "Registra que motor integral de provenance, Golden Set completo e subcategorias permanecem pendentes no NEXT-02.",
+    "Registra que o parecer não fecha NEXT-02, não abre NEXT-03 e não autoriza adapters/writers reais, deploy, produção ou dados reais.",
+    "Não altera nenhum arquivo além do result_file e do state mecânico produzido pela transição canônica."
   ],
   "constraints": [
-    "Não alterar o candidato auditado, testes, policies, gate, documentos NEXT-02 ou runtime nesta tarefa de retorno.",
+    "Não alterar src/, tests/, scripts/, docs/plans/, documentos de produto NEXT-02, package/lockfile ou runtime nesta tarefa de retorno.",
+    "Não reauditar nem repetir recebimento do N02-B já consumido.",
     "Não encerrar NEXT-02 e não abrir NEXT-03.",
     "Não executar deploy, produção, writers, adapters reais, OCI, WhatsApp, Google, Pluggy, dados reais, segredos, sessões ou .env.",
-    "Não solicitar auditoria duplicada do SHA 8d987dab960e0ad8f9b112326464b69caa5dfe58.",
-    "Não repetir recebimento ou auditoria do N02-A já encerrado focalmente."
+    "Não converter resultados locais relatados em prova independente nem solicitar auditoria duplicada do SHA 3bb1f93aeacecab547cc1402c9e04c01f6ddb5a2."
   ]
 }
