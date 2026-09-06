@@ -1,27 +1,26 @@
 {
   "schema": "financasbot-chat-codex-task-v1",
-  "task_id": "FIN-NEXT02-N02A-CORRECTED-REAUDIT-RETURN-20260905",
-  "objective": "Consuma o parecer independente focal do N02-A corrigido publicado em docs/agent-memory/workstreams/results/FIN-NEXT02-N02A-CORRECTED-REAUDIT-20260905.md. Objeto auditado: 4a6396000d15d98969b8291d6c162e5aafcd04b9; parent único: 5d4339f46a9ec412d6c86894853435c7238dbcf1; veredito: APROVÁVEL para a fatia N02-A. Registre no result_file o recebimento do parecer e que os três findings do SHA af83a4e0cd79de5e582ce2bd030eb0328da32d52 foram corrigidos causalmente: labels públicas/handles locais na boundary expenses.sum, coverage complete somente após fim integral do intervalo, e settles_card_id preservado como card_id canônico com provenance. Não altere implementação nesta tarefa de retorno e não solicite auditoria duplicada deste novo hash.",
+  "task_id": "FIN-NEXT02-N02B-AUDIT-RETURN-20260905",
+  "objective": "Consuma o parecer independente focal de N02-B publicado em docs/agent-memory/workstreams/results/FIN-NEXT02-N02B-AUDIT-20260905.md. Objeto auditado: 8d987dab960e0ad8f9b112326464b69caa5dfe58; parent único: 4a6396000d15d98969b8291d6c162e5aafcd04b9; veredito: APROVÁVEL somente para a agenda interna sintética N02-B. Registre no result_file o recebimento do parecer, a ausência de finding CRITICAL/HIGH/MEDIUM/LOW demonstrado e os limites preservados: sem consulta pública billing_period, coverage/estornos por competência, outras lentes, Golden Set completo ou motor integral de provenance. Não altere implementação nesta tarefa de retorno e não repita recebimento ou auditoria N02-A.",
   "required_files": [
-    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02A-CORRECTED-REAUDIT-20260905.md"
+    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02B-AUDIT-20260905.md"
   ],
   "allowed_paths": [
-    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02A-CORRECTED-REAUDIT-RETURN-20260905.md"
+    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02B-AUDIT-RETURN-20260905.md"
   ],
-  "result_file": "docs/agent-memory/workstreams/results/FIN-NEXT02-N02A-CORRECTED-REAUDIT-RETURN-20260905.md",
+  "result_file": "docs/agent-memory/workstreams/results/FIN-NEXT02-N02B-AUDIT-RETURN-20260905.md",
   "validation": [
-    "Registra SHA 4a6396000d15d98969b8291d6c162e5aafcd04b9, parent 5d4339f46a9ec412d6c86894853435c7238dbcf1 e veredito APROVÁVEL para N02-A.",
-    "Registra que HIGH-01 anterior foi fechado por tradução label pública -> ID apenas dentro do adapter e egress sem IDs internos.",
-    "Registra que MEDIUM-01 anterior foi fechado por exigir as_of após o fim integral de coverage complete.",
-    "Registra que MEDIUM-02 anterior foi fechado preservando settles_card_id em event.card_id com field_provenance.",
-    "Não converte 20/20, 86/86 ou 1939 PASS em testes reexecutados pelo auditor.",
-    "Não altera nenhum arquivo além do result_file e do state mecânico produzido pela transição canônica."
+    "Registra SHA 8d987dab960e0ad8f9b112326464b69caa5dfe58, parent 4a6396000d15d98969b8291d6c162e5aafcd04b9 e veredito APROVÁVEL para N02-B somente.",
+    "Registra que a auditoria não demonstrou finding CRITICAL, HIGH, MEDIUM ou LOW no escopo focal.",
+    "Registra que N02-B permanece limitado à agenda interna derivada de observações sintéticas e não implementa billing_period público, coverage/estornos por competência, outras lentes, Golden Set completo ou provenance integral.",
+    "Não converte 31/31, 104/104 ou 1950 PASS em testes reexecutados pelo auditor.",
+    "Não repete recebimento ou auditoria N02-A e não altera nenhum arquivo além do result_file e do state mecânico produzido pela transição canônica."
   ],
   "constraints": [
     "Não alterar o candidato auditado, testes, policies, gate, documentos NEXT-02 ou runtime nesta tarefa de retorno.",
     "Não encerrar NEXT-02 e não abrir NEXT-03.",
     "Não executar deploy, produção, writers, adapters reais, OCI, WhatsApp, Google, Pluggy, dados reais, segredos, sessões ou .env.",
-    "Não solicitar auditoria duplicada do SHA 4a6396000d15d98969b8291d6c162e5aafcd04b9.",
-    "Não interpretar APROVÁVEL de N02-A como GO do NEXT-02 completo."
+    "Não solicitar auditoria duplicada do SHA 8d987dab960e0ad8f9b112326464b69caa5dfe58.",
+    "Não repetir recebimento ou auditoria do N02-A já encerrado focalmente."
   ]
 }
