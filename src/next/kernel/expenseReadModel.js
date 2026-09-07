@@ -3,6 +3,7 @@
 const { canonicalValue, digest, freezeDeep } = require('./canonicalValue');
 const { projectObservations } = require('./observationKernel');
 const { createReadOnlyToolGateway } = require('../tools/readOnlyToolGateway');
+const FILTER_FIELDS = ['category', 'subcategory', 'account', 'card'];
 
 function reject(reason, coverage = 'unavailable') {
     return { ok: false, reason, coverage };
@@ -28,20 +29,23 @@ function completeCoverageEndsByAsOf(coverage) {
 }
 
 function publicSelectorMaps(publicLabels, catalog) {
+    const hasSubcategories = Object.hasOwn(catalog, 'subcategories');
     if (!publicLabels || Array.isArray(publicLabels) || typeof publicLabels !== 'object' ||
-        Object.keys(publicLabels).sort().join(',') !== 'accounts,cards,categories,family,people') {
+        Object.keys(publicLabels).sort().join(',') !== (hasSubcategories
+            ? 'accounts,cards,categories,family,people,subcategories' : 'accounts,cards,categories,family,people')) {
         throw new Error('public_labels_invalid');
     }
     const allInternalIds = [catalog.family_id, ...catalog.people.map(v => v.id),
         ...catalog.accounts.map(v => v.id), ...catalog.cards.map(v => v.id),
-        ...catalog.categories.map(v => v.id)];
+        ...catalog.categories.map(v => v.id), ...(catalog.subcategories || []).map(v => v.id)];
     const validLabel = value => typeof value === 'string' && value === value.trim() &&
         value.length >= 1 && value.length <= 80 && !/[\u0000-\u001f\u007f]/.test(value) &&
         !allInternalIds.some(id => value.toLowerCase().includes(id.toLowerCase()));
     if (!validLabel(publicLabels.family)) throw new Error('public_labels_invalid');
     const result = { family: publicLabels.family };
     for (const [name, entries] of [['people', catalog.people], ['accounts', catalog.accounts],
-        ['cards', catalog.cards], ['categories', catalog.categories]]) {
+        ['cards', catalog.cards], ['categories', catalog.categories],
+        ...(hasSubcategories ? [['subcategories', catalog.subcategories]] : [])]) {
         const labels = publicLabels[name];
         if (!labels || Array.isArray(labels) || typeof labels !== 'object' ||
             Object.keys(labels).sort().join(',') !== entries.map(entry => entry.id).sort().join(',')) {
@@ -61,7 +65,8 @@ function publicSelectorMaps(publicLabels, catalog) {
 
 function createExpenseReadModel(input) {
     const { observations, catalog, sourceInstanceRef, coverage: rawCoverage, policyVersion } = JSON.parse(canonicalValue(input));
-    const billingEnabled = policyVersion === 'next02-import-v3';
+    const subcategoriesEnabled = policyVersion === 'next02-import-v4';
+    const billingEnabled = subcategoriesEnabled || policyVersion === 'next02-import-v3';
     if (Object.keys(input).sort().join(',') !== (billingEnabled
         ? 'catalog,coverage,observations,policyVersion,sourceInstanceRef'
         : 'catalog,coverage,observations,sourceInstanceRef')) {
@@ -94,6 +99,8 @@ function createExpenseReadModel(input) {
         o.coverage.as_of > coverage.as_of))) throw new Error('snapshot_as_of_mismatch');
     const people = new Set(catalog.people.map(p => p.id));
     const categories = new Set(catalog.categories.filter(c => c.kind === 'expense').map(c => c.id));
+    const subcategories = new Map((catalog.subcategories || []).filter(s => categories.has(s.category_id))
+        .map(s => [s.id, s.category_id]));
     const accounts = new Set(catalog.accounts.map(a => a.id));
     const cards = new Set(catalog.cards.map(c => c.id));
     const byId = new Map(snapshot.events.map(e => [e.event_id, e]));
@@ -106,6 +113,7 @@ function createExpenseReadModel(input) {
         } catch (_) { return reject('query_schema_invalid'); }
         if (!query || Array.isArray(query) ||
             Object.keys(query).some(k => !['period', 'scope', 'timeBasis', 'category', 'account', 'card',
+                ...(subcategoriesEnabled ? ['subcategory'] : []),
                 ...(billingEnabled ? ['evidenceState'] : [])].includes(k)) ||
             !monthBounds(query.period) || !['family', 'personal'].includes(query.scope) ||
             !(billingEnabled ? ['transaction_date', 'billing_period'].includes(query.timeBasis) &&
@@ -118,6 +126,11 @@ function createExpenseReadModel(input) {
         for (const [field, allowed] of [['category', categories], ['account', accounts], ['card', cards]]) {
             if (Object.hasOwn(query, field) && !allowed.has(query[field])) return reject('query_filter_invalid');
         }
+        if (Object.hasOwn(query, 'subcategory') && (!subcategories.has(query.subcategory) ||
+            (query.category !== undefined && query.category !== subcategories.get(query.subcategory)))) {
+            return reject('query_filter_invalid');
+        }
+        const category = query.category ?? subcategories.get(query.subcategory);
         if (query.account !== undefined && query.card !== undefined) return reject('query_filter_invalid');
         if (query.timeBasis === 'billing_period' && query.account !== undefined) return reject('query_filter_invalid');
         const [start, end] = monthBounds(query.period);
@@ -131,7 +144,8 @@ function createExpenseReadModel(input) {
         }
         const inScope = e => e.status === 'active' &&
             (query.scope === 'family' || e.person_id === context.actorId) &&
-            (query.category === undefined || e.category_id === query.category) &&
+            (category === undefined || e.category_id === category) &&
+            (query.subcategory === undefined || e.subcategory_id === null || e.subcategory_id === query.subcategory) &&
             (query.account === undefined || e.account_id === query.account) &&
             (query.card === undefined || e.card_id === query.card);
         const billing = query.timeBasis === 'billing_period';
@@ -164,6 +178,10 @@ function createExpenseReadModel(input) {
         }
         const scoped = relevant.filter(e => billing ? e.billing_period === query.period :
             e.transaction_date >= start && e.transaction_date <= end);
+        if (query.subcategory !== undefined && scoped.some(e => e.subcategory_id === null &&
+            (e.evidence_state === query.evidenceState || !['confirmed', 'projected'].includes(e.evidence_state)))) {
+            return reject('coverage_insufficient', 'incomplete');
+        }
         if (scoped.some(e => ['incomplete', 'unavailable'].includes(e.evidence_state) ||
             (billingEnabled && e.evidence_state === 'estimated') ||
             e.coverage.completeness !== 'complete')) return reject('coverage_insufficient', 'incomplete');
@@ -193,7 +211,7 @@ function createExpenseReadModel(input) {
                     ref: query.scope === 'family' ? catalog.family_id : context.actorId },
                 period: { type: 'calendar_period', value: query.period }, timeBasis: query.timeBasis,
                 ...(billingEnabled ? { evidenceState: query.evidenceState } : {}),
-                filters: Object.fromEntries(['category', 'account', 'card']
+                filters: Object.fromEntries(FILTER_FIELDS
                     .filter(k => Object.hasOwn(query, k)).map(k => [k, query[k]]))
             },
             evidence: { coverage: 'complete', state: billingEnabled ? query.evidenceState : 'confirmed',
@@ -206,7 +224,8 @@ function createExpenseReadModel(input) {
 
 function createExpenseToolGateway(input) {
     const safe = JSON.parse(canonicalValue(input));
-    const billingEnabled = safe?.policyVersion === 'next02-import-v3';
+    const subcategoriesEnabled = safe?.policyVersion === 'next02-import-v4';
+    const billingEnabled = subcategoriesEnabled || safe?.policyVersion === 'next02-import-v3';
     if (!safe || Object.keys(safe).sort().join(',') !== (billingEnabled
         ? 'catalog,coverage,observations,policyVersion,publicLabels,sourceInstanceRef'
         : 'catalog,coverage,observations,publicLabels,sourceInstanceRef')) {
@@ -225,13 +244,15 @@ function createExpenseToolGateway(input) {
             name: 'expenses.sum', mode: 'read_only',
             args: { period: 'string', scope: 'string', timeBasis: 'string',
                 category: 'string', account: 'string', card: 'string',
+                ...(subcategoriesEnabled ? { subcategory: 'string' } : {}),
                 ...(billingEnabled ? { evidenceState: 'string' } : {}) },
             allowedResultFields: ['ok', 'coverage', 'reason', 'resultKind', 'claim', 'evidence']
         }],
         adapters: { 'expenses.sum': ({ args, authorizedContext }) => {
             const internal = { ...args };
             for (const [field, selector] of [['category', selectors.categories],
-                ['account', selectors.accounts], ['card', selectors.cards]]) {
+                ['account', selectors.accounts], ['card', selectors.cards],
+                ...(subcategoriesEnabled ? [['subcategory', selectors.subcategories]] : [])]) {
                 if (!Object.hasOwn(args, field)) continue;
                 const internalId = selector.byLabel.get(args[field]);
                 if (!internalId) return reject('query_filter_invalid');
@@ -249,7 +270,7 @@ function createExpenseToolGateway(input) {
                             ? selectors.family
                             : selectors.people.byId.get(authorizedContext.actorId)
                     },
-                    filters: Object.fromEntries(['category', 'account', 'card']
+                    filters: Object.fromEntries(FILTER_FIELDS
                         .filter(field => Object.hasOwn(args, field)).map(field => [field, args[field]]))
                 },
                 evidence: { ...result.evidence, refs: requestLocalEvidenceRefs(result.evidence.refs) }

@@ -1,6 +1,49 @@
 # NEXT-02 — Evidência local por fatia
 
-## N02-C — candidato local, auditoria independente pendente
+## N02-D — candidato local validado; auditoria independente pendente
+
+Parent esperado: `3bb1f93aeacecab547cc1402c9e04c01f6ddb5a2` (N02-C aprovado).
+Contrato: `financasbot-next-02-n02d-subcategories-v1.md`.
+
+- RED inicial executado: NEXT02D:TOTAL falhou por `read_model_input_invalid`,
+  pois o schema v4 ainda não era aceito. Não equivale a 13 REDs independentes.
+- Gate precommit `node scripts/agent/validateFinancasBotNext02.mjs --slice N02-D --worktree`:
+  57/57 propriedades por eventos estruturados: 20 A + 11 B + 13 C + 13 D.
+  Zero skip/todo focal; inventário permanece em 15 fontes. Zero import v1,
+  loader não classificado ou import de efeito proibido; um forwarder hermético.
+- Bateria afetada: 130/130 PASS, zero fail/skip/todo. Comando:
+  `node --test tests/financasBotNext01.test.js tests/next02ObservationKernel.test.js tests/next02InstallmentSchedule.test.js tests/next02BillingReadModel.test.js tests/next02Subcategories.test.js tests/canonicalLedgerProjector.test.js tests/canonicalLedgerReceiptProjector.test.js tests/canonicalInstallmentSchedule.test.js`.
+- Revisão adversarial local: vínculo com parent do catálogo, combinação de
+  filtros inválida, refund/parcela divergente com valor preservado, integridade
+  sem reassinatura, versões/tombstones, null relevante versus outro estado ou
+  pessoa/período, conta/cartão, neutralidade, labels e IDs públicos; testes do
+  gate rejeitam falta/duplicação de ID, skip/todo, nesting, arquivo incorreto,
+  falha e stdout como substituto de aprovação. Isso não afirma exaustividade
+  do motor de provenance futuro.
+- Única suíte ampla `npm test`, sessão 84168, concluída e recuperada após pausa:
+  180 arquivos descobertos / 162 entrypoints; 1.986 testes, 1.976 PASS,
+  zero FAIL/CANCELLED/TODO, 10 SKIP previstos; runner valid=true,
+  exit_status=0 e validation_reasons vazio. Duração 728.251 ms.
+  Cobertura: 91,93% linhas, 75,59% branches, 91,50% funções.
+  Skips: cinco casos de instalação/configuração e cinco grupos funcionais;
+  teste WhatsApp real excluído pelo runner. Nenhuma integração real executada.
+
+Reaproveitamento: semântica v1 de categoria/subcategoria separadas e vínculo de
+estorno, adaptada aos módulos Next existentes e às entradas sintéticas explícitas.
+Não houve módulo de runtime novo, alteração de dependência, runner, contrato
+congelado, produção ou bot de auditoria. O parent v1/v2/v3 permanece suportado;
+schema v4 só entra por opt-in. Golden Set integral e provenance completo seguem
+pendentes, sem GO global NEXT-02 ou abertura NEXT-03.
+
+Gate final exige `--slice N02-D --expected-head SHA --expected-parent 3bb1f93aeacecab547cc1402c9e04c01f6ddb5a2`.
+O resultado final vinculado será obtido após criar o commit; o precommit não é
+apresentado como prova imutável. Não repetir a ampla sem mudança causal.
+
+## Histórico N02-C — aprovado focalmente em 2026-09-06
+
+O texto abaixo registra a validação anterior à auditoria. N02-C recebeu
+APROVÁVEL no SHA `3bb1f93aeacecab547cc1402c9e04c01f6ddb5a2`; retorno e recibo
+estão referenciados na memória do workstream. Não há nova auditoria N02-C pendente.
 
 Parent esperado: `8d987dab960e0ad8f9b112326464b69caa5dfe58`.
 Contrato focal: `financasbot-next-02-n02c-billing-read-v1.md`.

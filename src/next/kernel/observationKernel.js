@@ -6,7 +6,8 @@ const { projectInstallmentSchedule } = require('./installmentSchedule');
 const POLICY = 'next02-import-v1';
 const INSTALLMENT_POLICY = 'next02-import-v2';
 const BILLING_POLICY = 'next02-import-v3';
-const hasInstallments = policy => [INSTALLMENT_POLICY, BILLING_POLICY].includes(policy);
+const SUBCATEGORY_POLICY = 'next02-import-v4';
+const hasInstallments = policy => [INSTALLMENT_POLICY, BILLING_POLICY, SUBCATEGORY_POLICY].includes(policy);
 const INSTALLMENT_FIELDS = ['installment_total', 'installment_index', 'installment_purchase_ref', 'billing_period'];
 const PAYLOAD_FIELDS = [
     'record_type', 'person_id', 'account_id', 'card_id', 'category_id',
@@ -84,8 +85,9 @@ function indexCatalog(items, fields) {
     return map;
 }
 
-function validateCatalog(c) {
-    exactKeys(c, ['family_id', 'people', 'accounts', 'cards', 'categories'], 'catalog_schema_invalid');
+function validateCatalog(c, policy) {
+    exactKeys(c, ['family_id', 'people', 'accounts', 'cards', 'categories',
+        ...(policy === SUBCATEGORY_POLICY ? ['subcategories'] : [])], 'catalog_schema_invalid');
     requireThat(ref(c.family_id), 'catalog_schema_invalid');
     const people = indexCatalog(c.people, ['id']);
     const accounts = indexCatalog(c.accounts, ['id', 'owner_id']);
@@ -97,7 +99,12 @@ function validateCatalog(c) {
     for (const item of categories.values()) {
         requireThat(['expense', 'income'].includes(item.kind), 'catalog_category_invalid');
     }
-    return { people, accounts, cards, categories };
+    const subcategories = policy === SUBCATEGORY_POLICY
+        ? indexCatalog(c.subcategories, ['id', 'category_id']) : new Map();
+    for (const item of subcategories.values()) {
+        requireThat(categories.has(item.category_id), 'catalog_subcategory_parent_unknown');
+    }
+    return { people, accounts, cards, categories, subcategories };
 }
 
 function validateObservation(o, sourceInstanceRef, indices, policy) {
@@ -128,7 +135,8 @@ function validateObservation(o, sourceInstanceRef, indices, policy) {
         'coverage_as_of_invalid');
 
     const p = o.normalized_payload;
-    const fields = hasInstallments(policy) ? [...PAYLOAD_FIELDS, ...INSTALLMENT_FIELDS] : PAYLOAD_FIELDS;
+    const fields = [...PAYLOAD_FIELDS, ...(hasInstallments(policy) ? INSTALLMENT_FIELDS : []),
+        ...(policy === SUBCATEGORY_POLICY ? ['subcategory_id'] : [])];
     exactKeys(p, fields, 'payload_schema_invalid');
     exactKeys(o.field_provenance, fields, 'field_provenance_invalid');
     requireThat(fields.every(field => o.field_provenance[field] === o.observation_id), 'field_provenance_invalid');
@@ -148,7 +156,7 @@ function validateObservation(o, sourceInstanceRef, indices, policy) {
                 typeof p.billing_period === 'string' && /^[1-9]\d{3}-(0[1-9]|1[0-2])$/.test(p.billing_period) &&
                 ['confirmed', 'projected'].includes(o.evidence_state), 'installment_schema');
         } else {
-            const explicitBilling = policy === BILLING_POLICY && p.card_id !== null && !scheduled &&
+            const explicitBilling = [BILLING_POLICY, SUBCATEGORY_POLICY].includes(policy) && p.card_id !== null && !scheduled &&
                 ['purchase', 'refund'].includes(p.record_type);
             requireThat(p.installment_index === null && p.installment_purchase_ref === null &&
                 (p.billing_period === null || (explicitBilling && typeof p.billing_period === 'string' &&
@@ -179,6 +187,11 @@ function validateObservation(o, sourceInstanceRef, indices, policy) {
     } else {
         requireThat(indices.categories.has(p.category_id), 'category_unknown');
         requireThat(indices.categories.get(p.category_id).kind === rule.category, 'category_kind_invalid');
+    }
+    if (policy === SUBCATEGORY_POLICY) {
+        requireThat(p.subcategory_id === null || (rule.category !== null &&
+            indices.subcategories.has(p.subcategory_id) &&
+            indices.subcategories.get(p.subcategory_id).category_id === p.category_id), 'subcategory_binding_invalid');
     }
     for (const field of ['related_record_ref', 'transfer_ref', 'settles_card_id']) {
         requireThat(rule.relation === field ? ref(p[field]) : p[field] === null, 'economic_link_invalid');
@@ -221,6 +234,10 @@ function eventFromObservation(o, familyId, catalogRef, transferTargets) {
             event.field_provenance[field] = { observation_id: o.observation_id, field };
         }
     }
+    if (o.ingestion_policy_version === SUBCATEGORY_POLICY) {
+        event.subcategory_id = p.subcategory_id;
+        event.field_provenance.subcategory_id = { observation_id: o.observation_id, field: 'subcategory_id' };
+    }
     event.field_provenance.family_id = { catalog_ref: catalogRef, field: 'family_id' };
     for (const field of ['coverage', 'evidence_state']) {
         event.field_provenance[field] = { observation_id: o.observation_id, field };
@@ -260,7 +277,7 @@ function validateRelations(current, observationById) {
         if (e.event_kind === 'refund') {
             const target = byRecord.get(p.related_record_ref);
             requireThat(target && target.status === 'active' && target.event_kind === 'purchase', 'refund_target_invalid');
-            requireThat(['family_id', 'person_id', 'account_id', 'card_id', 'category_id', 'currency'].every(k =>
+            requireThat(['family_id', 'person_id', 'account_id', 'card_id', 'category_id', 'subcategory_id', 'currency'].every(k =>
                 target[k] === e[k]) && target.transaction_date <= e.transaction_date &&
                 (e.evidence_state !== 'confirmed' || target.evidence_state === 'confirmed'), 'refund_dimensions_mismatch');
             const total = (refunds.get(target.event_id) || 0n) + BigInt(e.amount_minor);
@@ -291,9 +308,9 @@ function projectObservations(input) {
     const { observations, catalog, sourceInstanceRef, policyVersion = POLICY } = JSON.parse(canonicalValue(input));
     exactKeys(input, ['observations', 'catalog', 'sourceInstanceRef',
         ...(Object.hasOwn(input, 'policyVersion') ? ['policyVersion'] : [])], 'kernel_input_invalid');
-    requireThat([POLICY, INSTALLMENT_POLICY, BILLING_POLICY].includes(policyVersion), 'source_policy_violation');
+    requireThat([POLICY, INSTALLMENT_POLICY, BILLING_POLICY, SUBCATEGORY_POLICY].includes(policyVersion), 'source_policy_violation');
     requireThat(Array.isArray(observations) && ref(sourceInstanceRef), 'kernel_input_invalid');
-    const indices = validateCatalog(catalog);
+    const indices = validateCatalog(catalog, policyVersion);
     const byId = new Map(), byDedup = new Map(), chains = new Map();
     for (const o of observations) {
         validateObservation(o, sourceInstanceRef, indices, policyVersion);
@@ -340,6 +357,7 @@ function projectObservations(input) {
             const target = byRecord.get(part.installment_purchase_ref);
             requireThat(target && target.event_kind === 'purchase' && target.installment_total !== null &&
                 part.transaction_date === target.transaction_date &&
+                part.subcategory_id === target.subcategory_id &&
                 (part.evidence_state !== 'confirmed' || target.evidence_state === 'confirmed'), 'installment_target_invalid');
             part.links = [link(part, target, 'installment_of', 'installment_purchase_ref')];
         }

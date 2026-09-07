@@ -1,7 +1,72 @@
 # Workstream — FinançasBot Next / NEXT-02
 
 Atualizado em: 2026-09-06
-Status: `OPEN — N02-A/N02-B APROVÁVEIS; N02-C CANDIDATO VALIDADO, AUDITORIA PENDENTE`
+Status: `OPEN — N02-A/B/C APROVÁVEIS; N02-D SUÍTE AMPLA PASS; CANDIDATO A PREPARAR`
+
+## Retomada — resultado da suíte N02-D
+
+Saída da mesma sessão `84168` recuperada após Daniel enviar `continuar`:
+exit_status=0, runner valid=true, validation_reasons vazio; 1.986 testes,
+1.976 PASS, zero FAIL/CANCELLED/TODO e 10 SKIP previstos. Foram descobertos
+180 arquivos de teste, executados em 162 entrypoints. Duração: 728.251 ms.
+Cobertura: linhas 91,93%, branches 75,59%, funções 91,50%.
+Não houve nova execução da suíte. Nenhum skip focal: gate 57/57 e afetados
+130/130 permanecem como evidência anterior desta mesma implementação.
+
+Próxima ação: revisão final do diff/escopo, atualização dos documentos de
+validação, workflow, commit sanitizado, gate vinculado ao SHA e publicação para
+auditoria independente. Não repetir a ampla sem mudança causal posterior.
+N02-D continua sem aprovação independente; NEXT-02 global permanece pendente.
+Capacidade recomendada para preparar/confrontar o candidato: Codex → Astra → Alto.
+O checkpoint de espera abaixo é histórico; a sessão já terminou com sucesso.
+
+## Checkpoint N02-D — pausa durante a suíte ampla
+
+Daniel pediu para não consumir uso aguardando a suíte e informou que enviará
+`continuar` em aproximadamente 20 minutos. Não fazer polling nem criar timer
+para esta espera. Não encerrar ou repetir a execução em andamento.
+
+Worktree: `.codex-worktrees/financasbot-next-02-n02a-v2` da raiz canônica;
+branch `codex/financasbot-next-02-n02a-v2`, HEAD/parent do candidato ainda
+`3bb1f93aeacecab547cc1402c9e04c01f6ddb5a2`. Alterações N02-D não commitadas.
+Subcategorias implementadas nos dois módulos existentes, policy v4 opt-in;
+nenhum módulo de runtime novo. Reuso do comportamento v1 preservado.
+
+Evidência local N02-D: gate `57/57`, inventário `15`, loaders não classificados
+e imports proibidos `0`; bateria afetada `130/130`, zero fail/skip/todo.
+Revisão do delta funcional e `git diff --check` realizadas antes da ampla.
+
+Única suíte ampla N02-D iniciada com `npm test`; sessão de execução `84168`.
+No momento da pausa só havia o cabeçalho do runner; resultado ainda desconhecido.
+Ao receber `continuar`, recuperar primeiro a saída dessa sessão; não iniciar
+outra suíte. Se a sessão não estiver acessível, verificar evidência/processo
+existente antes de decidir qualquer repetição. Depois: registrar resultado real,
+validar workflow/diff, criar candidato auditável, gate vinculado ao SHA e publicar
+para auditoria independente. N02-D ainda não aprovada; NEXT-02 global pendente.
+
+As notas abaixo de implementação pendente são o checkpoint anterior, superado
+por esta seção; o histórico N02-C permanece preservado.
+
+## Retorno N02-C e próxima unidade
+
+N02-C APROVÁVEL no SHA `3bb1f93aeacecab547cc1402c9e04c01f6ddb5a2`, parent único
+`8d987dab960e0ad8f9b112326464b69caa5dfe58`, sem finding demonstrado no escopo.
+Parecer lido integralmente no canal em `1a02e5be0e1583bdf61aa2da9999a885af9c5990`;
+recibo CHAT_READY publicado pelo watcher e confirmado no remoto em
+`9f09dfb8a5efd781d639519b72755c5812e710d9`. Não duplicar recibo nem auditoria.
+O auditor leu nove arquivos alterados/quatro inalterados, não reexecutou testes.
+O confronto com os kernels/gate e a evidência local não revelou divergência
+material em escopo ou alegações; aprovação continua somente da fatia N02-C.
+Timer `retomar-n02-c-ap-s-auditoria` removido após o recebimento.
+
+Próxima lacuna do roadmap 9.2: categoria/subcategoria. Plano N02-D:
+`docs/plans/workstreams/financasbot-next-02-n02d-subcategories-v1.md`.
+Implementação e REDs pendentes. Preservar schemas aprovados com opt-in v4,
+catálogo explícito e subcategoria desconhecida sem zero conclusivo por omissão.
+Reuso v1: campos categoria/subcategoria separados e compensação da compra.
+Não repetir suíte ampla N02-C. Astra/Alto para implementação causal N02-D.
+
+Os checkpoints N02-C abaixo são históricos, superados pelo retorno acima.
 
 ## Estado vigente e alinhamento ao roadmap
 

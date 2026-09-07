@@ -1,7 +1,7 @@
 # NEXT-02 — Vertical de gastos por categoria
 
 Atualizado em: 2026-09-06
-Estado: `OPEN — N02-A/N02-B APROVÁVEIS; N02-C CANDIDATO VALIDADO, AUDITORIA PENDENTE`
+Estado: `OPEN — N02-A/B/C APROVÁVEIS; N02-D VALIDADO LOCALMENTE; AUDITORIA PENDENTE`
 Base: `29791be6ba3f80fc8033bd6cb715484e7275a3c5`
 Branch: `codex/financasbot-next-02`
 Predecessor: NEXT-01 aprovado e ratificado por Daniel em 2026-09-03.
@@ -63,6 +63,18 @@ Parar por ambiguidade normativa material, necessidade de dados reais ou
 expansão além do gate; falha de teste não autoriza relaxar contrato.
 
 ## Próxima ação exata
+
+N02-C aprovado focalmente em `3bb1f93aeacecab547cc1402c9e04c01f6ddb5a2`;
+recibo remoto `9f09dfb8a5efd781d639519b72755c5812e710d9`. N02-D implementado
+conforme `financasbot-next-02-n02d-subcategories-v1.md`, reutilizando os mesmos
+módulos e preservando semântica validada do v1. Gate 57/57, afetados 130/130;
+ampla única 1.986 testes, 1.976 PASS, zero falhas, 10 SKIP previstos, runner válido.
+Publicar candidato sanitizado com parent 3bb1f93, executar gate vinculado ao SHA
+e submeter somente N02-D à auditoria independente. Não repetir a ampla verde.
+Essa é uma lacuna explícita do roadmap, não abertura de NEXT-03. O timer de
+N02-C foi encerrado; não reenviar candidato nem repetir a ampla verde.
+
+### Histórico N02-C anterior ao parecer
 
 N02-B aprovado focalmente no SHA `8d987dab960e0ad8f9b112326464b69caa5dfe58`;
 recibo no canal `a96a14b`. Conferência do roadmap ratificado realizada em

@@ -11,7 +11,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const args = process.argv.slice(2);
 const slice = args.includes('--slice') ? args[args.indexOf('--slice') + 1] : 'N02-A';
 const contract = policy.sliceContract(slice);
-const base = slice === 'N02-C' ? '8d987dab960e0ad8f9b112326464b69caa5dfe58' :
+const base = slice === 'N02-D' ? '3bb1f93aeacecab547cc1402c9e04c01f6ddb5a2' :
+    slice === 'N02-C' ? '8d987dab960e0ad8f9b112326464b69caa5dfe58' :
     slice === 'N02-B' ? '4a6396000d15d98969b8291d6c162e5aafcd04b9' :
     '5d4339f46a9ec412d6c86894853435c7238dbcf1';
 const allowed = [
@@ -26,8 +27,10 @@ const allowed = [
     'docs/agent-memory/workstreams/financasbot-next-02.md',
     ...(slice !== 'N02-A' ? ['src/next/kernel/installmentSchedule.js',
         'tests/next02InstallmentSchedule.test.js'] : []),
-    ...(slice === 'N02-C' ? ['tests/next02BillingReadModel.test.js',
-        'docs/plans/workstreams/financasbot-next-02-n02c-billing-read-v1.md'] : [])
+    ...(['N02-C', 'N02-D'].includes(slice) ? ['tests/next02BillingReadModel.test.js',
+        'docs/plans/workstreams/financasbot-next-02-n02c-billing-read-v1.md'] : []),
+    ...(slice === 'N02-D' ? ['tests/next02Subcategories.test.js',
+        'docs/plans/workstreams/financasbot-next-02-n02d-subcategories-v1.md'] : [])
 ];
 const worktree = args.includes('--worktree');
 const value = name => args[args.indexOf(name) + 1];
