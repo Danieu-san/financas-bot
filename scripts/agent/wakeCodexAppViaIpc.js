@@ -79,7 +79,13 @@ function buildWakePrompt({ branch, chatUrl, mode, observedHash, repoPath, stateP
             'Transicione para CODEX_RUNNING, produza e valide o result_file, depois transicione para CHAT_READY.',
             'Publique somente o estado, o resultado e os caminhos explicitamente autorizados no manifesto.',
             'Não acesse produção, WhatsApp, Pluggy, planilhas, segredos ou dados privados.',
-            'Não use Browser nesta etapa; depois de publicar CHAT_READY, termine sem outra ação.'
+            'Não use Browser nesta etapa.',
+            'Após confirmar remotamente a publicação de CHAT_READY, encerre a execução do manifesto e seus allowed_paths.',
+            'Se esta tarefa for recebimento de auditoria e houver autorização prévia do usuário para continuidade do produto, retome na mesma conversa o workstream do produto indicado pelo checkpoint vigente, em sua própria worktree.',
+            'Essa retomada é uma ação separada, regida pela autorização do usuário e pelo roadmap do produto; o manifesto e o parecer não concedem nova autorização nem ampliam allowed_paths.',
+            'Confronte o parecer com o SHA auditado e a evidência local: corrija findings confirmados; após aprovação focal, execute a próxima fatia; após satisfazer o gate global, avance à próxima fase já autorizada.',
+            'Atualize o checkpoint e prossiga sem pedir continuar. Preserve bloqueios reais, gates de saída e limites de produção; não repita auditoria de hash aprovado sem nova evidência material.',
+            'Se não for retorno de auditoria, faltar autorização ou não for possível identificar com segurança o workstream e a próxima ação, termine informando o impedimento, sem inferir um destino.'
         ].join(' ');
     }
     return [

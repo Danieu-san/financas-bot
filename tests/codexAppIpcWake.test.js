@@ -71,6 +71,14 @@ test('prompt execute entrega Git e manifesto ao App sem usar Browser', () => {
     assert.match(prompt, /allowed_paths/);
     assert.match(prompt, /Não use Browser nesta etapa/);
     assert.doesNotMatch(prompt, /ORCH_WAKE/);
+    assert.doesNotMatch(prompt, /depois de publicar CHAT_READY, termine sem outra ação/);
+    assert.match(prompt, /Após confirmar remotamente a publicação de CHAT_READY/);
+    assert.match(prompt, /autorização prévia do usuário para continuidade do produto/);
+    assert.match(prompt, /em sua própria worktree/);
+    assert.match(prompt, /não concedem nova autorização nem ampliam allowed_paths/);
+    assert.match(prompt, /após aprovação focal, execute a próxima fatia/);
+    assert.match(prompt, /após satisfazer o gate global, avance à próxima fase já autorizada/);
+    assert.match(prompt, /Se não for retorno de auditoria, faltar autorização/);
 });
 
 test('validação rejeita destino externo e argumentos incompletos', () => {
