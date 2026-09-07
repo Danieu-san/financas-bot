@@ -1,27 +1,28 @@
 {
   "schema": "financasbot-chat-codex-task-v1",
-  "task_id": "FIN-NEXT02-N02D-AUDIT-RETURN-20260906",
-  "objective": "Consuma e valide o parecer independente focal N02-D publicado em docs/agent-memory/workstreams/results/FIN-NEXT02-N02D-AUDIT-20260906.md. Objeto auditado: c0c762786d81db71cf82681915750efb2f23f9e7; parent único: 3bb1f93aeacecab547cc1402c9e04c01f6ddb5a2; veredito: APROVÁVEL somente para a fatia N02-D de subcategorias. Registre no result_file o recebimento do parecer, a ausência de finding CRITICAL/HIGH/MEDIUM/LOW demonstrado e os limites preservados. Esta tarefa é exclusivamente de recebimento/validação do parecer; não edite produto e não inicie nova auditoria do N02-C.",
+  "task_id": "FIN-NEXT02-N02E-AUDIT-RETURN-20260907",
+  "objective": "Consuma e valide o parecer independente focal N02-E publicado em docs/agent-memory/workstreams/results/FIN-NEXT02-N02E-AUDIT-20260907.md. Objeto auditado: 38da54b2e12ae45068bcf84436a44b26744cc5a3; parent único: c0c762786d81db71cf82681915750efb2f23f9e7; veredito: APROVÁVEL somente para a fatia N02-E de corpus complementar explícito. Registre no result_file o recebimento do parecer, a ausência de finding CRITICAL/HIGH/MEDIUM/LOW demonstrado, a preservação dos quatro Golden v1 e os limites declarados. Esta tarefa é exclusivamente de recebimento/validação do parecer; não edite produto, não reaudite N02-D e não solicite reenvio do mesmo candidato sem evidência material nova.",
   "required_files": [
-    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02D-AUDIT-20260906.md"
+    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02E-AUDIT-20260907.md"
   ],
   "allowed_paths": [
-    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02D-AUDIT-RETURN-20260906.md"
+    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02E-AUDIT-RETURN-20260907.md"
   ],
-  "result_file": "docs/agent-memory/workstreams/results/FIN-NEXT02-N02D-AUDIT-RETURN-20260906.md",
+  "result_file": "docs/agent-memory/workstreams/results/FIN-NEXT02-N02E-AUDIT-RETURN-20260907.md",
   "validation": [
-    "Registra SHA c0c762786d81db71cf82681915750efb2f23f9e7, parent único 3bb1f93aeacecab547cc1402c9e04c01f6ddb5a2 e veredito APROVÁVEL somente para N02-D.",
+    "Registra SHA 38da54b2e12ae45068bcf84436a44b26744cc5a3, parent único c0c762786d81db71cf82681915750efb2f23f9e7 e veredito APROVÁVEL somente para N02-E.",
     "Registra que a auditoria não demonstrou finding CRITICAL, HIGH, MEDIUM ou LOW no escopo focal.",
-    "Registra que a auditoria foi estática e não reexecutou 57/57, 130/130, 1976 PASS ou runner valid=true.",
-    "Registra que Golden Set integral, motor completo de provenance e GO global NEXT-02 permanecem pendentes.",
+    "Registra que os quatro artefatos Golden v1 permaneceram inalterados entre parent e candidato e que o corpus complementar não alegou equivalência integral dos 56 turnos/76 fatos.",
+    "Registra que a auditoria foi estática e não reexecutou 64/64, 137/137, 1983 PASS, runner valid=true nem o validador Golden v1 48 casos/56 turnos/76 fatos.",
+    "Registra os limites: expectativas locais e resolução de IDs pelo snapshot não equivalem ao motor completo de provenance; GO global NEXT-02 permanece pendente.",
     "Registra que o parecer não abre NEXT-03 e não autoriza produção, deploy, writers, adapters/integrações reais ou dados reais.",
     "Não altera nenhum arquivo além do result_file e do state mecânico produzido pela transição canônica."
   ],
   "constraints": [
-    "Não alterar src/, tests/, scripts/, docs/plans/, documentos de produto NEXT-02, package/lockfile, runtime ou a branch do produto nesta tarefa de retorno.",
-    "Não iniciar nova auditoria nem repetir recebimento do N02-C já consumido.",
+    "Não alterar src/, tests/, scripts/, docs/plans/, fixtures, documentos de produto NEXT-02, package/lockfile, runtime ou a branch do produto nesta tarefa de retorno.",
+    "Não reauditar N02-D nem iniciar auditoria duplicada de N02-E.",
     "Não encerrar NEXT-02 e não abrir NEXT-03.",
     "Não executar produção, deploy, writers, adapters/integrações reais, OCI, WhatsApp, Google, Pluggy, dados reais, segredos, sessões ou .env.",
-    "Não converter resultados locais relatados em prova independente nem solicitar auditoria duplicada do SHA c0c762786d81db71cf82681915750efb2f23f9e7."
+    "Não converter resultados locais relatados em prova independente e não solicitar reenvio do SHA 38da54b2e12ae45068bcf84436a44b26744cc5a3 sem evidência material nova."
   ]
 }
