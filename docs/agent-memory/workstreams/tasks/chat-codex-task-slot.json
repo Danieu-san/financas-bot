@@ -1,27 +1,27 @@
 {
   "schema": "financasbot-chat-codex-task-v1",
-  "task_id": "FIN-NEXT02-N02C-AUDIT-RETURN-20260906",
-  "objective": "Consuma e valide o parecer independente focal N02-C publicado em docs/agent-memory/workstreams/results/FIN-NEXT02-N02C-AUDIT-20260906.md. Objeto auditado: 3bb1f93aeacecab547cc1402c9e04c01f6ddb5a2; parent único: 8d987dab960e0ad8f9b112326464b69caa5dfe58; veredito: APROVÁVEL somente para a fatia N02-C. Registre no result_file o recebimento do parecer, a ausência de finding CRITICAL/HIGH/MEDIUM/LOW demonstrado e os limites preservados. Esta tarefa é exclusivamente de recebimento/validação do parecer; não edite produto e não reaudite N02-B.",
+  "task_id": "FIN-NEXT02-N02D-AUDIT-RETURN-20260906",
+  "objective": "Consuma e valide o parecer independente focal N02-D publicado em docs/agent-memory/workstreams/results/FIN-NEXT02-N02D-AUDIT-20260906.md. Objeto auditado: c0c762786d81db71cf82681915750efb2f23f9e7; parent único: 3bb1f93aeacecab547cc1402c9e04c01f6ddb5a2; veredito: APROVÁVEL somente para a fatia N02-D de subcategorias. Registre no result_file o recebimento do parecer, a ausência de finding CRITICAL/HIGH/MEDIUM/LOW demonstrado e os limites preservados. Esta tarefa é exclusivamente de recebimento/validação do parecer; não edite produto e não inicie nova auditoria do N02-C.",
   "required_files": [
-    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02C-AUDIT-20260906.md"
+    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02D-AUDIT-20260906.md"
   ],
   "allowed_paths": [
-    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02C-AUDIT-RETURN-20260906.md"
+    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02D-AUDIT-RETURN-20260906.md"
   ],
-  "result_file": "docs/agent-memory/workstreams/results/FIN-NEXT02-N02C-AUDIT-RETURN-20260906.md",
+  "result_file": "docs/agent-memory/workstreams/results/FIN-NEXT02-N02D-AUDIT-RETURN-20260906.md",
   "validation": [
-    "Registra SHA 3bb1f93aeacecab547cc1402c9e04c01f6ddb5a2, parent único 8d987dab960e0ad8f9b112326464b69caa5dfe58 e veredito APROVÁVEL somente para N02-C.",
+    "Registra SHA c0c762786d81db71cf82681915750efb2f23f9e7, parent único 3bb1f93aeacecab547cc1402c9e04c01f6ddb5a2 e veredito APROVÁVEL somente para N02-D.",
     "Registra que a auditoria não demonstrou finding CRITICAL, HIGH, MEDIUM ou LOW no escopo focal.",
-    "Registra que a auditoria foi estática e não reexecutou 44/44, 117/117, 1963 PASS ou runner valid=true.",
-    "Registra que motor integral de provenance, Golden Set completo e subcategorias permanecem pendentes no NEXT-02.",
-    "Registra que o parecer não fecha NEXT-02, não abre NEXT-03 e não autoriza adapters/writers reais, deploy, produção ou dados reais.",
+    "Registra que a auditoria foi estática e não reexecutou 57/57, 130/130, 1976 PASS ou runner valid=true.",
+    "Registra que Golden Set integral, motor completo de provenance e GO global NEXT-02 permanecem pendentes.",
+    "Registra que o parecer não abre NEXT-03 e não autoriza produção, deploy, writers, adapters/integrações reais ou dados reais.",
     "Não altera nenhum arquivo além do result_file e do state mecânico produzido pela transição canônica."
   ],
   "constraints": [
-    "Não alterar src/, tests/, scripts/, docs/plans/, documentos de produto NEXT-02, package/lockfile ou runtime nesta tarefa de retorno.",
-    "Não reauditar nem repetir recebimento do N02-B já consumido.",
+    "Não alterar src/, tests/, scripts/, docs/plans/, documentos de produto NEXT-02, package/lockfile, runtime ou a branch do produto nesta tarefa de retorno.",
+    "Não iniciar nova auditoria nem repetir recebimento do N02-C já consumido.",
     "Não encerrar NEXT-02 e não abrir NEXT-03.",
-    "Não executar deploy, produção, writers, adapters reais, OCI, WhatsApp, Google, Pluggy, dados reais, segredos, sessões ou .env.",
-    "Não converter resultados locais relatados em prova independente nem solicitar auditoria duplicada do SHA 3bb1f93aeacecab547cc1402c9e04c01f6ddb5a2."
+    "Não executar produção, deploy, writers, adapters/integrações reais, OCI, WhatsApp, Google, Pluggy, dados reais, segredos, sessões ou .env.",
+    "Não converter resultados locais relatados em prova independente nem solicitar auditoria duplicada do SHA c0c762786d81db71cf82681915750efb2f23f9e7."
   ]
 }
