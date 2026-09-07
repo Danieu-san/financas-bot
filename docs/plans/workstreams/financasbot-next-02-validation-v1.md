@@ -1,6 +1,46 @@
 # NEXT-02 — Evidência local por fatia
 
-## N02-D — candidato local validado; auditoria independente pendente
+## N02-E — corpus complementar, validação local concluída; auditoria pendente
+
+Parent esperado: `c0c762786d81db71cf82681915750efb2f23f9e7`.
+Escopo: `financasbot-next-02-golden-reconciliation-v1.md`. Somente fixtures,
+testes, gate e documentação; nenhum runtime, dependência ou Golden Set v1 alterado.
+
+- RED inicial: seis propriedades passaram; NEXT02E:GATE falhou por fatia
+  inexistente. Não há alegação de RED financeiro: kernel aprovado já atendia
+  às consultas explícitas do corpus complementar.
+- Gate `node scripts/agent/validateFinancasBotNext02.mjs --slice N02-E --worktree`:
+  64/64 por eventos estruturados, zero skip/todo. São 57 regressões e sete
+  propriedades E, incluindo 23 consultas/cinco recusas e mutações causais.
+- Inventário 15; imports v1/efeitos proibidos/loaders não classificados zero;
+  um runtime loader hermético classificado. Allowlist N02-E não permite src/next.
+- Afetados 137/137, zero FAIL/CANCELLED/SKIP/TODO, com o comando N02-D abaixo
+  acrescido de `tests/next02GoldenExpenses.test.js`.
+- Golden Set antigo: validador PASS, 48 casos/56 turnos/76 fatos/39 avaliadores.
+  Seus quatro arquivos são pinados por SHA-256 com LF canônico; não alterados.
+- Adversarial: referência omitida, valor divergente, categoria alterada com
+  total familiar igual, refund inválido, compra/parcela ausente, competência
+  nula, subcategoria incompatível/unknown. Recusas não carregam claim de valor.
+  Gate rejeita skip/todo/arquivo/nesting inválidos, ID ausente/duplicado,
+  test:fail e stdout usado para simular aprovação.
+- Suíte ampla única `npm test`, sessão 36370, concluída: 181 arquivos
+  descobertos/163 entrypoints; 1.993 testes, 1.983 PASS, zero FAIL/CANCELLED/TODO,
+  10 SKIP previstos, exit_status=0, runner valid=true e validation_reasons vazio.
+  Duração 1.061.024 ms. Cobertura: linhas 91,94%, branches 75,73%, funções 91,54%.
+  Skips: cinco casos de instalação/configuração e cinco grupos funcionais;
+  WhatsApp real excluído. Nenhum skip focal e nenhuma integração real executada.
+  Saída recuperada da mesma execução após pausa; não houve nova suíte.
+
+Novo corpus é candidato de autoria local, não oracle independentemente
+ratificado. Rastreabilidade cobre inventário de turnos, não todos os fatos
+nem a execução das conversas. Provenance integral e GO global pendentes.
+Gate final: `--slice N02-E --expected-head SHA --expected-parent c0c762786d81db71cf82681915750efb2f23f9e7`.
+
+## Histórico N02-D — aprovado focalmente
+
+N02-D recebeu APROVÁVEL no SHA `c0c762786d81db71cf82681915750efb2f23f9e7`;
+recibo remoto `54ba9e2fd29b51ef4529dcb62a839f90a9bd0f7e`. O texto abaixo
+registra a validação anterior ao parecer, não nova auditoria pendente.
 
 Parent esperado: `3bb1f93aeacecab547cc1402c9e04c01f6ddb5a2` (N02-C aprovado).
 Contrato: `financasbot-next-02-n02d-subcategories-v1.md`.

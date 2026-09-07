@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "synthetic": true,
+  "closed_world": true,
+  "status": "candidate_pending_independent_review",
+  "source_instance": "next02-golden-synthetic",
+  "policy_version": "next02-import-v4",
+  "clock": "2042-06-30T23:59:59.999Z",
+  "observation_coverage": {"start":"2042-05-01","end":"2042-06-30","as_of":"2042-06-30T23:59:59.999Z","completeness":"complete"},
+  "coverage": [
+    {"time_basis":"transaction_date","evidence_state":"confirmed","start":"2042-05-01","end":"2042-06-30","as_of":"2042-06-30T23:59:59.999Z","completeness":"complete"},
+    {"time_basis":"transaction_date","evidence_state":"projected","start":"2042-05-01","end":"2042-08-31","as_of":"2042-06-30T23:59:59.999Z","completeness":"complete"},
+    {"time_basis":"billing_period","evidence_state":"confirmed","start":"2042-05-01","end":"2042-06-30","as_of":"2042-06-30T23:59:59.999Z","completeness":"complete"},
+    {"time_basis":"billing_period","evidence_state":"projected","start":"2042-05-01","end":"2042-08-31","as_of":"2042-06-30T23:59:59.999Z","completeness":"complete"}
+  ],
+  "catalog": {
+    "family_id":"family-example",
+    "people":[{"id":"person-a"},{"id":"person-b"}],
+    "accounts":[{"id":"account-a","owner_id":"person-a"},{"id":"account-b","owner_id":"person-b"},{"id":"account-reserve","owner_id":"person-a"}],
+    "cards":[{"id":"card-blue","owner_id":"person-a"},{"id":"card-green","owner_id":"person-b"},{"id":"card-offline","owner_id":"person-a"}],
+    "categories":[{"id":"food.snack","kind":"expense"},{"id":"food.market","kind":"expense"},{"id":"food.restaurant","kind":"expense"},{"id":"transport.fuel","kind":"expense"},{"id":"housing.rent","kind":"expense"},{"id":"leisure.cinema","kind":"expense"},{"id":"gifts","kind":"expense"},{"id":"income.salary","kind":"income"},{"id":"health.general","kind":"expense"}],
+    "subcategories":[{"id":"gifts.electronics","category_id":"gifts"},{"id":"gifts.other","category_id":"gifts"},{"id":"food.market.weekly","category_id":"food.market"},{"id":"health.exam","category_id":"health.general"}]
+  },
+  "columns":["id","record_type","person_id","account_id","card_id","category_id","subcategory_id","amount_minor","transaction_date","evidence_state","related_record_ref","transfer_ref","settles_card_id","installment_total","installment_index","installment_purchase_ref","billing_period"],
+  "records":[
+    ["evt-salary-a","income","person-a","account-a",null,"income.salary",null,500000,"2042-06-03","confirmed",null,null,null,null,null,null,null],
+    ["evt-market-a","purchase","person-a","account-a",null,"food.market","food.market.weekly",30000,"2042-06-04","confirmed",null,null,null,null,null,null,null],
+    ["evt-snack-a","purchase","person-a",null,"card-blue","food.snack",null,1200,"2042-06-05","confirmed",null,null,null,null,null,null,"2042-06"],
+    ["evt-fuel-a","purchase","person-a",null,"card-blue","transport.fuel",null,20000,"2042-06-06","confirmed",null,null,null,null,null,null,"2042-06"],
+    ["evt-restaurant-b","purchase","person-b",null,"card-green","food.restaurant",null,4500,"2042-06-07","confirmed",null,null,null,null,null,null,"2042-06"],
+    ["evt-refund-b","refund","person-b",null,"card-green","food.restaurant",null,4500,"2042-06-09","confirmed","evt-restaurant-b",null,null,null,null,null,"2042-06"],
+    ["evt-cinema-b","purchase","person-b",null,"card-green","leisure.cinema",null,3200,"2042-06-10","confirmed",null,null,null,null,null,null,"2042-06"],
+    ["evt-gift-b","purchase","person-b","account-b",null,"gifts","gifts.other",5000,"2042-06-11","confirmed",null,null,null,null,null,null,null],
+    ["evt-transfer-out","transfer","person-a","account-a",null,null,null,-15000,"2042-06-12","confirmed",null,"transfer-01",null,null,null,null,null],
+    ["evt-transfer-in","transfer","person-a","account-reserve",null,null,null,15000,"2042-06-12","confirmed",null,"transfer-01",null,null,null,null,null],
+    ["evt-invoice-payment","invoice_payment","person-a","account-a",null,null,null,60000,"2042-06-13","confirmed",null,null,"card-blue",null,null,null,null],
+    ["evt-rent-a","purchase","person-a","account-a",null,"housing.rent",null,100000,"2042-06-14","confirmed",null,null,null,null,null,null,null],
+    ["purchase-plan-01","purchase","person-a",null,"card-blue","gifts","gifts.electronics",30000,"2042-05-20","confirmed",null,null,null,3,null,null,null],
+    ["evt-installment-1","installment","person-a",null,"card-blue","gifts","gifts.electronics",10000,"2042-05-20","confirmed",null,null,null,3,1,"purchase-plan-01","2042-06"],
+    ["evt-installment-2","installment","person-a",null,"card-blue","gifts","gifts.electronics",10000,"2042-05-20","projected",null,null,null,3,2,"purchase-plan-01","2042-07"],
+    ["evt-installment-3","installment","person-a",null,"card-blue","gifts","gifts.electronics",10000,"2042-05-20","projected",null,null,null,3,3,"purchase-plan-01","2042-08"],
+    ["evt-bill-projected","purchase","person-b","account-b",null,"housing.rent",null,80000,"2042-06-25","projected",null,null,null,null,null,null,null]
+  ],
+  "new_information": {
+    "purchase-plan-01":"New synthetic observation: purchase 30000 on 2042-05-20. Not recovered from the v1 oracle or inferred at runtime.",
+    "installments":"Explicit purchase link and June/July/August billing periods; transaction_date now names the new purchase date. Original row dates remain only in frozen v1.",
+    "card_billing":"June competence explicitly stipulated for non-installment card purchases and refund. Not inferred from card close/due rules.",
+    "subcategories":"New explicit catalog and values; null means unknown, not an inferred category hierarchy.",
+    "coverage":"New closed-world source and clock at June month end; v1 mid-month clock and coverage assertions are not reused as proof.",
+    "normalization":"Expense/income/payment/refund use positive amounts, transfers keep signed amounts. Refund category follows its explicit target. Neutral category is null. Status active and currency BRL are explicit corpus-wide constants."
+  }
+}

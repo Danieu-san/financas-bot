@@ -1,7 +1,90 @@
 # Workstream — FinançasBot Next / NEXT-02
 
-Atualizado em: 2026-09-06
-Status: `OPEN — N02-A/B/C APROVÁVEIS; N02-D SUÍTE AMPLA PASS; CANDIDATO A PREPARAR`
+Atualizado em: 2026-09-07
+Status: `OPEN — N02-A/B/C/D APROVÁVEIS; N02-E VALIDADO LOCALMENTE; PREPARAR AUDITORIA`
+
+## Retomada N02-E — suíte única concluída
+
+Resultado recuperado da mesma sessão `36370`: exit_status=0, valid=true,
+validation_reasons vazio. 181 arquivos descobertos, 163 entrypoints;
+1.993 testes, 1.983 PASS, zero FAIL/CANCELLED/TODO, 10 SKIP previstos.
+Duração 1.061.024 ms (17min41s). Cobertura: 91,94% linhas, 75,73% branches,
+91,54% funções. Nenhuma reexecução ampla ou mudança funcional posterior.
+Gate focal 64/64 e afetados 137/137 continuam como evidência local.
+
+Próxima ação: workflow/diff, commit sanitizado de dez paths com parent
+`c0c762786d81db71cf82681915750efb2f23f9e7`, gate final vinculado, push e
+confirmação remota; uma tentativa pelo bot e acompanhamento de cinco minutos
+somente após envio. Aprovação do corpus por auditor independente ainda pendente;
+NEXT-02 global e NEXT-03 não estão liberados. Não repetir a ampla verde.
+Codex → Astra → Alto → preparar/confrontar auditoria do corpus complementar.
+
+## Histórico da pausa N02-E
+
+`npm test` iniciado na worktree do produto em 2026-09-07, sessão `36370`.
+Foi observado somente o cabeçalho do runner; resultado ainda desconhecido.
+Não fazer polling nem criar timer. Daniel enviará continuar após a espera.
+Ao retomar, recuperar essa mesma sessão/evidência, nunca iniciar outra suíte
+automaticamente. Após conclusão: registrar números reais, workflow/diff,
+commit sanitizado com parent c0c7627, gate vinculado ao SHA e auditoria por bot.
+Workflow e diff-check passaram antes de iniciar; dez paths autorizados, nenhum
+runtime, dependência ou arquivo do Golden Set v1 modificado. Ainda sem commit.
+
+## Checkpoint N02-E — corpus complementar autorizado
+
+Daniel autorizou em 2026-09-07 preparar corpus complementar, mantendo v1
+congelado. Na mesma worktree/branch, HEAD ainda
+`c0c762786d81db71cf82681915750efb2f23f9e7`, dez paths de N02-E em preparação.
+Nenhum arquivo src/next, runtime v1, dependência, runner ou bot alterado.
+Plano e escopo: `financasbot-next-02-golden-reconciliation-v1.md`.
+Três JSON novos: observações explícitas, expectativas separadas, rastreabilidade.
+23 consultas/cinco recusas; 56 turnos antigos inventariados sem alegar cobertura
+integral. Compra original/competências/coverage/subcategorias novas são declaradas,
+não inferidas para obter o oracle antigo. Revisão independente ainda pendente.
+
+RED inicial apenas da integração N02-E no gate (unknown_next02_slice), seis
+propriedades já verdes com runtime existente. Gate atual 64/64 (57 + 7),
+inventário 15, zero imports v1/efeitos proibidos/loaders não classificados.
+Afetados 137/137, zero falhas/skips/todos. Golden Set v1 PASS preservado.
+Revisão adversarial local realizada antes da ampla, incluindo categoria
+divergente com total familiar igual e evidências exatas por consulta.
+
+Próxima ação: iniciar uma única npm test no candidato estável e parar sem
+polling/timer, conforme Daniel pediu. Ao continuar, recuperar a mesma execução;
+não repetir. Só depois registrar números reais, publicar commit auditável com
+parent c0c7627, gate vinculado e uma auditoria por bot. NEXT-02 global pendente.
+Codex → Astra → Alto → validar corpus e confrontar revisão independente.
+
+O diagnóstico de decisão pendente abaixo é histórico; autorização já recebida.
+
+## Retomada vigente — N02-D aprovada e fronteira do Golden Set
+
+Produto limpo no SHA `c0c762786d81db71cf82681915750efb2f23f9e7`, branch
+`codex/financasbot-next-02-n02a-v2`, parent
+`3bb1f93aeacecab547cc1402c9e04c01f6ddb5a2`.
+N02-D recebeu APROVÁVEL focal, sem finding material. Parecer:
+`docs/agent-memory/workstreams/results/FIN-NEXT02-N02D-AUDIT-20260906.md`
+no canal, commit `69bbf41f2190ec19af489a4947e1b3a2a8484d01`.
+Recibo CHAT_READY publicado em `54ba9e2fd29b51ef4529dcb62a839f90a9bd0f7e`.
+O auditor leu nove arquivos alterados e quatro causais inalterados; não
+reexecutou os testes. Gate 57/57, afetados 130/130 e ampla 1976 PASS/0 FAIL/
+10 SKIP previstos continuam evidência local, sem repetição. Timer N02-D removido.
+
+O confronto com o roadmap encontrou uma incompatibilidade de representação
+antes da integração Golden Set: S-01 espera 169400 em event_date incluindo
+uma parcela de 10000; a fixture não fornece compra de origem nem billing_period
+das três parcelas. O kernel aprovado distingue compra integral de competência,
+e o Data Authority exige installment_of. Não renomear a lente nem inventar
+dados para satisfazer o oracle. Diagnóstico e próxima decisão:
+`docs/plans/workstreams/financasbot-next-02-golden-reconciliation-v1.md`.
+
+Próxima ação: obter direção para preparar corpus complementar explicitamente
+revisado, preservando o v1 congelado e os componentes aprovados. Não implementar
+ponte semântica antes dessa decisão. Nenhum runtime/teste/fixture foi alterado
+nesta retomada; NEXT-02 global e provenance completa continuam pendentes.
+Codex → Astra → Alto → reconciliar o corpus com os contratos aprovados.
+
+As seções seguintes são histórico anterior ao recebimento N02-D, não estado vigente.
 
 ## Retomada — resultado da suíte N02-D
 

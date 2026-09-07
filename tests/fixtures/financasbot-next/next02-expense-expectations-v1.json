@@ -1,0 +1,43 @@
+{
+  "schema_version":1,
+  "authority":"candidate_hand_authored_expectations_pending_review",
+  "query_columns":["scope","actor","period","timeBasis","evidenceState","filters"],
+  "evidence_rule":"Exact event record IDs plus exactly one independently measured coverage reference; record IDs resolve through observation identity, not by value.",
+  "cases":[
+    {"id":"family-june","q":["family","person-a","2042-06","transaction_date","confirmed",{}],"value":159400,"kind":"value","records":["evt-market-a","evt-snack-a","evt-fuel-a","evt-restaurant-b","evt-refund-b","evt-cinema-b","evt-gift-b","evt-rent-a"]},
+    {"id":"person-a-june","q":["personal","person-a","2042-06","transaction_date","confirmed",{}],"value":151200,"kind":"value","records":["evt-market-a","evt-snack-a","evt-fuel-a","evt-rent-a"]},
+    {"id":"person-b-june","q":["personal","person-b","2042-06","transaction_date","confirmed",{}],"value":8200,"kind":"value","records":["evt-restaurant-b","evt-refund-b","evt-cinema-b","evt-gift-b"]},
+    {"id":"market-family","q":["family","person-a","2042-06","transaction_date","confirmed",{"category":"food.market"}],"value":30000,"kind":"value","records":["evt-market-a"]},
+    {"id":"market-person","q":["personal","person-a","2042-06","transaction_date","confirmed",{"category":"food.market"}],"value":30000,"kind":"value","records":["evt-market-a"]},
+    {"id":"snack-a","q":["personal","person-a","2042-06","transaction_date","confirmed",{"category":"food.snack"}],"value":1200,"kind":"value","records":["evt-snack-a"]},
+    {"id":"snack-b-empty","q":["personal","person-b","2042-06","transaction_date","confirmed",{"category":"food.snack"}],"value":0,"kind":"empty","records":[]},
+    {"id":"account-a","q":["family","person-a","2042-06","transaction_date","confirmed",{"account":"account-a"}],"value":130000,"kind":"value","records":["evt-market-a","evt-rent-a"]},
+    {"id":"card-blue-transaction","q":["family","person-a","2042-06","transaction_date","confirmed",{"card":"card-blue"}],"value":21200,"kind":"value","records":["evt-snack-a","evt-fuel-a"]},
+    {"id":"refund-zero","q":["personal","person-b","2042-06","transaction_date","confirmed",{"category":"food.restaurant"}],"value":0,"kind":"zero","records":["evt-restaurant-b","evt-refund-b"]},
+    {"id":"health-empty","q":["family","person-a","2042-06","transaction_date","confirmed",{"category":"health.general"}],"value":0,"kind":"empty","records":[]},
+    {"id":"purchase-may","q":["family","person-a","2042-05","transaction_date","confirmed",{}],"value":30000,"kind":"value","records":["purchase-plan-01"]},
+    {"id":"billing-family","q":["family","person-a","2042-06","billing_period","confirmed",{}],"value":34400,"kind":"value","records":["evt-snack-a","evt-fuel-a","evt-restaurant-b","evt-refund-b","evt-cinema-b","purchase-plan-01","evt-installment-1","evt-installment-2","evt-installment-3"]},
+    {"id":"billing-blue","q":["family","person-a","2042-06","billing_period","confirmed",{"card":"card-blue"}],"value":31200,"kind":"value","records":["evt-snack-a","evt-fuel-a","purchase-plan-01","evt-installment-1","evt-installment-2","evt-installment-3"]},
+    {"id":"billing-refund-zero","q":["personal","person-b","2042-06","billing_period","confirmed",{"category":"food.restaurant"}],"value":0,"kind":"zero","records":["evt-restaurant-b","evt-refund-b"]},
+    {"id":"installment-june","q":["family","person-a","2042-06","billing_period","confirmed",{"subcategory":"gifts.electronics"}],"value":10000,"kind":"value","records":["purchase-plan-01","evt-installment-1","evt-installment-2","evt-installment-3"]},
+    {"id":"installment-july","q":["family","person-a","2042-07","billing_period","projected",{"subcategory":"gifts.electronics"}],"value":10000,"kind":"value","records":["purchase-plan-01","evt-installment-1","evt-installment-2","evt-installment-3"]},
+    {"id":"installment-august","q":["family","person-a","2042-08","billing_period","projected",{"subcategory":"gifts.electronics"}],"value":10000,"kind":"value","records":["purchase-plan-01","evt-installment-1","evt-installment-2","evt-installment-3"]},
+    {"id":"projected-june","q":["family","person-a","2042-06","transaction_date","projected",{}],"value":80000,"kind":"value","records":["evt-bill-projected"]},
+    {"id":"subcategory-market","q":["family","person-a","2042-06","transaction_date","confirmed",{"subcategory":"food.market.weekly"}],"value":30000,"kind":"value","records":["evt-market-a"]},
+    {"id":"subcategory-purchase","q":["family","person-a","2042-05","transaction_date","confirmed",{"subcategory":"gifts.electronics"}],"value":30000,"kind":"value","records":["purchase-plan-01"]},
+    {"id":"subcategory-other","q":["family","person-a","2042-06","transaction_date","confirmed",{"subcategory":"gifts.other"}],"value":5000,"kind":"value","records":["evt-gift-b"]},
+    {"id":"health-subcategory-empty","q":["family","person-a","2042-06","transaction_date","confirmed",{"subcategory":"health.exam"}],"value":0,"kind":"empty","records":[]}
+  ],
+  "refusals":[
+    {"id":"partial-may","case":"purchase-may","coverage":"partial","reason":"coverage_insufficient","result_coverage":"incomplete"},
+    {"id":"unavailable-card","case":"billing-blue","coverage":"unavailable","reason":"source_unavailable","result_coverage":"unavailable"},
+    {"id":"missing-lens","case":"billing-family","coverage":"absent","reason":"coverage_insufficient","result_coverage":"incomplete"},
+    {"id":"external-actor","case":"family-june","actor":"person-c","reason":"authorized_scope_mismatch","result_coverage":"unavailable"},
+    {"id":"legacy-lens","case":"family-june","timeBasis":"event_date","reason":"query_schema_invalid","result_coverage":"unavailable"}
+  ],
+  "arithmetic_review":{
+    "family-june":"30000 + 1200 + 20000 + 4500 - 4500 + 3200 + 5000 + 100000 = 159400; neither purchase in May nor installment rows enter this lens.",
+    "billing-family":"1200 + 20000 + 4500 - 4500 + 3200 + 10000 = 34400. Account purchases are not card competence.",
+    "installments":"New purchase 30000 in May; explicit 10000 in each of June/July/August. Only June confirmed. All four nodes prove the complete schedule, even for one selected installment."
+  }
+}

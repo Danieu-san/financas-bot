@@ -21,19 +21,22 @@ const BILLING_IDS = Object.freeze(['LENSES', 'COVERAGE', 'ASOF', 'REFUND', 'MISS
     'SCOPE', 'NEUTRAL', 'OPTIN', 'TOOL', 'ANCESTRY', 'SCHEMA', 'GATE']);
 const SUBCATEGORY_IDS = Object.freeze(['TOTAL', 'CATALOG', 'BINDING', 'UNKNOWN', 'REFUND',
     'INSTALLMENT', 'PROVENANCE', 'VERSIONS', 'SCOPE', 'OPTIN', 'TOOL', 'NEUTRAL', 'GATE']);
+const GOLDEN_IDS = Object.freeze(['BASELINE', 'CASES', 'REFUSALS', 'REFERENCES', 'MUTATIONS', 'TRACEABILITY', 'GATE']);
 
 function sliceContract(slice = 'N02-A') {
-    if (!['N02-A', 'N02-B', 'N02-C', 'N02-D'].includes(slice)) throw new Error('unknown_next02_slice');
+    if (!['N02-A', 'N02-B', 'N02-C', 'N02-D', 'N02-E'].includes(slice)) throw new Error('unknown_next02_slice');
     return {
         paths: slice === 'N02-A' ? EXPECTED_PATHS : INSTALLMENT_PATHS,
         properties: [
             ...REQUIRED_IDS.map(id => ({ key: 'NEXT02:' + id, file: 'next02ObservationKernel.test.js' })),
             ...(slice !== 'N02-A' ? INSTALLMENT_IDS.map(id =>
                 ({ key: 'NEXT02B:' + id, file: 'next02InstallmentSchedule.test.js' })) : []),
-            ...(['N02-C', 'N02-D'].includes(slice) ? BILLING_IDS.map(id =>
+            ...(['N02-C', 'N02-D', 'N02-E'].includes(slice) ? BILLING_IDS.map(id =>
                 ({ key: 'NEXT02C:' + id, file: 'next02BillingReadModel.test.js' })) : []),
-            ...(slice === 'N02-D' ? SUBCATEGORY_IDS.map(id =>
-                ({ key: 'NEXT02D:' + id, file: 'next02Subcategories.test.js' })) : [])
+            ...(['N02-D', 'N02-E'].includes(slice) ? SUBCATEGORY_IDS.map(id =>
+                ({ key: 'NEXT02D:' + id, file: 'next02Subcategories.test.js' })) : []),
+            ...(slice === 'N02-E' ? GOLDEN_IDS.map(id =>
+                ({ key: 'NEXT02E:' + id, file: 'next02GoldenExpenses.test.js' })) : [])
         ]
     };
 }
@@ -71,7 +74,7 @@ function validatePropertyEvents(events, slice = 'N02-A') {
     for (const event of events) {
         if (!['test:pass', 'test:fail'].includes(event.type)) continue;
         const data = event.data || {};
-        const match = /^(NEXT02[BCD]?:[A-Z0-9-]+) /.exec(data.name || '');
+        const match = /^(NEXT02[BCDE]?:[A-Z0-9-]+) /.exec(data.name || '');
         const id = match?.[1];
         if (event.type !== 'test:pass' || data.skip || data.todo || data.nesting !== 0 ||
             data.details?.type !== 'test' || !String(data.file || '').replaceAll('\\', '/')
@@ -85,5 +88,5 @@ function validatePropertyEvents(events, slice = 'N02-A') {
     return { errors, approvedIds: [...approved].sort() };
 }
 
-module.exports = { EXPECTED_PATHS, REQUIRED_IDS, INSTALLMENT_IDS, INSTALLMENT_PATHS, BILLING_IDS, SUBCATEGORY_IDS,
+module.exports = { EXPECTED_PATHS, REQUIRED_IDS, INSTALLMENT_IDS, INSTALLMENT_PATHS, BILLING_IDS, SUBCATEGORY_IDS, GOLDEN_IDS,
     sliceContract, inspectSources, validatePropertyEvents };

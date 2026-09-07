@@ -1,7 +1,7 @@
 # NEXT-02 — Vertical de gastos por categoria
 
-Atualizado em: 2026-09-06
-Estado: `OPEN — N02-A/B/C APROVÁVEIS; N02-D VALIDADO LOCALMENTE; AUDITORIA PENDENTE`
+Atualizado em: 2026-09-07
+Estado: `OPEN — N02-A/B/C/D APROVÁVEIS; N02-E VALIDADO LOCALMENTE; AUDITORIA PENDENTE`
 Base: `29791be6ba3f80fc8033bd6cb715484e7275a3c5`
 Branch: `codex/financasbot-next-02`
 Predecessor: NEXT-01 aprovado e ratificado por Daniel em 2026-09-03.
@@ -63,6 +63,25 @@ Parar por ambiguidade normativa material, necessidade de dados reais ou
 expansão além do gate; falha de teste não autoriza relaxar contrato.
 
 ## Próxima ação exata
+
+N02-D aprovada focalmente no SHA `c0c762786d81db71cf82681915750efb2f23f9e7`;
+recibo do canal publicado em `54ba9e2fd29b51ef4529dcb62a839f90a9bd0f7e`.
+Não reenviar esse candidato nem repetir sua suíte ampla.
+
+Reconciliar Golden Set e contratos temporais antes da integração do vertical.
+Diagnóstico: `financasbot-next-02-golden-reconciliation-v1.md`.
+O corpus v1 usa event_date para consumo incluindo parcela sem compra vinculada;
+as lentes aprovadas do kernel não são aliases desse modelo. A proposta é corpus
+complementar revisado, sem mudar o v1 congelado ou relaxar installment_of.
+Daniel autorizou a preparação em 2026-09-07. N02-E contém três fixtures,
+23 consultas/cinco recusas e inventário dos 56 turnos, sem claim de cobertura
+integral dos 76 fatos. Nenhum runtime alterado. Gate 64/64, afetados 137/137,
+Golden Set v1 preservado e PASS. Ampla única concluída: 1.993 testes,
+1.983 PASS, zero falhas, 10 SKIP previstos e runner válido. Próximo: commit
+auditável e revisão independente das novas expectativas, sem repetir a ampla.
+Provenance completa e GO global NEXT-02 permanecem pendentes. NEXT-03 fechado.
+
+### Histórico N02-D anterior ao parecer
 
 N02-C aprovado focalmente em `3bb1f93aeacecab547cc1402c9e04c01f6ddb5a2`;
 recibo remoto `9f09dfb8a5efd781d639519b72755c5812e710d9`. N02-D implementado

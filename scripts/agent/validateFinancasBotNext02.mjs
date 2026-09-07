@@ -11,11 +11,23 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const args = process.argv.slice(2);
 const slice = args.includes('--slice') ? args[args.indexOf('--slice') + 1] : 'N02-A';
 const contract = policy.sliceContract(slice);
-const base = slice === 'N02-D' ? '3bb1f93aeacecab547cc1402c9e04c01f6ddb5a2' :
+const base = slice === 'N02-E' ? 'c0c762786d81db71cf82681915750efb2f23f9e7' :
+    slice === 'N02-D' ? '3bb1f93aeacecab547cc1402c9e04c01f6ddb5a2' :
     slice === 'N02-C' ? '8d987dab960e0ad8f9b112326464b69caa5dfe58' :
     slice === 'N02-B' ? '4a6396000d15d98969b8291d6c162e5aafcd04b9' :
     '5d4339f46a9ec412d6c86894853435c7238dbcf1';
-const allowed = [
+const allowed = slice === 'N02-E' ? [
+    'tests/next02GoldenExpenses.test.js',
+    'tests/fixtures/financasbot-next/next02-expense-observations-v1.json',
+    'tests/fixtures/financasbot-next/next02-expense-expectations-v1.json',
+    'tests/fixtures/financasbot-next/next02-golden-traceability-v1.json',
+    'scripts/agent/financasBotNext02ValidationPolicy.js',
+    'scripts/agent/validateFinancasBotNext02.mjs',
+    'docs/agent-memory/workstreams/financasbot-next-02.md',
+    'docs/plans/workstreams/financasbot-next-02.md',
+    'docs/plans/workstreams/financasbot-next-02-validation-v1.md',
+    'docs/plans/workstreams/financasbot-next-02-golden-reconciliation-v1.md'
+] : [
     'src/next/kernel/canonicalValue.js', 'src/next/kernel/observationKernel.js',
     'src/next/kernel/expenseReadModel.js', 'tests/next02ObservationKernel.test.js',
     'tests/next/validatorGate.cases.js',
@@ -46,7 +58,8 @@ if (!worktree) {
         expectedHead, expectedParent, actualHead: head,
         parentLine: git('rev-list', '--parents', '-n', '1', 'HEAD'),
         dirtyStatus: git('status', '--porcelain'),
-        requiredFiles: [...allowed, ...contract.paths.map(p => 'src/next/' + p)],
+        requiredFiles: [...allowed, ...contract.paths.map(p => 'src/next/' + p),
+            ...new Set(contract.properties.map(p => 'tests/' + p.file))],
         trackedFiles: new Set(git('ls-tree', '-r', '--name-only', 'HEAD').split('\n')),
         ignoredPaths: git('ls-files', '--others', '--ignored', '--exclude-standard', '--', 'src/next',
             ...new Set(contract.properties.map(p => 'tests/' + p.file)))
