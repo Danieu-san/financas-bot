@@ -1,7 +1,35 @@
 # Continuidade após recebimento de auditoria
 
-Status: candidato para auditoria focal; 30/30 testes causais PASS; ampla com oito falhas reproduzidas na base.
+Status: ajuste focal APROVADO e instalado; ampla com oito falhas preexistentes permanece vermelha.
 Base: `870e0e0d7d0f88cf2b5ee62cf1396f7cb1dee24e`.
+
+## Fechamento em 2026-09-07
+
+Candidato aprovado: `591368d96cdef610741ab1657beb5ffccd45a4cd`.
+Parecer publicado em `925ba7af0f34117228bd154144b8054d722ab3fd`, arquivo
+`docs/agent-memory/workstreams/results/ORCH-AUTO-CONTINUE-AUDIT-20260907.md`
+na branch do canal. APROVÁVEL somente para o delta, sem finding causal.
+SHA, parent, três paths e limites foram confrontados com o Git local.
+
+O envio pelo bot havia terminado sem confirmação, mas o parecer remoto
+comprova o recebimento posterior. Não houve reenvio. O acompanhamento foi
+removido após o parecer.
+
+Instalação feita pelo `Install-CodexAppWakeBridge.ps1 -Action Repair` existente.
+Modo instalado confirmado: watcher usa app-wake-request e ponte protegida.
+Worker instalado permaneceu idêntico. SHA-256 do helper instalado conferido:
+`ec0428f781cfab1506e92e98b1923848021440bbabe19bb80626dc385e7c25b6`.
+Fonte aprovada permanece na branch `codex/orch-auto-continue`; qualquer Repair
+futuro deve usar essa revisão aprovada ou descendente que a preserve.
+
+O slot de recibo não foi armado porque o canal já estava CODEX_READY para
+`FIN-NEXT01-INHERITANCE-REVIEW-20260907`. Nenhum state/task desse slot foi
+sobrescrito. Daniel entregou também o parecer nesta conversa e determinou
+tratar a tarefa ocupante após este fechamento.
+
+Próxima ação vigente: ler e validar o estado/manifesto remoto da tarefa
+`FIN-NEXT01-INHERITANCE-REVIEW-20260907`, executar somente seu escopo e depois
+retomar o roadmap autorizado. As próximas ações anteriores abaixo são histórico.
 
 ## Objetivo e autorização
 
