@@ -1,28 +1,33 @@
 {
   "schema": "financasbot-chat-codex-task-v1",
-  "task_id": "FIN-NEXT02-N02E-AUDIT-RETURN-20260907",
-  "objective": "Consuma e valide o parecer independente focal N02-E publicado em docs/agent-memory/workstreams/results/FIN-NEXT02-N02E-AUDIT-20260907.md. Objeto auditado: 38da54b2e12ae45068bcf84436a44b26744cc5a3; parent único: c0c762786d81db71cf82681915750efb2f23f9e7; veredito: APROVÁVEL somente para a fatia N02-E de corpus complementar explícito. Registre no result_file o recebimento do parecer, a ausência de finding CRITICAL/HIGH/MEDIUM/LOW demonstrado, a preservação dos quatro Golden v1 e os limites declarados. Esta tarefa é exclusivamente de recebimento/validação do parecer; não edite produto, não reaudite N02-D e não solicite reenvio do mesmo candidato sem evidência material nova.",
+  "task_id": "FIN-NEXT01-INHERITANCE-REVIEW-20260907",
+  "objective": "Execute o CP-01 do suplemento docs/plans/workstreams/financasbot-next-crosscutting-review-checkpoints-v1.md usando Codex/Astra em esforço Alto. Faça revisão retrospectiva somente leitura da fundação herdada do NEXT-01, tomando como âncora histórica o SHA aprovado 9b0cfd848d08b85ed94016b65f07820ca89dbbfb e confrontando cada rota causal com o descendant atual da branch codex/financasbot-next-02-n02a-v2 no SHA 5239c342b5705e64d3fb6412048382d665bcb6a4. Não limite a revisão ao último delta histórico: cubra Tool Gateway, Model Data Boundary, SessionState/CAS, catálogo/policy read-only, tool budget/failure policy, replay hermético/tripwire, observabilidade sanitizada, ledger vazio, claims e validators/gates. Para cada finding, prove a cadeia causal e classifique como herdado_material, historico_ja_eliminado ou manutencao_nao_finding. Se houver finding herdado material, pare antes de corrigir. Se não houver, declare CP-01 resolvido. Não reaudite N02-A/B/C/D/E e não avance para nova fatia de NEXT-02.",
   "required_files": [
-    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02E-AUDIT-20260907.md"
+    "docs/plans/workstreams/financasbot-next-crosscutting-review-checkpoints-v1.md",
+    "docs/plans/workstreams/financasbot-next-01.md",
+    "docs/agent-memory/workstreams/results/FIN-NEXT01-AST-REAUDIT-20260903.md",
+    "docs/plans/workstreams/financasbot-next-02.md",
+    "docs/agent-memory/workstreams/financasbot-next-02.md"
   ],
   "allowed_paths": [
-    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02E-AUDIT-RETURN-20260907.md"
+    "docs/agent-memory/workstreams/results/FIN-NEXT01-INHERITANCE-REVIEW-20260907.md"
   ],
-  "result_file": "docs/agent-memory/workstreams/results/FIN-NEXT02-N02E-AUDIT-RETURN-20260907.md",
+  "result_file": "docs/agent-memory/workstreams/results/FIN-NEXT01-INHERITANCE-REVIEW-20260907.md",
   "validation": [
-    "Registra SHA 38da54b2e12ae45068bcf84436a44b26744cc5a3, parent único c0c762786d81db71cf82681915750efb2f23f9e7 e veredito APROVÁVEL somente para N02-E.",
-    "Registra que a auditoria não demonstrou finding CRITICAL, HIGH, MEDIUM ou LOW no escopo focal.",
-    "Registra que os quatro artefatos Golden v1 permaneceram inalterados entre parent e candidato e que o corpus complementar não alegou equivalência integral dos 56 turnos/76 fatos.",
-    "Registra que a auditoria foi estática e não reexecutou 64/64, 137/137, 1983 PASS, runner valid=true nem o validador Golden v1 48 casos/56 turnos/76 fatos.",
-    "Registra os limites: expectativas locais e resolução de IDs pelo snapshot não equivalem ao motor completo de provenance; GO global NEXT-02 permanece pendente.",
-    "Registra que o parecer não abre NEXT-03 e não autoriza produção, deploy, writers, adapters/integrações reais ou dados reais.",
-    "Não altera nenhum arquivo além do result_file e do state mecânico produzido pela transição canônica."
+    "Confirma a âncora histórica NEXT-01 9b0cfd848d08b85ed94016b65f07820ca89dbbfb e o descendant atual 5239c342b5705e64d3fb6412048382d665bcb6a4 antes da análise.",
+    "Revisa a fundação herdada do NEXT-01 como sistema, não apenas o delta final de seis arquivos.",
+    "Procura primeiro bypass causal de scope/identity, Model Data Boundary, CAS/stale session, fallback silencioso, budget, rede/capability, writer/effect, sanitização, claims e falso verde de validator/gate.",
+    "Cada finding histórico é confrontado contra o descendant atual e classificado como herdado_material, historico_ja_eliminado ou manutencao_nao_finding.",
+    "Autoridade do modelo ou contagem de testes não substitui cadeia causal. Se testes forem executados, separar claramente execução nova de evidência histórica relatada.",
+    "Se existir herdado_material, não corrigir nesta tarefa; registrar severidade, paths, cadeia causal e correção mínima sugerida e parar.",
+    "Se não existir herdado_material, declarar explicitamente CP-01 resolvido e recomendar CP-02 como próxima seleção, sem implementar NEXT-02.",
+    "Nenhum arquivo além do result_file é alterado."
   ],
   "constraints": [
-    "Não alterar src/, tests/, scripts/, docs/plans/, fixtures, documentos de produto NEXT-02, package/lockfile, runtime ou a branch do produto nesta tarefa de retorno.",
-    "Não reauditar N02-D nem iniciar auditoria duplicada de N02-E.",
-    "Não encerrar NEXT-02 e não abrir NEXT-03.",
-    "Não executar produção, deploy, writers, adapters/integrações reais, OCI, WhatsApp, Google, Pluggy, dados reais, segredos, sessões ou .env.",
-    "Não converter resultados locais relatados em prova independente e não solicitar reenvio do SHA 38da54b2e12ae45068bcf84436a44b26744cc5a3 sem evidência material nova."
+    "Somente leitura de produto: não alterar src/, tests/, scripts/, docs/plans/, fixtures, package/lockfile ou qualquer branch de produto.",
+    "Não acessar produção, OCI, WhatsApp, Google, Pluggy, planilhas reais, browser, dados privados, segredos, sessões ou .env.",
+    "Não reauditar os candidatos imutáveis N02-A/B/C/D/E nem solicitar reenvio sem evidência material nova.",
+    "Não declarar GO global NEXT-02, não abrir NEXT-03 e não iniciar adapters, writers ou integrações reais.",
+    "O suplemento de checkpoints é vinculante para a seleção da próxima tarefa; esta tarefa resolve apenas CP-01."
   ]
 }
