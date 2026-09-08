@@ -1,6 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { createToolBudgetTracker } = require('../src/next/policy/toolBudget');
 const { observationDigest, observationDeduplicationKey, projectObservations } = require('../src/next/kernel/observationKernel');
 const { createExpenseReadModel, createExpenseToolGateway } = require('../src/next/kernel/expenseReadModel');
 
@@ -136,7 +137,7 @@ test('NEXT02C:TOOL public boundary preserves state without exposing identity', a
         accounts: { 'account-a': 'Conta A' }, cards: { 'card-a': 'Cartão A' }, categories: { gifts: 'Presentes' } };
     const gateway = createExpenseToolGateway(f);
     const r = await gateway.execute({ request: { tool: 'expenses.sum', args: { ...query, card: 'Cartão A' } },
-        trustedContext: context, budget: { reserve: () => ({ ok:true }) } });
+        trustedContext: context, budget: createToolBudgetTracker({ turnId: 'billing-tool', now: () => 1000 }) });
     assert.equal(r.ok,true); assert.equal(r.claim.value,50000);
     assert.doesNotMatch(JSON.stringify(r), /family-example|person-a|card-a|obs-|evt_|synthetic/);
 });

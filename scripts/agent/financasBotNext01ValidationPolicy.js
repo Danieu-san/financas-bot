@@ -8,6 +8,27 @@ const acorn = require('acorn');
 const HERMETIC_REPLAY_CANONICAL_AST_SHA256 =
     '00e18c3734a593b432ac0335af43353a189132513b4c0107aa825abcecbcf0be';
 
+// Reviewed-source admission, not a semantic sandbox for arbitrary JavaScript.
+// Never regenerate these pins while validating a candidate. Pin changes require
+// review of the corresponding source in the immutable candidate (CP-01 plan).
+const REVIEWED_SOURCE_SHA256 = Object.freeze({
+    'contracts/financialQueryPlan.js': '78849a3a44d64fa7e7b4f308fd42a735eaa4d785e0b17f69cda33ed387450ab5',
+    'contracts/modelDataBoundary.js': 'bea33ee7bb5f3e03a97994469d24cd5044fc90867336074f42e498eea2fd3f24',
+    'contracts/reuseManifest.js': '9e99d5543c136a1e24bef9ade6e716b036806ff585d15b186fb72db9dc141ea9',
+    'conversation/conversationGateway.js': 'c0da34134d47335730fe4be880f079e88c4d193d5ae9391525f5b0ab1191264d',
+    'kernel/canonicalValue.js': 'f6d571ddc1c7917f6a0ec8e25b17368c3e23ba10111ea5aa591c692d6739205b',
+    'kernel/expenseReadModel.js': '39bbdb7809cef065878bae8c67878fc90b91f0404dc5ecd6f37e5e9c1a4a773f',
+    'kernel/installmentSchedule.js': '4af898bd4b96cb29c802f2b22c85da981e4c697db6b3b6bd20d32a18c65a7329',
+    'kernel/observationKernel.js': '4dce0de726ed8f8606bd279f903c6b8bdf4fa4016b6f5033a5938842aff8b130',
+    'ledger/emptyLedgerStore.js': 'a8598eb26475c7aaee727aedf035f694a1f5d4a9f27e20138595fcfe6e508c82',
+    'observability/sanitizedTraceRecorder.js': 'fba5411f6deba3c60380c7f65bcc8fb7597566f32684d7ccd94f5ee6dcfaf100',
+    'policy/toolBudget.js': '06810f626d570b16af2929e697d3758c73cfd49db6a90d224e2c9acf82859742',
+    'policy/typedEvidenceVerifier.js': '2cd2f9c6d80944d18fbca696f29ea2329ce57ed1c46f99711a756b7512602d55',
+    'replay/hermeticReplayRunner.js': '597197362f9f8dd671aa4c7cb43c5969baa8dfb9836ea13cd6de88f008b7ca4d',
+    'session/memorySessionStore.js': '83b15e56ffc6b9b6f7fb49f80bc422f9afc7cfae129577e6b3a5e4c5e4869f98',
+    'tools/readOnlyToolGateway.js': '4dcc79975a98ee10ed0a5916bef0eed7cf067dd767b15b223eccba6fc5c2cd40'
+});
+
 const REQUIRED_PROPERTY_IDS = Object.freeze([
     'N01-PLAN-001',
     'N01-TOOL-001', 'N01-TOOL-002',
@@ -228,6 +249,7 @@ function analyzeNextSourceFiles({
     let classifiedStaticModuleLoads = 0;
     let classifiedHermeticRuntimeLoaders = 0;
     let hermeticReplayAstSha256 = null;
+    let reviewedSourceMatches = 0;
     const expectedSourceSet = new Set(uniqueSorted(expectedSourcePaths));
 
     for (const file of sourceFiles || []) {
@@ -238,6 +260,15 @@ function analyzeNextSourceFiles({
             continue;
         }
         const source = fs.readFileSync(file, 'utf8');
+        const measuredSourceHash = createHash('sha256')
+            .update(source.replaceAll('\r\n', '\n')).digest('hex');
+        if (!Object.hasOwn(REVIEWED_SOURCE_SHA256, relative)) {
+            errors.add(`reviewed_source_contract_missing:${relative}`);
+        } else if (measuredSourceHash !== REVIEWED_SOURCE_SHA256[relative]) {
+            errors.add(`reviewed_source_mismatch:${relative}`);
+        } else {
+            reviewedSourceMatches += 1;
+        }
         let ast;
         try {
             ast = acorn.parse(source, {
@@ -436,7 +467,8 @@ function analyzeNextSourceFiles({
         unclassifiedModuleLoaders,
         classifiedStaticModuleLoads,
         classifiedHermeticRuntimeLoaders,
-        hermeticReplayAstSha256
+        hermeticReplayAstSha256,
+        reviewedSourceMatches
     };
 }
 
@@ -559,6 +591,7 @@ function validateGitBindingEvidence({
 module.exports = {
     EXPECTED_NEXT_SOURCE_PATHS,
     HERMETIC_REPLAY_CANONICAL_AST_SHA256,
+    REVIEWED_SOURCE_SHA256,
     REQUIRED_PROPERTY_IDS,
     analyzeNextSourceFiles,
     validateExecutedPropertyEvents,

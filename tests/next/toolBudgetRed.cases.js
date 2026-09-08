@@ -60,14 +60,85 @@ test('NEXT01:N01-BUDGET-001 budget enforces call, repeat and timeout limits', ()
     });
 });
 
-test('NEXT01:N01-BUDGET-002 budget enforces the frozen envelope', () => {
+test('NEXT01:N01-BUDGET-002 budget enforces the frozen envelope', async () => {
     const { createToolBudgetTracker } = loadNext('policy/toolBudget');
     const budget = createToolBudgetTracker({ turnId: 'turn-envelope', now: () => 1000 });
 
-    assert.deepStrictEqual(budget.reserveParallelReads({ count: 3 }), { ok: true });
+    const batch = budget.reserveParallelReads({ count: 3 });
+    assert.strictEqual(batch.ok, true);
     assert.deepStrictEqual(budget.reserveParallelReads({ count: 4 }), {
         ok: false, reason: 'PARALLEL_READ_LIMIT'
     });
+    assert.deepStrictEqual(budget.reserveParallelReads({ count: 1 }), {
+        ok: false, reason: 'PARALLEL_READ_LIMIT'
+    });
+    batch.release();
+    const single = budget.reserveParallelReads({ count: 1 });
+    batch.release();
+    assert.strictEqual(budget.snapshot().activeReadCalls, 1);
+    single.release();
+
+    const { createReadOnlyToolGateway } = loadNext('tools/readOnlyToolGateway');
+    const shared = createToolBudgetTracker({ turnId: 'parallel', now: () => 1000 });
+    const pending = [];
+    let active = 0, peak = 0, calls = 0;
+    const configuration = {
+        catalog: [{ name: 'read.test', mode: 'read_only', args: { n: 'finite_number' },
+            allowedResultFields: ['ok'] }],
+        adapters: { 'read.test': () => {
+            calls += 1;
+            active += 1;
+            peak = Math.max(peak, active);
+            return new Promise((resolve, reject) => pending.push({ resolve, reject }))
+                .finally(() => { active -= 1; });
+        } }
+    };
+    const gateways = [createReadOnlyToolGateway(configuration), createReadOnlyToolGateway(configuration)];
+    const invoke = n => gateways[n % 2].execute({ request: { tool: 'read.test', args: { n } },
+        trustedContext: { familyId: 'family-a', actorId: 'person-a' }, budget: shared });
+    const running = [invoke(0), invoke(1), invoke(2)];
+    assert.strictEqual((await invoke(3)).reason, 'PARALLEL_READ_LIMIT');
+    assert.strictEqual(calls, 3);
+    assert.strictEqual(shared.snapshot().calls, 3);
+    assert.strictEqual(peak, 3);
+    pending[0].resolve({ ok: true });
+    assert.strictEqual((await running[0]).ok, true);
+    running.push(invoke(3));
+    assert.strictEqual(calls, 4); // rejected args did not consume a fingerprint
+    pending[1].reject(new Error('synthetic failure'));
+    assert.strictEqual((await running[1]).reason, 'tool_execution_failed');
+    pending[2].resolve(null);
+    assert.strictEqual((await running[2]).reason, 'invalid_tool_result');
+    pending[3].resolve({ ok: true });
+    await Promise.all(running);
+    assert.strictEqual(shared.snapshot().activeReadCalls, 0);
+    assert.strictEqual(peak, 3);
+
+    const throwing = createReadOnlyToolGateway({ ...configuration,
+        adapters: { 'read.test': () => { throw new Error('synchronous'); } } });
+    const input = { request: { tool: 'read.test', args: { n: 99 } },
+        trustedContext: { familyId: 'family-a', actorId: 'person-a' }, budget: shared };
+    assert.strictEqual((await throwing.execute(input)).reason, 'tool_execution_failed');
+    assert.strictEqual(shared.snapshot().activeReadCalls, 0);
+    assert.strictEqual((await throwing.execute(input)).reason, 'REPEAT_NOT_ALLOWED');
+    assert.strictEqual(shared.snapshot().activeReadCalls, 0);
+    const other = createToolBudgetTracker({ turnId: 'other', now: () => 1000 });
+    const occupied = shared.reserveParallelReads({ count: 3 });
+    const otherLease = other.reserveParallelReads({ count: 3 });
+    assert.strictEqual(otherLease.ok, true);
+    otherLease.release();
+    occupied.release();
+    for (const count of [0, -1, 1.5, NaN, Infinity, '1', null]) {
+        assert.strictEqual(shared.reserveParallelReads({ count }).ok, false);
+        assert.strictEqual(shared.snapshot().activeReadCalls, 0);
+    }
+    let clock = 0;
+    const expired = createToolBudgetTracker({ turnId: 'expiring', now: () => clock });
+    const lease = expired.reserveParallelReads({ count: 1 });
+    clock = 30000;
+    assert.strictEqual(expired.reserveParallelReads({ count: 1 }).reason, 'BUDGET_EXHAUSTED');
+    lease.release();
+    assert.strictEqual(expired.snapshot().activeReadCalls, 0);
     for (let index = 0; index < 4; index += 1) assert.strictEqual(budget.reserveDecisionRound().ok, true);
     assert.deepStrictEqual(budget.reserveDecisionRound(), {
         ok: false, reason: 'DECISION_ROUND_LIMIT'
@@ -137,6 +208,7 @@ test('NEXT01:N01-BUDGET-004 conversation fails closed on exhausted budget', asyn
             }
         },
         budgetFactory: () => ({
+            reserveParallelReads: () => ({ ok: true, release() {} }),
             reserve: () => ({ ok: false, reason: 'BUDGET_EXHAUSTED' })
         })
     });

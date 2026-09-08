@@ -271,6 +271,48 @@ test('NEXT01:N01-VALIDATOR-001 validator rejects legacy and dynamic module loadi
 });
 
 test('NEXT01:N01-VALIDATOR-002 validator rejects direct effect capabilities', () => {
+    const current = require('../../scripts/agent/financasBotNext02ValidationPolicy');
+    const actualRoot = path.join(__dirname, '../../src/next');
+    const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), 'cp01-reviewed-sources-'));
+    const copiedRoot = path.join(sandbox, 'next');
+    fs.cpSync(actualRoot, copiedRoot, { recursive: true });
+    try {
+        const clean = current.inspectSources(copiedRoot, 'N02-E');
+        assert.deepStrictEqual(clean.errors, []);
+        assert.strictEqual(clean.reviewedSourceMatches, 15);
+        assert.deepStrictEqual(Object.keys(policy.REVIEWED_SOURCE_SHA256).sort(),
+            [...current.sliceContract('N02-E').paths].sort());
+        for (const relative of current.sliceContract('N02-E').paths) {
+            const file = path.join(copiedRoot, relative);
+            const source = fs.readFileSync(file, 'utf8');
+            // Whole-source admission must reject changes regardless of which
+            // callable, property expression or alias the static scanner sees.
+            for (const suffix of [
+                "\nconst cp01Marker = (() => {})['con' + 'structor']('return 7')();\n",
+                "\nconst cp01Key = ['con', 'structor'].join(''); const cp01Marker = (() => {})[cp01Key]('return 7')();\n",
+                '\nvoid 42;\n'
+            ]) {
+                fs.writeFileSync(file, source + suffix);
+                assert.ok(current.inspectSources(copiedRoot, 'N02-E').errors.includes(
+                    'reviewed_source_mismatch:' + relative));
+            }
+            fs.writeFileSync(file, source.replace(/\r\n/g, '\n').replace(/\n/g, '\r\n'));
+            assert.deepStrictEqual(current.inspectSources(copiedRoot, 'N02-E').errors, []);
+            fs.writeFileSync(file, source);
+        }
+    } finally { fs.rmSync(sandbox, { recursive: true, force: true }); }
+    const inheritedSource = fs.readFileSync(path.join(__dirname, '../../src/next/contracts/reuseManifest.js'), 'utf8');
+    for (let split = 1; split < 'constructor'.length; split += 1) {
+        const key = JSON.stringify('constructor'.slice(0, split)) + '+' +
+            JSON.stringify('constructor'.slice(split));
+        const mutant = sourceFixture(inheritedSource + `\nconst cp01Marker = (() => {})[${key}]('return 7')();\n`,
+            'contracts/reuseManifest.js');
+        try {
+            const result = policy.analyzeNextSourceFiles({ nextRoot: mutant.nextRoot, sourceFiles: [mutant.file] });
+            assert.ok(result.errors.includes('reviewed_source_mismatch:contracts/reuseManifest.js'),
+                `computed key split ${split} must fail closed`);
+        } finally { fs.rmSync(mutant.root, { recursive: true, force: true }); }
+    }
     const fixture = sourceFixture(
         "const fs = require('node:fs'); fs.writeFileSync('/tmp/next01', 'x');\n"
     );

@@ -1,6 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { createToolBudgetTracker } = require('../src/next/policy/toolBudget');
 const { observationDigest, observationDeduplicationKey, projectObservations } = require('../src/next/kernel/observationKernel');
 const { createExpenseReadModel, createExpenseToolGateway } = require('../src/next/kernel/expenseReadModel');
 const clock = '2042-06-30T23:59:59.999Z';
@@ -121,7 +122,9 @@ test('NEXT02D:TOOL public subcategory selectors never expose internal ids',async
     const f=fixture();f.publicLabels={family:'Família Exemplo',people:{'person-a':'Pessoa A','person-b':'Pessoa B'},
         accounts:{'account-a':'Conta A'},cards:{'card-a':'Cartão A'},categories:{goods:'Bens',services:'Serviços'},
         subcategories:{computer:'Informática',games:'Jogos',repair:'Reparos'}};
-    const gateway=createExpenseToolGateway(f);const execute=subcategory=>gateway.execute({request:{tool:'expenses.sum',args:{...query,subcategory}},trustedContext:ctx,budget:{reserve:()=>({ok:true})}});
+    const gateway=createExpenseToolGateway(f);
+    const budget=createToolBudgetTracker({turnId:'subcategory-tool',now:()=>1000});
+    const execute=subcategory=>gateway.execute({request:{tool:'expenses.sum',args:{...query,subcategory}},trustedContext:ctx,budget});
     const result=await execute('Informática');assert.equal(result.claim.value,6000);
     assert.equal(result.claim.filters.subcategory,'Informática');assert.doesNotMatch(JSON.stringify(result),/computer|record-0|fam-test|person-a|evt_/);
     assert.equal((await execute('computer')).ok,false);

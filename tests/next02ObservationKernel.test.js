@@ -290,8 +290,8 @@ test('NEXT02:TOOL uses the existing boundary and only public claim/evidence fiel
         coverage: { start: '2042-06-01', end: '2042-06-30', as_of: clock, completeness: 'complete' },
         publicLabels
     });
-    let reserved = 0;
-    const budget = { reserve() { reserved++; return { ok: true }; } };
+    const { createToolBudgetTracker } = require('../src/next/policy/toolBudget');
+    const budget = createToolBudgetTracker({ turnId: 'n02-tool', now: () => 1000 });
     const result = await gateway.execute({
         request: { tool: 'expenses.sum', args: query }, trustedContext: context, budget
     });
@@ -299,7 +299,8 @@ test('NEXT02:TOOL uses the existing boundary and only public claim/evidence fiel
     assert.equal(result.claim.value, 1200);
     assert.deepEqual(result.claim.entity, { kind: 'family', label: 'Família de teste' });
     assert.ok(result.evidence.refs.every(ref => /^eph_1_[1-9]\d*$/.test(ref)));
-    assert.equal(reserved, 1);
+    assert.equal(budget.snapshot().calls, 1);
+    assert.equal(budget.snapshot().activeReadCalls, 0);
     assert.doesNotMatch(JSON.stringify(result),
         /source_record_ref|observation_id|normalized_payload|family-example|person-a|account-a|card-a/);
     const filtered = await gateway.execute({ request: { tool: 'expenses.sum', args: {
@@ -321,7 +322,8 @@ test('NEXT02:TOOL uses the existing boundary and only public claim/evidence fiel
     assert.equal(rejectedInternal.ok, false);
     await gateway.execute({ request: { tool: 'expenses.sum', args: { ...query, familyId: 'other' } },
         trustedContext: context, budget });
-    assert.equal(reserved, 4);
+    assert.equal(budget.snapshot().calls, 4);
+    assert.equal(budget.snapshot().activeReadCalls, 0);
     const unsafeLabels = structuredClone(publicLabels);
     unsafeLabels.accounts['account-a'] = 'ACCOUNT-A';
     assert.throws(() => createExpenseToolGateway({

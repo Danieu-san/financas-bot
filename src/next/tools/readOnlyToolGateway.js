@@ -106,17 +106,28 @@ function createReadOnlyToolGateway({ catalog = [], adapters = {} } = {}) {
             return { ok: false, reason: selected.reason, coverage: 'unavailable', tool };
         }
         const args = selected.args;
-        const reservation = budget.reserve({ tool, args });
-        if (!reservation?.ok) {
+        if (typeof budget.reserveParallelReads !== 'function') {
+            return { ok: false, reason: 'budget_missing', coverage: 'unavailable', tool };
+        }
+        const readSlot = budget.reserveParallelReads({ count: 1 });
+        if (!readSlot?.ok) {
             return {
                 ok: false,
-                reason: String(reservation?.reason || 'BUDGET_EXHAUSTED'),
+                reason: String(readSlot?.reason || 'BUDGET_EXHAUSTED'),
                 coverage: 'unavailable',
                 tool
             };
         }
+        if (typeof readSlot.release !== 'function') {
+            return { ok: false, reason: 'budget_missing', coverage: 'unavailable', tool };
+        }
 
         try {
+            const reservation = budget.reserve({ tool, args });
+            if (!reservation?.ok) {
+                return { ok: false, reason: String(reservation?.reason || 'BUDGET_EXHAUSTED'),
+                    coverage: 'unavailable', tool };
+            }
             const result = await adapter({
                 args,
                 authorizedContext: Object.freeze({ familyId, actorId })
@@ -133,6 +144,8 @@ function createReadOnlyToolGateway({ catalog = [], adapters = {} } = {}) {
             return { ...result, tool };
         } catch (_) {
             return { ok: false, reason: 'tool_execution_failed', coverage: 'unavailable', tool };
+        } finally {
+            readSlot.release();
         }
     }
 

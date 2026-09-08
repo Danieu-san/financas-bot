@@ -39,6 +39,7 @@ function createToolBudgetTracker({ turnId, now = Date.now } = {}) {
     let decisionRounds = 0;
     let clarifications = 0;
     let recompositions = 0;
+    let activeReadCalls = 0;
     const repeated = new Map();
 
     function budgetExpired() {
@@ -77,10 +78,19 @@ function createToolBudgetTracker({ turnId, now = Date.now } = {}) {
 
     function reserveParallelReads({ count } = {}) {
         if (budgetExpired()) return { ok: false, reason: 'BUDGET_EXHAUSTED' };
-        if (!Number.isInteger(count) || count < 1 || count > POLICY.maxParallelReadCalls) {
+        if (!Number.isInteger(count) || count < 1 || activeReadCalls + count > POLICY.maxParallelReadCalls) {
             return { ok: false, reason: 'PARALLEL_READ_LIMIT' };
         }
-        return { ok: true };
+        activeReadCalls += count;
+        let released = false;
+        return Object.freeze({
+            ok: true,
+            release() {
+                if (released) return;
+                released = true;
+                activeReadCalls -= count;
+            }
+        });
     }
 
     function reserveCounter(current, maximum, reason) {
@@ -116,6 +126,7 @@ function createToolBudgetTracker({ turnId, now = Date.now } = {}) {
         snapshot: () => Object.freeze({
             turnId: String(turnId),
             calls,
+            activeReadCalls,
             decisionRounds,
             clarifications,
             recompositions,
