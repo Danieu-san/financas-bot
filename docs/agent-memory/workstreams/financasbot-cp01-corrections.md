@@ -1,10 +1,23 @@
 # CP-01 — correções em andamento
 
-Atualizado: 2026-09-08. Estado: VALIDAÇÃO LOCAL PASS; candidato aguardando auditoria independente.
+Atualizado: 2026-09-08. Estado: CP-01 RESOLVIDO; REAUDITORIA FOCAL APROVÁVEL.
 Branch: `codex/financasbot-cp01-corrections-20260908`.
 Base publicada: `5239c342b5705e64d3fb6412048382d665bcb6a4`.
 Worktree: `.codex-worktrees/financasbot-cp01-corrections` na raiz do SSD.
 Plano: `docs/plans/workstreams/financasbot-cp01-corrections-v1.md`.
+
+## Recebimento vigente
+
+Chat aprovou o candidato `f0792fbf7d3fdf88d0ac6fc744da89c8cf83b4e6`, parent
+único da base acima; zero findings demonstrados. Daniel entregou o parecer
+integral em 2026-09-08. Confronto e decisão:
+`results/FIN-CP01-CORRECTIONS-AUDIT-20260908.md`.
+Gate pós-commit executado e PASS, vinculado exatamente a esses hashes;
+push confirmado no remoto. O auditor fez leitura estática, não execução.
+Próxima etapa: CP-02, inventário do fechamento global de NEXT-02. Não repetir
+auditoria CP-01 ou suíte ampla sem nova mudança causal. NEXT-02 global pendente.
+
+Os registros de preparação abaixo são históricos do candidato antes do parecer.
 
 Daniel autorizou tratar H1/M1 antes do canal e enviar a auditoria manualmente.
 O canal não é editado nesta tarefa. Relatório CP-01 publicado no canal em

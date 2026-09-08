@@ -148,7 +148,16 @@ estar verde ou explicitamente aceito por Daniel.
 O conjunto v1 deve permanecer preservado como evidência histórica mesmo após a
 substituição funcional integral.
 
-## Ordem vigente em 2026-09-07
+## Ordem vigente em 2026-09-08
+
+CP-01 resolvido após correção e reauditoria APROVÁVEL de
+`f0792fbf7d3fdf88d0ac6fc744da89c8cf83b4e6`, parent
+`5239c342b5705e64d3fb6412048382d665bcb6a4`. Recibo e limites:
+`docs/agent-memory/workstreams/results/FIN-CP01-CORRECTIONS-AUDIT-20260908.md`.
+Próximo checkpoint obrigatório: **CP-02**. Inventariar obrigações abertas
+antes de selecionar nova implementação ou declarar GO global NEXT-02.
+
+## Histórico da ordem em 2026-09-07
 
 N02-E foi aprovado focalmente. Portanto o próximo checkpoint obrigatório é
 **CP-01**. Nenhuma nova fatia material de NEXT-02 deve começar antes de sua
