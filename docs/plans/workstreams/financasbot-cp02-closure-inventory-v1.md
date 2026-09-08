@@ -1,0 +1,195 @@
+# CP-02 — Inventário do fechamento global NEXT-02
+
+Data: 2026-09-08. Estado: CANDIDATO DOCUMENTAL; REVISÃO INDEPENDENTE PENDENTE.
+Base inspecionada: `b5df1a25b873d70a847b1209efaa460e9c03b870`.
+Branch: `codex/financasbot-cp02-inventory-20260908`.
+Predecessor: CP-01 aprovado focalmente em
+`f0792fbf7d3fdf88d0ac6fc744da89c8cf83b4e6`; recibo na base acima.
+
+## Objetivo, autoridade e limites
+
+CP-02 inventaria os critérios de GO ainda abertos, conforme
+`financasbot-next-crosscutting-review-checkpoints-v1.md`, seção CP-02.
+Não implementa produto nem reaudita as fatias A/B/C/D/E. A classificação abaixo
+é proposta de aplicação dos contratos ao vertical, sujeita a revisão; não
+altera o roadmap ratificado nem concede dispensa de obrigação.
+
+Autoridades consultadas:
+
+- roadmap `financasbot-next-roadmap-draft-v2.md`, §§6, 9.2, 11, 12, ratificado
+  em `911af93343210ccfe2d7b7fe0b898542044a1fdf` pelo termo de ratificação v1;
+- `docs/contracts/next/data-authority-contract-v0.md`, §§2–9;
+- `docs/contracts/next/quality-stability-retention-contract-v0.md`, §3;
+- `docs/contracts/next/capability-cutover-matrix-v0.md`, CAP-01/02/03/04/09/10/26;
+- Model Data Boundary §§3–6, Tool Budget §§3–6 e Conversation/Proposal §9;
+- desenho de provenance `financasbot-next-00-provenance-graph-design-v1.md`,
+  especialmente §§7, 8.1, 10–13, ratificado pelo termo
+  `financasbot-next-00-architecture-ratification-v1.md`;
+- charter NEXT-02, planos de reuso, billing e reconciliação Golden; policy
+  N02, interfaces atuais e propriedades dos cinco arquivos de teste N02.
+
+O banner histórico de candidato no desenho NEXT-00 não revoga a ratificação.
+O inventário não força equivalência entre event_date legado e novas lentes.
+Nenhum arquivo financeiro congelado é modificado ou aposentado.
+
+## Evidência de partida e o que ela não prova
+
+N02-A/B/C/D/E têm aprovação focal registrada no suplemento de checkpoints e
+histórico do produto. CP-01 foi confrontado e fechado na base. A inspeção atual
+confirma 15 fontes e 64 IDs N02-E (20 + 11 + 13 + 13 + 7), mais 25 herdados.
+A última execução local CP-01 aprovou esses conjuntos e 137 testes afetados;
+ampla: 1.993 testes, 1.983 PASS, zero FAIL, 10 SKIP, valid=true.
+Esses resultados são evidência herdada, não testes reexecutados em CP-02.
+
+O runtime oferece `expenses.sum`/`consumption_total`, período mensal, lentes
+transaction_date e billing_period, confirmed/projected e filtros de
+categoria/subcategoria/conta/cartão, com scope family/personal.
+Há agenda interna e histórico/provenance por campo. A source policy admite
+somente import sintético de uma instância; tipos aceitos: purchase, income,
+transfer, invoice_payment, refund e installment por opt-in de policy.
+
+Não existem no conjunto atual os registries e o compiler/evaluator de grafo,
+o recorder de derivation/proof traces, a instrumentação R/I/M/L/T, roots do
+closure efetivamente executado ou o gerador genérico de witnesses do desenho.
+O recorder sanitizado NEXT-01 é observabilidade operacional. Field provenance,
+refs exatas e os pins de fonte CP-01 não são esses mecanismos de prova.
+
+## Matriz de obrigações obrigatórias para NEXT-02
+
+Classe de todas as linhas: `obrigatorio_para_NEXT02`. Estado COBERTO FOCAL não
+é GO global. ABERTO exige implementação/evidência ou decisão normativa explícita.
+
+| ID | Obrigação e fonte | Evidência atual | Restante para fechamento |
+|---|---|---|---|
+| G01 | Observação imutável, replay, versão, identidade, anti-loop; DA-01/02/06 | NEXT02:DA-01/DA-02/DA-06, OBS-VERSION/CONFLICT/IMMUTABLE | COBERTO FOCAL para import; manter prova no gate global |
+| G02 | Centavos, moeda, ownership, source policy, field provenance; DA §§2–5 | OBS-INTEGRITY/BOUNDARY/SCOPE, OVERFLOW, policy import-v1..v4 | COBERTO FOCAL no domínio; mapear toda dimensão material ao grafo G07 |
+| G03 | Pessoa/família, instrumentos, categoria/subcategoria; roadmap §9.2 | QUERY-FILTERS, NEXT02C:SCOPE, NEXT02D:TOTAL/BINDING/UNKNOWN/SCOPE/TOOL | COBERTO FOCAL; falta matriz crítica completa de Golden por dimensão, G10 |
+| G04 | Compra/pagamento/transferência/estorno/parcelas não duplicam consumo; DA §7 | DA-04/05, REFUND, NEXT02B, NEXT02C:LENSES/REFUND/NEUTRAL/ANCESTRY | COBERTO FOCAL nos seis tipos aceitos; não prova as semânticas ausentes de G05 |
+| G05 | Reserva/aplicação/resgate neutros; distinção de reversão, ajuste, saldo anterior, juros/tarifa; DA §7, CAP-09 | KIND_RULES não inclui esses tipos; OBS-UNSUPPORTED demonstra recusa, não contribuição econômica | ABERTO: fechar contribuição/neutralidade dos tipos relevantes ao consumo com entradas sintéticas explícitas; não criar writers, saldo ou produto de investimentos |
+| G06 | Lentes, realizado/projetado, coverage e ausência; DA §6, roadmap §9.2 | DA-03, VALUE-ZERO-EMPTY, NEXT02C:COVERAGE/ASOF/MISSING, subcategoria desconhecida | PARCIAL: transaction_date/billing_period mensais cobertos; due_date/settlement_date ficam null e outras lentes/intervalos não existem. Fixar sua aplicabilidade ao vertical e provar o que for exigido, sem alias para statement_due_date/budget_cycle. committed depende de receipt/writer; não simular confirmed |
+| G07 | Onze obrigações de provenance; desenho §7 | Checks de domínio e refs internas existentes | ABERTO: schema closed-world/registry de campos e relações, resolução de nós/versões, fingerprints, escopo, período, lente, coverage, estado, conjunto exato e consumo de todas as arestas; sem branches de provenance por métrica |
+| G08 | Identidade da fórmula e observação externa; desenho §8/8.1/11 | Kernel determinístico + pins de fonte CP-01 | ABERTO: registry de evaluator/roles, contrato da fórmula, closure pós-transformação, loader/TCB/proof roots, proxy e recorder externos com reads estruturais e canais R/I/M/L/T separados; pins não substituem closure/trace |
+| G09 | Claims derivados e prova discriminante; roadmap §6, desenho §5.4/8.1/10 | Apenas consumption_total materializado; agenda é objeto interno | ABERTO para comparações/derivações aplicáveis ao gasto: operações determinísticas, roles, DAG transitiva, oracle independente e witnesses que distingam fórmulas coincidentes; a IA NEXT-03 não pode calcular esses valores |
+| G10 | Golden e invariantes críticos 100%, >=3 casos por dimensão; roadmap §11/12, Quality §3 | 23 consultas/5 recusas, 56 turnos inventariados; sete properties E | ABERTO: mapa de cada invariante aplicável para casos executados e expectations revisadas; contagem de turnos/refs não demonstra cobertura mínima. Sem skips como equivalência, sem porcentagem de 76 fatos por inferência |
+| G11 | Mutações ortogonais e cardinalidade derivada; desenho §10 | REDs causais por domínio e testes de pins | ABERTO: expected_violations exato, predicados com fingerprint reparado, arestas/reads/fórmula, witness obrigatório, expected=generated=executed=matched; grupos atômicos proibidos |
+| G12 | Claims/tools públicos, scope, falha fechada, budget e sessão herdados | TOOL, NEXT02C/D:TOOL e 25 properties NEXT-01; CP-01 fecha admissão e reads | COBERTO FOCAL no caminho sintético; preservar e integrar proof gate antes de resposta. Segredos/IDs internos continuam fora do envelope |
+| G13 | Gate global executável e decisão independente | validateFinancasBotNext02 só possui slices A..E e checkpoint CP-01; output declara full_gate=pending | ABERTO: inventário de obrigações críticas/IDs reais, fontes/artefatos congelados, testes afetados e ampla única no candidato estável, SHA/parent limpos e auditoria global. Nenhuma soma de aprovações focais substitui este gate |
+
+G06 não autoriza implementar toda lente histórica de fatura/orçamento no
+vertical. É obrigação de decisão explícita antes do GO: os planos anteriores
+registraram due_date/settlement_date como pendentes. Não classificá-las como
+dispensadas só porque hoje são null. Igualmente, uma recusa correta de reserva
+protege o runtime atual, mas não demonstra a neutralidade requerida por CAP-09.
+
+## Fronteira das oito famílias de contratos
+
+| Contrato | Aplicável agora | Parte posterior preservada |
+|---|---|---|
+| Data Authority | G01–G09; semântica de consumo e anti-loop sintéticos | fontes reais NEXT-04; receipt/committed e corrida de writers NEXT-06/07 |
+| Coexistence/Single Writer | isolamento e ausência de efeito real | leases/fencing, cutover e coordenação de efeitos NEXT-04/06/09 |
+| Conversation/Proposal | contexto/autorização revalidados, consulta sem write | IA/follow-up livre NEXT-03; prepare/preview/commit/undo NEXT-06 |
+| Model Data Boundary | catálogo e resultado público minimizado, scope | provider/model call e política de egress NEXT-03; dados reais NEXT-04 |
+| Integration Manifest | adapters sintéticos sem I/O | modelo NEXT-03, Sheets/Pluggy NEXT-04, canal/áudio/dashboard NEXT-05 |
+| Capability/Cutover | CAP-03, semântica CAP-09/10, coverage CAP-26 | produto completo orçamento/cartões e demais domínios NEXT-08; cutover NEXT-09 |
+| Tool Budget/Failure | limites e refusal nas tools, herança CP-01 | planejamento/retries do agente NEXT-03; protocolo de write NEXT-06 |
+| Quality/Stability/Retention | invariantes/Golden e auditabilidade G10/G13 | rubrica conversacional/custo de modelo NEXT-03; janelas de shadow/beta, restore operacional e retenção nas fases correspondentes |
+
+Limiar futuro permanece obrigatório na sua fase. Este mapa não declara
+conformidade executada de contratos inteiros a partir de seus subconjuntos.
+
+## Golden v1 — inventário sem equivalência forçada
+
+Extração do oracle congelado: 56 turnos, 76 fatos materializados, 39 métricas.
+Traceability N02-E: 8 turnos changed_scenario, 28 invariant_only, 14 pending e
+6 selected_events_equivalent; total 56. Nenhuma relação certifica conversa inteira.
+
+Classes usadas na tabela: N2=`obrigatorio_para_NEXT02` (invariante ou cálculo
+de gasto aplicável); N3=`pertence_NEXT03` (composição conversacional, sem mover
+matemática para IA); N4+=`pertence_NEXT04_ou_depois`; H=
+`golden_v1_historico_nao_forcar_equivalencia` (representação antiga preservada).
+H é qualificador do vínculo histórico, não dispensa da capacidade no destino.
+Valores v1 não viram expectativas do novo kernel por tradução automática.
+
+| Métrica v1 | Fatos | Destino da obrigação e limite |
+|---|---:|---|
+| account_balance | 2 | N4+ saldo/contas; não é consumo |
+| balance_delta | 2 | N4+ saldo; neutralidade da transferência é N2 |
+| bills_open | 1 | N4+ NEXT-08-bills |
+| budget_class_consumption | 2 | N4+ NEXT-08-budget; N2 preserva total e neutros |
+| calendar_event_count | 1 | N4+ NEXT-08-calendar |
+| category_budget_remaining | 4 | N4+ NEXT-08-budget |
+| category_consumption | 6 | N2/G03/G10; H para event_date legado |
+| category_spent | 3 | N2 para M-08#1; dois fatos M-13#1 são budget_cycle N4+/H |
+| consumption_by_instrument | 3 | N2/G03/G10; H para lente antiga de parcelas |
+| consumption_difference | 1 | N2/G09; diferença assinada no kernel, não na IA |
+| consumption_effect | 4 | N2/G04/G05 como invariante; nome de tool v1 não obrigatório |
+| consumption_total | 7 | N2/G03/G10; H para cenário alterado |
+| due_bill_ids | 1 | N4+ NEXT-08-bills |
+| due_bills_total | 1 | N4+ NEXT-08-bills |
+| eligible_event_count | 3 | N2/G06/G10 como prova de empty; claim de count exige contrato se exposto |
+| gross_consumption | 2 | N2/G09; breakdown não pode ser calculado pela IA |
+| income_minus_open_bills | 1 | N4+ bills/forecast |
+| income_realized | 1 | N4+ renda/forecast; tipo income já existe, soma pública não |
+| installments_projected | 2 | N2 agenda/estado; H para intervalos antigos, count público ainda ausente |
+| installments_projected_amount | 2 | N2/G06/G09; H para intervalo não suportado |
+| installments_realized | 2 | N2 agenda/estado; H para through/as_of, count público ausente |
+| installments_realized_amount | 1 | N2/G06/G09; sem inventar compra ou competência |
+| invoice_payment_amount | 1 | N4+ produto cards; neutralidade é N2 |
+| invoice_payment_consumption_effect | 2 | N2/G04/G10 |
+| invoice_payment_target_card | 1 | N2 identidade/vínculo; campo preservado, não claim standalone |
+| merchant_rule_ids | 1 | N4+ NEXT-08-rules |
+| movement_ids | 1 | N4+ lista geral de movimentos; N2 prova conjunto de gasto |
+| net_consumption | 3 | N2/G04/G09; alvo do estorno e soma líquida |
+| owned_cards | 1 | N4+ registry/adapter real; scope sintético é N2 |
+| projected_installments | 1 | N2 agenda/estado; H intervalo, N3 explicação/composição |
+| ranking_winner | 1 | N2/G09 cálculo; N3 seleção/explicação das tools |
+| refund_amount | 2 | N2/G09 se breakdown exposto; compensação obrigatória G04 |
+| reminder_count | 1 | N4+ NEXT-08-reminders |
+| safe_daily_pace | 2 | N4+ NEXT-08-budget/forecast |
+| side_effect_count | 1 | N4+ proposals/writer; zero efeitos N2 já obrigatório |
+| similar_event_ids | 1 | N4+ regras/ambiguidade; N2 não funde identidades iguais |
+| source_coverage | 1 | N2/G06/G10; não obriga replicar fachada standalone v1 |
+| statement_payment_correspondence | 1 | N4+ cards/reconcile; N2 não alega provar statement identity |
+| statement_total | 3 | N4+ cards/H; statement_due/competence não é alias de billing_period |
+
+N3 também recebe o comportamento linguístico dos 48 diálogos, múltiplas tools,
+follow-up e qualidade/custo do agente; o replay sintético herdado permanece.
+N4+ inclui adapters reais, dashboard/canal/áudio NEXT-05, writers NEXT-06,
+proatividade NEXT-07, domínios NEXT-08 e cutover/retirement NEXT-09/10.
+Golden v1 completo permanece preservado até a decisão CP-07; nenhum dos 76
+fatos é apagado, marcado SUPERSEDED ou contado como implementado por esta tabela.
+
+## Próxima fatia derivada do inventário
+
+Recomendação: **N02-F — fundação da prova de provenance do vertical**.
+Primeiro delimitar schema/registries/grafos aplicáveis ao consumption_total,
+coverage e relações já presentes, reutilizando canonicalValue, kernel, agenda,
+read model e testes aprovados. Não criar outra fórmula de consumo nem DSL de
+matemática. Antes de alterar código, fixar paths, contratos e REDs derivados
+de G07/G08/G11. A fatia só pode alegar as provas que executar; o fechamento
+integral exige essas três obrigações juntas, sem terceiros remendos por campo.
+
+O desenho §13 também prevê grafos para os 76 fatos. Isso é obrigação de migração
+preservada, não autorização para implementar todos os domínios no NEXT-02.
+A revisão CP-02 deve confirmar a fronteira entre provar os claims aplicáveis
+ao vertical e a migração completa histórica; se considerar os 76 inseparáveis
+para este gate, registrar decisão normativa antes de implementação, sem reduzir
+essa obrigação silenciosamente. A tabela acima não aprova tal redução.
+
+Depois da fundação, selecionar G05/G06/G09 por dependência e fechar G10/G13.
+Não existe número definitivo de commits restantes: esses IDs são obrigações,
+não fatias já aprovadas. CP-03 continua depois de GO global NEXT-02, sem
+necessidade de acessar planilha real para concluir este inventário.
+
+## Validação e saída CP-02
+
+Escopo documental: este inventário, checkpoint próprio e linha no índice.
+Conferir automaticamente 39 métricas/76 fatos/56 turnos e referências dos
+arquivos citados, diff e workflow. Sem mudança causal de código: não repetir
+suíte ampla nem os testes verdes CP-01. Publicar candidato e solicitar uma
+auditoria manual focada em omissões, adiamentos indevidos e escopo da próxima
+fatia. CP-02 permanece candidato até esse parecer; NEXT-02 global continua aberto.
+
+Resultado local documental: 39 métricas com contagens individuais iguais ao
+oracle, 76 fatos, 56 turnos únicos; referências existentes, diff-check e
+agent-workflow OK. Essa verificação não julga a classificação semântica/fase.
