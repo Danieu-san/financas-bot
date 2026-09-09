@@ -1,7 +1,8 @@
 # CP-02 — Inventário do fechamento global NEXT-02
 
-Data: 2026-09-08. Estado: CANDIDATO DOCUMENTAL; REVISÃO INDEPENDENTE PENDENTE.
+Data: 2026-09-09. Estado: CANDIDATO DOCUMENTAL CORRETIVO; REAUDITORIA PENDENTE.
 Base inspecionada: `b5df1a25b873d70a847b1209efaa460e9c03b870`.
+Parent do delta corretivo: `a6b322dbd690115d419df348bd068f9cfed40743`.
 Branch: `codex/financasbot-cp02-inventory-20260908`.
 Predecessor: CP-01 aprovado focalmente em
 `f0792fbf7d3fdf88d0ac6fc744da89c8cf83b4e6`; recibo na base acima.
@@ -31,6 +32,15 @@ Autoridades consultadas:
 O banner histórico de candidato no desenho NEXT-00 não revoga a ratificação.
 O inventário não força equivalência entre event_date legado e novas lentes.
 Nenhum arquivo financeiro congelado é modificado ou aposentado.
+
+## Correção dos dois MEDIUM da revisão independente
+
+O parecer recebido para `a6b322dbd690115d419df348bd068f9cfed40743` foi
+APROVÁVEL APÓS AJUSTES. A proposta anterior de engine por domínio deixava
+ambígua a ordem ratificada dos 76 grafos; também faltava inventariar o contrato
+completo e a identidade do claim. Este delta corrige essas duas omissões,
+sem emendar o roadmap nem o desenho ratificado. Não declara os achados fechados
+por aprovação própria: a reauditoria do novo commit permanece necessária.
 
 ## Evidência de partida e o que ela não prova
 
@@ -67,19 +77,56 @@ Classe de todas as linhas: `obrigatorio_para_NEXT02`. Estado COBERTO FOCAL não
 | G04 | Compra/pagamento/transferência/estorno/parcelas não duplicam consumo; DA §7 | DA-04/05, REFUND, NEXT02B, NEXT02C:LENSES/REFUND/NEUTRAL/ANCESTRY | COBERTO FOCAL nos seis tipos aceitos; não prova as semânticas ausentes de G05 |
 | G05 | Reserva/aplicação/resgate neutros; distinção de reversão, ajuste, saldo anterior, juros/tarifa; DA §7, CAP-09 | KIND_RULES não inclui esses tipos; OBS-UNSUPPORTED demonstra recusa, não contribuição econômica | ABERTO: fechar contribuição/neutralidade dos tipos relevantes ao consumo com entradas sintéticas explícitas; não criar writers, saldo ou produto de investimentos |
 | G06 | Lentes, realizado/projetado, coverage e ausência; DA §6, roadmap §9.2 | DA-03, VALUE-ZERO-EMPTY, NEXT02C:COVERAGE/ASOF/MISSING, subcategoria desconhecida | PARCIAL: transaction_date/billing_period mensais cobertos; due_date/settlement_date ficam null e outras lentes/intervalos não existem. Fixar sua aplicabilidade ao vertical e provar o que for exigido, sem alias para statement_due_date/budget_cycle. committed depende de receipt/writer; não simular confirmed |
-| G07 | Onze obrigações de provenance; desenho §7 | Checks de domínio e refs internas existentes | ABERTO: schema closed-world/registry de campos e relações, resolução de nós/versões, fingerprints, escopo, período, lente, coverage, estado, conjunto exato e consumo de todas as arestas; sem branches de provenance por métrica |
+| G07 | Onze obrigações de provenance; desenho §§7/13/14 | Checks de domínio e refs internas existentes | ABERTO: publicar schema v2/registries genéricos, autorar e revisar os 76 grafos antes de implementar compiler/evaluator; depois provar nós/versões, fingerprints, escopo, período, lente, coverage, estado, conjunto exato e consumo de arestas. Sem branches por métrica nem rollout por exceção |
 | G08 | Identidade da fórmula e observação externa; desenho §8/8.1/11 | Kernel determinístico + pins de fonte CP-01 | ABERTO: registry de evaluator/roles, contrato da fórmula, closure pós-transformação, loader/TCB/proof roots, proxy e recorder externos com reads estruturais e canais R/I/M/L/T separados; pins não substituem closure/trace |
 | G09 | Claims derivados e prova discriminante; roadmap §6, desenho §5.4/8.1/10 | Apenas consumption_total materializado; agenda é objeto interno | ABERTO para comparações/derivações aplicáveis ao gasto: operações determinísticas, roles, DAG transitiva, oracle independente e witnesses que distingam fórmulas coincidentes; a IA NEXT-03 não pode calcular esses valores |
 | G10 | Golden e invariantes críticos 100%, >=3 casos por dimensão; roadmap §11/12, Quality §3 | 23 consultas/5 recusas, 56 turnos inventariados; sete properties E | ABERTO: mapa de cada invariante aplicável para casos executados e expectations revisadas; contagem de turnos/refs não demonstra cobertura mínima. Sem skips como equivalência, sem porcentagem de 76 fatos por inferência |
 | G11 | Mutações ortogonais e cardinalidade derivada; desenho §10 | REDs causais por domínio e testes de pins | ABERTO: expected_violations exato, predicados com fingerprint reparado, arestas/reads/fórmula, witness obrigatório, expected=generated=executed=matched; grupos atômicos proibidos |
-| G12 | Claims/tools públicos, scope, falha fechada, budget e sessão herdados | TOOL, NEXT02C/D:TOOL e 25 properties NEXT-01; CP-01 fecha admissão e reads | COBERTO FOCAL no caminho sintético; preservar e integrar proof gate antes de resposta. Segredos/IDs internos continuam fora do envelope |
+| G12 | Tools públicos, scope, falha fechada, budget e sessão herdados | TOOL, NEXT02C/D:TOOL e 25 properties NEXT-01; CP-01 fecha admissão e reads | COBERTO FOCAL nas boundaries existentes; não prova contrato completo/identidade de claim (G14). Preservar e integrar proof gate antes de resposta. Segredos/IDs internos continuam fora do envelope |
 | G13 | Gate global executável e decisão independente | validateFinancasBotNext02 só possui slices A..E e checkpoint CP-01; output declara full_gate=pending | ABERTO: inventário de obrigações críticas/IDs reais, fontes/artefatos congelados, testes afetados e ampla única no candidato estável, SHA/parent limpos e auditoria global. Nenhuma soma de aprovações focais substitui este gate |
+| G14 | Contrato completo e identidade de claim; roadmap §6, desenho §§5/5.1/5.4/7, Model Data Boundary §3 | Read model emite subconjunto tipado; verifier herdado compara algumas dimensões. Nenhum dos dois exige/emite claim_id | ABERTO: schema de claim, identidade e binding ao valor/dimensões/evidência, referências públicas efêmeras e verificação integral antes da entrega. Detalhamento abaixo; não adiar identidade para NEXT-03 |
 
 G06 não autoriza implementar toda lente histórica de fatura/orçamento no
 vertical. É obrigação de decisão explícita antes do GO: os planos anteriores
 registraram due_date/settlement_date como pendentes. Não classificá-las como
 dispensadas só porque hoje são null. Igualmente, uma recusa correta de reserva
 protege o runtime atual, mas não demonstra a neutralidade requerida por CAP-09.
+
+## G14 — contrato e identidade do claim ainda não implementados integralmente
+
+O roadmap ratificado §6 exige `claim_id`, operação/métrica, valor/unidade,
+entidades/período, time basis, coverage, IDs de evidência e provenance/evidence
+state, com validação de sua ligação. O desenho §§5/5.1 acrescenta schema v2,
+sujeito/período tipados, evaluator_ref e operand_bindings; §5.4 exige identidade
+`(fact_key, evaluator_version, result_hash)` e ancestry transitiva para derivados.
+Essas identidades têm objetos distintos: `claim_id` identifica o claim,
+`fact_key` identifica o fato do corpus e refs identificam evidências. Nenhuma
+substitui silenciosamente a outra.
+
+Evidência de código inspecionada em `a6b322d` (inalterada neste delta):
+
+| Parte do contrato | Materialização/verificação atual | Pendência NEXT-02 |
+|---|---|---|
+| Identidade do claim | `expenseReadModel.readConsumption` não emite claim_id; `verifyTypedClaimEvidence` não o exige | Definir identidade no schema, seu escopo e binding ao claim completo; rejeitar identidade ausente, duplicada no escopo ou associada a outro claim |
+| Métrica, valor e unidade | Read model emite consumption_total, inteiro seguro e BRL_minor; verifier aceita valor finito/unidade não vazia e compara métrica quando esperada | Verificar unidade esperada e ligação identidade/valor/dimensões/evidência sob contrato revisado; finitude e presença não provam fórmula nem valor |
+| Sujeito, período e time basis | Internamente entity.kind/ref, period.type/value e timeBasis; verifier compara expectativas fornecidas | Compatibilizar explicitamente com subject e period.kind tipados do schema v2; nomes parecidos não demonstram equivalência normativa |
+| Coverage, estado e refs | Retornados no objeto evidence; verifier exige complete, estado aceito e refs não vazias | Vincular ao mesmo claim e aos nós/conjunto exatos G07/G08; refs presentes não provam provenance |
+| Evaluator e derivados | Claim atual não tem evaluator_ref/operand_bindings nem identidade/DAG de derived_claim | Implementar as ligações ao registry e à prova transitiva G08/G09 após os pré-requisitos dos grafos |
+| Envelope público | `createExpenseToolGateway` substitui entity.ref por label e refs por eph_<sequência>_<índice>; não cria claim_id | Definir mapeamento entre claim interno e claim_id público efêmero, válido no request, verificável sem expor IDs internos ou correlação entre turnos |
+
+O verificador herdado requer `entity.ref`; a fachada pública retorna
+`entity.label`. Não se presume que esse verificador, isoladamente, valide o
+envelope público emitido por `expenses.sum`. A futura integração deve provar
+os dois lados e seu binding. `sanitizedTraceRecorder` não supre identidade de
+claim nem observação causal da prova.
+
+Critério de saída G14: contrato revisado e casos executados que rejeitem claim
+sem identidade, troca de identidade entre resultados, duplicidade no seu escopo,
+unidade/dimensões incompatíveis, evidência de outro claim e referência pública
+reutilizada fora do request. A representação exata e a política de identidade
+serão fixadas no schema/registries antes do código, respeitando o envelope
+efêmero da Model Data Boundary. NEXT-03 consome claims já validados; não recebe
+a responsabilidade de criar sua identidade ou completar sua matemática.
 
 ## Fronteira das oito famílias de contratos
 
@@ -158,25 +205,43 @@ N4+ inclui adapters reais, dashboard/canal/áudio NEXT-05, writers NEXT-06,
 proatividade NEXT-07, domínios NEXT-08 e cutover/retirement NEXT-09/10.
 Golden v1 completo permanece preservado até a decisão CP-07; nenhum dos 76
 fatos é apagado, marcado SUPERSEDED ou contado como implementado por esta tabela.
+O destino funcional N3/N4+/H não adia a autoria/revisão de seu grafo: todos os
+76 fatos integram o pré-requisito documental da migração de provenance §13.
+Descrever um grafo sintético de domínio futuro não implementa sua tool, adapter
+ou writer. A classificação da tabela é de capacidade de produto, não uma
+dispensa desse pré-requisito transversal.
 
 ## Próxima fatia derivada do inventário
 
-Recomendação: **N02-F — fundação da prova de provenance do vertical**.
-Primeiro delimitar schema/registries/grafos aplicáveis ao consumption_total,
-coverage e relações já presentes, reutilizando canonicalValue, kernel, agenda,
-read model e testes aprovados. Não criar outra fórmula de consumo nem DSL de
-matemática. Antes de alterar código, fixar paths, contratos e REDs derivados
-de G07/G08/G11. A fatia só pode alegar as provas que executar; o fechamento
-integral exige essas três obrigações juntas, sem terceiros remendos por campo.
+Recomendação corrigida: **N02-F — preparação documental integral da migração
+de provenance e do contrato de claim**. Essa fatia precede o motor executável.
 
-O desenho §13 também prevê grafos para os 76 fatos. Isso é obrigação de migração
-preservada, não autorização para implementar todos os domínios no NEXT-02.
-A revisão CP-02 deve confirmar a fronteira entre provar os claims aplicáveis
-ao vertical e a migração completa histórica; se considerar os 76 inseparáveis
-para este gate, registrar decisão normativa antes de implementação, sem reduzir
-essa obrigação silenciosamente. A tabela acima não aprova tal redução.
+1. Fixar escopo/paths e publicar schema v2 e registries genéricos, incluindo
+   o contrato/identidade de claim de G14. Reutilizar os conceitos e as funções
+   já aprovados de canonicalValue, kernel, agenda e read model ao mapear inputs
+   e operações; não criar outra fórmula de consumo ou DSL matemática.
+2. Autorar e revisar os grafos de **todos os 76 fatos**, sem gerá-los do oracle,
+   com rastreabilidade exata aos fact_keys congelados. Nenhum destino funcional
+   N3/N4+/H ou recusa de domínio remove um fato desse conjunto.
+3. Submeter schema, registries e conjunto integral a revisão independente;
+   registrar sua evidência e a correspondência 76/76. Ausência de grafo ou
+   revisão impede avançar para implementação do compiler/evaluator.
 
-Depois da fundação, selecionar G05/G06/G09 por dependência e fechar G10/G13.
+A seção 13 ratificada é mantida: após autoria/revisão integral, a compilação
+dos grafos serve à validação, e a implementação do compiler/evaluator segue
+sem branches por métrica. CP-02 não autoriza iniciar engine parcial antes dos
+76 grafos nem promover um rollout por domínio/campo; os critérios §14 exigem
+troca integral de abstração e propriedades para todo o grafo. A futura fatia
+executável precisa declarar os pré-requisitos satisfeitos e o escopo completo
+de G07/G08/G11/G14 antes de começar.
+
+Uma ordem diferente exigiria emenda normativa explícita e ratificada. Este
+inventário não propõe essa emenda: adota a ordem vigente. Não implementa agora
+tools, adapters ou writers dos domínios futuros para satisfazer a autoria dos
+grafos sintéticos, nem aposenta o Golden v1 antes da decisão CP-07.
+
+Após essa preparação, selecionar a fatia executável e G05/G06/G09 por
+dependência, preservando a migração integral e fechando G10/G13/G14.
 Não existe número definitivo de commits restantes: esses IDs são obrigações,
 não fatias já aprovadas. CP-03 continua depois de GO global NEXT-02, sem
 necessidade de acessar planilha real para concluir este inventário.
@@ -193,3 +258,9 @@ fatia. CP-02 permanece candidato até esse parecer; NEXT-02 global continua aber
 Resultado local documental: 39 métricas com contagens individuais iguais ao
 oracle, 76 fatos, 56 turnos únicos; referências existentes, diff-check e
 agent-workflow OK. Essa verificação não julga a classificação semântica/fase.
+
+Revalidação do delta corretivo em 2026-09-09: as 39 contagens individuais
+continuam iguais ao oracle (76 fatos); rastreabilidade mantém 56 turnos únicos;
+G01..G14 são únicos; seis referências diretamente confrontadas existem;
+diff-check e agent-workflow OK. Só os três documentos deste gate mudaram.
+Nenhuma suíte funcional foi repetida: o delta não modifica código ou fixtures.
