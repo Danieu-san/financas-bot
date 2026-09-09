@@ -19,8 +19,9 @@ Um arquivo futuro não deve ser chamado de congelado/medido apenas porque
 possui campos com esses nomes. Os roots executáveis só podem ser fixados com
 os respectivos bytes existentes. Nesta preparação, ausência de executável é
 uma pendência explícita que impede execução; não uma exceção ao hash exigido.
-A representação documental dessa pendência ainda será especificada, sem
-aceitação por `null`, zero ou placeholder no contrato de execução.
+A proposta em `type-and-identity-contract-v2.md` e no schema de registry
+separa authoring não executável de execution. Ela continua sujeita à auditoria;
+não permite `null`, zero ou placeholder como comprovação de execução.
 
 ## 2. Inventário de partida conferido
 
@@ -84,9 +85,10 @@ adicionar os campos faltantes à fixture v1.
 | vínculo ao resultado | resultado funcional R validado separadamente e associado ao claim correto; não inserido no trace |
 | vínculo à evidência | conjunto exato dos nós de valor e prova, incluindo arestas materiais |
 
-A política exata de geração/escopo do claim_id ainda precisa ser definida e
-revisada. Não usar automaticamente fact_key, hash estável público ou sequência
-global como solução. Claims derivados preservam a identidade ratificada
+A política proposta de escopo/binding do claim_id está em
+`type-and-identity-contract-v2.md` e ainda precisa ser revisada. Não usar
+automaticamente fact_key, hash estável público ou sequência global como solução.
+Claims derivados preservam a identidade ratificada
 `(fact_key, evaluator_version, result_hash)` e ancestry dos pais; esse requisito
 não elimina claim_id nem permite trocar a ordem dos operandos.
 
@@ -134,9 +136,10 @@ domínio futuro ou por não ter witness imediato.
 
 ## 7. Próximas entregas, ainda ausentes
 
-1. Catálogo completo por kind, incluindo campos de coleções vazias.
-2. Decisões revisadas de identidade e de representação de executáveis futuros.
-3. Schemas e registries declarativos com referências exatas.
+1. Material registry completo por kind, incluindo campos de coleções vazias.
+2. Revisão das propostas de identidade e de executáveis futuros já escritas.
+3. Schema de grafo e registries completos; os dois schemas iniciais de claim e
+   metric evaluator registry já existem como rascunhos, não como entrega final.
 4. Grafos autorados e revisados 76/76, sem geração a partir do oracle.
 5. Revisão independente integral antes do compiler/evaluator.
 

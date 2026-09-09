@@ -87,6 +87,8 @@ Não relatar compiler, proof trace ou mutation suite como executados nesta fase.
 
 ## Próxima ação exata
 
-Completar o catálogo de campos materiais por kind a partir da fixture e
-contratos v1; fixar tipos de sujeito/período e proposta de identidade/binding
-em `authoring-contract-v1.md`, antes de produzir JSON Schema e grafos.
+Tipos de claim/registry e proposta de identidade já foram escritos em rascunho
+na pasta provenance-v2. Completar material field registry por kind, incluindo
+coleções vazias, e operator registry; depois schema de grafo e autoria 76/76.
+O checkpoint enumera os artefatos e distingue checks de shape das provas
+causais ainda não executadas.

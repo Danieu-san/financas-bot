@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "urn:financasbot:next:metric-evaluator-registry:1",
+  "title": "N02-F metric evaluator registry document: authoring is never executable",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "registry_id", "registry_version", "stage", "entries"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "registry_id": {"const": "metric_evaluator_registry"},
+    "registry_version": {"type": "integer", "minimum": 1},
+    "stage": {"enum": ["authoring", "execution"]},
+    "entries": {"type": "array", "minItems": 1, "items": {"$ref": "#/definitions/entry"}}
+  },
+  "allOf": [
+    {"if": {"properties": {"stage": {"const": "authoring"}}}, "then": {"properties": {"entries": {"items": {"properties": {"artifact_status": {"const": "not_built"}}, "not": {"required": ["evaluator_artifact_root"]}}}}}},
+    {"if": {"properties": {"stage": {"const": "execution"}}}, "then": {"properties": {"entries": {"items": {"required": ["evaluator_artifact_root"], "properties": {"artifact_status": {"const": "bound"}}}}}}}
+  ],
+  "definitions": {
+    "name": {"type": "string", "pattern": "^[a-z][a-z0-9_]{0,63}$"},
+    "digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "role": {
+      "type": "object", "additionalProperties": false,
+      "required": ["role_id", "semantic_role", "input_kind", "cardinality", "ordered"],
+      "properties": {
+        "role_id": {"$ref": "#/definitions/name"},
+        "semantic_role": {"enum": ["population", "scope", "period", "policy", "coverage", "source", "target", "left", "right", "numerator", "denominator", "sort_key", "sort_direction", "opening_balance", "limit", "clock", "evidence"]},
+        "input_kind": {"enum": ["node", "node_set", "parent_claim"]},
+        "cardinality": {"enum": ["one", "many"]},
+        "ordered": {"type": "boolean"}
+      },
+      "allOf": [
+        {"if": {"properties": {"input_kind": {"enum": ["node", "parent_claim"]}}}, "then": {"properties": {"cardinality": {"const": "one"}, "ordered": {"const": false}}}},
+        {"if": {"properties": {"input_kind": {"const": "node_set"}}}, "then": {"properties": {"cardinality": {"const": "many"}}}}
+      ]
+    },
+    "entry": {
+      "type": "object", "additionalProperties": false,
+      "required": ["evaluator_id", "evaluator_version", "metric", "unit", "contract_path", "evaluator_contract_hash", "artifact_status", "roles", "witness_contract_ids"],
+      "properties": {
+        "evaluator_id": {"$ref": "#/definitions/name"},
+        "evaluator_version": {"type": "integer", "minimum": 1},
+        "metric": {"$ref": "#/definitions/name"},
+        "unit": {"enum": ["BRL_minor", "count", "entity_ids", "state"]},
+        "contract_path": {"type": "string", "pattern": "^docs/contracts/next/provenance-v2/evaluator-contracts/[a-z][a-z0-9_-]*\\.json$"},
+        "evaluator_contract_hash": {"$ref": "#/definitions/digest"},
+        "artifact_status": {"enum": ["not_built", "bound"]},
+        "evaluator_artifact_root": {"$ref": "#/definitions/digest"},
+        "roles": {"type": "array", "minItems": 1, "items": {"$ref": "#/definitions/role"}},
+        "witness_contract_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/definitions/name"}}
+      }
+    }
+  }
+}
