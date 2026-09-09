@@ -1,6 +1,6 @@
 # CP-02 — inventário de fechamento NEXT-02
 
-Data: 2026-09-09. Estado: CANDIDATO CORRETIVO; REAUDITORIA PENDENTE.
+Data: 2026-09-09. Estado: CP-02 RESOLVIDO; INVENTÁRIO APROVADO FOCALMENTE.
 Branch: `codex/financasbot-cp02-inventory-20260908`.
 Base: `b5df1a25b873d70a847b1209efaa460e9c03b870`.
 Parent corretivo: `a6b322dbd690115d419df348bd068f9cfed40743`.
@@ -18,7 +18,7 @@ percentual de GO foi inferido. Há provas focais existentes e lacunas em tipos
 econômicos, lentes, claims derivados, provenance integral, witnesses e gate global.
 Pins CP-01 não substituem recorder/closure/registry de evaluator ratificados.
 
-Parecer vigente sobre a6b322d: APROVÁVEL APÓS AJUSTES, dois MEDIUM.
+Parecer histórico sobre a6b322d: APROVÁVEL APÓS AJUSTES, dois MEDIUM.
 O reenvio do mesmo SHA não gerou nova auditoria e não muda esse parecer.
 O delta corretivo adota a ordem ratificada: schema v2/registries, autoria e
 revisão de todos os 76 grafos antes de compiler/evaluator, sem rollout por
@@ -30,18 +30,27 @@ binding de valor/unidade/dimensões/evidência, identidade de derivados e
 envelope público efêmero. Campos tipados/ref não provam todo o contrato.
 G12 restringe sua cobertura às boundaries demonstradas. As classificações
 funcionais N3/N4+/H não dispensam grafos do pré-requisito 76/76.
-Correções candidatas, sujeitas a reauditoria; nenhuma emenda da arquitetura.
+Correções aprovadas na reauditoria de b624b3d; nenhuma emenda da arquitetura.
 
 Validação documental executada: igualdade exata das 39 métricas e respectivas
 contagens com o oracle (76 fatos); 56 turnos únicos na rastreabilidade;
 referências requeridas existentes, diff-check e agent-workflow OK.
 Delta restrito a três documentos, zero mudança de código/dependência/fixture.
 As verificações mecânicas provam inventário e escopo, não a correção da
-classificação de fase, que permanece objeto de auditoria independente.
+classificação de fase; sua revisão independente foi concluída separadamente.
 
-Próxima ação: validar/publicar somente os três documentos e enviar pelo bot
-uma reauditoria focal do novo SHA sobre a6b322d. Entrega não significa parecer
-concluído; recuperar o resultado antes de novo envio. Confrontar o parecer antes
-de marcar CP-02 resolvido e fixar o escopo documental N02-F. Sem ampla repetida:
-este delta documental não muda o candidato funcional aprovado.
-Codex → Astra → Alto → confrontar classificação de escopo e próxima fatia.
+Reauditoria concluída no Chat e lida diretamente em 2026-09-09: APROVÁVEL para
+`b624b3d8a85bc8cebc0401d3f0e4fe6cf7d760ae`, parent único
+`a6b322dbd690115d419df348bd068f9cfed40743`; zero findings. SHA, parent e três
+paths confrontados com Git local; branch remota confirmada no mesmo candidato.
+Recibo: `results/FIN-CP02-CORRECTIVE-AUDIT-20260909.md`.
+Monitor desse SHA pausado após recebimento; nenhum reenvio da auditoria.
+
+Próxima ação: abrir N02-F documental em worktree/checkpoint próprios a partir
+deste recibo. Fixar schema/registries e contrato completo de claim, depois
+autorar/revisar 76/76 grafos antes de qualquer compiler/evaluator. Reutilizar
+conceitos e funções aprovados sem criar segunda matemática. NEXT-02 global e
+G05..G14 pendentes permanecem abertos; NEXT-03 não foi aberto. Sem ampla
+repetida: este recebimento não altera o candidato funcional aprovado.
+Telemetria de custo deste recebimento: NAO_DISPONIVEL; nenhum zero inferido.
+Codex → Astra → Alto → preparar contratos e grafos documentais N02-F.
