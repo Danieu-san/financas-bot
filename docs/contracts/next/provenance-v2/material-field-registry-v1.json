@@ -1,0 +1,162 @@
+{
+  "registry_id": "material_field_registry",
+  "registry_version": 1,
+  "stage": "authoring",
+  "closed_world": true,
+  "semantics": "registry-semantics-v1.md",
+  "field_classes": ["identity", "dimension", "edge", "non_material"],
+  "types": ["id", "text", "date", "month", "datetime", "integer", "positive_integer", "nonnegative_integer", "money_minor", "boolean", "enum", "digest", "ref", "ref_list", "typed_period", "typed_result", "role_ref_list"],
+  "envelope_fields": {
+    "ref_id": {"class": "identity", "type": "id", "required": true},
+    "kind": {"class": "identity", "type": "id", "required": true},
+    "version": {"class": "identity", "type": "digest", "required": true}
+  },
+  "kinds": {
+    "family": {"origin": "families", "fields": {
+      "id": {"class": "identity", "type": "id", "required": true},
+      "label": {"class": "non_material", "type": "text", "required": true, "reason": "display_only"},
+      "members": {"class": "edge", "type": "ref_list", "required": true, "targets": ["person"]}
+    }},
+    "person": {"origin": "people", "fields": {
+      "id": {"class": "identity", "type": "id", "required": true},
+      "label": {"class": "non_material", "type": "text", "required": true, "reason": "display_only"},
+      "family_id": {"class": "edge", "type": "ref", "required": true, "targets": ["family"]}
+    }},
+    "account": {"origin": "accounts", "fields": {
+      "id": {"class": "identity", "type": "id", "required": true},
+      "label": {"class": "non_material", "type": "text", "required": true, "reason": "display_only"},
+      "owner_id": {"class": "edge", "type": "ref", "required": true, "targets": ["person"]},
+      "type": {"class": "dimension", "type": "enum", "required": true, "values": ["checking", "reserve"]},
+      "opening_balance_minor": {"class": "dimension", "type": "money_minor", "required": true},
+      "opening_balance_as_of": {"class": "dimension", "type": "date", "required": true}
+    }},
+    "card": {"origin": "cards", "fields": {
+      "id": {"class": "identity", "type": "id", "required": true},
+      "label": {"class": "non_material", "type": "text", "required": true, "reason": "display_only"},
+      "owner_id": {"class": "edge", "type": "ref", "required": true, "targets": ["person"]},
+      "closing_day": {"class": "dimension", "type": "positive_integer", "required": true, "maximum": 31},
+      "due_day": {"class": "dimension", "type": "positive_integer", "required": true, "maximum": 31}
+    }},
+    "category": {"origin": "categories", "fields": {
+      "id": {"class": "identity", "type": "id", "required": true},
+      "label": {"class": "non_material", "type": "text", "required": true, "reason": "display_only"},
+      "kind": {"class": "dimension", "type": "enum", "required": true, "values": ["expense", "income", "neutral", "compensation"]},
+      "budget_class": {"class": "dimension", "type": "enum", "required": false, "values": ["essential", "flexible"]}
+    }},
+    "event": {"origin": "events", "fields": {
+      "id": {"class": "identity", "type": "id", "required": true},
+      "date": {"class": "dimension", "type": "date", "required": true},
+      "person_id": {"class": "edge", "type": "ref", "required": true, "targets": ["person"]},
+      "account_id": {"class": "edge", "type": "ref", "required": false, "targets": ["account"]},
+      "card_id": {"class": "edge", "type": "ref", "required": false, "targets": ["card"]},
+      "category_id": {"class": "edge", "type": "ref", "required": true, "targets": ["category"]},
+      "amount_minor": {"class": "dimension", "type": "money_minor", "required": true},
+      "state": {"class": "dimension", "type": "enum", "required": true, "values": ["confirmed", "projected"]},
+      "merchant_key": {"class": "edge", "type": "ref", "required": false, "targets": ["merchant_identity"]},
+      "compensates": {"class": "edge", "type": "ref", "required": false, "targets": ["event"]},
+      "transfer_pair": {"class": "edge", "type": "ref", "required": false, "targets": ["transfer_identity"]},
+      "settles_card_id": {"class": "edge", "type": "ref", "required": false, "targets": ["card"]},
+      "installment_plan": {"class": "edge", "type": "ref", "required": false, "targets": ["installment_plan"]},
+      "installment_number": {"class": "dimension", "type": "positive_integer", "required": false},
+      "installment_total": {"class": "dimension", "type": "positive_integer", "required": false}
+    }},
+    "budget": {"origin": "budgets", "fields": {
+      "id": {"class": "identity", "type": "id", "required": true},
+      "family_id": {"class": "edge", "type": "ref", "required": true, "targets": ["family"]},
+      "category_id": {"class": "edge", "type": "ref", "required": true, "targets": ["category"]},
+      "period": {"class": "dimension", "type": "month", "required": true},
+      "limit_minor": {"class": "dimension", "type": "money_minor", "required": true},
+      "evidence_state": {"class": "dimension", "type": "enum", "required": true, "values": ["confirmed"]},
+      "source": {"class": "edge", "type": "ref", "required": true, "targets": ["source_origin"]}
+    }},
+    "bill": {"origin": "bills", "fields": {
+      "id": {"class": "identity", "type": "id", "required": true},
+      "person_id": {"class": "edge", "type": "ref", "required": true, "targets": ["person"]},
+      "due_date": {"class": "dimension", "type": "date", "required": true},
+      "amount_minor": {"class": "dimension", "type": "money_minor", "required": true},
+      "status": {"class": "dimension", "type": "enum", "required": true, "values": ["open", "paid", "cancelled"]},
+      "evidence_state": {"class": "dimension", "type": "enum", "required": true, "values": ["confirmed", "projected"]},
+      "source": {"class": "edge", "type": "ref", "required": true, "targets": ["source_origin"]}
+    }},
+    "source_state": {"origin": "source_states", "fields": {
+      "id": {"class": "identity", "type": "id", "required": true},
+      "source": {"class": "edge", "type": "ref", "required": true, "targets": ["source_origin"]},
+      "period": {"class": "dimension", "type": "month", "required": false},
+      "entity_id": {"class": "edge", "type": "ref", "required": false, "targets": ["family", "person", "account", "card"]},
+      "category_id": {"class": "edge", "type": "ref", "required": false, "targets": ["category"]},
+      "coverage": {"class": "dimension", "type": "enum", "required": true, "values": ["complete", "partial", "unavailable"]},
+      "event_count": {"class": "dimension", "type": "nonnegative_integer", "required": false}
+    }},
+    "proposal": {"origin": "proposals", "fields": {
+      "id": {"class": "identity", "type": "id", "required": true},
+      "state": {"class": "dimension", "type": "enum", "required": true, "values": ["presented", "expired", "superseded"]},
+      "expires_at": {"class": "dimension", "type": "datetime", "required": true},
+      "source_version": {"class": "identity", "type": "id", "required": true}
+    }},
+    "reminder": {"origin": "reminders", "fields": {
+      "id": {"class": "identity", "type": "id", "required": true},
+      "person_id": {"class": "edge", "type": "ref", "required": true, "targets": ["person"]},
+      "scheduled_at": {"class": "dimension", "type": "date", "required": true}
+    }},
+    "calendar_event": {"origin": "calendar_events", "fields": {
+      "id": {"class": "identity", "type": "id", "required": true},
+      "person_id": {"class": "edge", "type": "ref", "required": true, "targets": ["person"]},
+      "scheduled_at": {"class": "dimension", "type": "date", "required": true}
+    }},
+    "side_effect": {"origin": "side_effects", "fields": {
+      "id": {"class": "identity", "type": "id", "required": true},
+      "turn_id": {"class": "edge", "type": "ref", "required": true, "targets": ["turn"]}
+    }},
+    "merchant_rule": {"origin": "merchant_rules", "fields": {
+      "id": {"class": "identity", "type": "id", "required": true},
+      "merchant_key": {"class": "edge", "type": "ref", "required": true, "targets": ["merchant_identity"]},
+      "category_id": {"class": "edge", "type": "ref", "required": true, "targets": ["category"]},
+      "application": {"class": "dimension", "type": "enum", "required": true, "values": ["suggestion", "automatic"]},
+      "reversible": {"class": "dimension", "type": "boolean", "required": true},
+      "evidence_state": {"class": "dimension", "type": "enum", "required": true, "values": ["confirmed"]},
+      "source": {"class": "edge", "type": "ref", "required": true, "targets": ["source_origin"]}
+    }},
+    "fixture": {"origin": "authored_auxiliary", "fields": {
+      "id": {"class": "identity", "type": "id", "required": true},
+      "synthetic": {"class": "dimension", "type": "boolean", "required": true},
+      "closed_world": {"class": "dimension", "type": "boolean", "required": true},
+      "currency": {"class": "dimension", "type": "enum", "required": true, "values": ["BRL"]},
+      "fixed_clock": {"class": "dimension", "type": "datetime", "required": true}
+    }},
+    "collection": {"origin": "authored_auxiliary", "fields": {
+      "id": {"class": "identity", "type": "id", "required": true},
+      "fixture_id": {"class": "edge", "type": "ref", "required": true, "targets": ["fixture"]},
+      "collection_name": {"class": "dimension", "type": "enum", "required": true, "values": ["families", "people", "accounts", "cards", "categories", "events", "budgets", "bills", "source_states", "proposals", "reminders", "calendar_events", "side_effects", "merchant_rules"]},
+      "members": {"class": "edge", "type": "ref_list", "required": true, "targets": ["family", "person", "account", "card", "category", "event", "budget", "bill", "source_state", "proposal", "reminder", "calendar_event", "side_effect", "merchant_rule"]}
+    }},
+    "source_origin": {"origin": "authored_auxiliary", "fields": {
+      "id": {"class": "identity", "type": "id", "required": true},
+      "fixture_id": {"class": "edge", "type": "ref", "required": true, "targets": ["fixture"]}
+    }},
+    "merchant_identity": {"origin": "authored_auxiliary", "fields": {
+      "id": {"class": "identity", "type": "id", "required": true},
+      "fixture_id": {"class": "edge", "type": "ref", "required": true, "targets": ["fixture"]}
+    }},
+    "transfer_identity": {"origin": "authored_auxiliary", "fields": {
+      "id": {"class": "identity", "type": "id", "required": true},
+      "members": {"class": "edge", "type": "ref_list", "required": true, "targets": ["event"]}
+    }},
+    "installment_plan": {"origin": "authored_auxiliary", "fields": {
+      "id": {"class": "identity", "type": "id", "required": true},
+      "members": {"class": "edge", "type": "ref_list", "required": true, "targets": ["event"]},
+      "installment_total": {"class": "dimension", "type": "positive_integer", "required": true}
+    }},
+    "turn": {"origin": "authored_auxiliary", "fields": {
+      "id": {"class": "identity", "type": "id", "required": true},
+      "fixture_id": {"class": "edge", "type": "ref", "required": true, "targets": ["fixture"]}
+    }},
+    "derived_claim": {"origin": "prior_validated_result", "fields": {
+      "id": {"class": "identity", "type": "id", "required": true},
+      "fact_key": {"class": "identity", "type": "id", "required": true},
+      "evaluator_version": {"class": "identity", "type": "positive_integer", "required": true},
+      "result_hash": {"class": "identity", "type": "digest", "required": true},
+      "result": {"class": "dimension", "type": "typed_result", "required": true},
+      "parents": {"class": "edge", "type": "role_ref_list", "required": true, "targets": ["derived_claim"]}
+    }}
+  }
+}

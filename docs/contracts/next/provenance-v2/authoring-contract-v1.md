@@ -134,12 +134,18 @@ evidência que falta. Não inferir statement_id de card_id nem fabricar coverage
 complete a partir de lista vazia. Nenhum fato pode desaparecer por ser de
 domínio futuro ou por não ter witness imediato.
 
-## 7. Próximas entregas, ainda ausentes
+## 7. Entregas em rascunho e pendências
 
-1. Material registry completo por kind, incluindo campos de coleções vazias.
-2. Revisão das propostas de identidade e de executáveis futuros já escritas.
-3. Schema de grafo e registries completos; os dois schemas iniciais de claim e
-   metric evaluator registry já existem como rascunhos, não como entrega final.
+Os schemas iniciais de claim/metric evaluator registry, o material field
+registry e o operator registry já existem como rascunhos. A semântica dos dois
+últimos está em `registry-semantics-v1.md`; suas contagens e checks de inventário
+não representam aprovação ou execução. Ainda faltam:
+
+1. Schemas de payload/grafo e manifests revisados dos snapshots auxiliares.
+2. Revisão das propostas de identidade e de executáveis futuros já escritas,
+   incluindo preimage exato do hash de derived_claim e binding ao grafo anterior.
+3. Contratos e entradas de metric evaluator registry, templates e bindings
+   completos, sem inventar roots de artefatos executáveis ainda inexistentes.
 4. Grafos autorados e revisados 76/76, sem geração a partir do oracle.
 5. Revisão independente integral antes do compiler/evaluator.
 

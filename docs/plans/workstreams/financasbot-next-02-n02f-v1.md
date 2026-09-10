@@ -1,6 +1,6 @@
 # N02-F — preparação documental integral de provenance
 
-Data: 2026-09-09. Estado: EM PREPARAÇÃO; NÃO APROVADO.
+Data: 2026-09-10. Estado: EM PREPARAÇÃO; NÃO APROVADO.
 Base: `ee5a0161f0c24a1c9a6a3c95a04e9da1eec4e91d`.
 Branch: `codex/financasbot-n02f-provenance-20260909`.
 Worktree: `.codex-worktrees/financasbot-n02f-provenance`.
@@ -87,8 +87,9 @@ Não relatar compiler, proof trace ou mutation suite como executados nesta fase.
 
 ## Próxima ação exata
 
-Tipos de claim/registry e proposta de identidade já foram escritos em rascunho
-na pasta provenance-v2. Completar material field registry por kind, incluindo
-coleções vazias, e operator registry; depois schema de grafo e autoria 76/76.
-O checkpoint enumera os artefatos e distingue checks de shape das provas
-causais ainda não executadas.
+Tipos de claim/registry, proposta de identidade e registries de campos e
+operadores já foram escritos em rascunho na pasta provenance-v2. Preparar os
+schemas de payload/grafo e manifests auxiliares, explicitando o binding e hash
+de derived_claim; depois completar contratos de evaluators/templates e autoria
+76/76. O checkpoint enumera os artefatos e distingue checks de shape/inventário
+das provas causais ainda não executadas.
