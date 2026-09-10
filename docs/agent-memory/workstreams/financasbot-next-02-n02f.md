@@ -24,8 +24,10 @@ Preparados agora: material field registry (22 kinds, 102 campos de payload,
 cinco labels non_material, 14 origins primárias), operator registry com os
 27 operadores aprovados e semântica declarativa. Quatorze checks de inventário/
 descriptors em memória passaram; não provam execução ou causalidade dos grafos.
-Ainda ausentes: schemas de payload/grafo, manifests auxiliares, contratos e
-entradas de evaluators/templates, grafos 76/76 e revisão
+Preparados na continuação: snapshot schema por 22 kinds, graph schema,
+contrato de binding/hash de derived_claim e manifest de 114 snapshots.
+Os 114 fingerprints e hashes das fontes foram medidos, sem executar métricas.
+Ainda ausentes: contratos e entradas de evaluators/templates, grafos 76/76 e revisão
 independente integral. Políticas novas são propostas, não regras aprovadas.
 Compiler/evaluator permanecem bloqueados até autoria/revisão integral.
 
@@ -40,17 +42,32 @@ Paths enumerados para campos/operadores nesta edição:
 - `docs/contracts/next/provenance-v2/operator-registry-v1.json`;
 - `docs/contracts/next/provenance-v2/registry-semantics-v1.md`.
 
-Próxima ação: schemas de payload/grafo e manifests auxiliares revisados, antes
-da autoria 76/76. Completar a proposta de hash de derived_claim e binding ao
-grafo anterior sem reordenar roles/pais. Reutilizar regras do kernel/agenda/
-canonicalValue sem segunda fórmula, sem modificar fonte/pin/fixture v1.
+Próxima ação: contratos/registry de evaluators e os 76 claims/grafos, com
+seleções e exclusões justificadas, roles e leituras separados por fase.
+O binding de derived_claim está proposto em graph-binding-contract-v1.md.
+Reutilizar regras do kernel/agenda/canonicalValue sem segunda fórmula,
+sem modificar fonte/pin/fixture v1.
+
+Paths enumerados para a continuação dos schemas e vínculo de prova:
+- `docs/contracts/next/provenance-v2/evidence-snapshot.schema.json`;
+- `docs/contracts/next/provenance-v2/provenance-graph.schema.json`;
+- `docs/contracts/next/provenance-v2/graph-binding-contract-v1.md`.
+- `docs/contracts/next/provenance-v2/snapshot-manifest-v1.json`.
+
+Confronto adicional do corpus: fact_keys e turn_ids incluem S/M/F/N. A grammar
+S/M do rascunho inicial foi corrigida para não excluir fatos F/N. A igualdade
+do conjunto de 76 continua obrigatória além da validação lexical.
 
 Telemetria: NAO_DISPONIVEL; último Status do coletor indicou running=false e
 healthy=false. Não iniciar/reconfigurar coletor nem ampliar coleta nesta fatia.
 Validação anterior: 20/20 checks locais dos dois schemas, diff-check e
 agent-workflow OK no progresso bcb8257272058719d6352f4e43acb0668760831e.
-Nesta edição: 14/14 checks locais dos registries; diff-check e agent-workflow
-OK em 2026-09-10. Os checks em memória não constituem
+Registries: 14/14 checks locais; diff-check e agent-workflow OK em 2026-09-10.
+Schemas/manifest: 122 checks da projeção/fixture, 76/76 fact_keys e quatro
+recusas lexicais; 114/114 snapshots válidos e 201 refs resolvidas; 11/11 checks
+de shape do grafo. Detalhes/limites em graph-binding-contract-v1.md §6.
+Diff-check e agent-workflow desta continuação: OK em 2026-09-10.
+Os checks em memória não constituem
 suíte persistida. Apenas documentos/JSON declarativo, sem código/fixture/
 dependência. Commit de progresso, não candidato integral de auditoria N02-F;
 nenhuma suíte ampla repetida.

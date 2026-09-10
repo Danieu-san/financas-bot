@@ -13,7 +13,7 @@
   "definitions": {
     "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/#@-]{0,159}$"},
     "alias": {"type": "string", "pattern": "^[a-z][a-z0-9_]{0,63}$"},
-    "factKey": {"type": "string", "pattern": "^[SM]-[0-9]{2}#[1-9][0-9]*#[1-9][0-9]*$"},
+    "factKey": {"type": "string", "pattern": "^[SMFN]-[0-9]{2}#[1-9][0-9]*#[1-9][0-9]*$"},
     "date": {"type": "string", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$", "format": "date"},
     "month": {"type": "string", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"},
     "evaluatorRef": {
@@ -42,7 +42,7 @@
         {"type": "object", "additionalProperties": false, "required": ["kind", "value"], "properties": {"kind": {"enum": ["month", "statement_competence", "budget_cycle"]}, "value": {"$ref": "#/definitions/month"}}},
         {"type": "object", "additionalProperties": false, "required": ["kind", "start", "end", "start_inclusive", "end_inclusive"], "properties": {"kind": {"const": "range"}, "start": {"$ref": "#/definitions/date"}, "end": {"$ref": "#/definitions/date"}, "start_inclusive": {"type": "boolean"}, "end_inclusive": {"type": "boolean"}}},
         {"type": "object", "additionalProperties": false, "required": ["kind", "snapshot_version"], "properties": {"kind": {"const": "registry_snapshot"}, "snapshot_version": {"$ref": "#/definitions/id"}}},
-        {"type": "object", "additionalProperties": false, "required": ["kind", "turn_id"], "properties": {"kind": {"const": "request_execution"}, "turn_id": {"type": "string", "pattern": "^[SM]-[0-9]{2}#[1-9][0-9]*$"}}}
+        {"type": "object", "additionalProperties": false, "required": ["kind", "turn_id"], "properties": {"kind": {"const": "request_execution"}, "turn_id": {"type": "string", "pattern": "^[SMFN]-[0-9]{2}#[1-9][0-9]*$"}}}
       ]
     },
     "claim": {

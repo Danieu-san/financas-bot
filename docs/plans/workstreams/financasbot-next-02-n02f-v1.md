@@ -88,8 +88,8 @@ Não relatar compiler, proof trace ou mutation suite como executados nesta fase.
 ## Próxima ação exata
 
 Tipos de claim/registry, proposta de identidade e registries de campos e
-operadores já foram escritos em rascunho na pasta provenance-v2. Preparar os
-schemas de payload/grafo e manifests auxiliares, explicitando o binding e hash
-de derived_claim; depois completar contratos de evaluators/templates e autoria
-76/76. O checkpoint enumera os artefatos e distingue checks de shape/inventário
-das provas causais ainda não executadas.
+operadores, schemas de payload/grafo e manifest de snapshots já foram escritos
+em rascunho na pasta provenance-v2. Completar contratos de evaluators/templates
+e autoria dos 76 claims/grafos, confrontando as seleções/exclusões com pergunta,
+fixture e obrigações. O checkpoint enumera os artefatos e distingue checks de
+shape/inventário das provas causais ainda não executadas.

@@ -37,8 +37,9 @@ Para derived_claim, a identidade adicional permanece exatamente
 `(fact_key, evaluator_version, result_hash)`. O contrato de hashing do resultado
 derivado deve incluir resultado tipado, descriptor, bindings de roles e hashes
 dos pais. Pais são associados por role, não reordenados arbitrariamente;
-ciclos falham. Esse hash ainda será detalhado com a canonicalização do grafo,
-antes da autoria final; não usar somente hash do número final.
+ciclos falham. O preimage proposto, sua ordem canônica e a resolução dos pais
+estão em `graph-binding-contract-v1.md`, §5. A autoria mantém referência ao pai;
+somente uma execução validada futura pode materializar seu resultado/hash.
 
 ## 2. Projeção pública
 
@@ -125,7 +126,8 @@ Uma coleção vazia exige objeto de prova que registre coleção, revisão, esco
 cobertura e membership observado. Zero elementos não implica complete: é o
 closed-world sintético revisado que deve sustentar essa declaração. O schema
 dos membros e o witness de adição válida continuam necessários, mesmo sem
-exemplos presentes. Esses schemas/material registry ainda serão entregues.
+exemplos presentes. O material registry, snapshot schema e manifest já existem
+como rascunhos; sua validação de shape/referências não prova coverage financeira.
 
 ## 6. Critérios adversariais documentais
 

@@ -141,9 +141,10 @@ registry e o operator registry já existem como rascunhos. A semântica dos dois
 últimos está em `registry-semantics-v1.md`; suas contagens e checks de inventário
 não representam aprovação ou execução. Ainda faltam:
 
-1. Schemas de payload/grafo e manifests revisados dos snapshots auxiliares.
+1. Revisão dos schemas de payload/grafo e manifest de snapshots já escritos.
 2. Revisão das propostas de identidade e de executáveis futuros já escritas,
-   incluindo preimage exato do hash de derived_claim e binding ao grafo anterior.
+   incluindo o preimage de derived_claim e binding ao grafo anterior definidos
+   em `graph-binding-contract-v1.md`.
 3. Contratos e entradas de metric evaluator registry, templates e bindings
    completos, sem inventar roots de artefatos executáveis ainda inexistentes.
 4. Grafos autorados e revisados 76/76, sem geração a partir do oracle.

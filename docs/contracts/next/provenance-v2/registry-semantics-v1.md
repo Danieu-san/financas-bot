@@ -104,7 +104,8 @@ Os enums adicionais paid/cancelled, projected em bill e automatic em regra
 são alternativas sintéticas propostas para witnesses de estado/aplicação;
 não alegam presença na fixture nem habilitam esses comportamentos no produto.
 
-Objetos `authored_auxiliary` ainda precisam ser escritos no manifest:
+Objetos `authored_auxiliary` estão explicitados no rascunho de
+`snapshot-manifest-v1.json`, com origem e mapeamento para revisão:
 
 | Kind | Fonte e limite |
 |---|---|
@@ -128,8 +129,9 @@ para provar correspondência positiva seria necessária evidência revisada nova
 `derived_claim` representa um resultado previamente validado e a ligação ao
 seu grafo. Pais vazios só são admissíveis se o grafo desse resultado tiver
 prova primária completa; nunca são licença para ancestry sem evidência. O
-schema de grafo ainda fixará essa ligação e o preimage exato de result_hash.
-O registro atual não autoriza gerar DAG/resultado sem esses pré-requisitos.
+schema de grafo e `graph-binding-contract-v1.md` propõem essa ligação e o
+preimage exato de result_hash. A execução/validação do pai continua pendente;
+o registro atual não autoriza gerar resultado sem esses pré-requisitos.
 
 ## 5. Grammar e tipos dos operadores
 
@@ -198,8 +200,9 @@ numéricos provam relações auxiliares; não produzem o resultado R da métrica
 Estes registries são especificação de autoria, não implementações testadas.
 A validação mecânica confere nomes, campos, tipos, targets e cobertura do
 inventário observado; não prova predicados, traces, mutações ou 76 grafos.
-Schemas de payload/grafo e manifests auxiliares ainda precisam fechar as
-regras descritas aqui antes da revisão independente integral N02-F.
+Schemas de payload/grafo e manifest auxiliar já existem como rascunhos. Sua
+consistência e suficiência devem ser confrontadas com cada grafo antes da
+revisão independente integral N02-F.
 
 Evidência local registrada em 2026-09-10: 14/14 checks em memória passaram,
 abrangendo os dois inventários positivos e recusas de campo material omitido,
