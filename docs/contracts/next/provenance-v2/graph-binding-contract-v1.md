@@ -81,7 +81,25 @@ payloads. Listas vazias não significam not_applicable. A ausência só pode ser
 deduzida da inexistência estrutural do objeto correspondente, conforme NEXT-00.
 Remover check/predicado necessário falha, mesmo se o JSON continuar válido.
 
+O argumento edge resolve a entrada source/field/target contra o payload real,
+inclusive membership quando field é uma lista. O autor não pode criar uma
+aresta ausente por declará-la no grafo. ref_set é uma vista explícita de uma
+ref_list já sem duplicatas: resolve cada ID como nó nominal antes de comparar
+conjuntos. Essa vista não elimina duplicatas nem apaga a ordem observada no log.
+period_literal contém uma janela civil explicitamente autorada e tipada; o
+grafo deve ligá-la ao claim e aos campos/policy que justificam seus limites.
+Presença do literal não prova essa relação nem permite derivá-la do oracle.
+
 ## 4. Contrato de observação
+
+Período, sujeito e filtros usados no cálculo também são inputs explícitos.
+O registry pode declarar input_kind claim_context, cardinalidade one, ligado
+ao claim imutável daquela invocação pelo binding fechado `{kind: claim_context}`.
+Não aceita outro claim_id fornecido pelo evaluator. O host fornece esse contexto
+por handle instrumentado, versionado pelo hash do claim contract. Todos os
+campos do contexto são materiais; o schema de claim é sua autoridade de tipo.
+required_claim_reads registra os paths lidos por fase. Não há leitura gratuita
+do descriptor nem um segundo resultado/role normativo armazenado nele.
 
 trace_contract contém requisitos separados de derivation e proof. Cada fase
 declara nós, campos, arestas, operações estruturais e seleção esperados. A
@@ -113,6 +131,11 @@ dos campos realmente usados. O schema não afirma implementar instrumentação.
 ## 5. Pais e hash de resultado derivado
 
 Um nó validated_parent referencia fact_key de outro grafo autorado. A referência
+usa uma aresta derived_from cujo source reservado `claim` identifica o claim
+do grafo, field referencia o role no registry e target é o alias do pai.
+`claim` não pode ser usado como alias de snapshot nem representar output R.
+A relação material_ref continua exigindo source como alias de snapshot.
+A dependência
 forma a DAG estática e usa o papel de operando já definido no metric evaluator
 registry. Não contém result, result_hash fictício ou fingerprint esperado
 inventado. A execução dessa dependência só pode prosseguir depois de existir
@@ -191,3 +214,10 @@ O exemplo positivo não é um dos 76 grafos: vínculos e obrigações foram dado
 temporários de formato, sem validação semântica. Os digests repetidos desse
 exemplo não foram usados no manifest publicado. Não houve execução financeira,
 compiler, recorder ou suíte de mutações nesta preparação.
+
+Evidência final do candidato: o manifest foi estendido para 115 snapshots e
+três fontes, incluindo evaluation_policy versionada. Os 115 fingerprints,
+cinco hashes de autoridades e 39 hashes de evaluator contracts foram medidos.
+Os 76 grafos satisfizeram o schema; suas referências, partições, 4.422 arestas
+materiais, 16.266 leituras e 1.047 comparações literais foram confrontadas sem
+divergência mecânica. Essa evidência não executa predicados, witnesses ou motor.

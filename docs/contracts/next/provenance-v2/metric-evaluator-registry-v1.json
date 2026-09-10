@@ -1,0 +1,1499 @@
+{
+  "schema_version": 1,
+  "registry_id": "metric_evaluator_registry",
+  "registry_version": 1,
+  "stage": "authoring",
+  "entries": [
+    {
+      "evaluator_id": "account_balance",
+      "evaluator_version": 1,
+      "metric": "account_balance",
+      "unit": "BRL_minor",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/account_balance.json",
+      "evaluator_contract_hash": "sha256:e5d50e735401118e2e7751c0b305c1f255653d1c76b402698acc0d81b6a3fe42",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "account",
+          "semantic_role": "opening_balance",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "events",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        }
+      ],
+      "witness_contract_ids": [
+        "account_balance_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "balance_delta",
+      "evaluator_version": 1,
+      "metric": "balance_delta",
+      "unit": "BRL_minor",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/balance_delta.json",
+      "evaluator_contract_hash": "sha256:39a1a87663a54e5d37c8e1a35f02596330d48b71e70a431fa27fe58193339a1e",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "event",
+          "semantic_role": "source",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "balance_delta_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "bills_open",
+      "evaluator_version": 1,
+      "metric": "bills_open",
+      "unit": "BRL_minor",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/bills_open.json",
+      "evaluator_contract_hash": "sha256:9fed67d44d48c3965043964769ce6481b876a793decf16901e7e666261593faf",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "bills",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "family",
+          "semantic_role": "scope",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "bills_open_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "budget_class_consumption",
+      "evaluator_version": 1,
+      "metric": "budget_class_consumption",
+      "unit": "BRL_minor",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/budget_class_consumption.json",
+      "evaluator_contract_hash": "sha256:e336d72e581c06401fd6ef3cc5b041b6c2b7ad56745fe25ff5980ca763ed8561",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "events",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "categories",
+          "semantic_role": "evidence",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "family",
+          "semantic_role": "scope",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "budget_class_consumption_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "calendar_event_count",
+      "evaluator_version": 1,
+      "metric": "calendar_event_count",
+      "unit": "count",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/calendar_event_count.json",
+      "evaluator_contract_hash": "sha256:fa3f00c0a019ab0702f94b2c97f2e575509c308343d2208c992ac677e98097b8",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "entries",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "collection",
+          "semantic_role": "coverage",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "person",
+          "semantic_role": "scope",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "calendar_event_count_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "category_budget_remaining",
+      "evaluator_version": 1,
+      "metric": "category_budget_remaining",
+      "unit": "BRL_minor",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/category_budget_remaining.json",
+      "evaluator_contract_hash": "sha256:4e4f9e38d7495397799578d1f73366d067ef5a5a7ca47879071dacd3669436c5",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "budget",
+          "semantic_role": "limit",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "events",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "categories",
+          "semantic_role": "evidence",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "family",
+          "semantic_role": "scope",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "category_budget_remaining_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "category_consumption",
+      "evaluator_version": 1,
+      "metric": "category_consumption",
+      "unit": "BRL_minor",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/category_consumption.json",
+      "evaluator_contract_hash": "sha256:b6e8edf05cb8acc7155bea56d84c4827c4fa9c97b54cacdc13805602468564a3",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "events",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "categories",
+          "semantic_role": "evidence",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "family",
+          "semantic_role": "scope",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "category_consumption_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "category_spent",
+      "evaluator_version": 1,
+      "metric": "category_spent",
+      "unit": "BRL_minor",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/category_spent.json",
+      "evaluator_contract_hash": "sha256:f168ac80d9ac17abf516e76729105c03a6efcf1743bdd4459e94f0c75f851baa",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "events",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "categories",
+          "semantic_role": "evidence",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "family",
+          "semantic_role": "scope",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "category_spent_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "consumption_by_instrument",
+      "evaluator_version": 1,
+      "metric": "consumption_by_instrument",
+      "unit": "BRL_minor",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_by_instrument.json",
+      "evaluator_contract_hash": "sha256:e32bc36ae9642c1db0d0eb6dce05c3861a80d967b974613eafc8fc6a341dbd37",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "events",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "categories",
+          "semantic_role": "evidence",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "instrument",
+          "semantic_role": "scope",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "consumption_by_instrument_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "consumption_difference",
+      "evaluator_version": 1,
+      "metric": "consumption_difference",
+      "unit": "BRL_minor",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_difference.json",
+      "evaluator_contract_hash": "sha256:f5d8eda523ba66305010fed07ca6c657b76c486774eac052c3151ddcc85546f7",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "left",
+          "semantic_role": "left",
+          "input_kind": "parent_claim",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "right",
+          "semantic_role": "right",
+          "input_kind": "parent_claim",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "consumption_difference_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "consumption_effect",
+      "evaluator_version": 1,
+      "metric": "consumption_effect",
+      "unit": "BRL_minor",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_effect.json",
+      "evaluator_contract_hash": "sha256:7dd62b47dcc336828376d44ed54c996f4ef21d27f9f21cfa142cd3722e24eab1",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "events",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "categories",
+          "semantic_role": "evidence",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        }
+      ],
+      "witness_contract_ids": [
+        "consumption_effect_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "consumption_total",
+      "evaluator_version": 1,
+      "metric": "consumption_total",
+      "unit": "BRL_minor",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_total.json",
+      "evaluator_contract_hash": "sha256:4e07fd44f09a99168cd92d6a9caa664ef5c847146aae64905b859c4cf313be3a",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "events",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "categories",
+          "semantic_role": "evidence",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "family",
+          "semantic_role": "scope",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "consumption_total_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "due_bill_ids",
+      "evaluator_version": 1,
+      "metric": "due_bill_ids",
+      "unit": "entity_ids",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/due_bill_ids.json",
+      "evaluator_contract_hash": "sha256:a9ddce797a0f90184dad2e3fd50cb20d6534648485ed9f27592cbfe03782ebf4",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "bills",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "person",
+          "semantic_role": "scope",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "due_bill_ids_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "due_bills_total",
+      "evaluator_version": 1,
+      "metric": "due_bills_total",
+      "unit": "BRL_minor",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/due_bills_total.json",
+      "evaluator_contract_hash": "sha256:aaa1e469986731240f28f22ffe4559c4a663b13d2a01718f61e866c3e1f62e86",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "bills",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "person",
+          "semantic_role": "scope",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "due_bills_total_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "eligible_event_count",
+      "evaluator_version": 1,
+      "metric": "eligible_event_count",
+      "unit": "count",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/eligible_event_count.json",
+      "evaluator_contract_hash": "sha256:bf2a5e70c7cf661c8b983a2598ae4142567ce9e1b97e34985851b77dcf0e7937",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "source",
+          "semantic_role": "source",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "events",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "categories",
+          "semantic_role": "evidence",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "family",
+          "semantic_role": "scope",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "eligible_event_count_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "gross_consumption",
+      "evaluator_version": 1,
+      "metric": "gross_consumption",
+      "unit": "BRL_minor",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/gross_consumption.json",
+      "evaluator_contract_hash": "sha256:787b125062623e9ffaea8d248ef0554a93e23458275566390c88e88b5e3d00d6",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "events",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "categories",
+          "semantic_role": "evidence",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        }
+      ],
+      "witness_contract_ids": [
+        "gross_consumption_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "income_minus_open_bills",
+      "evaluator_version": 1,
+      "metric": "income_minus_open_bills",
+      "unit": "BRL_minor",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/income_minus_open_bills.json",
+      "evaluator_contract_hash": "sha256:1d87b903b2e41e0bdfa4edc5ec1708c1e10e81dfa9cff30560dd5206b4637b86",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "left",
+          "semantic_role": "left",
+          "input_kind": "parent_claim",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "right",
+          "semantic_role": "right",
+          "input_kind": "parent_claim",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "income_minus_open_bills_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "income_realized",
+      "evaluator_version": 1,
+      "metric": "income_realized",
+      "unit": "BRL_minor",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/income_realized.json",
+      "evaluator_contract_hash": "sha256:3098c37340e1c22e6137691c498c1e1b3756a8319f2187eb17fa0c16e8abedea",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "events",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "categories",
+          "semantic_role": "evidence",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "family",
+          "semantic_role": "scope",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "income_realized_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "installments_projected",
+      "evaluator_version": 1,
+      "metric": "installments_projected",
+      "unit": "count",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/installments_projected.json",
+      "evaluator_contract_hash": "sha256:924d883d776a5f0da128ee931d96ff27aa1f9effa5ca86d3c81f21af35bf4988",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "events",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "plan",
+          "semantic_role": "scope",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "installments_projected_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "installments_projected_amount",
+      "evaluator_version": 1,
+      "metric": "installments_projected_amount",
+      "unit": "BRL_minor",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/installments_projected_amount.json",
+      "evaluator_contract_hash": "sha256:6cd3f810f260c6fa94b4509c1d8e043866accc8a0314446fde59d51b28763f0a",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "events",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "plan",
+          "semantic_role": "scope",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "installments_projected_amount_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "installments_realized",
+      "evaluator_version": 1,
+      "metric": "installments_realized",
+      "unit": "count",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/installments_realized.json",
+      "evaluator_contract_hash": "sha256:0115cf8a9d922e43b6b393cecc521a9659a41f75b68591b579eed01490c5d3f7",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "events",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "plan",
+          "semantic_role": "scope",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "installments_realized_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "installments_realized_amount",
+      "evaluator_version": 1,
+      "metric": "installments_realized_amount",
+      "unit": "BRL_minor",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/installments_realized_amount.json",
+      "evaluator_contract_hash": "sha256:8987257b8976651b8e82c7e414fda6472ba5aa60ce58befaef3a5661956eb8a7",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "events",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "plan",
+          "semantic_role": "scope",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "installments_realized_amount_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "invoice_payment_amount",
+      "evaluator_version": 1,
+      "metric": "invoice_payment_amount",
+      "unit": "BRL_minor",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/invoice_payment_amount.json",
+      "evaluator_contract_hash": "sha256:8b0b104d9d9623fc65847611532eb69810464f2869b5f9421557f07441562928",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "event",
+          "semantic_role": "source",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "invoice_payment_amount_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "invoice_payment_consumption_effect",
+      "evaluator_version": 1,
+      "metric": "invoice_payment_consumption_effect",
+      "unit": "BRL_minor",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/invoice_payment_consumption_effect.json",
+      "evaluator_contract_hash": "sha256:613b290689de669c2e5ab437fe12ce6f495bdfb766ed848d7716ea50f6b9c7c6",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "events",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "categories",
+          "semantic_role": "evidence",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        }
+      ],
+      "witness_contract_ids": [
+        "invoice_payment_consumption_effect_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "invoice_payment_target_card",
+      "evaluator_version": 1,
+      "metric": "invoice_payment_target_card",
+      "unit": "entity_ids",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/invoice_payment_target_card.json",
+      "evaluator_contract_hash": "sha256:a58d6ee1480662230142a532903facd36cbbe3b7f67705dc01345574a324acfa",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "event",
+          "semantic_role": "source",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "card",
+          "semantic_role": "target",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "invoice_payment_target_card_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "merchant_rule_ids",
+      "evaluator_version": 1,
+      "metric": "merchant_rule_ids",
+      "unit": "entity_ids",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/merchant_rule_ids.json",
+      "evaluator_contract_hash": "sha256:b3ec5d6c4003258cd25431a709197c37a1cf7f70e10125b2f0c8d15bba95abbe",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "rules",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "merchant",
+          "semantic_role": "scope",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "merchant_rule_ids_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "movement_ids",
+      "evaluator_version": 1,
+      "metric": "movement_ids",
+      "unit": "entity_ids",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/movement_ids.json",
+      "evaluator_contract_hash": "sha256:4c41b92c8bcf511536461ec676441babe401ef3906144beb960150605a786b96",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "events",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "account",
+          "semantic_role": "scope",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "movement_ids_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "net_consumption",
+      "evaluator_version": 1,
+      "metric": "net_consumption",
+      "unit": "BRL_minor",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/net_consumption.json",
+      "evaluator_contract_hash": "sha256:1bbf9d81f52b9766156ab60ddd4d8da961b958440e32df12dc0ce315c76fe891",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "events",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "categories",
+          "semantic_role": "evidence",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        }
+      ],
+      "witness_contract_ids": [
+        "net_consumption_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "owned_cards",
+      "evaluator_version": 1,
+      "metric": "owned_cards",
+      "unit": "entity_ids",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/owned_cards.json",
+      "evaluator_contract_hash": "sha256:67b68e3e0d27a0973127411a960953345eeff0c8adc001ea25001fa2ddbbfc3a",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "cards",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "person",
+          "semantic_role": "scope",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "owned_cards_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "projected_installments",
+      "evaluator_version": 1,
+      "metric": "projected_installments",
+      "unit": "BRL_minor",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/projected_installments.json",
+      "evaluator_contract_hash": "sha256:d5c649bcaf00627f23d1930ac78de03dfb41f2fb5e0c11cb26d1e177f57feaee",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "events",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "plans",
+          "semantic_role": "evidence",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "family",
+          "semantic_role": "scope",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "projected_installments_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "ranking_winner",
+      "evaluator_version": 1,
+      "metric": "ranking_winner",
+      "unit": "entity_ids",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/ranking_winner.json",
+      "evaluator_contract_hash": "sha256:aabe7e1423046863612c8d0ca4816bdc91e98d02c0f1cd2ce1a8a0e4f2b51889",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "left",
+          "semantic_role": "left",
+          "input_kind": "parent_claim",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "right",
+          "semantic_role": "right",
+          "input_kind": "parent_claim",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "people",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "sort_key",
+          "semantic_role": "sort_key",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "sort_direction",
+          "semantic_role": "sort_direction",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "ranking_winner_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "refund_amount",
+      "evaluator_version": 1,
+      "metric": "refund_amount",
+      "unit": "BRL_minor",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/refund_amount.json",
+      "evaluator_contract_hash": "sha256:bdb7549ef37f6b63a0641ccdb5472c26d00a5e84c2d9d09e9525eb92ba6a1751",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "events",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        }
+      ],
+      "witness_contract_ids": [
+        "refund_amount_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "reminder_count",
+      "evaluator_version": 1,
+      "metric": "reminder_count",
+      "unit": "count",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/reminder_count.json",
+      "evaluator_contract_hash": "sha256:16b84262decf1b92536ed697b09844e0c76f5153f4570e8ec49bc550010f8514",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "entries",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "collection",
+          "semantic_role": "coverage",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "person",
+          "semantic_role": "scope",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "reminder_count_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "safe_daily_pace",
+      "evaluator_version": 1,
+      "metric": "safe_daily_pace",
+      "unit": "BRL_minor",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/safe_daily_pace.json",
+      "evaluator_contract_hash": "sha256:22007bb706cbae87089d229fa3b9c9529a883c98db952b8294542bfd885ca8a3",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "budget",
+          "semantic_role": "limit",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "events",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "categories",
+          "semantic_role": "evidence",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "clock",
+          "semantic_role": "clock",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "policy",
+          "semantic_role": "policy",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "safe_daily_pace_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "side_effect_count",
+      "evaluator_version": 1,
+      "metric": "side_effect_count",
+      "unit": "count",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/side_effect_count.json",
+      "evaluator_contract_hash": "sha256:7813782950888e8af5c51403d313fc9b950c463e7109681e9cf30d4cd97345a2",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "entries",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "collection",
+          "semantic_role": "coverage",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "turn",
+          "semantic_role": "scope",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "side_effect_count_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "similar_event_ids",
+      "evaluator_version": 1,
+      "metric": "similar_event_ids",
+      "unit": "entity_ids",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/similar_event_ids.json",
+      "evaluator_contract_hash": "sha256:1f994c3caaea2a7c7fa968a49f872bb2b3f4d8ce0b959fc25bf26bbe5dac6817",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "events",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "merchant",
+          "semantic_role": "scope",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "similar_event_ids_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "source_coverage",
+      "evaluator_version": 1,
+      "metric": "source_coverage",
+      "unit": "state",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/source_coverage.json",
+      "evaluator_contract_hash": "sha256:9a80ff7de3d119bb6f598db2af660c33095b64c82802741c01ed119ae95d38d8",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "source",
+          "semantic_role": "source",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "source_coverage_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "statement_payment_correspondence",
+      "evaluator_version": 1,
+      "metric": "statement_payment_correspondence",
+      "unit": "state",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/statement_payment_correspondence.json",
+      "evaluator_contract_hash": "sha256:3ffc3131e77bc4ead3248a3a5b49108093d16ddbbcb94635d49d7fc59d1171ec",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "event",
+          "semantic_role": "source",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "card",
+          "semantic_role": "target",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "statement_payment_correspondence_discriminant"
+      ]
+    },
+    {
+      "evaluator_id": "statement_total",
+      "evaluator_version": 1,
+      "metric": "statement_total",
+      "unit": "BRL_minor",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/statement_total.json",
+      "evaluator_contract_hash": "sha256:e7aad3154d4d48df19e10114ab86255e5dc56cfbf251a4bff87ea6fe97860c8b",
+      "artifact_status": "not_built",
+      "roles": [
+        {
+          "role_id": "context",
+          "semantic_role": "scope",
+          "input_kind": "claim_context",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "events",
+          "semantic_role": "population",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "categories",
+          "semantic_role": "evidence",
+          "input_kind": "node_set",
+          "cardinality": "many",
+          "ordered": true
+        },
+        {
+          "role_id": "card",
+          "semantic_role": "scope",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        },
+        {
+          "role_id": "policy",
+          "semantic_role": "policy",
+          "input_kind": "node",
+          "cardinality": "one",
+          "ordered": false
+        }
+      ],
+      "witness_contract_ids": [
+        "statement_total_discriminant"
+      ]
+    }
+  ]
+}

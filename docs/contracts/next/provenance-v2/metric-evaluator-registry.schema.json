@@ -24,12 +24,12 @@
       "properties": {
         "role_id": {"$ref": "#/definitions/name"},
         "semantic_role": {"enum": ["population", "scope", "period", "policy", "coverage", "source", "target", "left", "right", "numerator", "denominator", "sort_key", "sort_direction", "opening_balance", "limit", "clock", "evidence"]},
-        "input_kind": {"enum": ["node", "node_set", "parent_claim"]},
+        "input_kind": {"enum": ["node", "node_set", "parent_claim", "claim_context"]},
         "cardinality": {"enum": ["one", "many"]},
         "ordered": {"type": "boolean"}
       },
       "allOf": [
-        {"if": {"properties": {"input_kind": {"enum": ["node", "parent_claim"]}}}, "then": {"properties": {"cardinality": {"const": "one"}, "ordered": {"const": false}}}},
+        {"if": {"properties": {"input_kind": {"enum": ["node", "parent_claim", "claim_context"]}}}, "then": {"properties": {"cardinality": {"const": "one"}, "ordered": {"const": false}}}},
         {"if": {"properties": {"input_kind": {"const": "node_set"}}}, "then": {"properties": {"cardinality": {"const": "many"}}}}
       ]
     },

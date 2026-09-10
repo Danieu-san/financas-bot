@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "contract_id": "installments_projected_v1",
+  "metric": "installments_projected",
+  "unit": "count",
+  "stage": "authoring",
+  "signature": {
+    "context": "explicit_versioned_instrumented_claim",
+    "operands": "resolve_roles_from_metric_evaluator_registry",
+    "output": {
+      "kind": "nonnegative_integer"
+    }
+  },
+  "semantics": [
+    "Contar membros projected do plano revisado nas competências do intervalo consultado. Não contar a parcela confirmed como projetada."
+  ],
+  "algebraic_properties": [
+    "Adicionar um membro elegível aumenta a contagem em um; remover diminui em um."
+  ],
+  "reuse": {
+    "path": "scripts/agent/validateFinancasBotNextFacts.mjs",
+    "locator": "derive.installments_projected",
+    "status": "behavior_reference_requires_instrumented_adaptation"
+  },
+  "limitations": [
+    "Assinatura de autoria; executável instrumentado e seu closure ainda não foram construídos/revisados.",
+    "A fórmula opera somente sobre handles e roles resolvidos do registry, com escopo/período comprovados pelo grafo.",
+    "Não usar oracle como input, autodeclarar trace ou aceitar campo non_material."
+  ]
+}

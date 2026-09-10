@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "contract_id": "consumption_effect_v1",
+  "metric": "consumption_effect",
+  "unit": "BRL_minor",
+  "stage": "authoring",
+  "signature": {
+    "context": "explicit_versioned_instrumented_claim",
+    "operands": "resolve_roles_from_metric_evaluator_registry",
+    "output": {
+      "kind": "money_minor"
+    }
+  },
+  "semantics": [
+    "Somar consumo dos eventos explicitamente vinculados ao objeto consultado. A neutralidade precisa de categoria e vínculo econômico comprovados, não de sinal ou valor isolado."
+  ],
+  "algebraic_properties": [
+    "Uma contribuição elegível adicional altera o total pela contribuição definida; evento fora do escopo não altera resultado."
+  ],
+  "reuse": {
+    "path": "scripts/agent/validateFinancasBotNextFacts.mjs",
+    "locator": "derive.consumption_effect",
+    "status": "behavior_reference_requires_instrumented_adaptation"
+  },
+  "limitations": [
+    "Assinatura de autoria; executável instrumentado e seu closure ainda não foram construídos/revisados.",
+    "A fórmula opera somente sobre handles e roles resolvidos do registry, com escopo/período comprovados pelo grafo.",
+    "Não usar oracle como input, autodeclarar trace ou aceitar campo non_material."
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "urn:financasbot:next:evaluator-witness-contracts:1",
+  "title": "N02-F functional discriminant witness contracts",
+  "$comment": "Authoring-only quantities. Validation does not execute witnesses or make them proof-atom mutants.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "stage", "scope", "witnesses"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "stage": {"const": "authoring"},
+    "scope": {"const": "formula_discriminants_only_not_complete_proof_atom_mutation_suite"},
+    "witnesses": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/definitions/witness"}
+    }
+  },
+  "definitions": {
+    "id": {"type": "string", "pattern": "^[a-z][a-z0-9_]{0,95}$"},
+    "value": {
+      "oneOf": [
+        {"type": "string", "minLength": 1},
+        {"type": "integer"},
+        {"type": "boolean"},
+        {"type": "array", "items": {"oneOf": [
+          {"type": "string", "minLength": 1},
+          {"type": "integer"},
+          {"type": "boolean"}
+        ]}}
+      ]
+    },
+    "witness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "evaluator_id", "stage", "witness_domain", "inputs",
+        "mutation", "execution_status",
+        "materialization_requirement"
+      ],
+      "oneOf": [
+        {"required": ["expected", "mutated_result"]},
+        {"required": ["expected_violation"]}
+      ],
+      "properties": {
+        "id": {"$ref": "#/definitions/id"},
+        "evaluator_id": {"$ref": "#/definitions/id"},
+        "stage": {"const": "authoring"},
+        "witness_domain": {"const": "independent_synthetic_minimal_case"},
+        "inputs": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {"$ref": "#/definitions/id"},
+          "additionalProperties": {"$ref": "#/definitions/value"}
+        },
+        "expected": {"$ref": "#/definitions/value"},
+        "mutation": {"$ref": "#/definitions/id"},
+        "mutated_result": {"$ref": "#/definitions/value"},
+        "expected_violation": {"$ref": "#/definitions/id"},
+        "execution_status": {"const": "not_executed"},
+        "materialization_requirement": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

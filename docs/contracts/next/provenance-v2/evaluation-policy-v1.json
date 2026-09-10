@@ -1,0 +1,15 @@
+{
+  "policy_id": "evaluation-policy-v1",
+  "schema_version": 1,
+  "stage": "authoring",
+  "calendar": "proleptic_gregorian",
+  "timezone": "America/Sao_Paulo",
+  "ranking_key": "validated_consumption_minor",
+  "ranking_direction": "desc",
+  "ranking_tie_break": "lexical_internal_id",
+  "daily_pace_divisor": 15,
+  "daily_pace_rounding": "floor",
+  "daily_pace_start": "2042-06-16",
+  "daily_pace_end": "2042-06-30",
+  "daily_pace_as_of": "2042-06-15"
+}

@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "contract_id": "account_balance_v1",
+  "metric": "account_balance",
+  "unit": "BRL_minor",
+  "stage": "authoring",
+  "signature": {
+    "context": "explicit_versioned_instrumented_claim",
+    "operands": "resolve_roles_from_metric_evaluator_registry",
+    "output": {
+      "kind": "money_minor"
+    }
+  },
+  "semantics": [
+    "Somar opening_balance_minor da conta com amount_minor dos movimentos confirmed da mesma conta até as_of inclusive.",
+    "O snapshot revisado deve provar a data do saldo inicial e que a população usada é compatível com sua abrangência; não incluir evento anterior já representado no saldo inicial."
+  ],
+  "algebraic_properties": [
+    "Alterar saldo inicial por d altera resultado por d com movimentos fixos.",
+    "Evento posterior ao corte não altera resultado."
+  ],
+  "reuse": {
+    "path": "scripts/agent/validateFinancasBotNextFacts.mjs",
+    "locator": "derive.account_balance",
+    "status": "behavior_reference_requires_instrumented_adaptation"
+  },
+  "limitations": [
+    "Assinatura de autoria; executável instrumentado e seu closure ainda não foram construídos/revisados.",
+    "A fórmula opera somente sobre handles e roles resolvidos do registry, com escopo/período comprovados pelo grafo.",
+    "Não usar oracle como input, autodeclarar trace ou aceitar campo non_material."
+  ]
+}

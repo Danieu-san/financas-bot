@@ -213,3 +213,7 @@ fixture e operador ausente ou com campo arbitrário. O inventário conferido tem
 27 operadores. Esses checks são inspeção mecânica de autoria, não suíte de
 regressão persistida nem execução dos operadores. Os 20 checks dos schemas de
 claim/metric registry pertencem à entrega anterior e não foram reexecutados.
+
+Na integração final, evaluation_policy foi acrescentado como o 23º kind, com
+campos materiais explícitos e snapshot próprio. A evidência histórica 22/102
+acima descreve a etapa anterior; não é o inventário vigente do candidato.

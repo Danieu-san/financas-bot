@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "contract_id": "safe_daily_pace_v1",
+  "metric": "safe_daily_pace",
+  "unit": "BRL_minor",
+  "stage": "authoring",
+  "signature": {
+    "context": "explicit_versioned_instrumented_claim",
+    "operands": "resolve_roles_from_metric_evaluator_registry",
+    "output": {
+      "kind": "money_minor"
+    }
+  },
+  "semantics": [
+    "Subtrair consumo elegível do limite e dividir pelos 15 dias civis completos de 16 a 30 de junho, após o as_of revisado de 15 de junho; arredondar por floor para minor units.",
+    "O denominador e o corte precisam de policy/clock explícitos e período revisado. Não extrair número de uma string de time_basis em runtime."
+  ],
+  "algebraic_properties": [
+    "Resto não nulo distingue floor de round/ceil; denominator diferente de 15 é recusado."
+  ],
+  "reuse": {
+    "path": "scripts/agent/validateFinancasBotNextFacts.mjs",
+    "locator": "derive.safe_daily_pace",
+    "status": "behavior_reference_requires_instrumented_adaptation"
+  },
+  "limitations": [
+    "Assinatura de autoria; executável instrumentado e seu closure ainda não foram construídos/revisados.",
+    "A fórmula opera somente sobre handles e roles resolvidos do registry, com escopo/período comprovados pelo grafo.",
+    "Não usar oracle como input, autodeclarar trace ou aceitar campo non_material."
+  ]
+}

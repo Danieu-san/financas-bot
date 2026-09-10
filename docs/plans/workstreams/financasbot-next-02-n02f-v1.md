@@ -1,6 +1,6 @@
 # N02-F — preparação documental integral de provenance
 
-Data: 2026-09-10. Estado: EM PREPARAÇÃO; NÃO APROVADO.
+Data: 2026-09-10. Estado: CANDIDATO DOCUMENTAL; NÃO APROVADO.
 Base: `ee5a0161f0c24a1c9a6a3c95a04e9da1eec4e91d`.
 Branch: `codex/financasbot-n02f-provenance-20260909`.
 Worktree: `.codex-worktrees/financasbot-n02f-provenance`.
@@ -87,9 +87,9 @@ Não relatar compiler, proof trace ou mutation suite como executados nesta fase.
 
 ## Próxima ação exata
 
-Tipos de claim/registry, proposta de identidade e registries de campos e
-operadores, schemas de payload/grafo e manifest de snapshots já foram escritos
-em rascunho na pasta provenance-v2. Completar contratos de evaluators/templates
-e autoria dos 76 claims/grafos, confrontando as seleções/exclusões com pergunta,
-fixture e obrigações. O checkpoint enumera os artefatos e distingue checks de
-shape/inventário das provas causais ainda não executadas.
+O pacote de autoria está materializado: schemas, 23 kinds, 115 snapshots,
+39 contratos de evaluators/witnesses, registries/templates e 76 claims/grafos.
+Publicar o candidato sanitizado e obter revisão independente integral,
+incluindo suficiência das seleções/exclusões, janelas, pais e observações.
+O checkpoint e graph-authoring-review-v1.md distinguem checks mecânicos de
+autoria das propriedades do motor ainda não executadas. Nenhum GO antecipado.

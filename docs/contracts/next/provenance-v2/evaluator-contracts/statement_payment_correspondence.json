@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "contract_id": "statement_payment_correspondence_v1",
+  "metric": "statement_payment_correspondence",
+  "unit": "state",
+  "stage": "authoring",
+  "signature": {
+    "context": "explicit_versioned_instrumented_claim",
+    "operands": "resolve_roles_from_metric_evaluator_registry",
+    "output": {
+      "kind": "enum",
+      "enum_values": [
+        "unproven"
+      ]
+    }
+  },
+  "semantics": [
+    "Retornar unproven quando o schema revisado e as observações estruturais comprovam ausência de vínculo a uma fatura específica.",
+    "O mundo v1 não contém statement_id/settles_statement_id/settles_statement_period. Proven exige nova evidência e schema revisados; não há caminho de autoria para fabricá-los neste corpus."
+  ],
+  "algebraic_properties": [
+    "Trocar somente settles_card_id não cria correspondência de fatura comprovada."
+  ],
+  "reuse": {
+    "path": "scripts/agent/validateFinancasBotNextFacts.mjs",
+    "locator": "derive.statement_payment_correspondence",
+    "status": "behavior_reference_requires_instrumented_adaptation"
+  },
+  "limitations": [
+    "Assinatura de autoria; executável instrumentado e seu closure ainda não foram construídos/revisados.",
+    "A fórmula opera somente sobre handles e roles resolvidos do registry, com escopo/período comprovados pelo grafo.",
+    "Não usar oracle como input, autodeclarar trace ou aceitar campo non_material."
+  ]
+}

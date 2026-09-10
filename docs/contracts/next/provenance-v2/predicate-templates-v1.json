@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "registry_id": "predicate_templates",
+  "registry_version": 1,
+  "stage": "authoring",
+  "templates": [
+    {
+      "id": "date_within_period",
+      "version": 1,
+      "parameters": {
+        "field": "field_selector:K:date",
+        "period": "period"
+      },
+      "body": [
+        {
+          "op": "date_in_period",
+          "args": [
+            {
+              "current_member_field_parameter": "field"
+            },
+            {
+              "parameter": "period"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "field_equals_scalar",
+      "version": 1,
+      "parameters": {
+        "field": "field_selector:K:T",
+        "value": "scalar:T"
+      },
+      "body": [
+        {
+          "op": "eq",
+          "args": [
+            {
+              "current_member_field_parameter": "field"
+            },
+            {
+              "parameter": "value"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "field_has_state",
+      "version": 1,
+      "parameters": {
+        "field": "field_selector:K:enum",
+        "value": "enum"
+      },
+      "body": [
+        {
+          "op": "state_is",
+          "args": [
+            {
+              "current_member_field_parameter": "field"
+            },
+            {
+              "parameter": "value"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "contract_id": "merchant_rule_ids_v1",
+  "metric": "merchant_rule_ids",
+  "unit": "entity_ids",
+  "stage": "authoring",
+  "signature": {
+    "context": "explicit_versioned_instrumented_claim",
+    "operands": "resolve_roles_from_metric_evaluator_registry",
+    "output": {
+      "kind": "id_set"
+    }
+  },
+  "semantics": [
+    "Retornar IDs das regras que referenciam exatamente merchant_key consultada na revisão de registry indicada; preservar ordem da coleção."
+  ],
+  "algebraic_properties": [
+    "Adicionar membro elegível novo altera exatamente a lista por esse ID; membro fora do escopo não entra."
+  ],
+  "reuse": {
+    "path": "scripts/agent/validateFinancasBotNextFacts.mjs",
+    "locator": "derive.merchant_rule_ids",
+    "status": "behavior_reference_requires_instrumented_adaptation"
+  },
+  "limitations": [
+    "Assinatura de autoria; executável instrumentado e seu closure ainda não foram construídos/revisados.",
+    "A fórmula opera somente sobre handles e roles resolvidos do registry, com escopo/período comprovados pelo grafo.",
+    "Não usar oracle como input, autodeclarar trace ou aceitar campo non_material."
+  ]
+}

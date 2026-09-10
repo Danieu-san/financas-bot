@@ -23,6 +23,7 @@
     },
     "binding": {
       "oneOf": [
+        {"type": "object", "additionalProperties": false, "required": ["kind"], "properties": {"kind": {"const": "claim_context"}}},
         {"type": "object", "additionalProperties": false, "required": ["kind", "alias"], "properties": {"kind": {"const": "node"}, "alias": {"$ref": "#/definitions/alias"}}},
         {"type": "object", "additionalProperties": false, "required": ["kind", "aliases"], "properties": {"kind": {"const": "node_set"}, "aliases": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/definitions/alias"}}}},
         {"type": "object", "additionalProperties": false, "required": ["kind", "fact_key"], "properties": {"kind": {"const": "parent_claim"}, "fact_key": {"$ref": "#/definitions/factKey"}}}
@@ -30,6 +31,7 @@
     },
     "subject": {
       "oneOf": [
+        {"type": "object", "additionalProperties": false, "required": ["kind", "person_ids"], "properties": {"kind": {"const": "person_comparison"}, "person_ids": {"type": "array", "minItems": 2, "maxItems": 2, "uniqueItems": true, "items": {"$ref": "#/definitions/id"}}}},
         {"type": "object", "additionalProperties": false, "required": ["kind", "ref_id"], "properties": {"kind": {"enum": ["family", "person", "account", "card", "category", "event", "transfer_pair", "installment_plan", "budget", "bill", "source", "merchant", "turn"]}, "ref_id": {"$ref": "#/definitions/id"}}},
         {"type": "object", "additionalProperties": false, "required": ["kind", "family_id", "category_id"], "properties": {"kind": {"const": "family_category"}, "family_id": {"$ref": "#/definitions/id"}, "category_id": {"$ref": "#/definitions/id"}}},
         {"type": "object", "additionalProperties": false, "required": ["kind", "person_id", "category_id"], "properties": {"kind": {"const": "person_category"}, "person_id": {"$ref": "#/definitions/id"}, "category_id": {"$ref": "#/definitions/id"}}},

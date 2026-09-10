@@ -1,0 +1,130 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_id",
+    "metric",
+    "unit",
+    "stage",
+    "signature",
+    "semantics",
+    "algebraic_properties",
+    "reuse",
+    "limitations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "contract_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "metric": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "unit": {
+      "enum": [
+        "BRL_minor",
+        "count",
+        "entity_ids",
+        "state"
+      ]
+    },
+    "stage": {
+      "const": "authoring"
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "context",
+        "operands",
+        "output"
+      ],
+      "properties": {
+        "context": {
+          "const": "explicit_versioned_instrumented_claim"
+        },
+        "operands": {
+          "const": "resolve_roles_from_metric_evaluator_registry"
+        },
+        "output": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "money_minor",
+                "nonnegative_integer",
+                "id",
+                "id_set",
+                "enum"
+              ]
+            },
+            "enum_values": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "semantics": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "algebraic_properties": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "reuse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "locator",
+        "status"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "const": "behavior_reference_requires_instrumented_adaptation"
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "urn:financasbot:next:evaluator-contract:1"
+}

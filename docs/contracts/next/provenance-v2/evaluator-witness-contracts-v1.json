@@ -1,0 +1,692 @@
+{
+  "schema_version": 1,
+  "stage": "authoring",
+  "scope": "formula_discriminants_only_not_complete_proof_atom_mutation_suite",
+  "witnesses": [
+    {
+      "id": "account_balance_discriminant",
+      "evaluator_id": "account_balance",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "opening_balance_minor": 100,
+        "eligible_amounts": [
+          -20,
+          30
+        ],
+        "after_cutoff_amount": 999
+      },
+      "expected": 110,
+      "mutation": "include_after_cutoff",
+      "mutated_result": 1109,
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "balance_delta_discriminant",
+      "evaluator_id": "balance_delta",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "amount_minor": -7
+      },
+      "expected": -7,
+      "mutation": "absolute_value",
+      "mutated_result": 7,
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "bills_open_discriminant",
+      "evaluator_id": "bills_open",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "open_due_amounts": [
+          3,
+          5
+        ],
+        "paid_amount": 100
+      },
+      "expected": 8,
+      "mutation": "include_paid",
+      "mutated_result": 108,
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "budget_class_consumption_discriminant",
+      "evaluator_id": "budget_class_consumption",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "flexible_consumption": [
+          3,
+          5
+        ],
+        "essential_consumption": [
+          100
+        ]
+      },
+      "expected": 8,
+      "mutation": "ignore_class",
+      "mutated_result": 108,
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "calendar_event_count_discriminant",
+      "evaluator_id": "calendar_event_count",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "eligible_ids": [
+          "a",
+          "b"
+        ],
+        "outside_period_id": "c"
+      },
+      "expected": 2,
+      "mutation": "include_outside_period",
+      "mutated_result": 3,
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "category_budget_remaining_discriminant",
+      "evaluator_id": "category_budget_remaining",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "limit_minor": 20,
+        "eligible_consumption": [
+          3,
+          5
+        ]
+      },
+      "expected": 12,
+      "mutation": "add_instead_of_subtract",
+      "mutated_result": 28,
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "category_consumption_discriminant",
+      "evaluator_id": "category_consumption",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "category_consumption": [
+          9,
+          -4
+        ],
+        "other_category_consumption": 100
+      },
+      "expected": 5,
+      "mutation": "ignore_compensation",
+      "mutated_result": 9,
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "category_spent_discriminant",
+      "evaluator_id": "category_spent",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "category_consumption": [
+          9,
+          -4
+        ],
+        "other_category_consumption": 100
+      },
+      "expected": 5,
+      "mutation": "ignore_category",
+      "mutated_result": 105,
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "consumption_by_instrument_discriminant",
+      "evaluator_id": "consumption_by_instrument",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "instrument_consumption": [
+          3,
+          5
+        ],
+        "other_instrument_consumption": 100
+      },
+      "expected": 8,
+      "mutation": "include_other_instrument",
+      "mutated_result": 108,
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "consumption_difference_discriminant",
+      "evaluator_id": "consumption_difference",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "left": 3,
+        "right": 5
+      },
+      "expected": -2,
+      "mutation": "absolute_difference",
+      "mutated_result": 2,
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "consumption_effect_discriminant",
+      "evaluator_id": "consumption_effect",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "neutral_transfer_amounts": [
+          -7,
+          7
+        ],
+        "category": "neutral"
+      },
+      "expected": 0,
+      "mutation": "sum_absolute_movement",
+      "mutated_result": 14,
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "consumption_total_discriminant",
+      "evaluator_id": "consumption_total",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "expense": 9,
+        "linked_refund": -4,
+        "neutral": 0
+      },
+      "expected": 5,
+      "mutation": "drop_linked_refund",
+      "mutated_result": 9,
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "due_bill_ids_discriminant",
+      "evaluator_id": "due_bill_ids",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "eligible_ids": [
+          "bill_a"
+        ],
+        "outside_due_id": "bill_b"
+      },
+      "expected": [
+        "bill_a"
+      ],
+      "mutation": "include_outside_due",
+      "mutated_result": [
+        "bill_a",
+        "bill_b"
+      ],
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "due_bills_total_discriminant",
+      "evaluator_id": "due_bills_total",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "eligible_amounts": [
+          3,
+          5
+        ],
+        "outside_due_amount": 100
+      },
+      "expected": 8,
+      "mutation": "include_outside_due",
+      "mutated_result": 108,
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "eligible_event_count_discriminant",
+      "evaluator_id": "eligible_event_count",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "source_event_count": 0,
+        "eligible_events": [
+          "event_a"
+        ]
+      },
+      "expected_violation": "coverage",
+      "mutation": "trust_source_count_without_population_proof",
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "gross_consumption_discriminant",
+      "evaluator_id": "gross_consumption",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "consumption_values": [
+          9,
+          -4
+        ]
+      },
+      "expected": 9,
+      "mutation": "net_instead_of_gross",
+      "mutated_result": 5,
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "income_minus_open_bills_discriminant",
+      "evaluator_id": "income_minus_open_bills",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "income": 3,
+        "bills": 5
+      },
+      "expected": -2,
+      "mutation": "reverse_operands",
+      "mutated_result": 2,
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "income_realized_discriminant",
+      "evaluator_id": "income_realized",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "confirmed_income": [
+          3,
+          5
+        ],
+        "projected_income": 100
+      },
+      "expected": 8,
+      "mutation": "include_projected",
+      "mutated_result": 108,
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "installments_projected_discriminant",
+      "evaluator_id": "installments_projected",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "projected_ids": [
+          "p2",
+          "p3"
+        ],
+        "confirmed_id": "p1"
+      },
+      "expected": 2,
+      "mutation": "count_all_states",
+      "mutated_result": 3,
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "installments_projected_amount_discriminant",
+      "evaluator_id": "installments_projected_amount",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "projected_amounts": [
+          -3,
+          -5
+        ],
+        "confirmed_amount": -100
+      },
+      "expected": 8,
+      "mutation": "include_confirmed",
+      "mutated_result": 108,
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "installments_realized_discriminant",
+      "evaluator_id": "installments_realized",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "confirmed_ids": [
+          "p1"
+        ],
+        "projected_ids": [
+          "p2",
+          "p3"
+        ]
+      },
+      "expected": 1,
+      "mutation": "count_all_states",
+      "mutated_result": 3,
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "installments_realized_amount_discriminant",
+      "evaluator_id": "installments_realized_amount",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "confirmed_amounts": [
+          -3
+        ],
+        "projected_amounts": [
+          -5,
+          -7
+        ]
+      },
+      "expected": 3,
+      "mutation": "include_projected",
+      "mutated_result": 15,
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "invoice_payment_amount_discriminant",
+      "evaluator_id": "invoice_payment_amount",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "payment_amount": -7
+      },
+      "expected": 7,
+      "mutation": "preserve_negative_sign",
+      "mutated_result": -7,
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "invoice_payment_consumption_effect_discriminant",
+      "evaluator_id": "invoice_payment_consumption_effect",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "payment_amount": -7,
+        "category": "neutral.invoice_payment"
+      },
+      "expected": 0,
+      "mutation": "treat_as_expense",
+      "mutated_result": 7,
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "invoice_payment_target_card_discriminant",
+      "evaluator_id": "invoice_payment_target_card",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "settles_card_id": "card_b",
+        "different_card": "card_a"
+      },
+      "expected": "card_b",
+      "mutation": "retarget_card",
+      "mutated_result": "card_a",
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "merchant_rule_ids_discriminant",
+      "evaluator_id": "merchant_rule_ids",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "matching_ids": [
+          "rule_a"
+        ],
+        "other_merchant_id": "rule_b"
+      },
+      "expected": [
+        "rule_a"
+      ],
+      "mutation": "ignore_merchant",
+      "mutated_result": [
+        "rule_a",
+        "rule_b"
+      ],
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "movement_ids_discriminant",
+      "evaluator_id": "movement_ids",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "account_ids": [
+          "income_a",
+          "transfer_a"
+        ],
+        "other_account_id": "expense_b"
+      },
+      "expected": [
+        "income_a",
+        "transfer_a"
+      ],
+      "mutation": "expense_only_filter",
+      "mutated_result": [],
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "net_consumption_discriminant",
+      "evaluator_id": "net_consumption",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "purchase_consumption": 9,
+        "linked_refund_consumption": -4
+      },
+      "expected": 5,
+      "mutation": "gross_instead_of_net",
+      "mutated_result": 9,
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "owned_cards_discriminant",
+      "evaluator_id": "owned_cards",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "owner_a_cards": [
+          "card_a",
+          "card_offline"
+        ],
+        "owner_b_cards": [
+          "card_b"
+        ]
+      },
+      "expected": [
+        "card_a",
+        "card_offline"
+      ],
+      "mutation": "exclude_unavailable_card",
+      "mutated_result": [
+        "card_a"
+      ],
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "projected_installments_discriminant",
+      "evaluator_id": "projected_installments",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "family_projected_amounts": [
+          -3,
+          -5
+        ],
+        "outside_family_amount": -100
+      },
+      "expected": 8,
+      "mutation": "ignore_family",
+      "mutated_result": 108,
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "ranking_winner_discriminant",
+      "evaluator_id": "ranking_winner",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "person_a": 3,
+        "person_b": 5,
+        "direction": "desc"
+      },
+      "expected": "person_b",
+      "mutation": "reverse_direction",
+      "mutated_result": "person_a",
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "refund_amount_discriminant",
+      "evaluator_id": "refund_amount",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "refund_amount": 4,
+        "original_purchase_amount": -9
+      },
+      "expected": 4,
+      "mutation": "absolute_all_amounts",
+      "mutated_result": 13,
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "reminder_count_discriminant",
+      "evaluator_id": "reminder_count",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "eligible_ids": [
+          "r1"
+        ],
+        "other_person_id": "r2"
+      },
+      "expected": 1,
+      "mutation": "ignore_person",
+      "mutated_result": 2,
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "safe_daily_pace_discriminant",
+      "evaluator_id": "safe_daily_pace",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "remaining_minor": 16,
+        "divisor": 15
+      },
+      "expected": 1,
+      "mutation": "ceil_instead_of_floor",
+      "mutated_result": 2,
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "side_effect_count_discriminant",
+      "evaluator_id": "side_effect_count",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "turn_a_effects": [],
+        "turn_b_effects": [
+          "effect_b"
+        ]
+      },
+      "expected": 0,
+      "mutation": "ignore_turn",
+      "mutated_result": 1,
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "similar_event_ids_discriminant",
+      "evaluator_id": "similar_event_ids",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "exact_merchant_ids": [
+          "event_a"
+        ],
+        "similar_label_other_key": "event_b"
+      },
+      "expected": [
+        "event_a"
+      ],
+      "mutation": "match_label_instead_of_key",
+      "mutated_result": [
+        "event_a",
+        "event_b"
+      ],
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "source_coverage_discriminant",
+      "evaluator_id": "source_coverage",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "coverage": "partial"
+      },
+      "expected": "partial",
+      "mutation": "coerce_complete",
+      "mutated_result": "complete",
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "statement_payment_correspondence_discriminant",
+      "evaluator_id": "statement_payment_correspondence",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "settles_card_id": "card_a",
+        "statement_link_present": false
+      },
+      "expected": "unproven",
+      "mutation": "infer_from_card",
+      "mutated_result": "proven",
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    },
+    {
+      "id": "statement_total_discriminant",
+      "evaluator_id": "statement_total",
+      "stage": "authoring",
+      "witness_domain": "independent_synthetic_minimal_case",
+      "inputs": {
+        "at_previous_close_consumption": 100,
+        "after_previous_close_consumption": 3,
+        "at_current_close_consumption": 5,
+        "after_current_close_consumption": 1000
+      },
+      "expected": 8,
+      "mutation": "include_previous_close",
+      "mutated_result": 108,
+      "execution_status": "not_executed",
+      "materialization_requirement": "Instantiate these functional quantities as schema-valid operands and prove unrelated atoms remain valid before execution; missing realization fails UNSATISFIED_MUTATION_WITNESS."
+    }
+  ]
+}

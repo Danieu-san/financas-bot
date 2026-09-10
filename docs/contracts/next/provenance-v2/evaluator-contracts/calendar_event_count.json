@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "contract_id": "calendar_event_count_v1",
+  "metric": "calendar_event_count",
+  "unit": "count",
+  "stage": "authoring",
+  "signature": {
+    "context": "explicit_versioned_instrumented_claim",
+    "operands": "resolve_roles_from_metric_evaluator_registry",
+    "output": {
+      "kind": "nonnegative_integer"
+    }
+  },
+  "semantics": [
+    "Contar eventos de agenda da pessoa com scheduled_at no intervalo inclusivo solicitado, mediante prova integral da coleção."
+  ],
+  "algebraic_properties": [
+    "Adicionar um membro elegível aumenta a contagem em um; remover diminui em um."
+  ],
+  "reuse": {
+    "path": "scripts/agent/validateFinancasBotNextFacts.mjs",
+    "locator": "derive.calendar_event_count",
+    "status": "behavior_reference_requires_instrumented_adaptation"
+  },
+  "limitations": [
+    "Assinatura de autoria; executável instrumentado e seu closure ainda não foram construídos/revisados.",
+    "A fórmula opera somente sobre handles e roles resolvidos do registry, com escopo/período comprovados pelo grafo.",
+    "Não usar oracle como input, autodeclarar trace ou aceitar campo non_material."
+  ]
+}
