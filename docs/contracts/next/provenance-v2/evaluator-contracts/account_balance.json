@@ -13,7 +13,7 @@
   },
   "semantics": [
     "Somar opening_balance_minor da conta com amount_minor dos movimentos confirmed da mesma conta até as_of inclusive.",
-    "O snapshot revisado deve provar a data do saldo inicial e que a população usada é compatível com sua abrangência; não incluir evento anterior já representado no saldo inicial."
+    "opening_balance_as_of representa o saldo imediatamente antes dos movimentos desse dia civil. Selecionar eventos em [account.opening_balance_as_of, claim.period.value], ambos inclusivos, com início <= fim. O início referencia diretamente o campo da conta; o fim referencia diretamente o corte do claim. Não incluir movimento anterior ao saldo inicial."
   ],
   "algebraic_properties": [
     "Alterar saldo inicial por d altera resultado por d com movimentos fixos.",

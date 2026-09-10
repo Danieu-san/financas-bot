@@ -1,6 +1,6 @@
 # N02-F — preparação documental integral de provenance
 
-Data: 2026-09-10. Estado: CANDIDATO DOCUMENTAL; NÃO APROVADO.
+Data: 2026-09-10. Estado: CANDIDATO DOCUMENTAL CORRIGIDO; REAUDITORIA PENDENTE.
 Base: `ee5a0161f0c24a1c9a6a3c95a04e9da1eec4e91d`.
 Branch: `codex/financasbot-n02f-provenance-20260909`.
 Worktree: `.codex-worktrees/financasbot-n02f-provenance`.
@@ -86,6 +86,23 @@ funcional ampla repetida enquanto não houver mudança funcional autorizada.
 Não relatar compiler, proof trace ou mutation suite como executados nesta fase.
 
 ## Próxima ação exata
+
+Auditoria integral de ef04368 confirmou H-01/H-02/M-01. Correção documental
+mantém 76 grafos, separa estado da entrada/resultado e seleção/exame, e propõe
+operator registry v2 com cinco relações civis. A via de extensão já existe no
+NEXT-00 §8: versão, decisão curta, propriedades e auditoria. Não modificar a
+ratificação anterior nem implementar operadores antes dessa revisão.
+Referências: temporal-relations-decision-v1.md,
+temporal-and-selection-witnesses-v1.json e n02f-correction-review-v1.md
+sob docs/contracts/next/provenance-v2/.
+
+Publicar novo SHA e auditar o delta em dois lotes com escopos distintos:
+A, estado/seleção e coerência estrutural dos 76 grafos; B, cinco relações
+civis e sete grafos temporais. Consolidar cobertura/cruzamentos antes de um
+único veredito N02-F; nenhum lote isolado autoriza compiler/evaluator.
+Não repetir a auditoria semântica integral de campos comprovadamente inalterados.
+Se a ferramenta do auditor não conseguir confirmar o delta, registrar leitura
+pendente em vez de presumir aprovação por resumo.
 
 O pacote de autoria está materializado: schemas, 23 kinds, 115 snapshots,
 39 contratos de evaluators/witnesses, registries/templates e 76 claims/grafos.

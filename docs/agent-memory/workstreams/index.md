@@ -25,7 +25,7 @@ Cada conversa/worktree trabalha em um objetivo e preserva seu próprio estado.
 | `financasbot-next-02` | OPEN; autorizado; implementação a iniciar | `financasbot-next-02.md` | `../../plans/workstreams/financasbot-next-02.md` | vertical sintético de gastos; reutilização seletiva v1; sem writer/rede real |
 | `financasbot-cp01-corrections` | RESOLVIDO; f0792fb aprovado focalmente; próximo CP-02 | `financasbot-cp01-corrections.md` | `../../plans/workstreams/financasbot-cp01-corrections-v1.md` | recibo manual versionado; canal adiado |
 | `financasbot-cp02-inventory` | RESOLVIDO; b624b3d aprovado focalmente; próximo N02-F documental | `financasbot-cp02-inventory.md` | `../../plans/workstreams/financasbot-cp02-closure-inventory-v1.md` | 76 grafos antes do motor; G14 aberto; NEXT-02 global não aprovado |
-| `financasbot-next-02-n02f` | CANDIDATO DOCUMENTAL; 76 grafos autorados, auditoria integral pendente | `financasbot-next-02-n02f.md` | `../../plans/workstreams/financasbot-next-02-n02f-v1.md` | Revisão integral antes de compiler/evaluator; sem código funcional |
+| `financasbot-next-02-n02f` | CORRIGIDO LOCALMENTE após NO-GO; reauditoria focal pendente | `financasbot-next-02-n02f.md` | `../../plans/workstreams/financasbot-next-02-n02f-v1.md` | 76 grafos; registry v2 proposto; compiler/evaluator bloqueados |
 
 Se dois workstreams puderem escrever simultaneamente, usar branches/worktrees
 distintas. Atualizar somente a própria linha e seus arquivos.

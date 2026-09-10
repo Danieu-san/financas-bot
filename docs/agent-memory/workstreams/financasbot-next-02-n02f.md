@@ -1,6 +1,6 @@
 # N02-F — checkpoint documental
 
-Data: 2026-09-10. Estado: CANDIDATO DOCUMENTAL; auditoria integral pendente.
+Data: 2026-09-10. Estado: CANDIDATO CORRIGIDO; REAUDITORIA FOCAL PENDENTE.
 Base: `ee5a0161f0c24a1c9a6a3c95a04e9da1eec4e91d`.
 Branch: `codex/financasbot-n02f-provenance-20260909`.
 Worktree: `.codex-worktrees/financasbot-n02f-provenance`.
@@ -134,5 +134,78 @@ Foram corrigidos vínculos temporais com o claim e dois estados de entrada
 em safe_daily_pace: inputs confirmed, resultado estimated. Datas históricas
 de saldo/fatura/policy permanecem explícitas e sujeitas à revisão independente.
 
-Codex → Astra → Alto → confrontar o parecer independente integral N02-F;
-nenhum compiler/evaluator antes dessa aprovação.
+## Recebimento da revisão independente
+
+Candidato publicado: `ef04368c95af33a12c0e8b5b286c0e0b01ae27f8`.
+Parent: `2e725efc29e84ea6af77b1bf13693aefead94ccb`.
+Daniel forneceu o parecer para esse SHA: NO-GO para aprovação por auditoria
+incompleta. O próprio parecer afirma que não confirmou defeito semântico;
+seus rótulos HIGH/MEDIUM descrevem pendências de revisão, não bugs provados.
+Não converter esses rótulos em correções técnicas especulativas ou em GO.
+
+Confronto local dirigido confirmou guards distintos das duas time_basis de
+statement_total, guards de 15 dias/floor em safe_daily_pace, predicados por
+exclusão e regras de recibo validado/roles para pais. Isso não substitui a
+revisão independente da suficiência causal de cada grafo.
+
+Próxima ação: continuar a mesma auditoria, no SHA acima, com inventário de
+leitura por arquivo/fact_key e lotes limitados. graphs-v2.json possui cerca de
+5 MB; resposta interrompida deve deixar cursor e pendências, sem simular EOF.
+Nenhum novo candidato técnico é necessário apenas para reiniciar a auditoria.
+Esta atualização é recibo/checkpoint local e não modifica o objeto auditado.
+
+Continuação fornecida por Daniel: o relato sobre safe_daily_pace contém
+afirmações incompatíveis com os blobs do candidato ef04368. A busca no pacote
+imutável não encontrou remaining_days_inclusive, safe_cutoff, end_of_month ou
+remaining_budget. O contrato descreve 16..30/06 após as_of 15/06, não inclusão
+do dia corrente. O role registrado é policy; evaluation_policy_v1 é alias.
+artifact_status permanece not_built. O contrato de derivation declara leituras
+de context, eventos e categorias; essas declarações não comprovam execução,
+mas tampouco sustentam a alegação de que o cálculo efetivo ignora esses inputs.
+Solicitar ao auditor paths/trechos exatos no SHA e reconciliação da fonte antes
+de tratar essa continuação como achado. Origem dos 15 dias continua questão
+legítima para auditoria; nenhuma correção semântica foi inferida desse relato.
+
+Codex → Astra → Alto → confrontar a continuação da auditoria N02-F;
+nenhum compiler/evaluator antes da aprovação integral.
+
+## Correção da auditoria integral recebida em 2026-09-10
+
+O novo parecer leu ef04368 integralmente e identificou H-01 (seis exclusões
+por estado estimated), H-02 (janelas sem relações temporais suficientes) e
+M-01 (proof.selected_nodes igual a required_nodes). Confronto local confirmou
+as três classes. A demonstração H-02 também altera predicados: é evidência
+de insuficiência do contrato de autoria, não mutant isolado de snapshot.
+O estado dos pareceres incompletos acima é histórico.
+
+Daniel autorizou corrigir e prosseguir na ausência dele. O escopo permanece
+docs-only. NEXT-00 §8 permite novo operador genérico com versão, ADR,
+propriedades e auditoria; não alterar silenciosamente os 27 operadores v1.
+Novos paths documentais autorizados nesta correção:
+- docs/contracts/next/provenance-v2/operator-registry-v2.json;
+- docs/contracts/next/provenance-v2/temporal-relations-decision-v1.md;
+- docs/contracts/next/provenance-v2/temporal-and-selection-witnesses-v1.json;
+- docs/contracts/next/provenance-v2/n02f-correction-review-v1.md.
+
+Próxima ação: corrigir grafos/schema e contratos relacionados, conferir
+invariantes e hashes, publicar novo candidato e solicitar reauditoria focal.
+O path correto da autoridade existente é
+docs/plans/workstreams/financasbot-next-00-architecture-ratification-v1.md;
+financasbot-next-00-ratification-v1.md foi nome incorreto no pedido de auditoria,
+não artefato que o candidato deva inventar.
+
+Correção local concluída: seis exclusões por estado reparadas; seleção/exame
+separados nas 152 fases; sete grafos com 11 janelas nomeadas; registry v2
+proposto com 27 operadores preservados e cinco relações civis genéricas.
+Três contratos funcionais/hashes atualizados. Relatório em
+docs/contracts/next/provenance-v2/n02f-correction-review-v1.md.
+Checks: 43 documentos por schema, 76 grafos/claims, 115 fingerprints, cinco
+autoridades, 39 hashes de contratos e 52 assertions de controle: PASS.
+Workflow/diff-check: OK. Suíte ampla não repetida (docs-only).
+
+Parent obrigatório do novo candidato: ef04368c95af33a12c0e8b5b286c0e0b01ae27f8.
+Próxima ação: publicar e enviar pelo bot a reauditoria focal em dois lotes
+(A: estado/seleção; B: relações temporais e sete grafos), com consolidação
+obrigatória no mesmo SHA. A aprovação de um lote não libera implementação.
+Daniel está ausente e autorizou continuidade sem novas confirmações.
+Nenhum estado/slot do canal GitHub antigo é alterado por esta tarefa.

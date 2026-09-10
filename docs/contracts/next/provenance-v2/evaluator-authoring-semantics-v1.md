@@ -29,6 +29,12 @@ examinar candidatos descartados; o grafo precisa provar separadamente seleção,
 escopo e completude. Não se equipara população de entrada ao conjunto financeiro
 selecionado. O registry não recebe o resultado esperado do oracle.
 
+Na correção de autoria, selection.input_evidence_state explicita o estado
+funcional dos dois safe_daily_pace. Guards usam confirmed; claim.evidence_state
+continua estimated. required_nodes inclui examinados e operandos diretos;
+selected_nodes depende das operações em required_selections, conforme
+temporal-relations-decision-v1.md.
+
 A política evaluation-policy-v1.json registra calendário, timezone, critério e
 direção de ranking, desempate e parâmetros do ritmo diário. O snapshot policy
 é medido sobre esses bytes e seus campos materiais entram no fingerprint.

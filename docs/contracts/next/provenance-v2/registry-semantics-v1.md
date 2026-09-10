@@ -1,7 +1,7 @@
 # Semântica dos registries de autoria — N02-F
 
 Estado: RASCUNHO NÃO RATIFICADO; zero implementação de operadores ou compiler.
-Os dois JSONs associados são dados declarativos, não código executável.
+Os registries associados são dados declarativos, não código executável.
 Autoridade superior: NEXT-00 ratificado §§5.3/6/7/8/10.
 
 ## 1. Grammar do material field registry
@@ -196,6 +196,12 @@ inválido produz violação estrutural, nunca true por fallback. Operadores
 numéricos provam relações auxiliares; não produzem o resultado R da métrica.
 
 ## 7. Limites desta entrega
+
+Proposta após auditoria: operator-registry-v2.json preserva as 27 entradas v1
+e acrescenta cinco relações civis. Tipos, semântica, falhas e propriedades
+estão em temporal-relations-decision-v1.md e
+temporal-and-selection-witnesses-v1.json. A versão 2 exige auditoria conforme
+NEXT-00 §8; não ratifica a si própria nem altera retroativamente a versão 1.
 
 Estes registries são especificação de autoria, não implementações testadas.
 A validação mecânica confere nomes, campos, tipos, targets e cobertura do

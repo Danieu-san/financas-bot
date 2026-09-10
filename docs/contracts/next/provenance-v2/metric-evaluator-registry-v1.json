@@ -10,7 +10,7 @@
       "metric": "account_balance",
       "unit": "BRL_minor",
       "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/account_balance.json",
-      "evaluator_contract_hash": "sha256:e5d50e735401118e2e7751c0b305c1f255653d1c76b402698acc0d81b6a3fe42",
+      "evaluator_contract_hash": "sha256:b509b72bf341c36f60cc7fda7030602a0fdfcc1dae24a0687cb899d4b15a35ed",
       "artifact_status": "not_built",
       "roles": [
         {
@@ -1256,7 +1256,7 @@
       "metric": "safe_daily_pace",
       "unit": "BRL_minor",
       "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/safe_daily_pace.json",
-      "evaluator_contract_hash": "sha256:22007bb706cbae87089d229fa3b9c9529a883c98db952b8294542bfd885ca8a3",
+      "evaluator_contract_hash": "sha256:195e3968cc2f7f7dd2e46fdcb2619c19892b5c56a27d0e3c62f76fe08ba9a14d",
       "artifact_status": "not_built",
       "roles": [
         {
@@ -1452,7 +1452,7 @@
       "metric": "statement_total",
       "unit": "BRL_minor",
       "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/statement_total.json",
-      "evaluator_contract_hash": "sha256:e7aad3154d4d48df19e10114ab86255e5dc56cfbf251a4bff87ea6fe97860c8b",
+      "evaluator_contract_hash": "sha256:cca2c51e9d89ef572d069eb019d30924fc41409724c1d07abc7d2a215ce1d002",
       "artifact_status": "not_built",
       "roles": [
         {

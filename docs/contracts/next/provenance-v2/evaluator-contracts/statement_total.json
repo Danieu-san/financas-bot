@@ -13,7 +13,8 @@
   },
   "semantics": [
     "Consultar closing_day/due_day do cartão. A referência statement_due fixa a data de vencimento; o ciclo histórico termina no closing_day desse mês e começa exclusivamente no closing_day do mês anterior.",
-    "Somar consumo confirmed do cartão em (previous_close, current_close]. Este contrato preserva a representação histórica v1; não renomeia essa janela para a semântica nova do kernel sem revisão."
+    "Somar consumo confirmed do cartão em (previous_close, current_close]. Este contrato preserva a representação histórica v1; não renomeia essa janela para a semântica nova do kernel sem revisão.",
+    "Uma única selection_window nomeada é usada tanto para inclusão quanto exclusão. Provar: end tem closing_day do cartão e mês/ano da data statement_due do claim; start é end menos um mês civil exato; a data do claim tem due_day do cartão. Datas inexistentes falham sem clamp/fallback. A policy fixa o calendário; nenhum nome de métrica entra no operador."
   ],
   "algebraic_properties": [
     "Evento no fechamento atual é incluído; no fechamento anterior é excluído."

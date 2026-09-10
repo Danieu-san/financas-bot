@@ -90,6 +90,12 @@ period_literal contém uma janela civil explicitamente autorada e tipada; o
 grafo deve ligá-la ao claim e aos campos/policy que justificam seus limites.
 Presença do literal não prova essa relação nem permite derivá-la do oracle.
 
+Na proposta v2, windows/period_ref/period_bound oferecem uma única resolução
+dos limites para inclusão/exclusão. Gramática, cinco relações civis e falhas
+estão em temporal-relations-decision-v1.md. Não há expressão de fórmula em
+windows. A assinatura do registry e a revisão das relações continuam
+obrigatórias; schema não basta.
+
 ## 4. Contrato de observação
 
 Período, sujeito e filtros usados no cálculo também são inputs explícitos.
@@ -119,6 +125,12 @@ Toda leitura causal, escalar ou estrutural, deve estar coberta pela fase correta
 leitura ausente/extra, campo non_material ou aresta ignorada impede aprovação.
 selected_nodes e required_nodes são conceitos distintos: um registro examinado
 para exclusão pertence às leituras, mas pode estar fora da seleção financeira.
+required_nodes é o inventário de nós examinados/consumidos na fase.
+required_selections coincide exatamente com os pares candidate_set/selected_set
+de selections. selected_nodes é a união exata dos sets dessas operações,
+observada pelo recorder por fase. Não copiar a seleção autorada nem tratar
+leitura como seleção. Em grafo derivado sem selections, selected_nodes é vazio;
+os pais consumidos diretamente permanecem em required_nodes/required_reads.
 Nenhum nó adicional pode ser admitido só para inflar a prova; seus papéis devem
 ser necessários aos operands ou às obrigações explicitamente justificadas.
 

@@ -12,11 +12,14 @@
     }
   },
   "semantics": [
-    "Subtrair consumo elegível do limite e dividir pelos 15 dias civis completos de 16 a 30 de junho, após o as_of revisado de 15 de junho; arredondar por floor para minor units.",
-    "O denominador e o corte precisam de policy/clock explícitos e período revisado. Não extrair número de uma string de time_basis em runtime."
+    "Usar somente consumo de eventos confirmed elegíveis por categoria efetiva, família e janela de seleção; input_evidence_state=confirmed é independente de claim.evidence_state=estimated.",
+    "Subtrair consumo elegível do limite do orçamento e dividir pela cardinalidade de dias civis completos restantes após o corte, com floor para minor units. No corpus revisado, corte 15/06 e janela 16..30/06 produzem divisor 15.",
+    "O corte é a data civil de fixed_clock no timezone/calendário da policy. O início futuro é seu sucessor civil e o fim é o último dia do mês de budget.period. Claim, janela e divisor da policy devem satisfazer as relações do registry v2; literais isolados não provam essas relações."
   ],
   "algebraic_properties": [
-    "Resto não nulo distingue floor de round/ceil; denominator diferente de 15 é recusado."
+    "Resto não nulo distingue floor de round/ceil; divisor diferente da cardinalidade comprovada é recusado.",
+    "Candidato excluído que passe a confirmed e satisfaça período/categoria/família não pode conservar uma exclusão por estado.",
+    "No contrato v1 deste corpus, time_basis=15_full_days_after_as_of só é compatível com cardinalidade 15; cenário com outra cardinalidade exige novo descriptor/time_basis revisado."
   ],
   "reuse": {
     "path": "scripts/agent/validateFinancasBotNextFacts.mjs",

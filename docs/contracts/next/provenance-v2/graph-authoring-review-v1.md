@@ -1,7 +1,12 @@
 # Revisão de autoria dos 76 grafos — N02-F
 
-Estado: CANDIDATO DOCUMENTAL; AUDITORIA INDEPENDENTE PENDENTE.
+Estado: CANDIDATO DOCUMENTAL CORRIGIDO; REAUDITORIA FOCAL PENDENTE.
 Data: 2026-09-10. Nenhuma execução do motor de provenance.
+
+As evidências abaixo registram o candidato ef04368 e a autoria original.
+O parecer integral posterior confirmou H-01/H-02/M-01. A correção, seus checks
+atualizados e o limite de aprovação estão em n02f-correction-review-v1.md.
+O registry v2 e required_selections são propostas corrigidas em reauditoria.
 
 ## Fontes e método
 
@@ -55,8 +60,8 @@ contrato; não pode inserir leituras artificiais só para satisfazer contagem.
   líquido continuam resultados diferentes.
 - M-08: membro sem consumo é provado por exclusões; limite familiar não é
   convertido em limite pessoal.
-- M-13: janela de consumo até as_of e janela futura do ritmo diário são
-  explicitadas separadamente; política fixa 15 dias e floor.
+- M-13: janelas de consumo/futuro são distintas e relacionadas ao clock,
+  orçamento e policy; cardinalidade civil e floor preservam o corpus de 15 dias.
 - M-14: income_minus_open_bills usa dois pais de unidades compatíveis e mantém
   mixed_declared/estimated.
 - M-15/M-16: coleções de lembretes, agenda e efeitos vazias têm snapshots

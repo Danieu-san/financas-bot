@@ -1,0 +1,179 @@
+{
+  "schema_version": 1,
+  "stage": "authoring",
+  "execution_status": "not_executed",
+  "operator_registry_version": 2,
+  "scope": "documentary_discriminants_not_complete_runtime_mutation_suite",
+  "materialization_requirement": "Congelar grafo e claim corrigidos. Materializar inputs schema-valid; recalcular fingerprints/versions/refs sem reparar predicados sob teste. Preservar demais átomos. Isolamento impossível falha UNSATISFIED_MUTATION_WITNESS. Casos de contract_mutation exigem nova revisão de autoria. Regressões com várias relações falsas no mesmo átomo não substituem witnesses ortogonais por átomo.",
+  "cases": [
+    {
+      "id": "input_state_becomes_eligible",
+      "kind": "input_mutation",
+      "change": "evt_installment_2 passa a confirmed, data 2042-06-14, categoria efetiva e família do orçamento; reparar refs/fingerprints.",
+      "expected": "r0013_exclude_state falso nos dois safe_daily_pace; output permanece estimated.",
+      "expected_atom": "evidence_state",
+      "fact_keys": [
+        "M-13#1#3",
+        "M-13#1#6"
+      ]
+    },
+    {
+      "id": "account_opening_moves_forward",
+      "kind": "input_mutation",
+      "change": "account_a.opening_balance_as_of passa a 2042-06-02; salário selecionado permanece em 2042-06-01.",
+      "expected": "selection_window.start resolve June-02 e selected_period do salário fica falso. Não há range literal separado.",
+      "expected_atom": "period",
+      "fact_keys": [
+        "S-06#1#1"
+      ]
+    },
+    {
+      "id": "account_reversed_range",
+      "kind": "input_mutation",
+      "change": "opening_balance_as_of posterior ao corte do claim.",
+      "expected": "Resolver janela falha com start > end, inclusive com seleção vazia.",
+      "expected_atom": "period",
+      "fact_keys": [
+        "S-12#1#1"
+      ]
+    },
+    {
+      "id": "statement_closing_day",
+      "kind": "input_mutation",
+      "change": "closing_day passa a 11, mantendo janela com fechamentos em dia 10.",
+      "expected": "calendar_close_day falso. Novo contrato com janela alterada exige revisar eventos do dia 11.",
+      "expected_atom": "period",
+      "fact_keys": [
+        "S-05#1#1",
+        "M-05#1#1",
+        "F-03#2#1"
+      ]
+    },
+    {
+      "id": "statement_due_day",
+      "kind": "input_mutation",
+      "change": "due_day passa a 18; claim mantém vencimento em dia 17.",
+      "expected": "calendar_due_day falso.",
+      "expected_atom": "period"
+    },
+    {
+      "id": "statement_previous_close",
+      "kind": "contract_mutation",
+      "change": "Somente selection_window.start muda de 2042-05-10 para 2042-05-11.",
+      "expected": "calendar_previous_close falso. Inclusão/exclusão usam a mesma janela.",
+      "expected_atom": "period"
+    },
+    {
+      "id": "safe_clock_cutoff",
+      "kind": "input_mutation",
+      "change": "fixed_clock passa a 2042-06-14T12:00:00-03:00; policy/claim preservados.",
+      "expected": "calendar_clock_cutoff falso.",
+      "expected_atom": "period"
+    },
+    {
+      "id": "safe_successor",
+      "kind": "input_mutation",
+      "change": "policy.daily_pace_start muda de June-16 para June-15.",
+      "expected": "calendar_next_day, calendar_day_count e calendar_claim_window falsos.",
+      "expected_atom": "period"
+    },
+    {
+      "id": "safe_month_end",
+      "kind": "input_mutation",
+      "change": "policy.daily_pace_end muda de June-30 para June-29.",
+      "expected": "calendar_budget_bounds, calendar_day_count e calendar_claim_window falsos.",
+      "expected_atom": "period"
+    },
+    {
+      "id": "safe_divisor",
+      "kind": "input_mutation",
+      "change": "policy.daily_pace_divisor muda de 15 para 14.",
+      "expected": "calendar_day_count e temporal_6 falsos.",
+      "expected_atom": "period"
+    },
+    {
+      "id": "safe_budget_month",
+      "kind": "input_mutation",
+      "change": "budget.period muda de 2042-06 para 2042-07; datas preservadas.",
+      "expected": "calendar_budget_bounds, calendar_cutoff_in_budget e calendar_start_in_budget falsos.",
+      "expected_atom": "period"
+    },
+    {
+      "id": "local_date_offset",
+      "kind": "operator_property",
+      "change": "Instant 2042-06-16T01:00:00Z, timezone America/Sao_Paulo.",
+      "expected": "civil_date_matches aceita June-15 e rejeita June-16; não extrair data UTC."
+    },
+    {
+      "id": "civil_successor_leap",
+      "kind": "operator_property",
+      "change": "2040-02-28 + 1 day; repetir em 2042.",
+      "expected": "civil_offset_matches aceita 2040-02-29 e 2042-03-01; rejeita os destinos trocados."
+    },
+    {
+      "id": "civil_month_year",
+      "kind": "operator_property",
+      "change": "2042-01-10 + (-1) month.",
+      "expected": "civil_offset_matches aceita 2041-12-10."
+    },
+    {
+      "id": "civil_month_no_clamp",
+      "kind": "operator_property",
+      "change": "2042-03-31 + (-1) month, target 2042-02-28.",
+      "expected": "Falha estrutural porque February-31 não existe; clamp proibido."
+    },
+    {
+      "id": "month_end_leap",
+      "kind": "operator_property",
+      "change": "month 2040-02, start 2040-02-01, end 2040-02-29; repetir em 2042.",
+      "expected": "month_bounds_match aceita February-29 em 2040 e February-28 em 2042; rejeita alternativas."
+    },
+    {
+      "id": "day_number",
+      "kind": "operator_property",
+      "change": "date 2042-06-10; day 10, 11, 0, 32.",
+      "expected": "day_of_month_matches verdadeiro para 10, falso para 11; 0/32 inválidos."
+    },
+    {
+      "id": "inclusive_count",
+      "kind": "operator_property",
+      "change": "range June-16..30 inclusivo; count 15,14,16; depois range de um dia, exclusivo e invertido.",
+      "expected": "Aceita 15; rejeita 14/16; um dia conta 1; exclusivo ou invertido é inválido."
+    },
+    {
+      "id": "calendar_types_fail_closed",
+      "kind": "operator_property",
+      "change": "Calendário/unidade/timezone desconhecidos, data inexistente, string numérica ou overflow.",
+      "expected": "Falha estrutural; sem coerção, fallback, timezone implícito ou normalização."
+    },
+    {
+      "id": "examined_is_not_selected",
+      "kind": "trace_mutation",
+      "change": "Preservar 40 nós examinados e reads, mas registrar os 40 como selecionados em S-12.",
+      "expected": "Comparação selected_nodes falha; required_nodes permanece válido.",
+      "expected_atom": "trace",
+      "fact_keys": [
+        "S-12#1#1"
+      ]
+    },
+    {
+      "id": "selection_observation_missing",
+      "kind": "trace_mutation",
+      "change": "Omitir/duplicar operação required_selections ou trocar seus conjuntos; reads preservados.",
+      "expected": "Comparação de operações falha; reads não provam seleção.",
+      "expected_atom": "trace"
+    },
+    {
+      "id": "derived_parent_is_operand",
+      "kind": "trace_mutation",
+      "change": "Marcar pais consumidos diretamente como selecionados sem operação de seleção.",
+      "expected": "selected_nodes deve ser vazio; required_nodes/reads/receipts dos pais continuam obrigatórios.",
+      "expected_atom": "trace",
+      "fact_keys": [
+        "M-01#1#3",
+        "M-01#1#4",
+        "M-14#1#3"
+      ]
+    }
+  ]
+}
