@@ -1,11 +1,11 @@
 {
   "schema": "financasbot-chat-codex-orchestration-v1",
-  "orchestration_state": "BLOCKED",
-  "next_executor": "none",
+  "orchestration_state": "CHAT_WORKING",
+  "next_executor": "chat",
   "task_id": "FIN-NEXT01-INHERITANCE-REVIEW-20260907",
   "expected_base_sha": "5239c342b5705e64d3fb6412048382d665bcb6a4",
   "task_file": "docs/agent-memory/workstreams/tasks/chat-codex-task-slot.json",
   "candidate_sha": null,
   "result_file": "docs/agent-memory/workstreams/results/FIN-NEXT01-INHERITANCE-REVIEW-20260907.md",
-  "updated_at": "2026-09-07T20:37:00.755Z"
+  "updated_at": "2026-09-11T17:41:35.713Z"
 }
