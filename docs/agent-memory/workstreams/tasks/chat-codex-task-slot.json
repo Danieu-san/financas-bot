@@ -1,26 +1,27 @@
 {
   "schema": "financasbot-chat-codex-task-v1",
-  "task_id": "FIN-NEXT02-N02F-AUDIT-A-RETURN-20260911",
-  "objective": "Valide o parecer independente do SUBLOTE A em docs/agent-memory/workstreams/results/FIN-NEXT02-N02F-AUDIT-A-20260911.md contra o candidate imutável a09482485ef5d51f2391d4d773d4738f74246f71, parent ef04368c95af33a12c0e8b5b286c0e0b01ae27f8 e o pacote de evidência 9b0808bb11f00dda973eab845081a5f0ffc74194. Não reavalie relações temporais, operadores civis ou o LOTE B nesta validação. Publique sua validação em docs/agent-memory/workstreams/results/FIN-NEXT02-N02F-AUDIT-A-RETURN-20260911.md. Se a validação confirmar que o parecer não contém finding CRITICAL/HIGH e não é AUDITORIA INCOMPLETA, publique CHAT_READY para esta tarefa e, separadamente depois desse retorno, dispare o SUBLOTE B temporal usando o mesmo candidate a09482485ef5d51f2391d4d773d4738f74246f71 e o mesmo pacote de evidência 9b0808bb11f00dda973eab845081a5f0ffc74194. Se houver qualquer bloqueio material, CRITICAL/HIGH ou auditoria incompleta, pare para correção e não dispare o SUBLOTE B.",
+  "task_id": "FIN-NEXT02-N02F-AUDIT-B-RETURN-20260911",
+  "objective": "Valide o parecer independente do SUBLOTE B em docs/agent-memory/workstreams/results/FIN-NEXT02-N02F-AUDIT-B-20260911.md contra o candidate imutável a09482485ef5d51f2391d4d773d4738f74246f71, parent ef04368c95af33a12c0e8b5b286c0e0b01ae27f8 e o pacote de evidência 9b0808bb11f00dda973eab845081a5f0ffc74194. Confronte identidade, cobertura dos sete grafos e cinco operadores, severidades e veredito somente B; registre o recibo em docs/agent-memory/workstreams/results/FIN-NEXT02-N02F-AUDIT-B-RETURN-20260911.md e publique CHAT_READY para esta tarefa se a validação confirmar aprovação B sem finding bloqueante e sem AUDITORIA INCOMPLETA. Se houver finding bloqueante, divergência de SHA/escopo ou auditoria incompleta, registre o bloqueio e não avance. Somente após aprovação B e publicação remota deste recibo poderá ser preparada, separadamente, a consolidação C com A+B. Não iniciar implementação.",
   "required_files": [
-    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02F-AUDIT-A-20260911.md"
+    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02F-AUDIT-B-20260911.md"
   ],
   "allowed_paths": [
-    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02F-AUDIT-A-RETURN-20260911.md"
+    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02F-AUDIT-B-RETURN-20260911.md"
   ],
-  "result_file": "docs/agent-memory/workstreams/results/FIN-NEXT02-N02F-AUDIT-A-RETURN-20260911.md",
+  "result_file": "docs/agent-memory/workstreams/results/FIN-NEXT02-N02F-AUDIT-B-RETURN-20260911.md",
   "validation": [
-    "Confirma candidate a09482485ef5d51f2391d4d773d4738f74246f71, parent ef04368c95af33a12c0e8b5b286c0e0b01ae27f8 e evidence commit 9b0808bb11f00dda973eab845081a5f0ffc74194 antes de validar o parecer.",
-    "Confere se identidade, cobertura, severidades e veredito do parecer são sustentados pela evidência do SUBLOTE A sem tratar valid=true como prova autossuficiente.",
-    "Não amplia esta validação para relações temporais, operadores civis ou LOTE B.",
-    "Se não houver CRITICAL/HIGH nem AUDITORIA INCOMPLETA, registra validação no result_file e publica CHAT_READY; o SUBLOTE B temporal deve ser disparado separadamente somente depois.",
-    "Se houver bloqueio material, registra-o no result_file e para para correção, sem avançar para SUBLOTE B.",
+    "Confirma candidate a09482485ef5d51f2391d4d773d4738f74246f71, parent único ef04368c95af33a12c0e8b5b286c0e0b01ae27f8 e evidence commit 9b0808bb11f00dda973eab845081a5f0ffc74194 antes de validar o parecer.",
+    "Confere se identidade, leitura dirigida, cobertura 7/7 grafos e 11/11 janelas, cinco operadores, findings e veredito APROVÁVEL do SUBLOTE B são sustentados pelos SHAs imutáveis.",
+    "Não trata artifact_status not_built nem witnesses authoring/not_executed como testes executados.",
+    "Se a validação confirmar aprovação B sem finding bloqueante nem AUDITORIA INCOMPLETA, registra o recibo no result_file e publica CHAT_READY para esta tarefa.",
+    "Se houver bloqueio material, divergência ou auditoria incompleta, registra-o no result_file e para, sem preparar consolidação C nem qualquer implementação.",
     "Nenhum arquivo além do result_file é alterado durante a execução Codex desta tarefa."
   ],
   "constraints": [
     "Somente validação documental do parecer: não alterar candidate, produto, src/, tests/, scripts/, fixtures, contracts ou package/lockfile.",
-    "Não acessar produção, dados reais, WhatsApp, Pluggy, planilhas, segredos, sessões ou .env.",
-    "Não autorizar nem iniciar implementação, compiler/evaluator, NEXT-03, deploy ou produção.",
-    "GitHub e os commits imutáveis indicados são a fonte de verdade; autoridade de modelo ou contagem de testes não substitui cadeia causal."
+    "Não acessar produção, dados privados/reais, WhatsApp, Pluggy, planilhas, segredos, sessões ou .env.",
+    "Não autorizar nem iniciar implementação, compiler/evaluator, NEXT-03, próxima fatia, deploy ou produção.",
+    "A consolidação C com A+B é etapa separada e somente pode ser preparada após aprovação B e publicação remota do recibo desta tarefa.",
+    "GitHub e os commits imutáveis indicados são a fonte de verdade; autoridade de modelo, repetição de literais ou contagem de testes não substitui cadeia causal."
   ]
 }
