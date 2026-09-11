@@ -1,0 +1,59 @@
+{
+  "schema": "financasbot-n02f-audit-evidence-manifest-v1",
+  "candidate": "a09482485ef5d51f2391d4d773d4738f74246f71",
+  "parent": "ef04368c95af33a12c0e8b5b286c0e0b01ae27f8",
+  "source": {
+    "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+    "parent_blob_sha": "a15407bd20db84b44acbf99542637432dec3f8a3",
+    "head_blob_sha": "5abcb5d528065b00bd575298176947ec605600ba"
+  },
+  "purpose": "Compact, reviewable evidence for two focal audits and one consolidation. It does not replace the immutable source blobs.",
+  "files": [
+    {
+      "path": "selection-audit-verifier.cjs",
+      "sha256": "157bc45151013907b01af9b713146074483927908046a1cee672742f7ca8eaf8",
+      "role": "Small verifier for all 76 graphs, 152 phases and six adversarial self-tests."
+    },
+    {
+      "path": "selection-audit-report.json",
+      "sha256": "0720e0e2b8b7fa1dc15bc680a07b191d12a45c7d80b2c2ace90084f61b6e8501",
+      "role": "Deterministic output of selection-audit-verifier.cjs."
+    },
+    {
+      "path": "selection-samples-parent.json",
+      "sha256": "ff53ddd544264d4019086e0cf3f801bc41926e757e13e28e44d96b4c85c08287",
+      "role": "Six byte-preserving parent records for H-01 and discriminant cases."
+    },
+    {
+      "path": "selection-samples-head.json",
+      "sha256": "cb92a04293cfc32ba5ccfd446f8be1401bdeb6f7961925796d1f021b63ebc6e8",
+      "role": "Six byte-preserving candidate records for H-01 and discriminant cases."
+    },
+    {
+      "path": "temporal-nonsafe-parent.json",
+      "sha256": "c345eacc86f54172708e4e73e4d9e8a5793c439188129b7d077316647f9f17eb",
+      "role": "Five parent temporal graph records."
+    },
+    {
+      "path": "temporal-nonsafe-head.json",
+      "sha256": "ffdc3d5a92c0b9dc8e012c56f421aeab7ff9f7681324cd432e4403d88f97bf2c",
+      "role": "Five candidate temporal graph records."
+    },
+    {
+      "path": "temporal-safe-parent.json",
+      "sha256": "2f8013a7cf0ef9a33239dca5508ccc9c77fcd7960389b75faca0897e54df41bd",
+      "role": "Two parent safe_daily_pace graph records."
+    },
+    {
+      "path": "temporal-safe-head.json",
+      "sha256": "e855527a9ca86a7ed8c54a1f056676fed598ec41651288ed4c3b07cb44c5ea45",
+      "role": "Two candidate safe_daily_pace graph records."
+    }
+  ],
+  "limits": [
+    "Evidence is documentary and synthetic.",
+    "The verifier is an audit helper, not the future provenance engine or mutation suite.",
+    "The Chat must review the verifier and spot-check immutable source records; report valid=true is not self-sufficient evidence.",
+    "No parcel alone authorizes implementation, NEXT-03, deploy or production."
+  ]
+}
