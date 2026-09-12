@@ -2,6 +2,8 @@
 
 const { admittedDocuments } = require('./packageContract');
 const { digest } = require('../kernel/canonicalValue');
+const { validateGraphStructure } = require('./graphStructure');
+const { validateTemplateReferences } = require('./templateReferences');
 
 function fail(code) { throw new Error(`graph_index_${code}`); }
 function text(value) {
@@ -158,8 +160,14 @@ function compileAuthoringIndex(admitted, validators) {
     for (const graph of graphs.graphs) for (const source of graph.authoring_sources) document(source.path);
     const original = document('tests/fixtures/financasbot-next/golden-fact-contracts-v1.json');
     const expectedFactKeys = Object.values(object(original.turns)).flatMap(turn => list(turn).map(fact => fact.fact_key));
-    return indexGraphDependencies({ graphs: graphs.graphs, claims: claims.claims,
+    const index = indexGraphDependencies({ graphs: graphs.graphs, claims: claims.claims,
         evaluators: registry.entries, expectedFactKeys });
+    validateGraphStructure({ graphs: graphs.graphs, claims: claims.claims,
+        materialRegistry: resolved.material_registry, operatorRegistry: resolved.operator_registry });
+    validateTemplateReferences({ graphs: graphs.graphs, operators: resolved.operator_registry.operators,
+        templates: document('docs/contracts/next/provenance-v2/predicate-templates-v1.json'),
+        materialRegistry: resolved.material_registry, claims: claims.claims });
+    return index;
 }
 
 // Compile-time consistency only. The proof phase must independently observe

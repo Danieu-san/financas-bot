@@ -11,8 +11,8 @@ documentalmente em A+B+C; seus recibos estão no commit de canal
 aa3a2caad6051ae8702dcffa2ef87d8674e8cf0f. Não reauditar esse mesmo candidate.
 
 Objetivo: execução integral de provenance, G07/G08/G11/G14, para os 76 grafos,
-preservando CP-02 e CP-03..CP-07. Escopo inicial deste commit: somente plano,
-este checkpoint e linha N02-G no índice. Nenhuma implementação iniciada.
+preservando CP-02 e CP-03..CP-07. A abertura foi somente documental; após a
+aprovação do charter, a implementação começou nesta worktree isolada.
 
 Confronto local: canonicalValue pode ser reaproveitado para seus preimages;
 hashes documentais exigem bytes exatos. O validador v1 mistura funções de
@@ -60,11 +60,11 @@ admitidos, confere hashes entre autoridades, schemas e DAG. O resultado ainda
 
 Build de schemas: registrar `scripts/agent/buildNextProvenanceArtifacts.mjs`,
 `tests/next/provenance/schemaBuild.cases.js` e artefato estático
-`src/next/provenance/schemaValidators.generated.js`. Ajv 8.17.1 será dependência
-dev fixada em package.json/lockfile, apenas para gerar validadores draft-07;
+`src/next/provenance/schemaValidators.generated.js` (ainda não materializado).
+Ajv 8.17.1 é dependência dev fixada em package.json/lockfile, apenas para gerar validadores draft-07;
 `ajv-formats` 3.0.1 também é dev: os schemas usam date/date-time e o primeiro
 RED de build rejeitou esses formatos sem plugin. Não desabilitar sua validação.
-não compilar schemas dinamicamente no runner. Helpers transitivos gerados
+Não compilar schemas dinamicamente no runner. Helpers transitivos gerados
 precisam integrar o closure antes de admissão executável. Referência técnica:
 https://ajv.js.org/standalone.html. Não se introduz um interpretador próprio.
 Limite: admissão de bytes por inventário/identidade fornecidos pela autoridade
@@ -93,12 +93,64 @@ isolamento, roots, recorder, evaluators, witnesses e G14 não estão concluídos
 Os inventários/pins dos gates antigos ainda não foram ampliados; não reportar
 PASS herdado enquanto a integração N02-G estiver em desenvolvimento.
 
-Validação deste checkpoint de desenvolvimento: 20/20 testes focais PASS,
+Validação do primeiro incremento publicado em
+`0d6c2397b81dd2490f2c6fb1fff03c7329893ec7`: 20/20 testes focais PASS,
 0 FAIL/SKIP/TODO; syntax checks e agent-workflow OK; diff --check OK.
 REDs iniciais de módulos ainda ausentes foram observados; ajustes de build e
 integração foram testados focalmente. Suíte ampla não iniciada: ainda não há
 candidato estável para o gate integral. Commit WIP não é candidato final,
 aprovação parcial nem pedido de nova auditoria.
+
+Segundo incremento local: passe estrutural ligado à admissão/índice, cobrindo
+76 grafos/152 fases, referências, onze obrigações, partição das seleções,
+materialidade e paths escalares. Proof deve ler todos os candidatos; derivation
+pode consumir somente um operando previamente vinculado. A diferença em
+S-16#1#1 foi confrontada com o helper imutável N02-F em 9b0808b; não é finding
+novo nem motivou alteração dos grafos. Pais validados são exigidos nas duas fases.
+
+Unificador interno cobre as 32 assinaturas, sem conversão entre IDs nominais,
+unidades ou set/sequence. Integração atual: 28 referências de templates com
+hash canonical da entrada, id/versão, parâmetros exatos, corpo conjuntivo,
+tipagem dos bindings e kind dos membros. Literal type/value agora é validado,
+inclusive datas civis reais; o schema sozinho aceita combinações incompatíveis.
+Calendário civil puro implementa parsing, ordinal, offsets sem clamp, limites
+de mês e cardinalidade inclusiva; não lê relógio/timezone do processo.
+
+Evidência local do segundo incremento: 39/39 testes focais PASS, 0 FAIL,
+0 SKIP/TODO, agent-workflow OK. Inclui REDs observados antes de criar módulos,
+mutantes de referência/obrigação/seleção, incompatibilidade nominal, adulteração
+de templates e datas/literais inválidos. Ampla não iniciada. Sem alteração dos
+documentos de autoria ratificados, dependências, runtime v1, transporte ou canal.
+O limite de uso interrompeu uma chamada de teste; a retomada executou o RED e
+os testes reais depois que a ferramenta voltou a funcionar.
+
+Limites específicos: a unificação ainda não está aplicada a todos os argumentos
+dos predicados externos aos templates; associação semântica operador/operando/
+obrigação, projeção schema↔registry, lowering de paths estruturados e typed IR
+continuam pendentes. Não aceitar este estágio de índice como IR executável.
+Instantes/literais exigem offset explícito; conversão de timezone, incluindo
+freeze de suas regras, não está implementada. Nenhum novo GO foi emitido.
+
+Próximo incremento registrado antes da criação: `src/next/provenance/graphStructure.js`
+e `tests/next/provenance/graphStructure.cases.js`, integrados ao índice e ao
+entry focal existentes. Escopo: referências fechadas, paths materiais,
+associação de predicados/obrigações e partição das seleções. Não constitui
+execução de predicados nem prova causal dos reads declarados.
+Complemento de tipagem registrado: `src/next/provenance/operatorTypes.js` e
+`tests/next/provenance/operatorTypes.cases.js`. Unificar assinaturas do registry
+com descritores internos tipados, sem resolver identidade a partir de valores
+coincidentes nem executar operações. A resolução dos descritores a partir do
+pacote admitido é um passe posterior, obrigatório antes de IR executável.
+Registrar também `src/next/provenance/templateReferences.js` e
+`tests/next/provenance/templateReferences.cases.js`: resolução de id/versão/hash
+canonical da entrada de template, fechamento dos parâmetros e corpo conjuntivo.
+O pacote precisa admitir `predicate-templates-v1.json`; não buscar referências
+ausentes no filesystem. Tipagem completa dos argumentos continua separada.
+Registrar `src/next/provenance/civilCalendar.js` (já previsto no charter),
+`src/next/provenance/literalTypes.js` e seus testes homônimos em
+`tests/next/provenance/`: datas civis puras e validação de literal type/value.
+Não inclui timezone, relógio implícito nem civil_date_matches; conversão de
+instantes ainda depende da escolha/freeze das regras de timezone.
 
 Próxima ação exata: completar a resolução tipada/obrigações do compiler e seus
 REDs antes de escolher e demonstrar a fronteira de execução. Nenhum PASS intermediário
@@ -108,4 +160,4 @@ ao iniciá-la, pausar sem polling, conforme preferência de Daniel.
 Telemetria de calibração: não consultada nesta abertura; métricas de uso
 NAO_DISPONIVEL. Não amplia coleta nem bloqueia o produto.
 
-Codex → Astra → Alto → implementar a fronteira integral após revisão do charter.
+Codex → Astra → Alto → completar o compiler após o charter já aprovado.

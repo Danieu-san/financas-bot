@@ -24,6 +24,7 @@ function fixture() {
         return JSON.parse(bytes);
     }
     const graphs = add(graphPath);
+    add(prefix + 'predicate-templates-v1.json');
     for (const field of ['claim_contract', 'snapshot_manifest', 'material_registry', 'operator_registry', 'metric_evaluator_registry']) add(graphs[field].path);
     for (const source of add(graphs.snapshot_manifest.path).sources) add(source.path);
     for (const entry of add(graphs.metric_evaluator_registry.path).entries) add(entry.contract_path);
