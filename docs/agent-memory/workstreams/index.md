@@ -26,6 +26,7 @@ Cada conversa/worktree trabalha em um objetivo e preserva seu próprio estado.
 | `financasbot-cp01-corrections` | RESOLVIDO; f0792fb aprovado focalmente; próximo CP-02 | `financasbot-cp01-corrections.md` | `../../plans/workstreams/financasbot-cp01-corrections-v1.md` | recibo manual versionado; canal adiado |
 | `financasbot-cp02-inventory` | RESOLVIDO; b624b3d aprovado focalmente; próximo N02-F documental | `financasbot-cp02-inventory.md` | `../../plans/workstreams/financasbot-cp02-closure-inventory-v1.md` | 76 grafos antes do motor; G14 aberto; NEXT-02 global não aprovado |
 | `financasbot-next-02-n02f` | PREPARAÇÃO DOCUMENTAL APROVADA; A+B+C em a094824 | `financasbot-next-02-n02f.md` | `../../plans/workstreams/financasbot-next-02-n02f-v1.md` | 76 grafos revisados; próxima fatia executável a delimitar; NEXT-02 global aberto |
+| `financasbot-next-02-n02g` | CHARTER PROPOSTO; revisão focal de escopo pendente | `financasbot-next-02-n02g.md` | `../../plans/workstreams/financasbot-next-02-n02g-v1.md` | G07/G08/G11/G14 integrais; reuso, REDs e gate; sem código nesta abertura |
 
 Se dois workstreams puderem escrever simultaneamente, usar branches/worktrees
 distintas. Atualizar somente a própria linha e seus arquivos.
