@@ -1,6 +1,6 @@
 # N02-F — checkpoint documental
 
-Data: 2026-09-10. Estado: CANDIDATO CORRIGIDO; REAUDITORIA FOCAL PENDENTE.
+Data: 2026-09-11. Estado: PREPARAÇÃO DOCUMENTAL APROVADA EM A+B+C; PRÓXIMA FATIA EXECUTÁVEL A DELIMITAR.
 Base: `ee5a0161f0c24a1c9a6a3c95a04e9da1eec4e91d`.
 Branch: `codex/financasbot-n02f-provenance-20260909`.
 Worktree: `.codex-worktrees/financasbot-n02f-provenance`.
@@ -30,8 +30,9 @@ Os 114 fingerprints e hashes das fontes foram medidos, sem executar métricas.
 Essas contagens descrevem os commits de preparação anteriores. O candidato
 atual contém 23 kinds, 115 snapshots, 39 contratos/entradas de evaluators,
 39 contratos de witnesses, templates, 76 claims e 76 grafos autorados.
-Falta revisão independente integral. Políticas novas são propostas, não regras aprovadas.
-Compiler/evaluator permanecem bloqueados até autoria/revisão integral.
+Esse conjunto recebeu revisão independente A+B+C, conforme recibo final abaixo.
+O código de compiler/evaluator ainda não foi iniciado; a futura fatia deve
+fixar escopo integral e gates próprios antes de implementar.
 
 Paths adicionais enumerados para a próxima edição documental:
 - `docs/contracts/next/provenance-v2/type-and-identity-contract-v2.md`;
@@ -209,3 +210,105 @@ Próxima ação: publicar e enviar pelo bot a reauditoria focal em dois lotes
 obrigatória no mesmo SHA. A aprovação de um lote não libera implementação.
 Daniel está ausente e autorizou continuidade sem novas confirmações.
 Nenhum estado/slot do canal GitHub antigo é alterado por esta tarefa.
+
+## Recibo local pós-publicação — 2026-09-11
+
+Candidato publicado: a09482485ef5d51f2391d4d773d4738f74246f71.
+Parent único: ef04368c95af33a12c0e8b5b286c0e0b01ae27f8.
+Push e HEAD remoto confirmados na branch
+codex/financasbot-n02f-provenance-20260909. Este recibo é posterior ao
+commit auditável e não integra seu objeto imutável.
+
+Lote A acionado uma única vez pelo bot local. O bot terminou com
+"Entrega nao confirmada: nenhuma resposta observada" e preservou a janela.
+Isso não comprova ausência de envio nem recebimento pelo Chat. A superfície
+de navegador disponível não expõe a janela do bot; não houve reenvio.
+Prompt e recibo locais estão em logs/n02f-audit-a-a09482485ef5d51f2391d4d773d4738f74246f71.txt
+e logs/n02f-audit-dispatch-a09482485ef5d51f2391d4d773d4738f74246f71.json.
+
+Próxima ação: verificar a conversa já aberta pelo bot antes de qualquer
+reenvio, obter o parecer do lote A e então encaminhar o lote B temporal
+sobre o mesmo SHA. Consolidação independente continua obrigatória.
+Não executar novamente a transformação local nem repetir checks verdes
+sem mudança causal. Nenhum GO, compiler/evaluator ou próxima fatia liberado.
+
+## Recebimento A e preparação B — 2026-09-11
+
+SUBLOTE A APROVÁVEL no candidate a09482485ef5d51f2391d4d773d4738f74246f71,
+com evidência 9b0808bb11f00dda973eab845081a5f0ffc74194. Parecer independente
+publicado no canal em c5805d34e7e86246d5a4c0023c8fa07da795f21f.
+Recibo validado e CHAT_READY publicados pelo watcher em
+8c5a8f4c124b80c646bd250d12c5e39cc4f0f099, remoto confirmado.
+Helper reproduziu report SHA-256 0720e0e2b8b7fa1dc15bc680a07b191d12a45c7d80b2c2ace90084f61b6e8501,
+76 grafos/152 fases/seis negativos. Consulta adicional confirmou 76 chaves
+únicas em grafos e claims e input confirmed nos dois safe_daily_pace.
+LOW-01/02 sobre robustez futura do helper permanecem registrados no recibo;
+não há CRITICAL/HIGH/MEDIUM nem alteração do candidate auditado.
+
+Incidente de transporte: lock vazio órfão fazia o watcher retornar
+already_running antes de consultar o GitHub. Ausência de watcher ativo
+confirmada; lock preservado fora do repositório e processamento recuperado.
+Wake automático e publicação do recibo foram observados após a recuperação.
+Não houve correção preventiva do código de locking; não declarar esse risco
+eliminado. Resultado zero da tarefa agendada sozinho não prova saúde.
+
+Canal reservado para B em 17613b377cb2652754e77ddbfeb0d7255a1dbd94,
+CHAT_WORKING hash 680ad1d322434d154290a4cfda8bba42be720e6d2c6fc6c9376d38c1b9b8a926.
+Prompt local: logs/n02f-audit-b-compact-9b0808.txt. Próxima ação: uma tentativa
+pelo bot em conversa limpa; confirmar entrega sem reenviar em caso incerto.
+Depois do parecer B, validar recibo e preparar consolidação C. A não substitui
+B/C e não autoriza implementação, NEXT-03 ou produção.
+
+## Recebimento B e consolidação C — 2026-09-11
+
+O retorno automático B chegou ao Codex: a ausência de confirmação do bot não
+significou ausência de entrega. Nenhum reenvio B foi feito. Parecer B APROVÁVEL,
+somente relações temporais, com limitação de execução futura explicitamente
+mantida. Sete grafos/11 janelas, 27 operadores preservados/cinco novos e três
+hashes documentais de contratos confrontados localmente. Não usar digest do
+objeto canonicalizado no lugar do SHA dos bytes desses contratos.
+
+Recibo B e CHAT_READY publicados e confirmados no remoto em
+fbc128117487c110391eea04f61b3761ab2c7d3c. Manifesto B encerrado; nenhuma
+implementação ou alteração do candidate decorreu desse recebimento.
+
+Consolidação C preparada separadamente: leitura dos pareceres A/B, mapa dos
+17 paths do delta e revisão dirigida de lacunas/interfaces, sem nova leitura
+integral dos 76 grafos. Prompt em logs/n02f-audit-c-consolidation-9b0808.txt.
+Canal CHAT_WORKING reservado em f20cc541996a25d1d352a34ee52a5bbef8cc718e,
+hash 984d76b4585a0fc9ced4c5e5c3e2dac3604c8134ecce815536e8575630aac58f.
+Próxima ação: uma tentativa pelo bot; aguardar parecer C, sem declarar GO
+global nem refazer A/B. Se entrega ficar incerta, não reenviar automaticamente.
+
+Tentativa C executada uma vez. O bot terminou com erro de confirmação:
+"turno do usuario sem id persistido", preservando a janela. Não houve reenvio
+nem inspeção por Browser nesta etapa. Como B retornou apesar do mesmo aviso,
+o estado é entrega incerta, não falha de envio demonstrada. Aguardar o retorno
+GitHub/watcher ou verificar a janela existente antes de qualquer nova tentativa.
+agent-workflow e diff-check do checkpoint: OK. Nenhuma suíte ampla repetida.
+
+## Fechamento documental e próxima ação — 2026-09-11
+
+C retornou automaticamente pelo watcher e foi validado: APROVÁVEL para o
+delta documental a09482485ef5d51f2391d4d773d4738f74246f71, parent
+ef04368c95af33a12c0e8b5b286c0e0b01ae27f8. Cobertura consolidada dos 17 paths,
+estado/seleção dos 76 grafos, sete grafos temporais/11 janelas, cinco novos
+operadores e interfaces documentais. CRITICAL/HIGH/MEDIUM: zero. LOWs do
+helper e ausência de runtime permanecem explícitos e não bloqueantes.
+
+Manifesto C encerrado após publicação remota do recibo e CHAT_READY em
+aa3a2caad6051ae8702dcffa2ef87d8674e8cf0f. Pareceres A/B/C e recibos estão
+nesse commit do canal em docs/agent-memory/workstreams/results/, com nomes
+FIN-NEXT02-N02F-AUDIT-{A,B,C}-20260911.md e respectivos -RETURN-20260911.md.
+Eles são evidência de revisão documental, não execução ou GO global.
+
+Roadmap/CP-02 e charter N02-F conferidos: autoria/revisão documental precede
+a implementação integral de G07/G08/G11/G14. Próxima ação exata: desenhar o
+charter da fatia executável (paths, reuso, REDs, inventário completo e gates),
+sem rollout parcial por domínio, sem segunda DSL e sem antecipar NEXT-03.
+G05/G06/G09/G10/G13 permanecem no inventário global. Não executar novamente
+A/B/C para o mesmo hash sem evidência material nova.
+
+Capacidade para essa próxima tarefa transversal: Codex → Astra → Alto.
+O presente fechamento usa apenas documentos e não altera código, pacote
+auditado, fixtures, dependências, canal/bot ou produção.

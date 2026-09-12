@@ -1,6 +1,6 @@
 # N02-F — preparação documental integral de provenance
 
-Data: 2026-09-10. Estado: CANDIDATO DOCUMENTAL CORRIGIDO; REAUDITORIA PENDENTE.
+Data: 2026-09-11. Estado: PREPARAÇÃO DOCUMENTAL APROVADA; EXECUÇÃO AINDA NÃO INICIADA.
 Base: `ee5a0161f0c24a1c9a6a3c95a04e9da1eec4e91d`.
 Branch: `codex/financasbot-n02f-provenance-20260909`.
 Worktree: `.codex-worktrees/financasbot-n02f-provenance`.
@@ -86,6 +86,30 @@ funcional ampla repetida enquanto não houver mudança funcional autorizada.
 Não relatar compiler, proof trace ou mutation suite como executados nesta fase.
 
 ## Próxima ação exata
+
+O candidate a09482485ef5d51f2391d4d773d4738f74246f71 (parent
+ef04368c95af33a12c0e8b5b286c0e0b01ae27f8) recebeu APROVÁVEL em A, B e
+consolidação C. Pareceres e recibos estão em docs/agent-memory/workstreams/results/
+na branch do canal, congelados no commit aa3a2caad6051ae8702dcffa2ef87d8674e8cf0f.
+Os paths são FIN-NEXT02-N02F-AUDIT-{A,B,C}-20260911.md e seus respectivos
+FIN-NEXT02-N02F-AUDIT-{A,B,C}-RETURN-20260911.md. A evidência auxiliar é
+9b0808bb11f00dda973eab845081a5f0ffc74194; não é novo candidate de produto.
+
+Os seis critérios documentais acima estão satisfeitos para a preparação e o
+delta corrigido. Permanecem duas ressalvas não bloqueantes do helper de A e
+a ausência esperada de execução futura. Não atualizar o candidate aprovado
+para eliminar uma limitação de helper que não altera sua conclusão semântica.
+
+Próxima ação separada: delimitar a fatia executável posterior a N02-F,
+declarando os pré-requisitos documentais satisfeitos e o escopo integral de
+G07/G08/G11/G14 conforme CP-02. Não há charter executável aprovado por este
+recibo; fixar paths, reuso, REDs, fronteiras e critérios antes de implementar.
+Preservar os 76 grafos, a independência do oracle, a migração integral, a
+ausência de branches por métrica na prova e os gates G05/G06/G09/G10/G13.
+NEXT-02 global e NEXT-03 continuam bloqueados. A continuidade deriva da
+autorização prévia de Daniel e do roadmap, não dos manifestos de retorno.
+
+### Histórico da correção submetida
 
 Auditoria integral de ef04368 confirmou H-01/H-02/M-01. Correção documental
 mantém 76 grafos, separa estado da entrada/resultado e seleção/exame, e propõe
