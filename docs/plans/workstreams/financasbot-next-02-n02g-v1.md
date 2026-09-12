@@ -1,9 +1,14 @@
 # N02-G — execução integral de provenance
 
-Data: 2026-09-11. Estado: CHARTER PROPOSTO; REVISÃO FOCAL DE ESCOPO PENDENTE.
+Data: 2026-09-11. Estado: CHARTER APROVADO; IMPLEMENTAÇÃO EM DESENVOLVIMENTO.
 Base: `aea4ac31e358ed8d8907e78f6002c8bb80233bc8`.
 Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
+
+Revisão focal do charter `8c1f1302803d625ddfc48f47d60d8c8416d5dee7`:
+APROVÁVEL, sem findings. Parecer/recibo publicados no canal em
+`7d445d9bbc8567758c8afdd2e96d25366adf582e`. Esta aprovação não cobre código
+posterior nem antecipa o gate executável integral abaixo.
 
 ## 1. Objetivo e pré-requisitos
 
