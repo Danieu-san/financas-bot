@@ -351,7 +351,7 @@ test('createUserSpreadsheetForUser creates spreadsheet and writes headers to eve
     const faturas = starterContent.payload.resource.data.find(item => item.range === "'Faturas'!A1:F1");
     assert.ok(JSON.stringify(dashboard.values).includes("SUMIF('Saídas'!J2:J"));
     assert.ok(faturas.values[0][0].includes("'Lançamentos Cartão'!A2:J"));
-    assert.ok(faturas.values[0][0].includes('where J is not null'));
+    assert.ok(faturas.values[0][0].includes('where J is not null and G is not null group by G, F'));
     assert.ok(faturas.values[0][0].includes(';0)'));
     const formatCall = calls.find(call => call.type === 'batchUpdate');
     assert.ok(formatCall, 'Should apply visual formatting');

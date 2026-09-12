@@ -1,0 +1,27 @@
+{
+  "schema": "financasbot-chat-codex-task-v1",
+  "task_id": "FIN-NEXT02-N02G-CHARTER-RETURN-20260911",
+  "objective": "Valide o parecer independente focal em docs/agent-memory/workstreams/results/FIN-NEXT02-N02G-CHARTER-AUDIT-20260911.md contra o candidate imutável 8c1f1302803d625ddfc48f47d60d8c8416d5dee7 e parent único aea4ac31e358ed8d8907e78f6002c8bb80233bc8, conferindo identidade, cobertura focal G07/G08/G11/G14, severidades, veredito e limites. Produza somente o recibo em docs/agent-memory/workstreams/results/FIN-NEXT02-N02G-CHARTER-RETURN-20260911.md. Finding bloqueante ou AUDITORIA INCOMPLETA impede avanço de produto. Se o parecer for validado sem bloqueio material, publique CHAT_READY apenas para esta tarefa de retorno. Depois do recibo remoto, qualquer retomada deve ocorrer separadamente no checkpoint docs/agent-memory/workstreams/financasbot-next-02-n02g.md da branch codex/financasbot-n02g-provenance-engine-20260911, somente sob autorização prévia e gates reais.",
+  "required_files": [
+    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02G-CHARTER-AUDIT-20260911.md"
+  ],
+  "allowed_paths": [
+    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02G-CHARTER-RETURN-20260911.md"
+  ],
+  "result_file": "docs/agent-memory/workstreams/results/FIN-NEXT02-N02G-CHARTER-RETURN-20260911.md",
+  "validation": [
+    "Confirma candidate 8c1f1302803d625ddfc48f47d60d8c8416d5dee7 e parent único aea4ac31e358ed8d8907e78f6002c8bb80233bc8 antes de validar o parecer.",
+    "Confere que o parecer leu exatamente os três paths do delta e confrontou somente as autoridades focais declaradas, sem reauditar os 76 grafos N02-F.",
+    "Confere cobertura das perguntas focais sobre G07/G08/G11/G14, separação cálculo/oracle/observação/identidade, proof+binding antes de resposta/CAS, pré-condições técnicas, sequência/roots/mutações/gate e preservação CP-02/CP-03..CP-07.",
+    "Confere classificação CRITICAL/HIGH/MEDIUM/LOW, cadeia causal, veredito único e limites explícitos do parecer.",
+    "Se houver finding bloqueante ou AUDITORIA INCOMPLETA, registra no result_file e para sem avanço de produto.",
+    "Se não houver bloqueio material, registra somente o recibo e publica CHAT_READY para esta tarefa; não inicia implementação nem transforma o manifesto em autorização de roadmap."
+  ],
+  "constraints": [
+    "Não alterar produto, fontes, src/, tests/, scripts/, fixtures, contratos, dependencies, package/lockfile ou branch de produto durante esta tarefa de recibo.",
+    "Não acessar produção, dados reais, Pluggy, planilhas reais, segredos, sessões ou .env.",
+    "GitHub e os SHAs imutáveis indicados são a fonte de verdade; autoridade de modelo ou contagem de testes não substitui cadeia causal.",
+    "O manifesto não concede autorização de implementação, GO global NEXT-02, NEXT-03, deploy ou produção.",
+    "Após o recibo remoto, qualquer retomada no checkpoint N02-G é separada e depende da autorização prévia de Daniel e de gates reais."
+  ]
+}

@@ -129,7 +129,7 @@ function mapRowForUserSpreadsheet(sheetName, row, options = {}) {
         row[4] || '',
         row[5] || '',
         String(options.cardId || '').trim() || cardIdFromLegacySheetName(sheetName),
-        sheetName,
+        String(options.cardDisplayName || options.displayName || '').trim() || sheetName,
         relationNote,
         row[6] || ''
     ];

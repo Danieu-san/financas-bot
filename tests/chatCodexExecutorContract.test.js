@@ -1,0 +1,65 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const {
+    buildExecutorPrompt,
+    runCodex
+} = require('../scripts/agent/watchChatCodexOrchestration');
+
+test('executor recebe sequência mecânica fechada', () => {
+    const prompt = buildExecutorPrompt({
+        branch: 'chat/test', gitPath: "C:\\Git O'Brien\\git.exe",
+        observedHash: 'b'.repeat(64), repoPath: "E:\\repo O'Brien",
+        statePath: 'docs/state.json', taskFile: 'docs/task.json',
+        task: {
+            task_id: 'JOB-01', objective: 'Atualizar o contrato.',
+            required_files: ['src/a.js'], allowed_paths: ['src/a.js', 'docs/agent-memory/workstreams/results/JOB-01.md'],
+            result_file: 'docs/agent-memory/workstreams/results/JOB-01.md',
+            validation: ['node --test tests/a.test.js'], constraints: ['Não ampliar escopo.']
+        }
+    });
+    for (const text of [
+        'Atualizar o contrato.', 'node --test tests/a.test.js', 'falhe fechado',
+        'docs/agent-memory/workstreams/results/JOB-01.md', 'src/a.js'
+    ]) assert.ok(prompt.includes(text));
+    assert.match(prompt, /Leia AGENTS\.md/);
+    assert.match(prompt, /\$env:GIT_BIN = 'C:\\Git O''Brien\\git\.exe'/);
+    assert.match(prompt, /\$env:GIT_CONFIG_VALUE_0 = 'E:\/repo O''Brien'/);
+});
+
+test('launcher limita safe.directory ao processo executor', t => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'orch-executor-'));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const repo = path.join(root, 'repo');
+    const codex = path.join(root, 'codex.exe');
+    const git = path.join(root, 'git.exe');
+    fs.mkdirSync(repo);
+    fs.writeFileSync(codex, 'fixture\n');
+    fs.writeFileSync(git, 'fixture\n');
+    let invocation;
+    assert.equal(runCodex({
+        codexPath: codex, gitPath: git, powershellPath: null, repoPath: repo, prompt: 'no-op',
+        logPath: path.join(root, 'run.log')
+    }, {
+        listIgnoredPaths: () => new Set(),
+        spawnSync(command, args, options) {
+            invocation = { command, args, options };
+            return { status: 0 };
+        }
+    }), 0);
+    assert.deepEqual([
+        invocation.options.env.GIT_BIN, invocation.options.env.GIT_CONFIG_COUNT,
+        invocation.options.env.GIT_CONFIG_KEY_0,
+        invocation.options.env.GIT_CONFIG_VALUE_0
+    ], [git, '1', 'safe.directory', repo.replaceAll('\\', '/')]);
+});
+
+test('instalador entrega Git absoluto ao watcher', () => {
+    const installer = fs.readFileSync(path.join(
+        __dirname, '..', 'scripts', 'agent', 'Install-ChatCodexOrchestrationWatcher.ps1'
+    ), 'utf8');
+    assert.match(installer, /Get-Command git -ErrorAction Stop/);
+    assert.match(installer, /'--git', \(Quote-Argument \$git\)/);
+});
