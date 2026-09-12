@@ -313,9 +313,49 @@ Sem alteração de autoria ratificada, dependências, gates herdados, canal,
 runtime v1, produção ou dados reais. Incrementos 6–8 sobre
 `021f339b9ca61b574239ecb211891ff3cf013305`, publicados somente como WIP.
 
-Próxima ação exata: derivar e confrontar os requisitos temporais/time_basis
-e de coverage das fontes restantes; concluir a suficiência estrutural do
-compiler antes da prova da fronteira de execução. O IR completo em inventário
+Continuidade após WIP `4c3e58c88e39fe81ee87107ef7ea73cf4ed2e47f` publicado:
+os contratos funcionais exprimem semântica financeira em texto revisado, não
+numa segunda DSL. Não criar um interpretador desse texto no compiler. A
+suficiência temporal/financeira restante depende das relações e da execução
+instrumentada, preservando os requisitos estruturais já derivados.
+
+Registrar antes de criar a prova de viabilidade isolada:
+`scripts/agent/probeNextProvenanceIsolation.mjs` e
+`tests/next/provenance/isolationProbe.worker.cjs`. Não é executionHost nem
+runner aprovado; não executa os 39 evaluators nem recebe fixtures/dados reais.
+Necessidade de dependência: SES 2.3.0 como devDependency exata, install com
+ignore-scripts e lock transitivo revisado. Evita inventar isolamento de JS por
+regex/AST/vm; a prova experimental não promove a biblioteca a runtime.
+Consultar docs oficiais SES/Endo: packages/ses/README.md e docs/lockdown.md.
+SES restringe autoridade do compartment e congela intrinsics, mas não limita
+CPU/memória sozinho. Worker descartável com timeout externo serve somente à
+prova de interrupção; não é sandbox de SO. Compartment recebe somente uma
+capability sintética endurecida, sem objetos financeiros crus. Probar ausência
+de APIs Node/rede/relógio/aleatoriedade, codegen, escape por constructors,
+intrinsics e globals congelados, isolamento entre invocações e interrupção.
+Nenhuma conclusão de closure/TCB/observação real decorre desse probe.
+
+Probe executado em Node 22.17.0/Windows: 12 verificações de autoridade PASS,
+uma leitura sintética via capability, globals congelados e compartments
+independentes; loop infinito interrompido pelo worker host. RED de worker
+ausente observado. Direct eval é rejeitado antes da execução pelo SES; seu
+caso foi separado para não mascarar os outros probes. Script não aceita código,
+URL, path ou dados do usuário como entrada. Não há evaluator financeiro nele.
+SES 2.3.0 + três dependências transitivas foram as únicas adições no lock;
+todas dev-only, scripts de instalação desativados. Acorn/Ajv inalterados.
+Não provar compatibilidade com Node 20 a partir desse teste em Node 22.
+Não repetir os 103 testes verdes do compiler sem mudança causal: este
+experimento não alterou seus fontes ou dependências existentes. Ampla pendente.
+
+Próxima ação exata: fixar o modelo de ameaça e o contrato de execução do TCB,
+closures e capabilities antes de implementar a fronteira efetiva. O probe
+não prova isolamento contra esgotamento de memória do processo, roots medidos,
+ausência de objeto financeiro cru, captura I/M/L/T ou admissão de R. A decisão
+de arquitetura/segurança dessa fronteira requer Astra/Extra Alto; a próxima
+ação material fica aguardando essa seleção, conforme contrato de capacidade.
+Depois dessa decisão delimitada, reavaliar para retornar a Alto na implementação.
+Requisitos
+temporais/time_basis e coverage restantes continuam pendentes. O IR completo em inventário
 ainda não constitui um motor executável. Nenhum PASS intermediário
 libera rollout ou substitui o gate integral. Ampla somente no candidato estável;
 ao iniciá-la, pausar sem polling, conforme preferência de Daniel.
@@ -323,4 +363,4 @@ ao iniciá-la, pausar sem polling, conforme preferência de Daniel.
 Telemetria de calibração: não consultada nesta abertura; métricas de uso
 NAO_DISPONIVEL. Não amplia coleta nem bloqueia o produto.
 
-Codex → Astra → Alto → completar o compiler após o charter já aprovado.
+Codex → Astra → Extra Alto → fechar o desenho técnico do TCB/closures a partir do probe, sem executar evaluators antes dos REDs.
