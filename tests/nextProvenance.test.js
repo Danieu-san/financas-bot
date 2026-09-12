@@ -11,3 +11,5 @@ require('./next/provenance/templateReferences.cases');
 require('./next/provenance/civilCalendar.cases');
 require('./next/provenance/literalTypes.cases');
 require('./next/provenance/predicateTypes.cases');
+require('./next/provenance/schemaRegistryProjection.cases');
+require('./next/provenance/obligationBindings.cases');

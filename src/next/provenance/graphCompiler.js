@@ -5,6 +5,8 @@ const { digest } = require('../kernel/canonicalValue');
 const { validateGraphStructure } = require('./graphStructure');
 const { validateTemplateReferences } = require('./templateReferences');
 const { compilePredicateTypes } = require('./predicateTypes');
+const { validateSchemaRegistryProjection } = require('./schemaRegistryProjection');
+const { validateObligationBindings } = require('./obligationBindings');
 
 function fail(code) { throw new Error(`graph_index_${code}`); }
 function text(value) {
@@ -144,6 +146,9 @@ function compileAuthoringIndex(admitted, validators) {
     }
     const claims = resolved.claim_contract;
     const registry = resolved.metric_evaluator_registry;
+    const claimSchema = document('docs/contracts/next/provenance-v2/claim-contract.schema.json');
+    validateSchemaRegistryProjection({ registry: resolved.material_registry, claimSchema,
+        snapshotSchema: document('docs/contracts/next/provenance-v2/evidence-snapshot.schema.json') });
     validate('claims', claims);
     validate('registry', registry);
     if (registry.stage !== 'authoring') fail('stage_invalid');
@@ -170,7 +175,9 @@ function compileAuthoringIndex(admitted, validators) {
         materialRegistry: resolved.material_registry, claims: claims.claims });
     compilePredicateTypes({ graphs: graphs.graphs, claims: claims.claims, snapshots: snapshots.snapshots,
         materialRegistry: resolved.material_registry, operatorRegistry: resolved.operator_registry,
-        claimSchema: document('docs/contracts/next/provenance-v2/claim-contract.schema.json') });
+        claimSchema });
+    validateObligationBindings({ graphs: graphs.graphs, snapshots: snapshots.snapshots,
+        materialRegistry: resolved.material_registry });
     return index;
 }
 

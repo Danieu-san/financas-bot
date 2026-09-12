@@ -188,8 +188,46 @@ inferir domínio de ID pelo texto de seu valor; ausência de tipo falha fechado.
 O pacote passa a admitir também `claim-contract.schema.json` como autoridade
 de paths do contexto. Esses passes ainda não autorizam execução.
 
-Próxima ação exata: completar projeção schema↔registry e associação semântica
-das obrigações, então lowering/IR integral, antes de demonstrar a fronteira
+Quarto incremento registrado antes da criação:
+`src/next/provenance/schemaRegistryProjection.js` e
+`tests/next/provenance/schemaRegistryProjection.cases.js`. Projeta a grammar
+fechada do registry no formato estrutural revisado do snapshot schema e exige
+igualdade integral de kinds, campos, required e restrições, sem escolher uma
+autoridade mais permissiva. Reutiliza tipos compartilhados do claim schema;
+não é interpretador JSON Schema nem prova de equivalência de schemas arbitrários.
+Integração admite também `evidence-snapshot.schema.json` no pacote. Os
+validadores executáveis continuam dependentes do build/closure ainda pendente.
+
+Registrar também `src/next/provenance/obligationBindings.js` e
+`tests/next/provenance/obligationBindings.cases.js`: primeiro passe de vínculos
+necessários derivados dos nós/arestas/payloads, cobrindo identidade, fingerprints,
+leituras materiais da prova e target de cada aresta. Não confundir esse passe
+parcial com suficiência das onze obrigações ou com execução dos predicados.
+
+Quarto incremento implementado sobre `86fe1dc15e76684df0a87879f50b55a3449772e9`:
+projeção estrutural exata dos 23 kinds/113 campos, incluindo grammar fechada,
+envelope, required, enums, limites inteiros e tipos compostos. ID/date/month
+reutilizam a autoridade do claim schema; equivalência de formas arbitrárias
+não é inferida. Nenhum documento ratificado foi modificado.
+
+Vínculos necessários derivados dos grafos/payloads: 2.284 ocorrências de nós
+snapshot nos 76 grafos (não 2.284 snapshots distintos), 4.422 arestas materiais
+e seis vínculos de pais. Remover predicado e suas referências não apaga a
+obrigação; citar a prova de outra aresta não atende o target; todos os campos
+materiais presentes e keys precisam constar no contrato de proof. Comparação
+de dinheiro, mesmo nominalmente bem tipada, não prova node_identity.
+Esse passe ainda não prova execução, seleção causal ou suficiência de todas
+as onze obrigações. Seus resultados permanecem de compilação parcial.
+
+Validação: REDs de módulos ausentes observados; projeção+integração 10/10,
+vínculos 7/7 e bateria focal integrada final 63/63 PASS, 0 FAIL/SKIP/TODO.
+Inclui mutantes integrados com hashes reparados que alcançam especificamente
+schema_registry_projection e obligation_binding_semantics. Syntax e diff
+--check OK. Ampla não iniciada; sem mudanças de dependências/gates herdados,
+autoria ratificada, canal, runtime v1 ou produção. WIP, sem pedido de auditoria.
+
+Próxima ação exata: resolver bindings de operandos contra registry/contratos e
+completar associação semântica das demais obrigações, então lowering/IR integral, antes de demonstrar a fronteira
 de execução. Nenhum PASS intermediário
 libera rollout ou substitui o gate integral. Ampla somente no candidato estável;
 ao iniciá-la, pausar sem polling, conforme preferência de Daniel.
