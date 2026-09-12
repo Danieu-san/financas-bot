@@ -11,6 +11,14 @@ const nodeType = kind => ({ form: 'node', kind });
 const enumType = values => scalar('enum', { values, domain: JSON.stringify([...values].sort()) });
 const subjectKinds = Object.freeze({ source: 'source_state', merchant: 'merchant_identity', transfer_pair: 'transfer_identity' });
 
+function claimReferenceKind(claim, segments) {
+    const path = segments.join('.');
+    if (path === 'subject.ref_id') return subjectKinds[claim.subject.kind] || claim.subject.kind;
+    if (/^subject\.(family|person|category|budget)_id$/.test(path)) return segments[1].slice(0, -3);
+    if (path === 'subject.person_ids') return 'person';
+    return `claim.${path}`;
+}
+
 // Schemas have already been validated by the admitted, static validator. This
 // resolves their local discriminated branches; it is not another JSON Schema
 // validator or a fallback to the shape/type of a primitive runtime value.
@@ -129,14 +137,13 @@ function compilePredicateTypes({ graphs, claims, snapshots, materialRegistry, op
             else if (schema.enum || own(schema, 'const')) type = enumType(schema.enum || [schema.const]);
             else if (schemaRef === 'id') {
                 let kind;
-                if (path === 'subject.ref_id') kind = subjectKinds[claim.subject.kind] || claim.subject.kind;
-                else if (/^subject\.(family|person|category|budget)_id$/.test(path)) kind = ref.segments[1].slice(0, -3);
+                if (path.startsWith('subject.')) kind = claimReferenceKind(claim, ref.segments);
                 else kind = `claim.${path}`;
                 type = scalar('id', { kind });
             } else if (schema.type === 'integer') type = scalar(schema.minimum >= 1 ? 'positive_integer' : 'integer');
             else if (schema.type === 'boolean') type = scalar('boolean');
             else if (schema.type === 'object') type = { form: 'record' };
-            else if (schema.type === 'array') type = { form: 'sequence', item: scalar('id', { kind: path === 'subject.person_ids' ? 'person' : `claim.${path}` }) };
+            else if (schema.type === 'array') type = { form: 'sequence', item: scalar('id', { kind: claimReferenceKind(claim, ref.segments) }) };
             else if (schema.type === 'string') type = scalar('text');
             else fail('claim_type');
             return { ...type, known: value };
@@ -325,4 +332,4 @@ function compilePredicateTypes({ graphs, claims, snapshots, materialRegistry, op
         predicates: count, unresolved: 0, typedGraphs });
 }
 
-module.exports = { compilePredicateTypes };
+module.exports = { compilePredicateTypes, claimReferenceKind };

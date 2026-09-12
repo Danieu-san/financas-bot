@@ -14,3 +14,6 @@ require('./next/provenance/predicateTypes.cases');
 require('./next/provenance/schemaRegistryProjection.cases');
 require('./next/provenance/obligationBindings.cases');
 require('./next/provenance/operandBindings.cases');
+require('./next/provenance/claimRequirements.cases');
+require('./next/provenance/selectionBindings.cases');
+require('./next/provenance/collectionRequirements.cases');

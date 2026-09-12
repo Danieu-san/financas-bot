@@ -8,6 +8,10 @@ const { compilePredicateTypes } = require('./predicateTypes');
 const { validateSchemaRegistryProjection } = require('./schemaRegistryProjection');
 const { validateObligationBindings } = require('./obligationBindings');
 const { compileOperandBindings } = require('./operandBindings');
+const { validateClaimRequirements } = require('./claimRequirements');
+const { validateSelectionBindings } = require('./selectionBindings');
+const { lowerAuthoringIR } = require('./authoringIR');
+const { validateCollectionRequirements } = require('./collectionRequirements');
 
 function fail(code) { throw new Error(`graph_index_${code}`); }
 function text(value) {
@@ -126,8 +130,8 @@ function indexGraphDependencies({ graphs, claims, evaluators, expectedFactKeys }
     return freeze({ stage: 'indexed_authoring_only', evaluatorCount: evaluatorMap.size, graphs: rows, order });
 }
 
-/** Connect byte admission to the first schema/identity pass, not proof approval. */
-function compileAuthoringIndex(admitted, validators) {
+/** Shared admission/compile pipeline. Neither public view is proof approval. */
+function compileAuthoring(admitted, validators) {
     const documents = new Map(admittedDocuments(admitted).map(document => [document.path, document]));
     function document(path, expectedHash) {
         const value = documents.get(path);
@@ -173,18 +177,33 @@ function compileAuthoringIndex(admitted, validators) {
     const expectedFactKeys = Object.values(object(original.turns)).flatMap(turn => list(turn).map(fact => fact.fact_key));
     const index = indexGraphDependencies({ graphs: graphs.graphs, claims: claims.claims,
         evaluators: registry.entries, expectedFactKeys });
-    compileOperandBindings({ graphs: graphs.graphs, claims: claims.claims, evaluators: registry.entries, contracts });
+    const operandBindings = compileOperandBindings({ graphs: graphs.graphs, claims: claims.claims, evaluators: registry.entries, contracts });
     validateGraphStructure({ graphs: graphs.graphs, claims: claims.claims,
         materialRegistry: resolved.material_registry, operatorRegistry: resolved.operator_registry });
+    const templates = document('docs/contracts/next/provenance-v2/predicate-templates-v1.json');
     validateTemplateReferences({ graphs: graphs.graphs, operators: resolved.operator_registry.operators,
-        templates: document('docs/contracts/next/provenance-v2/predicate-templates-v1.json'),
+        templates,
         materialRegistry: resolved.material_registry, claims: claims.claims });
-    compilePredicateTypes({ graphs: graphs.graphs, claims: claims.claims, snapshots: snapshots.snapshots,
+    const predicateTypes = compilePredicateTypes({ graphs: graphs.graphs, claims: claims.claims, snapshots: snapshots.snapshots,
         materialRegistry: resolved.material_registry, operatorRegistry: resolved.operator_registry,
         claimSchema });
     validateObligationBindings({ graphs: graphs.graphs, snapshots: snapshots.snapshots,
         materialRegistry: resolved.material_registry });
-    return index;
+    validateClaimRequirements({ graphs: graphs.graphs, claims: claims.claims });
+    const selectionBindings = validateSelectionBindings({ graphs: graphs.graphs, claims: claims.claims,
+        materialRegistry: resolved.material_registry });
+    validateCollectionRequirements({ graphs: graphs.graphs, snapshots: snapshots.snapshots,
+        materialRegistry: resolved.material_registry });
+    return { documents: [...documents.values()], graphs: graphs.graphs, claims: claims.claims,
+        index, operandBindings, predicateTypes, selectionBindings, templates };
+}
+
+function compileAuthoringIndex(admitted, validators) {
+    return compileAuthoring(admitted, validators).index;
+}
+
+function compileAuthoringIR(admitted, validators) {
+    return lowerAuthoringIR(compileAuthoring(admitted, validators));
 }
 
 // Compile-time consistency only. The proof phase must independently observe
@@ -265,4 +284,4 @@ function validateStaticEvidence(graphs, snapshots, registry) {
     return Object.freeze({ snapshots: byIdentity.size, graphs: graphs.length });
 }
 
-module.exports = { indexGraphDependencies, compileAuthoringIndex, validateStaticEvidence };
+module.exports = { indexGraphDependencies, compileAuthoringIndex, compileAuthoringIR, validateStaticEvidence };

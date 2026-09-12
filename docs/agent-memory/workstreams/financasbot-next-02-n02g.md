@@ -247,10 +247,76 @@ RED de módulo ausente observado; bateria afetada 12/12 e integrada final
 schema válido e hashes reparados; falha em operand_binding_kind. Ampla não
 iniciada; não repetir a focal verde sem nova mudança causal.
 
-Próxima ação exata: completar associação semântica das demais obrigações,
-incluindo sujeito/período/estado/coverage/seleção e respectivos requisitos
-derivados, então lowering/IR integral, antes de demonstrar a fronteira
-de execução. Nenhum PASS intermediário
+Sexto incremento registrado antes da criação: `src/next/provenance/claimRequirements.js`
+e `tests/next/provenance/claimRequirements.cases.js`. Derivar os bindings
+necessários do descriptor de claim, referências nominais de sujeito, período,
+time_basis, coverage/evidence_state e leituras de proof. Reusar a resolução
+nominal do passe de tipos; nenhum dispatch por métrica/fact_key. As relações
+temporais e seleções ainda precisam de execução e prova independentes.
+
+Registrar `src/next/provenance/selectionBindings.js` e
+`tests/next/provenance/selectionBindings.cases.js`: vínculo dos predicados
+citados pela seleção com o candidato ou suas arestas materiais diretas;
+razão de exclusão com a obrigação pertinente; guard de estado por input.
+Estado estimated de saída não dispensa input_evidence_state explícito quando
+os candidatos possuem estado confirmed/projected. Prova de verdade das
+relações e completude financeira da seleção permanecem para a execução.
+
+Sexto incremento validado: vínculos de descriptor/seleção integrados; focal
+89/89 PASS, 0 FAIL/SKIP/TODO. A saída da sessão anterior não foi recuperável;
+uma execução focal de recuperação confirmou esse resultado. Nenhuma ampla.
+São requisitos necessários, não prova de verdade dos predicados. Guard genérico
+de evidence_state é derivado mesmo quando não aparece na lista de predicados
+de seleção; a relação econômica de compensação usa a categoria do evento
+compensado, conforme a autoria revisada, sem dispatch por métrica/fact_key.
+
+Sétimo incremento registrado antes da criação:
+`src/next/provenance/authoringIR.js`. Integrar os resultados dos passes numa
+representação imutável dos 76 grafos, com referências de autoridade medidas,
+operandos tipados, templates expandidos com membro lexical e requisitos de
+estado. Manter expectativas de trace separadas de observações; não copiar
+payloads, oracle, resultado funcional ou contratos de cálculo para o IR.
+O artefato permanece `typed_authoring_ir_only`, não executável. A expansão
+não executa operadores nem prova suficiência das obrigações. Testes no arquivo
+já registrado `tests/next/provenance/authoringIndex.cases.js`.
+
+Sétimo incremento implementado: IR imutável com 76 grafos em ordem de pais,
+11.456 predicados tipados, 277 bindings, 73 seleções e 28 templates expandidos.
+Campos de membro permanecem lexicais, limites de janelas e ordem preservados;
+expected_trace não é observação. Nenhum payload, oracle ou resultado funcional
+é copiado. RED da API ausente observado; integração 13/13 e focal 93/93 PASS,
+sem FAIL/SKIP/TODO. Fronteira de execução e suficiência integral ainda pendentes.
+
+Oitavo incremento registrado antes da criação:
+`src/next/provenance/collectionRequirements.js` e
+`tests/next/provenance/collectionRequirements.cases.js`. Derivar vínculos das
+coleções materializadas com fixture, members e conjunto candidato exato;
+exigir anchors closed_world/synthetic dos fixtures. Não inferir que todo
+conjunto deriva de coleção: grafos de bindings diretos/pais continuam com
+obrigações próprias. Esse passe não prova coverage financeira de fontes reais
+nem execução das seleções. Integração no compiler antes do lowering.
+
+Oitavo incremento implementado: 55 ocorrências de coleção nos 76 grafos têm
+anchors independentes de membership, fixture synthetic/closed_world e conjunto
+candidato. A população da coleção coincide com snapshots do kind/origin e
+versão correspondente; remover membro e candidato juntos não apaga o snapshot.
+Coleção vazia ainda exige a prova de igualdade. O IR conserva também 133
+requisitos derivados de estado dos selecionados. Isso não prova completude
+de fonte financeira externa nem todas as relações temporais/econômicas.
+
+Revisão adversarial do lowering encontrou perda de tie_break num formato sort
+admitido pelo schema, mas não presente no corpus atual. RED direto observado,
+campo preservado e controle de ordem/direção/projeção adicionado. Validação
+final deste WIP: 103/103 PASS, 0 FAIL/SKIP/TODO; syntax OK; workflow OK;
+diff --check OK. Nenhuma ampla iniciada e nenhum GO/auditoria solicitado.
+Sem alteração de autoria ratificada, dependências, gates herdados, canal,
+runtime v1, produção ou dados reais. Incrementos 6–8 sobre
+`021f339b9ca61b574239ecb211891ff3cf013305`, publicados somente como WIP.
+
+Próxima ação exata: derivar e confrontar os requisitos temporais/time_basis
+e de coverage das fontes restantes; concluir a suficiência estrutural do
+compiler antes da prova da fronteira de execução. O IR completo em inventário
+ainda não constitui um motor executável. Nenhum PASS intermediário
 libera rollout ou substitui o gate integral. Ampla somente no candidato estável;
 ao iniciá-la, pausar sem polling, conforme preferência de Daniel.
 
