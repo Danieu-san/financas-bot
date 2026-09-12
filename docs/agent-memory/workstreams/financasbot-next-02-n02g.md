@@ -226,8 +226,30 @@ schema_registry_projection e obligation_binding_semantics. Syntax e diff
 --check OK. Ampla não iniciada; sem mudanças de dependências/gates herdados,
 autoria ratificada, canal, runtime v1 ou produção. WIP, sem pedido de auditoria.
 
-Próxima ação exata: resolver bindings de operandos contra registry/contratos e
-completar associação semântica das demais obrigações, então lowering/IR integral, antes de demonstrar a fronteira
+Quinto incremento registrado antes da criação: `src/next/provenance/operandBindings.js`
+e `tests/next/provenance/operandBindings.cases.js`. Resolver os 277 bindings
+autorados pelo input_kind/cardinality do registry, preservar ordem e IDs de
+roles por referência, confrontar aliases/value_input e contrato funcional.
+Não materializar receipts de pais, resultados ou autoridade executável.
+
+Quinto incremento implementado sobre `0cf182e1baeaa599f88b3217fc5824391629a3f6`:
+os 277 bindings/76 grafos resolvem input_kind e cardinalidade pelo registry;
+aliases precisam existir como snapshots value_input, sem duplicatas. A união
+dos aliases ligados coincide com value_input; pais resolvem sua própria aresta
+derived_from e fact_key. Ordem dos roles e dos operandos é preservada, sem
+sort/dedup. O índice imutável armazena role_ref, não cópia normativa de roles,
+hashes ou roots. Binding resolvido não é evidência de read nem receipt de pai.
+
+Os 39 contratos funcionais são confrontados com metric/unit do registry e
+combinação unit/output kind. Resultado financeiro e oracle continuam fora.
+RED de módulo ausente observado; bateria afetada 12/12 e integrada final
+70/70 PASS, 0 FAIL/SKIP/TODO. Mutant integrado troca claim_context por node com
+schema válido e hashes reparados; falha em operand_binding_kind. Ampla não
+iniciada; não repetir a focal verde sem nova mudança causal.
+
+Próxima ação exata: completar associação semântica das demais obrigações,
+incluindo sujeito/período/estado/coverage/seleção e respectivos requisitos
+derivados, então lowering/IR integral, antes de demonstrar a fronteira
 de execução. Nenhum PASS intermediário
 libera rollout ou substitui o gate integral. Ampla somente no candidato estável;
 ao iniciá-la, pausar sem polling, conforme preferência de Daniel.

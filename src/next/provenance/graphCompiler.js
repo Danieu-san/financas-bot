@@ -7,6 +7,7 @@ const { validateTemplateReferences } = require('./templateReferences');
 const { compilePredicateTypes } = require('./predicateTypes');
 const { validateSchemaRegistryProjection } = require('./schemaRegistryProjection');
 const { validateObligationBindings } = require('./obligationBindings');
+const { compileOperandBindings } = require('./operandBindings');
 
 function fail(code) { throw new Error(`graph_index_${code}`); }
 function text(value) {
@@ -152,7 +153,11 @@ function compileAuthoringIndex(admitted, validators) {
     validate('claims', claims);
     validate('registry', registry);
     if (registry.stage !== 'authoring') fail('stage_invalid');
-    for (const entry of registry.entries) validate('evaluator', document(entry.contract_path, entry.evaluator_contract_hash));
+    const contracts = registry.entries.map(entry => {
+        const value = document(entry.contract_path, entry.evaluator_contract_hash);
+        validate('evaluator', value);
+        return { path: entry.contract_path, value };
+    });
     const snapshots = resolved.snapshot_manifest;
     if (snapshots.stage !== 'authoring') fail('stage_invalid');
     for (const source of list(snapshots.sources)) document(source.path, source.sha256);
@@ -168,6 +173,7 @@ function compileAuthoringIndex(admitted, validators) {
     const expectedFactKeys = Object.values(object(original.turns)).flatMap(turn => list(turn).map(fact => fact.fact_key));
     const index = indexGraphDependencies({ graphs: graphs.graphs, claims: claims.claims,
         evaluators: registry.entries, expectedFactKeys });
+    compileOperandBindings({ graphs: graphs.graphs, claims: claims.claims, evaluators: registry.entries, contracts });
     validateGraphStructure({ graphs: graphs.graphs, claims: claims.claims,
         materialRegistry: resolved.material_registry, operatorRegistry: resolved.operator_registry });
     validateTemplateReferences({ graphs: graphs.graphs, operators: resolved.operator_registry.operators,

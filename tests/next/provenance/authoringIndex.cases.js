@@ -95,6 +95,22 @@ test('N02G:AUTHORING-006 type-compatible money comparison cannot discharge node 
     assert.throws(() => compileAuthoringIndex(admitPackage(f), validation), /obligation_binding_semantics/);
 });
 
+test('N02G:AUTHORING-007 valid binding shape cannot change a registry role input kind', async () => {
+    const validation = await validators();
+    const f = fixture();
+    const graphEntry = f.entries.find(e => e.path === graphPath);
+    const graphs = JSON.parse(graphEntry.bytes);
+    const claimEntry = f.entries.find(e => e.path === graphs.claim_contract.path);
+    const claims = JSON.parse(claimEntry.bytes);
+    claims.claims[0].operand_bindings.context = { kind: 'node', alias: 'person_a' };
+    assert.equal(validation.claims(claims), true);
+    claimEntry.bytes = Buffer.from(JSON.stringify(claims));
+    graphs.claim_contract.hash = hash(claimEntry.bytes);
+    graphEntry.bytes = Buffer.from(JSON.stringify(graphs));
+    for (const entry of [claimEntry, graphEntry]) f.authority.find(a => a.path === entry.path).sha256 = hash(entry.bytes);
+    assert.throws(() => compileAuthoringIndex(admitPackage(f), validation), /operand_binding_kind/);
+});
+
 test('N02G:AUTHORING-002 admitted but altered authority cannot evade cross-document hashes', async () => {
     const validation = await validators();
     const f = fixture();

@@ -13,3 +13,4 @@ require('./next/provenance/literalTypes.cases');
 require('./next/provenance/predicateTypes.cases');
 require('./next/provenance/schemaRegistryProjection.cases');
 require('./next/provenance/obligationBindings.cases');
+require('./next/provenance/operandBindings.cases');
