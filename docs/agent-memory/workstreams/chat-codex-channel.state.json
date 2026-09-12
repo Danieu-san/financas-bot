@@ -1,11 +1,11 @@
 {
   "schema": "financasbot-chat-codex-orchestration-v1",
-  "orchestration_state": "CODEX_READY",
-  "next_executor": "codex",
+  "orchestration_state": "CHAT_READY",
+  "next_executor": "chat",
   "task_id": "FIN-NEXT02-N02F-AUDIT-B-RETURN-20260911",
   "expected_base_sha": "a09482485ef5d51f2391d4d773d4738f74246f71",
   "task_file": "docs/agent-memory/workstreams/tasks/chat-codex-task-slot.json",
   "candidate_sha": null,
   "result_file": "docs/agent-memory/workstreams/results/FIN-NEXT02-N02F-AUDIT-B-RETURN-20260911.md",
-  "updated_at": "2026-09-11T18:56:10.373Z"
+  "updated_at": "2026-09-12T00:01:33.351Z"
 }
