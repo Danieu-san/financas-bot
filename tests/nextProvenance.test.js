@@ -10,3 +10,4 @@ require('./next/provenance/operatorTypes.cases');
 require('./next/provenance/templateReferences.cases');
 require('./next/provenance/civilCalendar.cases');
 require('./next/provenance/literalTypes.cases');
+require('./next/provenance/predicateTypes.cases');

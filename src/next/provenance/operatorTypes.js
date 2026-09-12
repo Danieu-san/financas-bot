@@ -27,6 +27,9 @@ function identity(value) {
     if (value.type === 'id') return JSON.stringify(['id', nominal(value.kind)]);
     if (value.type === 'enum') return JSON.stringify(['enum', nominal(value.domain)]);
     if (value.type === 'money_minor') return JSON.stringify(['money_minor', nominal(value.unit)]);
+    // Positive/nonnegative are validated range refinements of the same
+    // dimensionless integer domain, not different units or identity kinds.
+    if (NUMBERS.has(value.type)) return JSON.stringify(['scalar', 'integer']);
     return JSON.stringify(['scalar', value.type]);
 }
 
@@ -112,6 +115,11 @@ function unifyOperatorTypes(operator, args) {
         fail('signature_unknown');
     }
     operator.args.forEach((signature, index) => match(signature, args[index]));
+    if (['contains_civil_date', 'every_date_contained'].includes(operator.semantics)) {
+        const kind = args[1]?.periodKind;
+        if (kind !== undefined && !['date', 'as_of', 'through', 'statement_due',
+            'month', 'statement_competence', 'budget_cycle', 'range'].includes(kind)) fail('non_civil_period');
+    }
     return Object.freeze({ stage: 'signature_checked_only', bindings: Object.freeze(Object.fromEntries(bindings)) });
 }
 

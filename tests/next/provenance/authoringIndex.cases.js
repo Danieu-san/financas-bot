@@ -25,6 +25,7 @@ function fixture() {
     }
     const graphs = add(graphPath);
     add(prefix + 'predicate-templates-v1.json');
+    add(prefix + 'claim-contract.schema.json');
     for (const field of ['claim_contract', 'snapshot_manifest', 'material_registry', 'operator_registry', 'metric_evaluator_registry']) add(graphs[field].path);
     for (const source of add(graphs.snapshot_manifest.path).sources) add(source.path);
     for (const entry of add(graphs.metric_evaluator_registry.path).entries) add(entry.contract_path);
@@ -43,6 +44,19 @@ test('N02G:AUTHORING-001 complete package resolves reviewed links and identities
     assert.equal(result.graphs.length, 76);
     assert.equal(result.evaluatorCount, 39);
     assert.equal(Object.hasOwn(result, 'proof'), false);
+});
+
+test('N02G:AUTHORING-004 schema-valid type substitution fails after package hash is repaired', async () => {
+    const validation = await validators();
+    const f = fixture();
+    const entry = f.entries.find(e => e.path === graphPath);
+    const value = JSON.parse(entry.bytes);
+    const predicate = value.graphs[0].predicates.find(p => p.op === 'field_eq');
+    predicate.args[1] = { field: { node: 'card_blue', segments: ['id'] } };
+    assert.equal(validation.graphs(value), true);
+    entry.bytes = Buffer.from(JSON.stringify(value));
+    f.authority.find(a => a.path === graphPath).sha256 = hash(entry.bytes);
+    assert.throws(() => compileAuthoringIndex(admitPackage(f), validation), /operator_types_nominal_mismatch/);
 });
 
 test('N02G:AUTHORING-002 admitted but altered authority cannot evade cross-document hashes', async () => {

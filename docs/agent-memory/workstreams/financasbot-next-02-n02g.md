@@ -124,12 +124,40 @@ documentos de autoria ratificados, dependências, runtime v1, transporte ou cana
 O limite de uso interrompeu uma chamada de teste; a retomada executou o RED e
 os testes reais depois que a ferramenta voltou a funcionar.
 
-Limites específicos: a unificação ainda não está aplicada a todos os argumentos
+Limites ao fim do segundo incremento: a unificação ainda não estava aplicada a todos os argumentos
 dos predicados externos aos templates; associação semântica operador/operando/
 obrigação, projeção schema↔registry, lowering de paths estruturados e typed IR
 continuam pendentes. Não aceitar este estágio de índice como IR executável.
 Instantes/literais exigem offset explícito; conversão de timezone, incluindo
 freeze de suas regras, não está implementada. Nenhum novo GO foi emitido.
+
+Terceiro incremento, sobre `8c156556d4e83a72c17a1fb7b91a44565d6e1c95`:
+resolução nominal dos 11.456 predicados dos 76 grafos ligada à admissão/índice.
+Claims resolvem paths pela branch discriminada do schema admitido; fields
+resolvem no material registry. IDs de subject usam kinds nominais explícitos,
+incluindo source→source_state, merchant→merchant_identity e
+transfer_pair→transfer_identity, nunca inferência por coincidência do valor.
+Collections derivam kind da origin registrada e conferem cada membro; sets
+vazios recebem tipo somente por relações tipadas explícitas. Unidades,
+enum domains, tipos civis, limites de janela e policy são confrontados.
+positive/nonnegative são refinamentos do mesmo domínio inteiro; money_minor
+permanece domínio separado com unidade. Não há conversão de strings/números.
+
+O passe emite somente IR parcial de predicados, imutável e com sources
+autorados copiados defensivamente; não copia payload/valores dos snapshots,
+resultados financeiros ou provas. Índice continua indexed_authoring_only.
+Partial policy sem autoridade admitida falha explicitamente; não criar
+permissão parcial por fallback. Templates e predicados de datas rejeitam
+registry_snapshot/request_execution como períodos civis.
+
+Validação do terceiro incremento: bateria integrada final 49/49 PASS após o
+endurecimento de períodos, 0 FAIL/SKIP/TODO; bateria afetada anterior 18/18 PASS.
+RED de módulo ausente observado. Mutant schema-valid com hash reparado chega
+à recusa nominal na integração; não depende de fingerprint quebrado.
+Ampla não iniciada; nenhum gate antigo, dependência, canal ou produção alterado.
+Pendências: associação semântica completa entre operador/operandos/obrigações,
+projeção schema↔registry, lowering composto e IR integral; depois isolamento,
+roots, recorder, evaluators, witnesses e G14. Não há GO executável.
 
 Próximo incremento registrado antes da criação: `src/next/provenance/graphStructure.js`
 e `tests/next/provenance/graphStructure.cases.js`, integrados ao índice e ao
@@ -152,8 +180,17 @@ Registrar `src/next/provenance/civilCalendar.js` (já previsto no charter),
 Não inclui timezone, relógio implícito nem civil_date_matches; conversão de
 instantes ainda depende da escolha/freeze das regras de timezone.
 
-Próxima ação exata: completar a resolução tipada/obrigações do compiler e seus
-REDs antes de escolher e demonstrar a fronteira de execução. Nenhum PASS intermediário
+Incremento registrado: `src/next/provenance/predicateTypes.js` e
+`tests/next/provenance/predicateTypes.cases.js`, com integração ao compiler
+existente. Resolve argumentos dos 76 grafos pelas autoridades admitidas,
+incluindo schema de claim e tipos nominais de referências/coleções. Não
+inferir domínio de ID pelo texto de seu valor; ausência de tipo falha fechado.
+O pacote passa a admitir também `claim-contract.schema.json` como autoridade
+de paths do contexto. Esses passes ainda não autorizam execução.
+
+Próxima ação exata: completar projeção schema↔registry e associação semântica
+das obrigações, então lowering/IR integral, antes de demonstrar a fronteira
+de execução. Nenhum PASS intermediário
 libera rollout ou substitui o gate integral. Ampla somente no candidato estável;
 ao iniciá-la, pausar sem polling, conforme preferência de Daniel.
 

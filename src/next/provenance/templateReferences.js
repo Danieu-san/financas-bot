@@ -111,15 +111,15 @@ function validateTemplateReferences({ graphs, templates, operators, materialRegi
             if (window.kind === 'range') {
                 if (scalarBinding(window.start, graph, claim).type !== 'date'
                     || scalarBinding(window.end, graph, claim).type !== 'date') fail('binding_period_type');
-                return { form: 'range' };
+                return { form: 'range', periodKind: 'range' };
             }
             if (window.kind !== 'month' || scalarBinding(window.value, graph, claim).type !== 'month') fail('binding_period_type');
-            return { form: 'period' };
+            return { form: 'period', periodKind: 'month' };
         }
-        if (arg.period_literal) return { form: arg.period_literal.kind === 'range' ? 'range' : 'period' };
+        if (arg.period_literal) return { form: arg.period_literal.kind === 'range' ? 'range' : 'period', periodKind: arg.period_literal.kind };
         if (arg.claim?.segments.length === 1 && arg.claim.segments[0] === 'period') {
             if (!claim) fail('binding_claim');
-            return { form: claim.period.kind === 'range' ? 'range' : 'period' };
+            return { form: claim.period.kind === 'range' ? 'range' : 'period', periodKind: claim.period.kind };
         }
         return scalarBinding(arg, graph, claim);
     }

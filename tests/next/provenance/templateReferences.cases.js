@@ -38,6 +38,7 @@ test('N02G:TEMPLATE-004 actual bindings must match field types, member kinds and
         [i => { firstRef(i).bindings.field.selector.kind = 'bill'; firstRef(i).bindings.field.selector.segments = ['due_date']; }, /member_kind/],
         [i => { firstRef(i).bindings.field.selector.segments = ['unknown']; }, /binding_field/],
         [i => { firstRef(i).bindings.period.period_ref = 'missing'; }, /binding_period/],
+        [i => { firstRef(i).bindings.period = { period_literal: { kind: 'request_execution', turn_id: 'S-01#1' } }; }, /non_civil_period/],
         [i => {
             const graph = i.graphs.find(g => g.predicates.some(p => p.args.some(a => a.template)));
             graph.windows.selection_window.start = { literal: { type: 'integer', value: 1 } };

@@ -4,6 +4,7 @@ const { admittedDocuments } = require('./packageContract');
 const { digest } = require('../kernel/canonicalValue');
 const { validateGraphStructure } = require('./graphStructure');
 const { validateTemplateReferences } = require('./templateReferences');
+const { compilePredicateTypes } = require('./predicateTypes');
 
 function fail(code) { throw new Error(`graph_index_${code}`); }
 function text(value) {
@@ -167,6 +168,9 @@ function compileAuthoringIndex(admitted, validators) {
     validateTemplateReferences({ graphs: graphs.graphs, operators: resolved.operator_registry.operators,
         templates: document('docs/contracts/next/provenance-v2/predicate-templates-v1.json'),
         materialRegistry: resolved.material_registry, claims: claims.claims });
+    compilePredicateTypes({ graphs: graphs.graphs, claims: claims.claims, snapshots: snapshots.snapshots,
+        materialRegistry: resolved.material_registry, operatorRegistry: resolved.operator_registry,
+        claimSchema: document('docs/contracts/next/provenance-v2/claim-contract.schema.json') });
     return index;
 }
 

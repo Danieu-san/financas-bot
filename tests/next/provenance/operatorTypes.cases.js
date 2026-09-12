@@ -61,6 +61,8 @@ test('N02G:TYPES-002 nominal identities cannot unify merely because values look 
 });
 
 test('N02G:TYPES-003 units, containers and paths are not silently coerced', () => {
+    assert.equal(run('eq', [scalar('positive_integer'), scalar('integer')]).stage, 'signature_checked_only');
+    assert.equal(run('field_eq', [field(scalar('nonnegative_integer')), field(scalar('positive_integer'))]).stage, 'signature_checked_only');
     assert.throws(() => run('abs_eq', [money, scalar('integer')]), /nominal_mismatch/);
     assert.throws(() => run('eq', [scalar('date'), scalar('month')]), /nominal_mismatch/);
     assert.throws(() => run('eq', [node('person'), node('person')]), /shape/);
