@@ -1,27 +1,26 @@
 {
   "schema": "financasbot-chat-codex-task-v1",
-  "task_id": "FIN-NEXT02-N02F-AUDIT-B-RETURN-20260911",
-  "objective": "Valide o parecer independente do SUBLOTE B em docs/agent-memory/workstreams/results/FIN-NEXT02-N02F-AUDIT-B-20260911.md contra o candidate imutável a09482485ef5d51f2391d4d773d4738f74246f71, parent ef04368c95af33a12c0e8b5b286c0e0b01ae27f8 e o pacote de evidência 9b0808bb11f00dda973eab845081a5f0ffc74194. Confronte identidade, cobertura dos sete grafos e cinco operadores, severidades e veredito somente B; registre o recibo em docs/agent-memory/workstreams/results/FIN-NEXT02-N02F-AUDIT-B-RETURN-20260911.md e publique CHAT_READY para esta tarefa se a validação confirmar aprovação B sem finding bloqueante e sem AUDITORIA INCOMPLETA. Se houver finding bloqueante, divergência de SHA/escopo ou auditoria incompleta, registre o bloqueio e não avance. Somente após aprovação B e publicação remota deste recibo poderá ser preparada, separadamente, a consolidação C com A+B. Não iniciar implementação.",
+  "task_id": "FIN-NEXT02-N02F-AUDIT-C-RETURN-20260911",
+  "objective": "Valide o parecer consolidado independente C em docs/agent-memory/workstreams/results/FIN-NEXT02-N02F-AUDIT-C-20260911.md contra o candidate imutável a09482485ef5d51f2391d4d773d4738f74246f71, parent ef04368c95af33a12c0e8b5b286c0e0b01ae27f8 e o pacote de evidência separado 9b0808bb11f00dda973eab845081a5f0ffc74194. Registre apenas o recibo em docs/agent-memory/workstreams/results/FIN-NEXT02-N02F-AUDIT-C-RETURN-20260911.md. Se houver finding bloqueante ou AUDITORIA INCOMPLETA, registre e pare, sem avanço. Se o parecer for validado sem bloqueio material e sem revisão incompleta, publique CHAT_READY para esta tarefa; qualquer retomada do checkpoint de produto deve ocorrer separadamente, somente conforme autorização prévia e gates reais, sem autorização derivada deste manifesto.",
   "required_files": [
-    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02F-AUDIT-B-20260911.md"
+    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02F-AUDIT-C-20260911.md"
   ],
   "allowed_paths": [
-    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02F-AUDIT-B-RETURN-20260911.md"
+    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02F-AUDIT-C-RETURN-20260911.md"
   ],
-  "result_file": "docs/agent-memory/workstreams/results/FIN-NEXT02-N02F-AUDIT-B-RETURN-20260911.md",
+  "result_file": "docs/agent-memory/workstreams/results/FIN-NEXT02-N02F-AUDIT-C-RETURN-20260911.md",
   "validation": [
-    "Confirma candidate a09482485ef5d51f2391d4d773d4738f74246f71, parent único ef04368c95af33a12c0e8b5b286c0e0b01ae27f8 e evidence commit 9b0808bb11f00dda973eab845081a5f0ffc74194 antes de validar o parecer.",
-    "Confere se identidade, leitura dirigida, cobertura 7/7 grafos e 11/11 janelas, cinco operadores, findings e veredito APROVÁVEL do SUBLOTE B são sustentados pelos SHAs imutáveis.",
-    "Não trata artifact_status not_built nem witnesses authoring/not_executed como testes executados.",
-    "Se a validação confirmar aprovação B sem finding bloqueante nem AUDITORIA INCOMPLETA, registra o recibo no result_file e publica CHAT_READY para esta tarefa.",
-    "Se houver bloqueio material, divergência ou auditoria incompleta, registra-o no result_file e para, sem preparar consolidação C nem qualquer implementação.",
+    "Confirma candidate a09482485ef5d51f2391d4d773d4738f74246f71, parent ef04368c95af33a12c0e8b5b286c0e0b01ae27f8 e evidence commit 9b0808bb11f00dda973eab845081a5f0ffc74194 antes de validar o parecer.",
+    "Confere identidade, mapa dos 17 paths, fronteiras A/B/C, severidades, limites e veredito sem tratar recibos ou relatório de correção como auditoria independente adicional.",
+    "Confere que nenhum finding bloqueante nem AUDITORIA INCOMPLETA foi omitido; se houver, registra no result_file e para sem avançar.",
+    "Se a validação confirmar ausência de bloqueio material e de revisão incompleta, registra o recibo e publica CHAT_READY apenas para esta tarefa de retorno.",
+    "Não inicia nem autoriza checkpoint de produto, implementação, compiler/evaluator, NEXT-03, deploy, produção ou dados reais; qualquer passo posterior é separado e depende de autorização prévia e gates próprios.",
     "Nenhum arquivo além do result_file é alterado durante a execução Codex desta tarefa."
   ],
   "constraints": [
-    "Somente validação documental do parecer: não alterar candidate, produto, src/, tests/, scripts/, fixtures, contracts ou package/lockfile.",
-    "Não acessar produção, dados privados/reais, WhatsApp, Pluggy, planilhas, segredos, sessões ou .env.",
-    "Não autorizar nem iniciar implementação, compiler/evaluator, NEXT-03, próxima fatia, deploy ou produção.",
-    "A consolidação C com A+B é etapa separada e somente pode ser preparada após aprovação B e publicação remota do recibo desta tarefa.",
-    "GitHub e os commits imutáveis indicados são a fonte de verdade; autoridade de modelo, repetição de literais ou contagem de testes não substitui cadeia causal."
+    "Somente validação documental do parecer: não alterar candidate, produto, src/, tests/, scripts/, fixtures, contracts, package/lockfile ou branch de produto.",
+    "Não acessar produção, dados reais, WhatsApp, Pluggy, planilhas, segredos, sessões ou .env.",
+    "GitHub e os commits imutáveis indicados são a fonte de verdade; autoridade de modelo, recibos ou contagem de testes não substituem cadeia causal.",
+    "O manifesto não concede autorização de roadmap; após o recibo remoto, qualquer retomada de produto é uma decisão separada sob gates reais."
   ]
 }
