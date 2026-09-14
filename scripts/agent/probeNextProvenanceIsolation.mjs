@@ -88,13 +88,13 @@ await assert.rejects(probe('duplicate'), /probe_protocol/);
 await assert.rejects(probe('hang_after_result'), /probe_timeout/);
 const handles = await probe('handles');
 for (const [name, value] of Object.entries(handles.checks)) assert.equal(value, true, `handle:${name}`);
-assert.equal(Object.keys(handles.checks).length, 7);
-assert.equal(handles.observedCount, 10);
-assert.equal(handles.earlyReturns, 1);
+assert.equal(Object.keys(handles.checks).length, 11);
+assert.equal(handles.observedCount, 16);
+assert.equal(handles.earlyReturns, 2);
 console.log(JSON.stringify({ stage: 'isolation_feasibility_probe_only', authority_checks: 13,
     synthetic_read_calls: 1, fresh_compartments: true, infinite_loop_terminated: true,
     isolation: 'disposable_child_process', clean_exit_required: true,
     failed_exit_duplicate_and_post_result_loop_rejected: 3,
-    handle_checks: 7, external_observations: handles.observedCount,
+    handle_checks: 11, external_observations: handles.observedCount,
     ses_version: '2.3.0', executable_closure_proved: false, trace_boundary_proved: false,
     financial_evaluators_executed: 0, production: false }));

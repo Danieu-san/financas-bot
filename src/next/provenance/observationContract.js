@@ -54,18 +54,26 @@ function decodeObservation(raw) {
     if (!Array.isArray(e) || e.length !== 7 || e[0] !== 'I' || !identifier(e[2]) || !identifier(e[3])
         || !Array.isArray(e[4]) || e[4].length > 32
         || e[4].some(p => !field(p) && !(Number.isSafeInteger(p) && p >= 0))
-        || !['data', 'keys'].includes(e[5]) || !Array.isArray(e[6])) fail();
+        || !['data', 'keys', 'operand_set'].includes(e[5]) || !Array.isArray(e[6])) fail();
     const o = e[6]; const tag = o[0];
+    const nodeSet = e[5] === 'operand_set';
+    if (nodeSet && (e[2] !== `operand/${e[3]}`
+        || !['length', 'includes', 'at', 'iterate', 'next', 'return', 'reuse_iterator'].includes(e[1])
+        || (['at', 'next'].includes(e[1])
+            ? e[4].length !== 1 || !Number.isSafeInteger(e[4][0]) || e[4][0] < 0 || Object.is(e[4][0], -0)
+            : e[4].length !== 0))) fail();
     const valueOutcome = tag === 'scalar' && o.length === 2 && scalar(o[1])
         || tag === 'container' && o.length === 2 && ['record', 'sequence'].includes(o[1]);
+    const accessOutcome = nodeSet ? tag === 'node' && o.length === 2 && identifier(o[1]) : valueOutcome;
     let valid = false;
     switch (e[1]) {
-    case 'get': case 'at': valid = valueOutcome || tag === 'absent' && o.length === 1; break;
-    case 'next': valid = valueOutcome || tag === 'done' && o.length === 1; break;
+    case 'get': case 'at': valid = accessOutcome || tag === 'absent' && o.length === 1; break;
+    case 'next': valid = accessOutcome || tag === 'done' && o.length === 1; break;
     case 'has': valid = tag === 'boolean' && o.length === 2 && typeof o[1] === 'boolean'; break;
     case 'keys': valid = tag === 'keys' && o.slice(1).every(k => typeof k === 'string'); break;
     case 'length': valid = tag === 'count' && o.length === 2 && Number.isSafeInteger(o[1]) && o[1] >= 0; break;
-    case 'includes': valid = tag === 'membership' && o.length === 3 && scalar(o[1]) && typeof o[2] === 'boolean'; break;
+    case 'includes': valid = tag === 'membership' && o.length === 3
+        && (nodeSet ? identifier(o[1]) : scalar(o[1])) && typeof o[2] === 'boolean'; break;
     case 'iterate': valid = tag === 'opened' && o.length === 1; break;
     case 'return': valid = tag === 'closed' && o.length === 2 && Number.isSafeInteger(o[1]) && o[1] >= 0; break;
     case 'reuse_iterator': valid = tag === 'cursor' && o.length === 3 && Number.isSafeInteger(o[1])

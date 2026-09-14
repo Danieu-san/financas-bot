@@ -471,6 +471,33 @@ não repetido: processo/SES não mudou. Ampla ainda não iniciada.
 
 Próxima ação exata: ligar a projeção de shapes/bindings aos schemas/registry
 admitidos e implementar seleção/traversal por handles sem segundo writer.
+Incremento seguinte: coleções de operandos em `instrumentedAccess.js`, contrato
+I em `observationContract.js`, factory `openSet` em `graphCompiler.js` e testes
+nos cases existentes instrumentedAccess/authoringIndex. Sem novos paths.
+Coleção deve preservar ordem e vazio, observar cardinalidade, membership,
+índice/iteração/early return, devolver somente handles e compartilhar revogação.
+I identifica a projeção `operand_set` separada dos campos de um snapshot;
+isso ainda não equivale ao operador de seleção por predicado ou a traversal.
+O probe existente (`scripts/agent/probeNextProvenanceIsolation.mjs` e
+`tests/next/provenance/isolationProbe.child.cjs`) verificará também conjunto e
+membro retido dentro de compartimentos SES, sem alterar o runtime produtivo.
+Conjuntos implementados: `openSet` deriva roster exclusivamente do binding
+admitido; suporta tipos de snapshot diferentes e conjunto vazio, sem fallback
+para array cru. Cardinalidade, membership, índice, iteração, reaquisição e
+early return geram I/operand_set; acesso ao membro gera I/data com seu alias.
+Conjunto e membros compartilham revogação/falha. O recorder continua único
+materializador de L; o decoder apenas admite as novas tuplas, sem montar trace.
+Quatro REDs de conjunto ausente observados; 24 testes access/recorder PASS e
+cinco testes de integração snapshot PASS. Depois, focal integrada estável:
+151/151 PASS, zero FAIL/SKIP/TODO. Probe SES/processo: 13 checks de autoridade,
+11 de handles/conjuntos, 16 observações no pai e dois early returns; três saídas
+inválidas recusadas. Syntax, diff-check e agent-workflow OK. Sem ampla,
+dependências, corpus financeiro, canal, produção ou deploy alterados.
+Próxima ação exata: executar seleções com os predicados tipados já compilados
+e observar traversal material. `openSet` é roster de operandos, não resultado
+de seleção recalculada; não contar seus testes como aprovação das 73 seleções.
+Manter resultado funcional separado e resolver contexto/parent somente por
+capabilities admitidas, sem converter expected_trace em execução/prova.
 Registrar testes concretos antes da criação. Depois cápsula TCB/processo final,
 admissão de R e conexão de operadores/evaluators. A observação sintética não
 prova suficiência das obrigações ou os 76 grafos. Não promover observations_only

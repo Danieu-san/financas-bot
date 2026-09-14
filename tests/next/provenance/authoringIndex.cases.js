@@ -62,7 +62,7 @@ test('N02G:SNAPSHOT-ACCESS-001 handles resolve exact admitted fact/role/alias id
     assert.equal(plan.stage, 'snapshot_access_plan_only');
     assert.equal(plan.executable, false);
     assert.equal(plan.snapshot_count, 115);
-    assert.deepEqual(Object.keys(plan).sort(), ['executable', 'open', 'snapshot_count', 'stage']);
+    assert.deepEqual(Object.keys(plan).sort(), ['executable', 'open', 'openSet', 'snapshot_count', 'stage']);
     let opened = 0;
     for (const claim of claims) {
         const graph = graphs.find(g => g.fact_key === claim.fact_key);
@@ -140,6 +140,33 @@ test('N02G:SNAPSHOT-ACCESS-004 admitted handles feed the recorder without expect
     assert.deepEqual(trace.derivation_trace[0].path, ['id']);
     assert.deepEqual(trace.derivation_trace[0].outcome, ['scalar', value]);
     assert.equal(Object.hasOwn(trace, 'result'), false);
+});
+
+test('N02G:SNAPSHOT-ACCESS-005 node-set roster, order and emptiness come only from admitted bindings', async () => {
+    const { plan, claims, graphs } = await snapshotAccessFixture();
+    let sets = 0; let empty = 0;
+    const { decodeObservation } = require('../../../src/next/provenance/observationContract');
+    for (const claim of claims) for (const [role_id, binding] of Object.entries(claim.operand_bindings)) {
+        if (binding.kind !== 'node_set') {
+            assert.throws(() => plan.openSet({ fact_key: claim.fact_key, role_id }, () => {}), /snapshot_access_binding_kind/);
+            continue;
+        }
+        const events = [];
+        const selector = { fact_key: claim.fact_key, role_id };
+        for (const override of [{ aliases: [] }, { alias: 'forged' }, { shape: {} }, { value: [] }]) {
+            assert.throws(() => plan.openSet({ ...selector, ...override }, () => events.push('unexpected')), /snapshot_access_selector/);
+        }
+        assert.equal(events.length, 0);
+        const access = plan.openSet(selector, e => events.push(e));
+        const graph = graphs.find(g => g.fact_key === claim.fact_key);
+        assert.equal(access.handle.length(), binding.aliases.length);
+        assert.deepEqual([...access.handle].map(node => node.get('id')), binding.aliases.map(alias => graph.nodes[alias].ref_id));
+        assert.deepEqual(events.filter(e => e[5] === 'operand_set' && e[1] === 'next' && e[6][0] === 'node').map(e => e[6][1]), binding.aliases);
+        for (const event of events) assert.deepEqual(decodeObservation(event), event);
+        access.revoke(); access.assertHealthy();
+        sets++; if (!binding.aliases.length) empty++;
+    }
+    assert.ok(sets > 10); assert.ok(empty > 0);
 });
 
 test('N02G:SNAPSHOT-ACCESS-003 projection cannot bypass package or composite snapshot identity admission', async () => {

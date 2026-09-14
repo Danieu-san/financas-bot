@@ -135,4 +135,66 @@ function createInstrumentedAccess(options) {
     });
 }
 
-module.exports = { createInstrumentedAccess };
+// TCB construction of an ordered operand roster. Members may have different
+// admitted snapshot shapes; neither their raw objects nor the roster cross to
+// guest code. Structural events describe this role, not a snapshot payload.
+function createNodeSetAccess(options) {
+    if (!options || typeof options !== 'object' || types.isProxy(options)) failSetup();
+    const d = Object.getOwnPropertyDescriptors(options);
+    if (Reflect.ownKeys(d).length !== 3 || ['role', 'bindings', 'emit'].some(k => !d[k] || !Object.hasOwn(d[k], 'value'))
+        || typeof d.emit.value !== 'function') failSetup();
+    const role = d.role.value; const bindings = copyData(d.bindings.value); const emit = d.emit.value;
+    if (!identifier(role) || !identifier(`operand/${role}`) || !Array.isArray(bindings) || bindings.length > 512
+        || bindings.some(b => b?.role !== role)) failSetup();
+    const members = bindings.length ? createInstrumentedAccess({ bindings, emit }) : null;
+    const aliases = bindings.map(b => b.alias);
+    const b = { alias: `operand/${role}`, role };
+    let revoked = false; let failed = false;
+    function fail(code) { failed = true; members?.revoke(); throw new Error(`access_set_${code}`); }
+    function check() {
+        if (failed) fail('failed'); if (revoked) fail('revoked');
+        try { members?.assertHealthy(); } catch { fail('member_failed'); }
+    }
+    function event(op, path, outcome) {
+        check();
+        try { emit(copyData(['I', op, b.alias, b.role, path, 'operand_set', outcome])); }
+        catch { fail('sink'); }
+        check();
+    }
+    function at(index, op = 'at') {
+        check(); if (!Number.isSafeInteger(index) || index < 0 || Object.is(index, -0)) fail('index');
+        if (index >= aliases.length) { event(op, [index], [op === 'next' ? 'done' : 'absent']); return undefined; }
+        const alias = aliases[index]; event(op, [index], ['node', alias]);
+        return members.handle(alias);
+    }
+    function iterator() {
+        event('iterate', [], ['opened']); let index = 0; let closed = false; let result;
+        const packet = (done, value) => Object.freeze(Object.assign(Object.create(null), { done, value }));
+        result = frozenInterface({
+            next: () => {
+                check();
+                if (closed || index >= aliases.length) {
+                    event('next', [index], ['done']); closed = true; return packet(true, undefined);
+                }
+                const value = at(index, 'next'); index++; return packet(false, value);
+            },
+            return: () => { event('return', [], ['closed', index]); closed = true; return packet(true, undefined); },
+            [Symbol.iterator]: () => { event('reuse_iterator', [], ['cursor', index, closed]); return result; }
+        });
+        return result;
+    }
+    return Object.freeze({ handle: frozenInterface({
+        length: () => { event('length', [], ['count', aliases.length]); return aliases.length; },
+        at: index => at(index),
+        includes: alias => {
+            check(); if (!identifier(alias)) fail('membership');
+            const present = aliases.includes(alias); event('includes', [], ['membership', alias, present]); return present;
+        },
+        [Symbol.iterator]: iterator
+    }),
+    revoke: () => { revoked = true; members?.revoke(); },
+    assertHealthy: () => { if (failed) fail('failed'); members?.assertHealthy(); }
+    });
+}
+
+module.exports = { createInstrumentedAccess, createNodeSetAccess };

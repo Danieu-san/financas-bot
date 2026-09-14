@@ -1,7 +1,7 @@
 'use strict';
 
 const { EXECUTION_PROFILE } = require('../../../src/next/provenance/executionProfile');
-const { createInstrumentedAccess } = require('../../../src/next/provenance/instrumentedAccess');
+const { createInstrumentedAccess, createNodeSetAccess } = require('../../../src/next/provenance/instrumentedAccess');
 require('ses');
 
 // env={} and fixed execArgv are supplied by the development probe. No
@@ -88,6 +88,20 @@ if (['authority', 'bad_exit', 'duplicate', 'hang_after_result'].includes(scenari
     catch { checks.revoked = true; }
     try { access.assertHealthy(); checks.failureLatched = false; }
     catch { checks.failureLatched = true; }
+    const nodes = createNodeSetAccess({ role: 'events', emit: event => process.send({ kind: 'observation', event }),
+        bindings: [{ alias: 'node_b', role: 'events', value: { amount: 9 },
+            shape: { type: 'record', fields: { amount: { type: 'scalar' } } } }] });
+    const setGuest = compartment(harden(nodes.handle));
+    checks.setStructure = setGuest.evaluate(`operands.length() === 1 && operands.at.constructor === undefined
+        && !Array.isArray(operands) && (() => { for (const node of operands) return node.get('amount') === 9; return false; })()`, EXECUTION_PROFILE.evaluate);
+    const retainedGuest = compartment(harden(nodes.handle.at(0)));
+    nodes.revoke(); nodes.assertHealthy();
+    try { retainedGuest.evaluate('operands.get("amount")', EXECUTION_PROFILE.evaluate); checks.setRetainedRevoked = false; }
+    catch { checks.setRetainedRevoked = true; }
+    try { setGuest.evaluate('operands.length()', EXECUTION_PROFILE.evaluate); checks.setRevoked = false; }
+    catch { checks.setRevoked = true; }
+    try { nodes.assertHealthy(); checks.setFailureLatched = false; }
+    catch { checks.setFailureLatched = true; }
     value = { checks }; // Probe booleans, not a functional-result/trace envelope.
 } else if (scenario === 'fresh') {
     let mutationDenied = false;

@@ -12,7 +12,7 @@ const { validateClaimRequirements } = require('./claimRequirements');
 const { validateSelectionBindings } = require('./selectionBindings');
 const { lowerAuthoringIR } = require('./authoringIR');
 const { validateCollectionRequirements } = require('./collectionRequirements');
-const { createInstrumentedAccess } = require('./instrumentedAccess');
+const { createInstrumentedAccess, createNodeSetAccess } = require('./instrumentedAccess');
 const { copyData, identifier } = require('./observationContract');
 
 function fail(code) { throw new Error(`graph_index_${code}`); }
@@ -211,8 +211,8 @@ function compileAuthoringIR(admitted, validators) {
 
 // Host/TCB factory only; never endow this controller into a guest compartment.
 // No caller-supplied payload, shape, role declaration or identity override.
-// Individual members of node_set can be opened, but this does NOT instrument
-// set selection/enumeration or authorize parent receipts/claim-context access.
+// openSet observes the ordered roster, not predicate-based selection. Neither
+// method authorizes validated-parent receipts or claim-context access.
 function compileSnapshotAccess(admitted, validators) {
     const context = compileAuthoring(admitted, validators);
     const reject = code => { throw new Error(`snapshot_access_${code}`); };
@@ -241,27 +241,38 @@ function compileSnapshotAccess(admitted, validators) {
     const graphs = new Map(context.graphs.map(g => [g.fact_key, g]));
     const bindings = new Map(context.operandBindings.graphs.map(g => [g.fact_key,
         new Map(g.operands.map(b => [b.role_ref.role_id, b]))]));
+    function select(selector, emit, set) {
+        let selected;
+        try { selected = copyData(selector); } catch { reject('selector'); }
+        if (!selected || typeof selected !== 'object' || Array.isArray(selected)
+            || Object.keys(selected).sort().join(',') !== (set ? 'fact_key,role_id' : 'alias,fact_key,role_id')
+            || !Object.values(selected).every(identifier) || typeof emit !== 'function') reject('selector');
+        const binding = bindings.get(selected.fact_key)?.get(selected.role_id);
+        if (!binding) reject('binding');
+        return { ...selected, binding };
+    }
+    function sourceBinding(fact_key, role, alias) {
+        const node = graphs.get(fact_key).nodes[alias];
+        const snapshot = snapshots.get(identity(node));
+        if (node.binding !== 'snapshot' || !snapshot) reject('snapshot');
+        return { alias, role, value: snapshot.value, shape: snapshot.shape };
+    }
     return Object.freeze({ stage: 'snapshot_access_plan_only', executable: false,
         snapshot_count: snapshots.size,
         open(selector, emit) {
-            let selected;
-            try { selected = copyData(selector); } catch { reject('selector'); }
-            if (!selected || typeof selected !== 'object' || Array.isArray(selected)
-                || Object.keys(selected).sort().join(',') !== 'alias,fact_key,role_id'
-                || !Object.values(selected).every(identifier) || typeof emit !== 'function') reject('selector');
-            const { fact_key, role_id, alias } = selected;
-            const binding = bindings.get(fact_key)?.get(role_id);
-            if (!binding) reject('binding');
+            const { fact_key, role_id, alias, binding } = select(selector, emit, false);
             if (!['node', 'node_set'].includes(binding.kind)) reject('binding_kind');
             const aliases = binding.kind === 'node' ? [binding.alias] : binding.aliases;
             if (!aliases.includes(alias)) reject('alias');
-            const node = graphs.get(fact_key).nodes[alias];
-            const snapshot = snapshots.get(identity(node));
-            if (node.binding !== 'snapshot' || !snapshot) reject('snapshot');
-            const access = createInstrumentedAccess({ bindings: [{ alias, role: role_id,
-                value: snapshot.value, shape: snapshot.shape }], emit });
+            const access = createInstrumentedAccess({ bindings: [sourceBinding(fact_key, role_id, alias)], emit });
             return Object.freeze({ handle: access.handle(alias),
                 revoke: access.revoke, assertHealthy: access.assertHealthy });
+        },
+        openSet(selector, emit) {
+            const { fact_key, role_id, binding } = select(selector, emit, true);
+            if (binding.kind !== 'node_set') reject('binding_kind');
+            return createNodeSetAccess({ role: role_id,
+                bindings: binding.aliases.map(alias => sourceBinding(fact_key, role_id, alias)), emit });
         }
     });
 }

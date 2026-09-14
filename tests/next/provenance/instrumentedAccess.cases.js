@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createInstrumentedAccess } = require('../../../src/next/provenance/instrumentedAccess');
+const { createInstrumentedAccess, createNodeSetAccess } = require('../../../src/next/provenance/instrumentedAccess');
 
 function fixture(emit = () => {}) {
     return { emit, bindings: [{ alias: 'event_a', role: 'events',
@@ -11,6 +11,87 @@ function fixture(emit = () => {}) {
             optional: { type: 'scalar' }, label: { type: 'non_material' } } }
     }] };
 }
+
+test('N02G:ACCESS-013 heterogeneous and empty operand sets expose only observed handles', () => {
+    const events = []; const options = fixture(e => events.push(e));
+    options.role = 'events';
+    options.bindings.unshift({ alias: 'event_b', role: 'events', value: { enabled: true },
+        shape: { type: 'record', fields: { enabled: { type: 'scalar' } } } });
+    const access = createNodeSetAccess(options);
+    options.bindings.reverse(); options.bindings[0].value.amount = 99;
+    assert.equal(Array.isArray(access.handle), false);
+    assert.equal(Object.getPrototypeOf(access.handle), null);
+    assert.equal(access.handle.at.constructor, undefined);
+    assert.equal(access.handle.length(), 2);
+    assert.equal(access.handle.at(0).get('enabled'), true);
+    assert.equal(access.handle.at(1).get('amount'), 700);
+    assert.equal(access.handle.at(2), undefined);
+    assert.equal(access.handle.includes('event_a'), true);
+    assert.equal(access.handle.includes('missing'), false);
+    assert.ok(events.some(e => e[5] === 'operand_set' && e[6][0] === 'node' && e[6][1] === 'event_b'));
+    assert.ok(events.some(e => e[5] === 'data' && e[2] === 'event_a'));
+    const empty = createNodeSetAccess({ role: 'events', bindings: [], emit: e => events.push(e) });
+    assert.equal(empty.handle.length(), 0);
+    assert.equal(empty.handle.at(0), undefined);
+    assert.deepEqual([...empty.handle], []);
+    assert.equal(empty.handle.includes('event_a'), false);
+    const { decodeObservation } = require('../../../src/next/provenance/observationContract');
+    for (const event of events) assert.deepEqual(decodeObservation(event), event);
+});
+
+test('N02G:ACCESS-014 collection lifetime covers retained member handles and caught failures', () => {
+    for (const action of [a => a.revoke(), a => assert.throws(() => a.handle.at(-1), /access_set_/),
+        a => assert.throws(() => a.handle.at(-0), /access_set_/),
+        a => assert.throws(() => a.handle.includes({}), /access_set_/)]) {
+        const access = createNodeSetAccess({ ...fixture(), role: 'events' });
+        const retained = access.handle.at(0); const iterator = access.handle[Symbol.iterator]();
+        action(access);
+        assert.throws(() => retained.get('amount'), /access_/);
+        assert.throws(() => iterator.next(), /access_/);
+        assert.throws(() => access.assertHealthy(), /access_/);
+    }
+    const access = createNodeSetAccess({ ...fixture(), role: 'events' });
+    assert.throws(() => access.handle.at(0).get('label'), /access_field_forbidden/);
+    assert.throws(() => access.handle.length(), /access_/);
+    assert.throws(() => access.assertHealthy(), /access_/);
+});
+
+test('N02G:ACCESS-015 set iterator termination and sink rejection are externally observed', () => {
+    const { createCausalRecorder } = require('../../../src/next/provenance/causalRecorder');
+    const recorder = createCausalRecorder({ executionId: 'sets', maxEvents: 20 });
+    const scope = recorder.open({ invocationId: 'one', phase: 'derivation' });
+    const access = createNodeSetAccess({ ...fixture(scope.observe), role: 'events' });
+    for (const node of access.handle) { assert.equal(node.get('amount'), 700); break; }
+    const iterator = access.handle[Symbol.iterator]();
+    assert.equal(iterator[Symbol.iterator](), iterator);
+    iterator.return(); assert.equal(iterator.next().done, true);
+    access.revoke(); access.assertHealthy(); scope.seal();
+    const trace = recorder.finish().derivation_trace;
+    assert.equal(trace.filter(e => e.operation === 'return').length, 2);
+    assert.equal(trace.filter(e => e.operation === 'reuse_iterator').length, 1);
+    assert.ok(trace.some(e => e.projection === 'operand_set' && e.outcome[0] === 'node'));
+    const failed = createNodeSetAccess({ ...fixture(() => { throw new Error('closed sink'); }), role: 'events' });
+    assert.throws(() => failed.handle.length(), /access_set_sink/);
+    assert.throws(() => failed.assertHealthy(), /access_set_/);
+});
+
+test('N02G:ACCESS-016 set role, binding and observation namespaces fail closed', () => {
+    const mixed = { ...fixture(), role: 'other' };
+    assert.throws(() => createNodeSetAccess(mixed), /access_shape_invalid/);
+    const duplicate = { ...fixture(), role: 'events' }; duplicate.bindings.push(duplicate.bindings[0]);
+    assert.throws(() => createNodeSetAccess(duplicate), /access_shape_invalid/);
+    let invoked = 0;
+    assert.throws(() => createNodeSetAccess({ ...fixture(), get role() { invoked++; return 'events'; } }), /access_shape_invalid/);
+    assert.equal(invoked, 0);
+    const { decodeObservation } = require('../../../src/next/provenance/observationContract');
+    for (const event of [
+        ['I', 'at', 'event_a', 'events', [0], 'data', ['node', 'event_a']],
+        ['I', 'get', 'operand/events', 'events', ['id'], 'operand_set', ['scalar', 'a']],
+        ['I', 'at', 'operand/events', 'events', [0], 'operand_set', ['scalar', 'a']],
+        ['I', 'next', 'operand/events', 'events', [0], 'operand_set', ['node', {}]],
+        ['I', 'length', 'event_a', 'events', [], 'operand_set', ['count', 1]]
+    ]) assert.throws(() => decodeObservation(event));
+});
 test('N02G:ACCESS-001 nested evidence crosses only as handles and scalar observations', () => {
     const events = []; const access = createInstrumentedAccess(fixture(e => events.push(e)));
     const root = access.handle('event_a');
