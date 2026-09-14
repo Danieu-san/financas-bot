@@ -73,6 +73,8 @@ function decodeObservation(raw) {
     const accessOutcome = nodeSet ? tag === 'node' && o.length === 2 && identifier(o[1]) : valueOutcome;
     let valid = false;
     switch (e[1]) {
+    case 'traverse': valid = e[5] === 'data' && e[4].length === 1 && field(e[4][0])
+        && tag === 'edge' && o.length === 3 && identifier(o[1]) && identifier(o[2]); break;
     case 'get': case 'at': valid = accessOutcome || tag === 'absent' && o.length === 1; break;
     case 'next': valid = accessOutcome || tag === 'done' && o.length === 1; break;
     case 'has': valid = tag === 'boolean' && o.length === 2 && typeof o[1] === 'boolean'; break;

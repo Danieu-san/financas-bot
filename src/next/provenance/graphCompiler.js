@@ -258,6 +258,21 @@ function compileSnapshotAccess(admitted, validators) {
         if (node.binding !== 'snapshot' || !snapshot) reject('snapshot');
         return { alias, role, value: snapshot.value, shape: snapshot.shape };
     }
+    function reachable(fact_key, role, alias) {
+        const graph = graphs.get(fact_key); const visited = new Set([alias]); const queue = [alias]; const links = [];
+        for (let i = 0; i < queue.length; i++) {
+            for (const edge of graph.edges) {
+                if (edge.relation !== 'material_ref' || edge.source !== queue[i]) continue;
+                const source = graph.nodes[edge.source]; const target = graph.nodes[edge.target];
+                if (source.binding !== 'snapshot' || target.binding !== 'snapshot') reject('traversal_parent_pending');
+                const descriptor = context.materialRegistry.kinds[source.kind].fields[edge.field];
+                if (descriptor.class !== 'edge') reject('traversal_field');
+                links.push({ id: edge.id, source: edge.source, field: edge.field, target: edge.target, type: descriptor.type });
+                if (!visited.has(edge.target)) { visited.add(edge.target); queue.push(edge.target); }
+            }
+        }
+        return { bindings: queue.map(node => sourceBinding(fact_key, role, node)), links };
+    }
     return Object.freeze({ stage: 'snapshot_access_plan_only', executable: false,
         snapshot_count: snapshots.size,
         open(selector, emit) {
@@ -265,7 +280,7 @@ function compileSnapshotAccess(admitted, validators) {
             if (!['node', 'node_set'].includes(binding.kind)) reject('binding_kind');
             const aliases = binding.kind === 'node' ? [binding.alias] : binding.aliases;
             if (!aliases.includes(alias)) reject('alias');
-            const access = createInstrumentedAccess({ bindings: [sourceBinding(fact_key, role_id, alias)], emit });
+            const access = createInstrumentedAccess({ ...reachable(fact_key, role_id, alias), emit });
             return Object.freeze({ handle: access.handle(alias),
                 revoke: access.revoke, assertHealthy: access.assertHealthy });
         },

@@ -42,10 +42,12 @@ function createInstrumentedAccess(options) {
     // Accessors/Proxy on the control object must not run before data admission.
     if (!options || typeof options !== 'object' || types.isProxy(options)) failSetup();
     const d = Object.getOwnPropertyDescriptors(options);
-    if (Reflect.ownKeys(d).length !== 2 || !d.bindings || !d.emit
+    if (![2, 3].includes(Reflect.ownKeys(d).length) || Reflect.ownKeys(d).some(k => !['bindings', 'emit', 'links'].includes(k)) || !d.bindings || !d.emit
         || !Object.hasOwn(d.bindings, 'value') || !Object.hasOwn(d.emit, 'value')
+        || d.links && !Object.hasOwn(d.links, 'value')
         || typeof d.emit.value !== 'function') failSetup();
     const bindings = copyData(d.bindings.value); const emit = d.emit.value;
+    const links = copyData(d.links ? d.links.value : []);
     if (!Array.isArray(bindings) || !bindings.length || bindings.length > 512) failSetup();
     const roots = new Map();
     for (const b of bindings) {
@@ -53,6 +55,21 @@ function createInstrumentedAccess(options) {
             || Object.keys(b).sort().join(',') !== 'alias,role,shape,value' || !identifier(b.alias) || !identifier(b.role)
             || roots.has(b.alias) || !['record', 'sequence'].includes(b.shape?.type)) failSetup();
         checkShape(b.shape); checkValue(b.value, b.shape); roots.set(b.alias, b);
+    }
+    if (!Array.isArray(links) || links.length > 8192) failSetup();
+    const relations = new Map();
+    for (const link of links) {
+        if (!link || typeof link !== 'object' || Array.isArray(link)
+            || Object.keys(link).sort().join(',') !== 'field,id,source,target,type'
+            || !identifier(link.id) || !identifier(link.source) || !identifier(link.target) || !field(link.field)
+            || !['ref', 'ref_list', 'role_ref_list'].includes(link.type) || relations.has(link.id)) failSetup();
+        const source = roots.get(link.source); const target = roots.get(link.target);
+        const shape = source?.shape.fields?.[link.field];
+        if (!source || !target || source.role !== target.role || target.shape.fields?.id?.type !== 'scalar'
+            || (link.type === 'ref' ? shape?.type !== 'scalar'
+                : shape?.type !== 'sequence' || (link.type === 'ref_list' ? shape.item.type !== 'scalar'
+                    : shape.item.type !== 'record' || shape.item.fields.parent_ref?.type !== 'scalar'))) failSetup();
+        relations.set(link.id, link);
     }
     let revoked = false; let failed = false;
     function fail(code) { failed = true; throw new Error(`access_${code}`); }
@@ -105,6 +122,28 @@ function createInstrumentedAccess(options) {
             return result;
         }
         return frozenInterface({
+            traverse: edgeId => {
+                check();
+                const link = typeof edgeId === 'string' ? relations.get(edgeId) : undefined;
+                if (path.length || projection !== 'data' || !link || link.source !== b.alias) fail('traversal_forbidden');
+                // Re-enter observed field APIs; the compiled graph alone is
+                // never evidence that a runtime reference actually matches.
+                const source = handle(value, shape, b, [], 'data');
+                const references = source.get(link.field);
+                const targetBinding = roots.get(link.target);
+                const target = handle(targetBinding.value, targetBinding.shape, targetBinding, [], 'data');
+                const targetId = target.get('id');
+                if (typeof targetId !== 'string' || references === undefined) fail('traversal_identity');
+                let matches = false;
+                if (link.type === 'ref') matches = references === targetId;
+                else for (const item of references) {
+                    const ref = link.type === 'ref_list' ? item : item.get('parent_ref');
+                    if (ref === targetId) matches = true;
+                }
+                if (!matches) fail('traversal_mismatch');
+                event('traverse', b, [link.field], 'data', ['edge', link.id, link.target]);
+                return target;
+            },
             get: key => {
                 const child = recordField(key); const childPath = [...path, key];
                 if (!Object.hasOwn(value, key)) { event('get', b, childPath, projection, ['absent']); return undefined; }

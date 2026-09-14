@@ -190,6 +190,30 @@ test('N02G:SNAPSHOT-ACCESS-006 selection reads admitted members rather than an e
     assert.ok(binding.aliases.every(alias => trace.some(e => e.alias === alias && e.operation === 'get' && e.path[0] === 'id')));
 });
 
+test('N02G:SNAPSHOT-ACCESS-007 traversal follows only admitted reachable material edges', async () => {
+    const { plan, claims, graphs } = await snapshotAccessFixture();
+    let traversals = 0; const visitedKinds = new Set();
+    for (const claim of claims) {
+        const first = Object.entries(claim.operand_bindings).find(([, b]) => b.kind === 'node');
+        if (!first) continue;
+        const [role_id, binding] = first; const graph = graphs.find(g => g.fact_key === claim.fact_key);
+        const events = []; const access = plan.open({ fact_key: claim.fact_key, role_id, alias: binding.alias }, e => events.push(e));
+        const queue = [[binding.alias, access.handle]]; const seen = new Set([binding.alias]);
+        for (let i = 0; i < queue.length; i++) {
+            const [alias, handle] = queue[i];
+            for (const edge of graph.edges.filter(e => e.relation === 'material_ref' && e.source === alias)) {
+                const target = handle.traverse(edge.id);
+                assert.equal(target.get('id'), graph.nodes[edge.target].ref_id);
+                assert.ok(events.some(e => e[1] === 'traverse' && e[2] === alias && e[6][1] === edge.id && e[6][2] === edge.target));
+                visitedKinds.add(graph.nodes[edge.target].kind); traversals++;
+                if (!seen.has(edge.target)) { seen.add(edge.target); queue.push([edge.target, target]); }
+            }
+        }
+        access.revoke(); access.assertHealthy();
+    }
+    assert.ok(traversals > 100); assert.ok(visitedKinds.size > 5);
+});
+
 test('N02G:SNAPSHOT-ACCESS-003 projection cannot bypass package or composite snapshot identity admission', async () => {
     const validation = await validators();
     assert.throws(() => compileSnapshotAccess({ documents: [] }, validation), /package_not_admitted/);

@@ -541,4 +541,26 @@ Próxima ação exata: traversal material por handles e conexão dos operadores
 tipados à seleção. As 73 seleções contratuais ainda não foram executadas pelo
 motor final; manter N02-G WIP, sem GO e sem auditoria final prematura.
 
+Incremento seguinte de traversal: módulos existentes instrumentedAccess,
+observationContract, graphCompiler e respectivos cases. Sem novo path.
+Links são fornecidos somente pelo TCB após admissão; API guest usa edge id,
+nunca alias de destino arbitrário. Traversal observa campo ref/ref_list e id
+do destino antes de devolver handle; evento distinto só após coincidência.
+Falha/revogação compartilhada entre origem e destino; nenhum snapshot cru.
+Traversal implementado para ref/ref_list/role_ref_list. A API usa edge id e
+recusa aresta desconhecida, origem errada, handle aninhado, referência ausente
+ou identidade divergente. Campo de origem e id do destino são lidos por handles;
+evento traverse somente após coincidência observada. Compiler constrói fechamento
+alcançável de material_ref a partir do alias/role admitido, sem destino arbitrário.
+Quatro testes de proxy e integração sobre arestas reais exercitam falsificação,
+falha de sink, retenção/revogação e referência estruturada. REDs observados antes
+da implementação. Focal integrada final 163/163 PASS, zero FAIL/SKIP/TODO.
+Probe SES: 13 checks de autoridade, 13 de handles/conjuntos/traversal e 26
+observações no recorder pai; três recusas de lifecycle preservadas. Syntax,
+diff-check e agent-workflow OK. Ampla não iniciada, dependências/canal intactos.
+Próxima ação exata: ligar fechamento de arestas também aos membros de openSet
+e views selecionadas (hoje somente open individual configura links), depois
+programa dos operadores/predicados tipados. Não confundir suporte genérico
+role_ref_list com aceitação de parent_claim/recibo da mesma execução: pendente.
+
 Codex → Astra → Alto → vincular shapes/bindings e seleção/traversal aos contratos admitidos, sem GO parcial.

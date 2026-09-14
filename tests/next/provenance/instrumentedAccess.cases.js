@@ -19,6 +19,92 @@ function selectionFixture(emit = () => {}) {
     })) };
 }
 
+function traversalFixture(emit = () => {}) {
+    return { emit, bindings: [
+        { alias: 'a', role: 'source', value: { id: 'a-id', owner: 'b-id', members: ['b-id'] }, shape: { type: 'record', fields: {
+            id: { type: 'scalar' }, owner: { type: 'scalar' }, members: { type: 'sequence', item: { type: 'scalar' } }
+        } } },
+        { alias: 'b', role: 'source', value: { id: 'b-id', amount: 14 }, shape: { type: 'record', fields: {
+            id: { type: 'scalar' }, amount: { type: 'scalar' }
+        } } }
+    ], links: [
+        { id: 'owner_link', source: 'a', field: 'owner', target: 'b', type: 'ref' },
+        { id: 'members_link', source: 'a', field: 'members', target: 'b', type: 'ref_list' }
+    ] };
+}
+
+test('N02G:ACCESS-023 traversal observes source reference and target identity before returning a handle', () => {
+    const events = []; const access = createInstrumentedAccess(traversalFixture(e => events.push(e)));
+    const source = access.handle('a');
+    const target = source.traverse('owner_link');
+    assert.equal(target.amount, undefined); assert.equal(Object.getPrototypeOf(target), null);
+    assert.equal(target.get('amount'), 14);
+    assert.deepEqual(events.slice(0, 3).map(e => [e[1], e[2], e[4], e[6]]), [
+        ['get', 'a', ['owner'], ['scalar', 'b-id']], ['get', 'b', ['id'], ['scalar', 'b-id']],
+        ['traverse', 'a', ['owner'], ['edge', 'owner_link', 'b']]
+    ]);
+    assert.equal(source.traverse('members_link').get('amount'), 14);
+    assert.ok(events.some(e => e[1] === 'next' && e[2] === 'a' && e[4][0] === 'members'));
+    const { decodeObservation } = require('../../../src/next/provenance/observationContract');
+    for (const event of events) assert.deepEqual(decodeObservation(event), event);
+    access.revoke();
+    assert.throws(() => target.get('amount'), /access_revoked/);
+    assert.throws(() => access.assertHealthy(), /access_failed/);
+});
+
+test('N02G:ACCESS-024 missing actual relation, foreign edge and invalid reference type poison traversal', () => {
+    for (const change of [f => { f.bindings[0].value.owner = 'wrong'; },
+        f => { f.bindings[1].value.id = 'wrong'; }, f => { delete f.bindings[0].value.owner; }]) {
+        const events = []; const f = traversalFixture(e => events.push(e)); change(f);
+        const access = createInstrumentedAccess(f);
+        assert.throws(() => access.handle('a').traverse('owner_link'), /access_traversal/);
+        assert.equal(events.filter(e => e[1] === 'traverse').length, 0);
+        assert.throws(() => access.handle('b'), /access_failed/);
+    }
+    for (const [alias, edge] of [['b', 'owner_link'], ['a', 'missing'], ['a', {}]]) {
+        const access = createInstrumentedAccess(traversalFixture());
+        assert.throws(() => access.handle(alias).traverse(edge), /access_traversal/);
+        assert.throws(() => access.assertHealthy(), /access_failed/);
+    }
+    for (const change of [f => { f.links[0].field = 'missing'; }, f => { f.links[0].target = 'missing'; },
+        f => { f.links[0].type = 'unknown'; }, f => { f.links.push(f.links[0]); },
+        f => { f.bindings[1].role = 'foreign'; }]) {
+        const f = traversalFixture(); change(f); assert.throws(() => createInstrumentedAccess(f), /access_shape_invalid/);
+    }
+});
+
+test('N02G:ACCESS-025 traversal cannot run from nested handles or survive observation rejection', () => {
+    const access = createInstrumentedAccess(traversalFixture());
+    const nested = access.handle('a').get('members');
+    assert.throws(() => nested.traverse('members_link'), /access_traversal/);
+    assert.throws(() => access.assertHealthy(), /access_failed/);
+    const failed = createInstrumentedAccess(traversalFixture(e => { if (e[1] === 'traverse') throw new Error('quota'); }));
+    assert.throws(() => failed.handle('a').traverse('owner_link'), /access_sink_failed/);
+    assert.throws(() => failed.assertHealthy(), /access_failed/);
+    const { decodeObservation } = require('../../../src/next/provenance/observationContract');
+    for (const e of [
+        ['I', 'traverse', 'a', 'source', ['owner'], 'keys', ['edge', 'owner_link', 'b']],
+        ['I', 'traverse', 'a', 'source', [], 'data', ['edge', 'owner_link', 'b']],
+        ['I', 'traverse', 'a', 'source', ['owner'], 'data', ['edge', 'owner_link', {}]]
+    ]) assert.throws(() => decodeObservation(e));
+});
+
+test('N02G:ACCESS-026 structured parent references are observed without treating the link as evidence', () => {
+    const events = []; const f = traversalFixture(e => events.push(e));
+    f.bindings[0].value.parents = [{ role_id: 'left', parent_ref: 'b-id' }];
+    f.bindings[0].shape.fields.parents = { type: 'sequence', item: { type: 'record', fields: {
+        role_id: { type: 'scalar' }, parent_ref: { type: 'scalar' }
+    } } };
+    f.links.push({ id: 'parent_link', source: 'a', field: 'parents', target: 'b', type: 'role_ref_list' });
+    const access = createInstrumentedAccess(f);
+    assert.equal(access.handle('a').traverse('parent_link').get('amount'), 14);
+    assert.ok(events.some(e => e[1] === 'get' && e[2] === 'a' && JSON.stringify(e[4]) === JSON.stringify(['parents', 0, 'parent_ref'])));
+    f.bindings[0].value.parents[0].parent_ref = 'missing';
+    const invalid = createInstrumentedAccess(f);
+    assert.throws(() => invalid.handle('a').traverse('parent_link'), /access_traversal_mismatch/);
+    assert.throws(() => invalid.assertHealthy(), /access_failed/);
+});
+
 test('N02G:ACCESS-017 selection computes every decision and keeps immutable ordered views', () => {
     const events = []; const access = createNodeSetAccess(selectionFixture(e => events.push(e)));
     const seen = [];
