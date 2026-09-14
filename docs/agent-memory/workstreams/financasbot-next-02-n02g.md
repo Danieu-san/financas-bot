@@ -387,11 +387,42 @@ Focal integrado: 116/116 PASS, 0 FAIL/SKIP/TODO (13 novos + 103 existentes).
 Syntax do loader OK. Nenhuma ampla iniciada. Sem mudança de dependências,
 canal, autoria ratificada, runtime v1, integração produtiva ou dados reais.
 
-Próxima ação exata: materializar o perfil fechado de execução e a prova de
-encapsulamento do TCB/processo com dados sintéticos mínimos, sem evaluators
-financeiros. O passe de identidade não prova sozinho closure completo ou
-segurança; recibo continua executable=false. Usar build já previsto, registrar
-novos paths de perfil/testes antes da criação; depois handles/recorder/lifecycle.
+WIP de admissão publicado e remoto confirmado em
+`acc53ecbe34782c7cb28f78ad11e316101794308`, parent `35839dcd4aedb685a9ce9a881b6c1457ce5118d2`.
+Próximo incremento registrado antes da criação:
+`src/next/provenance/executionProfile.js`,
+`scripts/agent/nextProvenanceGuestProfile.js` e
+`tests/next/provenance/executionProfile.cases.js`.
+Perfil congelado de configuração + validação build-time da gramática guest
+síncrona. Acorn existente continua somente build/dev. Uma função síncrona de
+um parâmetro operands é a entrada guest, sem import/async/generator nem execução
+top-level. Não apresentar esse passe sintático como sandbox ou análise semântica.
+Registrar também antes da mudança: substituir o helper experimental
+`tests/next/provenance/isolationProbe.worker.cjs` por
+`tests/next/provenance/isolationProbe.child.cjs`; adaptar o script de probe já
+existente para processo descartável e perfil compartilhado. Não criar um segundo
+runner concorrente. O probe continua fixo/sintético, sem input de código ou dados
+financeiros. Saída só aceita após término limpo; loop deve ser morto pelo pai.
+
+Perfil e restrição gramatical implementados: seis testes PASS; bateria afetada
+perfil+admissão 19/19 PASS. Perfil fixa todas as 14 opções SES dependentes de
+ambiente, globals negados, evaluate e versões; gramática síncrona é build-time,
+Acorn continua dev-only. Teste explicita que AST não prova segurança de capability.
+Probe migrou de worker para processo descartável oculto; perfil aplicado em
+Node 22.17.0, 13 checks de autoridade PASS, uma leitura sintética, compartments
+independentes e loop interrompido. Recusas de erro após resultado, resultado
+duplicado e loop após resultado também passaram (3/3). Resultado só aceito após
+término limpo. Nenhum evaluator financeiro, nenhum closure/trace completo provado.
+Syntax OK; nenhuma dependência alterada. Os 116 testes do incremento anterior
+não foram repetidos porque compiler/loader não mudaram; não somar execuções
+separadas e reportá-las como uma execução integral de 122.
+
+Próxima ação exata: implementar handles revogáveis e recorder separados nos
+paths previstos instrumentedAccess.js/causalRecorder.js, com testes registrados
+antes da criação. Provar reads escalares/estruturais, non_material inacessível,
+revogação e ausência de acesso guest a L/T. Depois ligar cápsula TCB/processo e
+admissão de R. O passe de identidade não prova sozinho closure completo ou
+segurança; recibo continua executable=false.
 Capacidade recomendada: Astra/Alto. Não repetir compiler/probe verdes sem
 mudança causal; gate executável e ampla permanecem pendentes.
 Requisitos temporais/time_basis e coverage restantes continuam pendentes. O IR completo em inventário
@@ -402,4 +433,4 @@ ao iniciá-la, pausar sem polling, conforme preferência de Daniel.
 Telemetria de calibração: não consultada nesta abertura; métricas de uso
 NAO_DISPONIVEL. Não amplia coleta nem bloqueia o produto.
 
-Codex → Astra → Alto → implementar admissão de artefatos e perfil fechado com REDs, sem evaluators financeiros antes da fronteira provada.
+Codex → Astra → Alto → implementar handles revogáveis e recorder com REDs, antes de executar evaluators financeiros.

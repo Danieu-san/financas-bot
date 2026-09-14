@@ -213,6 +213,30 @@ perfil fechado, seguida de handles/recorder e lifecycle. Registrar paths concret
 no checkpoint antes de criá-los. SES continua dev-only até a decisão de embalagem
 ser materializada e revisada; nenhuma dependência muda neste documento.
 
+Atualização de execução em 2026-09-14: perfil imutável implementado em
+`executionProfile.js`, com as 14 opções SES dependentes de ambiente explicitadas,
+opções evaluate fechadas e globals negados. Validação build-time com Acorn exige
+uma FunctionExpression síncrona de parâmetro único operands; imports e sintaxe
+async/generator são recusados inclusive em funções internas. Isso preserva source
+e retorna guest_grammar_only/executable=false; não tenta provar ausência de
+capability por AST. Teste explícito mostra que constructor computado passa pelo
+passe gramatical e precisa ser barrado pela fronteira SES/admissão revisada.
+
+O probe anterior foi substituído, não duplicado: agora usa child Node descartável,
+ambiente vazio, janela oculta, heap V8 limitado e perfil compartilhado. Só aceita
+resultado após close com status zero; erro posterior ao resultado, mensagem
+duplicada e loop posterior ao resultado foram rejeitados. Observados: 13 checks
+de autoridade (incluindo todos os globals negados), uma leitura sintética,
+compartments independentes e interrupção externa; três recusas de lifecycle.
+Os seis testes de perfil passaram; a bateria perfil+admissão passou 19/19.
+Não foi repetida a bateria verde de 116 testes do incremento anterior porque
+os fontes do compiler/loader não mudaram. Esses números são execuções distintas.
+
+Ainda não há captura externa I/M/L/T, R admitido contra assinatura, cápsula TCB
+fechada ou medição de todos os bytes carregados no processo. O probe usa módulos
+locais de desenvolvimento; não é o loader hermético final. Próxima ação:
+handles revogáveis e recorder separados, depois ligar a cápsula/host efetivos.
+
 Referências técnicas consultadas, não autoridades de GO do projeto:
 
 - [SES: compartimentos e capabilities](https://github.com/endojs/endo/blob/master/packages/ses/README.md).

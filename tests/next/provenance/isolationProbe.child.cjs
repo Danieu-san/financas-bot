@@ -1,13 +1,16 @@
 'use strict';
 
-const { parentPort, workerData } = require('node:worker_threads');
+const { EXECUTION_PROFILE } = require('../../../src/next/provenance/executionProfile');
 require('ses');
 
-// env={} and execArgv=[] are supplied by the fixed development probe. No
+// env={} and fixed execArgv are supplied by the development probe. No
 // application modules, credentials, fixtures or evaluator artifacts are loaded.
-lockdown({ errorTaming: 'safe', stackFiltering: 'concise', overrideTaming: 'severe',
-    domainTaming: 'safe', evalTaming: 'safe-eval', errorTrapping: 'none',
-    unhandledRejectionTrapping: 'none', reporting: 'none' });
+if (process.versions.node !== EXECUTION_PROFILE.node_version) throw new Error('probe_runtime_mismatch');
+const scenario = process.argv[2];
+if (!['authority', 'fresh', 'termination', 'bad_exit', 'duplicate', 'hang_after_result'].includes(scenario)) {
+    throw new Error('unknown_probe');
+}
+lockdown(EXECUTION_PROFILE.lockdown);
 let reads = 0;
 const read = harden(() => { reads++; return 7; });
 function compartment() {
@@ -15,21 +18,22 @@ function compartment() {
     // Endow no loader, clock, observer writer, object payload or native API.
     // SES tames constructors; removing direct codegen entry points additionally
     // keeps this experiment on host-supplied source only.
-    for (const name of ['eval', 'Function', 'Compartment', 'Date', 'Promise', 'console', 'Intl']) {
+    for (const name of EXECUTION_PROFILE.denied_globals) {
         Object.defineProperty(c.globalThis, name, { value: undefined, writable: false, configurable: false });
     }
     Object.freeze(c.globalThis);
     return c;
 }
 const c = compartment();
-parentPort.postMessage({ kind: 'ready' });
-if (workerData.scenario === 'termination') {
-    c.evaluate('for (;;) {}');
+const evaluate = source => c.evaluate(source, EXECUTION_PROFILE.evaluate);
+process.send({ kind: 'ready' });
+if (scenario === 'termination') {
+    evaluate('for (;;) {}');
     throw new Error('unreachable');
 }
 let value;
-if (workerData.scenario === 'authority') {
-    const checks = c.evaluate(`(() => {
+if (['authority', 'bad_exit', 'duplicate', 'hang_after_result'].includes(scenario)) {
+    const checks = evaluate(`(() => {
         const denied = fn => { try { fn(); return false; } catch { return true; } };
         return {
             nodeAbsent: typeof process === 'undefined' && typeof require === 'undefined'
@@ -50,21 +54,36 @@ if (workerData.scenario === 'authority') {
                 && Object.isFrozen(Function === undefined ? Object.getPrototypeOf(read) : Function.prototype)
         };
     })()`);
-    try { c.evaluate('eval("1")'); checks.evalDenied = false; }
+    try { evaluate('eval("1")'); checks.evalDenied = false; }
     catch { checks.evalDenied = true; }
     // SES rejects import syntax before resolution; no network/Node module is
     // contacted. This probes a separate host-supplied source invocation.
-    try { c.evaluate('import("node:fs")'); checks.dynamicImportDenied = false; }
+    try { evaluate('import("node:fs")'); checks.dynamicImportDenied = false; }
     catch { checks.dynamicImportDenied = true; }
-    value = { checks, reads: 0, functionalResult: c.evaluate('read()') };
+    checks.profileGlobalsDenied = EXECUTION_PROFILE.denied_globals.every(name => {
+        const descriptor = Object.getOwnPropertyDescriptor(c.globalThis, name);
+        return descriptor?.value === undefined && descriptor.writable === false && descriptor.configurable === false;
+    });
+    value = { checks, reads: 0, functionalResult: evaluate('read()') };
     value.reads = reads;
-} else if (workerData.scenario === 'fresh') {
+} else if (scenario === 'fresh') {
     let mutationDenied = false;
-    try { c.evaluate('globalThis.leaked = 99'); } catch { mutationDenied = true; }
+    try { evaluate('globalThis.leaked = 99'); } catch { mutationDenied = true; }
     const second = compartment();
     value = { globalsFrozen: Object.isFrozen(c.globalThis) && Object.isFrozen(second.globalThis),
         independent: mutationDenied && c.globalThis !== second.globalThis
-            && second.evaluate('typeof leaked') === 'undefined', reads };
+            && second.evaluate('typeof leaked', EXECUTION_PROFILE.evaluate) === 'undefined', reads };
 } else throw new Error('unknown_probe');
-parentPort.postMessage({ kind: 'result', value });
-parentPort.close();
+process.send({ kind: 'result', value }, error => {
+    if (error) process.exitCode = 1;
+    if (scenario === 'bad_exit') process.exitCode = 1;
+    if (scenario === 'hang_after_result') evaluate('for (;;) {}');
+    if (scenario === 'duplicate') {
+        process.send({ kind: 'result', value }, secondError => {
+            if (secondError) process.exitCode = 1;
+            process.disconnect();
+        });
+        return;
+    }
+    process.disconnect();
+});
