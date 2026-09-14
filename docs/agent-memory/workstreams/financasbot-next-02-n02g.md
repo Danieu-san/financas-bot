@@ -449,6 +449,26 @@ os campos de L/T. Revalidação específica executada: 20/20 PASS e probe comple
 PASS (13 checks de autoridade, sete de handles, dez observações, três recusas).
 O 142/142 anterior precede esse ajuste; não foi repetido sem necessidade.
 
+Incremento iniciado após `16549e6459d52851ff9b81a106fc4b7f5feb0bb2`:
+projetar acesso aos snapshots dentro de `graphCompiler.js`, após a mesma
+admissão integral já existente; testar em `authoringIndex.cases.js`.
+Nenhum novo path. Factory somente TCB, sem payload/shape fornecido pelo chamador;
+resolver fact/role/alias e identidade composta a partir dos documentos admitidos.
+Abertura individual não prova seleção de conjuntos, traversal ou recibos de pais.
+
+Factory TCB `compileSnapshotAccess` implementada no compiler compartilhado:
+admite novamente todas as autoridades/schema/fingerprints antes de projetar os
+115 snapshots. fact/role/alias resolve somente bindings normativos; shape/payload
+nunca vêm do seletor. Projeção escalar/ref_list/role_ref_list finita;
+typed_period/typed_result e claim_context/parent_claim ainda recusados neste
+acesso, aguardando projeção de contexto/recibo. Não inferir execução integral.
+Quatro testes novos: todos os membros de bindings snapshot, campos materiais,
+revogação, alias estrangeiro, shape/payload forjados, getter/Proxy, identidade
+composta alterada após reparo do hash e conexão com recorder sem expected_trace.
+RED de factory ausente observado antes da implementação. Bateria focal integrada
+146/146 PASS, zero FAIL/SKIP/TODO; syntax e agent-workflow OK. Probe de isolamento
+não repetido: processo/SES não mudou. Ampla ainda não iniciada.
+
 Próxima ação exata: ligar a projeção de shapes/bindings aos schemas/registry
 admitidos e implementar seleção/traversal por handles sem segundo writer.
 Registrar testes concretos antes da criação. Depois cápsula TCB/processo final,

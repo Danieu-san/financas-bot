@@ -7,7 +7,7 @@ const path = require('node:path');
 const { createHash } = require('node:crypto');
 const { pathToFileURL } = require('node:url');
 const { admitPackage } = require('../../../src/next/provenance/packageContract');
-const { compileAuthoringIndex, compileAuthoringIR } = require('../../../src/next/provenance/graphCompiler');
+const { compileAuthoringIndex, compileAuthoringIR, compileSnapshotAccess } = require('../../../src/next/provenance/graphCompiler');
 const { lowerAuthoringIR } = require('../../../src/next/provenance/authoringIR');
 const root = path.resolve(__dirname, '../../..');
 const prefix = 'docs/contracts/next/provenance-v2/';
@@ -39,6 +39,121 @@ async function validators() {
     const builder = await import(pathToFileURL(path.join(root, 'scripts/agent/buildNextProvenanceArtifacts.mjs')));
     return builder.buildSchemaValidators().validators;
 }
+
+let accessFixture;
+function snapshotAccessFixture() {
+    accessFixture ||= (async () => {
+        const f = fixture(); const admitted = admitPackage(f);
+        const documents = new Map(admitted.documents.map(d => [d.path, d.value]));
+        const graphs = documents.get(graphPath);
+        const claims = documents.get(graphs.claim_contract.path).claims;
+        const snapshots = documents.get(graphs.snapshot_manifest.path).snapshots;
+        const registry = documents.get(graphs.material_registry.path);
+        const plan = compileSnapshotAccess(admitted, await validators());
+        // Subsequent caller mutation of input bytes cannot retarget a handle.
+        for (const entry of f.entries) entry.bytes.fill(0);
+        return { plan, graphs: graphs.graphs, claims, snapshots, registry };
+    })();
+    return accessFixture;
+}
+
+test('N02G:SNAPSHOT-ACCESS-001 handles resolve exact admitted fact/role/alias identities', async () => {
+    const { plan, graphs, claims, snapshots, registry } = await snapshotAccessFixture();
+    assert.equal(plan.stage, 'snapshot_access_plan_only');
+    assert.equal(plan.executable, false);
+    assert.equal(plan.snapshot_count, 115);
+    assert.deepEqual(Object.keys(plan).sort(), ['executable', 'open', 'snapshot_count', 'stage']);
+    let opened = 0;
+    for (const claim of claims) {
+        const graph = graphs.find(g => g.fact_key === claim.fact_key);
+        for (const [role_id, binding] of Object.entries(claim.operand_bindings)) {
+            const aliases = binding.kind === 'node' ? [binding.alias] : binding.kind === 'node_set' ? binding.aliases : [];
+            for (const alias of aliases) {
+                const node = graph.nodes[alias];
+                const snapshot = snapshots.find(s => s.kind === node.kind && s.ref_id === node.ref_id && s.version === node.version);
+                const events = [];
+                const access = plan.open({ fact_key: claim.fact_key, role_id, alias }, e => events.push(e));
+                assert.equal(access.handle.get('id'), snapshot.payload.id);
+                const material = Object.keys(snapshot.payload).filter(k => registry.kinds[node.kind].fields[k].class !== 'non_material');
+                assert.deepEqual([...access.handle.keys()], material);
+                for (const field of material) {
+                    const actual = access.handle.get(field);
+                    const expected = snapshot.payload[field];
+                    if (Array.isArray(expected)) {
+                        assert.equal(actual.length(), expected.length);
+                        assert.deepEqual([...actual], expected);
+                    } else assert.equal(actual, expected);
+                }
+                assert.ok(events.every(e => e[0] === 'I' && e[2] === alias && e[3] === role_id));
+                access.revoke();
+                assert.throws(() => access.handle.get('id'), /access_revoked/);
+                assert.throws(() => access.assertHealthy(), /access_failed/);
+                opened++;
+            }
+        }
+    }
+    assert.ok(opened > 100);
+});
+
+test('N02G:SNAPSHOT-ACCESS-002 callers cannot substitute shape, identity or operand roles', async () => {
+    const { plan, claims, graphs } = await snapshotAccessFixture();
+    const claim = claims.find(c => Object.values(c.operand_bindings).some(b => b.kind === 'node'));
+    const [role_id, binding] = Object.entries(claim.operand_bindings).find(([, b]) => b.kind === 'node');
+    const selector = { fact_key: claim.fact_key, role_id, alias: binding.alias };
+    const foreignAlias = Object.keys(graphs.find(g => g.fact_key === claim.fact_key).nodes).find(a => a !== binding.alias);
+    for (const changed of [{ fact_key: 'unknown' }, { role_id: 'unknown' }, { alias: foreignAlias },
+        { shape: { type: 'scalar' } }, { value: {} }, { version: 'forged' }, { phase: 'proof' }]) {
+        let events = 0;
+        assert.throws(() => plan.open({ ...selector, ...changed }, () => events++), /snapshot_access_/);
+        assert.equal(events, 0);
+    }
+    let getterCalls = 0;
+    assert.throws(() => plan.open({ ...selector, get alias() { getterCalls++; return binding.alias; } }, () => {}), /snapshot_access_selector/);
+    assert.throws(() => plan.open(new Proxy(selector, { ownKeys() { getterCalls++; return []; } }), () => {}), /snapshot_access_selector/);
+    assert.equal(getterCalls, 0);
+    assert.throws(() => plan.open(selector, null), /snapshot_access_selector/);
+    for (const c of claims) for (const [role, b] of Object.entries(c.operand_bindings)) {
+        if (b.kind === 'node' || b.kind === 'node_set') continue;
+        assert.throws(() => plan.open({ fact_key: c.fact_key, role_id: role, alias: b.alias || 'claim' }, () => {}), /snapshot_access_binding_kind/);
+    }
+    const access = plan.open(selector, () => {});
+    assert.throws(() => access.handle.get('label'), /access_/);
+    assert.throws(() => access.assertHealthy(), /access_failed/);
+});
+
+test('N02G:SNAPSHOT-ACCESS-004 admitted handles feed the recorder without expected-trace input', async () => {
+    const { createCausalRecorder } = require('../../../src/next/provenance/causalRecorder');
+    const { plan, claims, graphs } = await snapshotAccessFixture();
+    const claim = claims.find(c => Object.values(c.operand_bindings).some(b => b.kind === 'node'));
+    const [role_id, binding] = Object.entries(claim.operand_bindings).find(([, b]) => b.kind === 'node');
+    const recorder = createCausalRecorder({ executionId: 'snapshot-admission-test', maxEvents: 10 });
+    const scope = recorder.open({ invocationId: claim.fact_key, phase: 'derivation' });
+    const access = plan.open({ fact_key: claim.fact_key, role_id, alias: binding.alias }, scope.observe);
+    const value = access.handle.get('id');
+    assert.equal(value, graphs.find(g => g.fact_key === claim.fact_key).nodes[binding.alias].ref_id);
+    access.revoke(); access.assertHealthy(); scope.seal();
+    const trace = recorder.finish();
+    assert.equal(trace.derivation_trace.length, 1);
+    assert.equal(trace.proof_trace.length, 0);
+    assert.equal(trace.derivation_trace[0].alias, binding.alias);
+    assert.equal(trace.derivation_trace[0].role, role_id);
+    assert.deepEqual(trace.derivation_trace[0].path, ['id']);
+    assert.deepEqual(trace.derivation_trace[0].outcome, ['scalar', value]);
+    assert.equal(Object.hasOwn(trace, 'result'), false);
+});
+
+test('N02G:SNAPSHOT-ACCESS-003 projection cannot bypass package or composite snapshot identity admission', async () => {
+    const validation = await validators();
+    assert.throws(() => compileSnapshotAccess({ documents: [] }, validation), /package_not_admitted/);
+    const f = fixture(); const entry = f.entries.find(e => e.path === graphPath);
+    const graphs = JSON.parse(entry.bytes);
+    const node = Object.values(graphs.graphs[0].nodes).find(n => n.binding === 'snapshot');
+    node.version = `sha256:${'0'.repeat(64)}`;
+    entry.bytes = Buffer.from(JSON.stringify(graphs));
+    f.authority.find(a => a.path === graphPath).sha256 = hash(entry.bytes);
+    assert.equal(validation.graphs(graphs), true);
+    assert.throws(() => compileSnapshotAccess(admitPackage(f), validation), /graph_index_node_snapshot_mismatch/);
+});
 
 test('N02G:AUTHORING-001 complete package resolves reviewed links and identities', async () => {
     const result = compileAuthoringIndex(admitPackage(fixture()), await validators());

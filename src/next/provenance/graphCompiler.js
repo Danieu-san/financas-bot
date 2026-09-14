@@ -12,6 +12,8 @@ const { validateClaimRequirements } = require('./claimRequirements');
 const { validateSelectionBindings } = require('./selectionBindings');
 const { lowerAuthoringIR } = require('./authoringIR');
 const { validateCollectionRequirements } = require('./collectionRequirements');
+const { createInstrumentedAccess } = require('./instrumentedAccess');
+const { copyData, identifier } = require('./observationContract');
 
 function fail(code) { throw new Error(`graph_index_${code}`); }
 function text(value) {
@@ -195,7 +197,8 @@ function compileAuthoring(admitted, validators) {
     validateCollectionRequirements({ graphs: graphs.graphs, snapshots: snapshots.snapshots,
         materialRegistry: resolved.material_registry });
     return { documents: [...documents.values()], graphs: graphs.graphs, claims: claims.claims,
-        index, operandBindings, predicateTypes, selectionBindings, templates };
+        index, operandBindings, predicateTypes, selectionBindings, templates,
+        snapshots: snapshots.snapshots, materialRegistry: resolved.material_registry };
 }
 
 function compileAuthoringIndex(admitted, validators) {
@@ -204,6 +207,63 @@ function compileAuthoringIndex(admitted, validators) {
 
 function compileAuthoringIR(admitted, validators) {
     return lowerAuthoringIR(compileAuthoring(admitted, validators));
+}
+
+// Host/TCB factory only; never endow this controller into a guest compartment.
+// No caller-supplied payload, shape, role declaration or identity override.
+// Individual members of node_set can be opened, but this does NOT instrument
+// set selection/enumeration or authorize parent receipts/claim-context access.
+function compileSnapshotAccess(admitted, validators) {
+    const context = compileAuthoring(admitted, validators);
+    const reject = code => { throw new Error(`snapshot_access_${code}`); };
+    const identity = node => JSON.stringify([node.kind, node.ref_id, node.version]);
+    const scalarTypes = new Set(['id', 'text', 'date', 'month', 'datetime', 'integer',
+        'positive_integer', 'nonnegative_integer', 'money_minor', 'boolean', 'enum', 'digest', 'ref']);
+    // Projection follows the already schema-checked finite registry grammar.
+    // Nominal validation remains in the shared admission pass, not this layer.
+    function project(descriptor) {
+        if (descriptor.class === 'non_material') return { type: 'non_material' };
+        if (scalarTypes.has(descriptor.type)) return { type: 'scalar' };
+        if (descriptor.type === 'ref_list') return { type: 'sequence', item: { type: 'scalar' } };
+        if (descriptor.type === 'role_ref_list') return { type: 'sequence', item: {
+            type: 'record', fields: { role_id: { type: 'scalar' }, parent_ref: { type: 'scalar' } }
+        } };
+        // typed_result/typed_period require a separately admitted validated-
+        // parent/claim projection. Do not guess shape from caller data.
+        reject('unsupported_field_type');
+    }
+    const snapshots = new Map(context.snapshots.map(snapshot => {
+        const descriptors = context.materialRegistry.kinds[snapshot.kind].fields;
+        const shape = { type: 'record', fields: Object.fromEntries(Object.entries(descriptors)
+            .map(([name, descriptor]) => [name, project(descriptor)])) };
+        return [identity(snapshot), { value: snapshot.payload, shape: freeze(shape) }];
+    }));
+    const graphs = new Map(context.graphs.map(g => [g.fact_key, g]));
+    const bindings = new Map(context.operandBindings.graphs.map(g => [g.fact_key,
+        new Map(g.operands.map(b => [b.role_ref.role_id, b]))]));
+    return Object.freeze({ stage: 'snapshot_access_plan_only', executable: false,
+        snapshot_count: snapshots.size,
+        open(selector, emit) {
+            let selected;
+            try { selected = copyData(selector); } catch { reject('selector'); }
+            if (!selected || typeof selected !== 'object' || Array.isArray(selected)
+                || Object.keys(selected).sort().join(',') !== 'alias,fact_key,role_id'
+                || !Object.values(selected).every(identifier) || typeof emit !== 'function') reject('selector');
+            const { fact_key, role_id, alias } = selected;
+            const binding = bindings.get(fact_key)?.get(role_id);
+            if (!binding) reject('binding');
+            if (!['node', 'node_set'].includes(binding.kind)) reject('binding_kind');
+            const aliases = binding.kind === 'node' ? [binding.alias] : binding.aliases;
+            if (!aliases.includes(alias)) reject('alias');
+            const node = graphs.get(fact_key).nodes[alias];
+            const snapshot = snapshots.get(identity(node));
+            if (node.binding !== 'snapshot' || !snapshot) reject('snapshot');
+            const access = createInstrumentedAccess({ bindings: [{ alias, role: role_id,
+                value: snapshot.value, shape: snapshot.shape }], emit });
+            return Object.freeze({ handle: access.handle(alias),
+                revoke: access.revoke, assertHealthy: access.assertHealthy });
+        }
+    });
 }
 
 // Compile-time consistency only. The proof phase must independently observe
@@ -284,4 +344,4 @@ function validateStaticEvidence(graphs, snapshots, registry) {
     return Object.freeze({ snapshots: byIdentity.size, graphs: graphs.length });
 }
 
-module.exports = { indexGraphDependencies, compileAuthoringIndex, compileAuthoringIR, validateStaticEvidence };
+module.exports = { indexGraphDependencies, compileAuthoringIndex, compileAuthoringIR, compileSnapshotAccess, validateStaticEvidence };
