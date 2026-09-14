@@ -19,3 +19,5 @@ require('./next/provenance/selectionBindings.cases');
 require('./next/provenance/collectionRequirements.cases');
 require('./next/provenance/artifactLoader.cases');
 require('./next/provenance/executionProfile.cases');
+require('./next/provenance/instrumentedAccess.cases');
+require('./next/provenance/causalRecorder.cases');

@@ -417,12 +417,44 @@ Syntax OK; nenhuma dependência alterada. Os 116 testes do incremento anterior
 não foram repetidos porque compiler/loader não mudaram; não somar execuções
 separadas e reportá-las como uma execução integral de 122.
 
-Próxima ação exata: implementar handles revogáveis e recorder separados nos
-paths previstos instrumentedAccess.js/causalRecorder.js, com testes registrados
-antes da criação. Provar reads escalares/estruturais, non_material inacessível,
-revogação e ausência de acesso guest a L/T. Depois ligar cápsula TCB/processo e
-admissão de R. O passe de identidade não prova sozinho closure completo ou
-segurança; recibo continua executable=false.
+Retomada após `10f95237f0ca5c2e413055ea110dc1c42eb06586`, árvore limpa.
+Registrar antes da criação: `src/next/provenance/observationContract.js`,
+`src/next/provenance/instrumentedAccess.js`, `src/next/provenance/causalRecorder.js`
+e `tests/next/provenance/instrumentedAccess.cases.js`,
+`tests/next/provenance/causalRecorder.cases.js`; entry focal existente.
+Contrato interno finito de eventos I/M em tuplas, diferente dos objetos L/T.
+Primeiro passe: handles record/sequence/scalar com shape fornecido pelo TCB,
+copy de dados simples, get/has/keys/length/at/iteração/membership escalar,
+revogação e falha persistente. Shape ainda precisa ser derivado da admissão dos
+schemas/registry antes da integração; não é nova autoridade normativa de campos.
+Recorder atribui invocação/fase/ordem e recusa canal malformado; não recebe R ou
+expected_trace. Sem conexão IPC/SES ainda, seleção/traversal/pais pendentes.
+
+Camada inicial de observação implementada: handles record/sequence/scalar,
+eventos I/M finitos e recorder proprietário do log. Dados capturados sem
+getters/proxies, interfaces prototype-free, non_material oculto/recusado,
+revogação e falha latente mesmo quando guest captura a exceção. Iteração inclui
+early return e reaquisição do iterator. Quotas de eventos e bytes do log.
+REDs de módulos ausentes e de revogação no sink, keys repetido, byte quota,
+iterator read e índice -0 observados; correções verificadas. Focal integrada
+142/142 PASS, zero FAIL/SKIP/TODO, syntax OK. Probe em SES/processo filho produz
+10 observações no recorder do pai e passa sete checks de handles; preserva 13
+checks de autoridade e três recusas de lifecycle. O guest do cenário de handles
+não recebe a capability read não instrumentada do experimento antigo.
+Nenhuma suíte ampla, dependência, produção, corpus financeiro ou canal alterado.
+
+Retomada após bloqueio de uso: ajuste final mantém decodeObservation e
+decodeMeasurement no namespace de tuplas I/M; somente causalRecorder escolhe
+os campos de L/T. Revalidação específica executada: 20/20 PASS e probe completo
+PASS (13 checks de autoridade, sete de handles, dez observações, três recusas).
+O 142/142 anterior precede esse ajuste; não foi repetido sem necessidade.
+
+Próxima ação exata: ligar a projeção de shapes/bindings aos schemas/registry
+admitidos e implementar seleção/traversal por handles sem segundo writer.
+Registrar testes concretos antes da criação. Depois cápsula TCB/processo final,
+admissão de R e conexão de operadores/evaluators. A observação sintética não
+prova suficiência das obrigações ou os 76 grafos. Não promover observations_only
+ou admitted_artifact_bytes_only a aceitação; executable continua false.
 Capacidade recomendada: Astra/Alto. Não repetir compiler/probe verdes sem
 mudança causal; gate executável e ampla permanecem pendentes.
 Requisitos temporais/time_basis e coverage restantes continuam pendentes. O IR completo em inventário
@@ -433,4 +465,4 @@ ao iniciá-la, pausar sem polling, conforme preferência de Daniel.
 Telemetria de calibração: não consultada nesta abertura; métricas de uso
 NAO_DISPONIVEL. Não amplia coleta nem bloqueia o produto.
 
-Codex → Astra → Alto → implementar handles revogáveis e recorder com REDs, antes de executar evaluators financeiros.
+Codex → Astra → Alto → vincular shapes/bindings e seleção/traversal aos contratos admitidos, sem GO parcial.

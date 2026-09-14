@@ -1,20 +1,23 @@
 'use strict';
 
 const { EXECUTION_PROFILE } = require('../../../src/next/provenance/executionProfile');
+const { createInstrumentedAccess } = require('../../../src/next/provenance/instrumentedAccess');
 require('ses');
 
 // env={} and fixed execArgv are supplied by the development probe. No
-// application modules, credentials, fixtures or evaluator artifacts are loaded.
+// financial modules, credentials, fixtures or evaluator artifacts are loaded.
+// Only the development profile and observation primitives are used below.
 if (process.versions.node !== EXECUTION_PROFILE.node_version) throw new Error('probe_runtime_mismatch');
 const scenario = process.argv[2];
-if (!['authority', 'fresh', 'termination', 'bad_exit', 'duplicate', 'hang_after_result'].includes(scenario)) {
+if (!['authority', 'fresh', 'termination', 'bad_exit', 'duplicate', 'hang_after_result', 'handles'].includes(scenario)) {
     throw new Error('unknown_probe');
 }
 lockdown(EXECUTION_PROFILE.lockdown);
 let reads = 0;
 const read = harden(() => { reads++; return 7; });
-function compartment() {
-    const c = new Compartment({ globals: { read }, __options__: true });
+function compartment(operands) {
+    const globals = operands === undefined ? { read } : { operands };
+    const c = new Compartment({ globals, __options__: true });
     // Endow no loader, clock, observer writer, object payload or native API.
     // SES tames constructors; removing direct codegen entry points additionally
     // keeps this experiment on host-supplied source only.
@@ -66,6 +69,26 @@ if (['authority', 'bad_exit', 'duplicate', 'hang_after_result'].includes(scenari
     });
     value = { checks, reads: 0, functionalResult: evaluate('read()') };
     value.reads = reads;
+} else if (scenario === 'handles') {
+    const access = createInstrumentedAccess({ emit: event => process.send({ kind: 'observation', event }),
+        bindings: [{ alias: 'node_a', role: 'source', value: { amount: 7, tags: ['a', 'b'], label: 'not exposed' },
+            shape: { type: 'record', fields: { amount: { type: 'scalar' },
+                tags: { type: 'sequence', item: { type: 'scalar' } }, label: { type: 'non_material' } } } }] });
+    const guest = compartment(harden(access.handle('node_a')));
+    const checks = guest.evaluate(`({
+        scalar: operands.get('amount') === 7,
+        noRawObject: operands.amount === undefined && Object.getPrototypeOf(operands) === null
+            && operands.observe === undefined && operands.revoke === undefined && typeof read === 'undefined',
+        keys: [...operands.keys()].join(',') === 'amount,tags',
+        earlyTermination: (() => { for (const item of operands.get('tags')) return item === 'a'; return false; })(),
+        noConstructor: operands.get.constructor === undefined
+    })`, EXECUTION_PROFILE.evaluate);
+    access.revoke(); access.assertHealthy();
+    try { guest.evaluate('operands.get("amount")', EXECUTION_PROFILE.evaluate); checks.revoked = false; }
+    catch { checks.revoked = true; }
+    try { access.assertHealthy(); checks.failureLatched = false; }
+    catch { checks.failureLatched = true; }
+    value = { checks }; // Probe booleans, not a functional-result/trace envelope.
 } else if (scenario === 'fresh') {
     let mutationDenied = false;
     try { evaluate('globalThis.leaked = 99'); } catch { mutationDenied = true; }

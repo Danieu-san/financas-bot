@@ -232,10 +232,52 @@ Os seis testes de perfil passaram; a bateria perfil+admissão passou 19/19.
 Não foi repetida a bateria verde de 116 testes do incremento anterior porque
 os fontes do compiler/loader não mudaram. Esses números são execuções distintas.
 
-Ainda não há captura externa I/M/L/T, R admitido contra assinatura, cápsula TCB
-fechada ou medição de todos os bytes carregados no processo. O probe usa módulos
-locais de desenvolvimento; não é o loader hermético final. Próxima ação:
-handles revogáveis e recorder separados, depois ligar a cápsula/host efetivos.
+No encerramento daquele incremento de perfil ainda não havia captura externa
+I/M/L/T, R admitido contra assinatura, cápsula TCB fechada ou medição de todos
+os bytes carregados. O probe usava módulos locais de desenvolvimento; não era
+o loader hermético final. A camada de observação seguinte está registrada abaixo.
+
+### Observação inicial implementada — atualização posterior de 2026-09-14
+
+`instrumentedAccess.js` recebe bindings/shape do TCB, captura somente dados
+simples limitados e fornece handles com prototype nulo e métodos congelados.
+Records/coleções nunca são retornados como payload cru; escalares e respostas
+do protocolo de iterator são observados antes da entrega. Os pacotes done/value
+do iterator são protocolo constante, não snapshots ou novo canal funcional.
+
+Operações implementadas: get, has, keys, length, at, includes escalar, abertura,
+avanço, retorno e reaquisição de iterator. Keys devolve outra sequência de handles;
+reestruturar essa projeção com keys novamente é operação não suportada e falha,
+em vez de perder a origem da projeção. non_material não aparece na enumeração
+e tentativa de get/has é recusada independentemente de sua presença no payload.
+Erros de uso ou do sink ficam latentes: capturar a exceção no guest não recupera
+a invocação. Revogação afeta handles/iterators já emitidos, inclusive se ocorrer
+durante o envio de uma observação. Validação de saída deverá revogar primeiro.
+
+I usa tupla de sete posições: canal, operação, alias, role, path, projeção e
+outcome bruto. M usa tupla de três: canal, espécie de medição e digest observado.
+`observationContract.js` admite somente formatos finitos, sem getters/proxies ou
+coerções. `causalRecorder.js` transforma essas tuplas em L, atribui ordem/fase/
+invocação e gera views imutáveis. Preserva leituras repetidas; não recebe
+expected_trace ou R. Scopes sobrepostos/repetidos, eventos após seal, canais
+malformados e excesso invalidam o recorder. Quotas: eventos configurados pelo
+host, até 1 milhão, e bytes totais serializados, padrão 8 MiB/máximo 128 MiB;
+uma quota não substitui a outra ou limites do processo.
+
+Focal integrada observada: 142/142 PASS, zero FAIL/SKIP/TODO. REDs adicionais
+confirmaram revogação no sink, limite de bytes, projeção de keys repetida,
+reaquisição de iterator e índice -0; corrigidos antes da publicação. Probe SES
+em processo filho: sete checks de handles, dez eventos I recebidos/materializados
+no pai e um early return. Cenário de handles recebe somente operands, sem a
+capability read antiga do probe. Preservados os 13 checks de autoridade e as
+três recusas de lifecycle. Suíte ampla não iniciada.
+
+Limites: shape ainda não está vinculado mecanicamente aos schemas/registry
+admitidos; essa API é interna e não aceita chamadas de produto. Seleções de nós,
+traversal de arestas, operações financeiras observadas, pais, nominalidade dos
+eventos e confronto integral com os 76 grafos continuam pendentes. O resultado
+do recorder é observations_only, não prova de aceitação. Captura sintética de I
+via IPC foi demonstrada, mas a cápsula TCB medida e o protocolo final ainda não.
 
 Referências técnicas consultadas, não autoridades de GO do projeto:
 
