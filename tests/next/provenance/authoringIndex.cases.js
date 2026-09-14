@@ -169,6 +169,27 @@ test('N02G:SNAPSHOT-ACCESS-005 node-set roster, order and emptiness come only fr
     assert.ok(sets > 10); assert.ok(empty > 0);
 });
 
+test('N02G:SNAPSHOT-ACCESS-006 selection reads admitted members rather than an expected result set', async () => {
+    const { createCausalRecorder } = require('../../../src/next/provenance/causalRecorder');
+    const { plan, claims, graphs } = await snapshotAccessFixture();
+    const claim = claims.find(c => Object.values(c.operand_bindings).some(b => b.kind === 'node_set' && b.aliases.length > 2));
+    const [role_id, binding] = Object.entries(claim.operand_bindings).find(([, b]) => b.kind === 'node_set' && b.aliases.length > 2);
+    const graph = graphs.find(g => g.fact_key === claim.fact_key);
+    const excluded = graph.nodes[binding.aliases[1]].ref_id;
+    const recorder = createCausalRecorder({ executionId: 'admitted-selection', maxEvents: 1000 });
+    const scope = recorder.open({ invocationId: claim.fact_key, phase: 'derivation' });
+    const access = plan.openSet({ fact_key: claim.fact_key, role_id }, scope.observe);
+    const selected = access.handle.select(node => node.get('id') !== excluded);
+    const ids = [...selected].map(node => node.get('id'));
+    assert.deepEqual(ids, binding.aliases.filter((_, i) => i !== 1).map(alias => graph.nodes[alias].ref_id));
+    access.revoke(); access.assertHealthy(); scope.seal();
+    const trace = recorder.finish().derivation_trace;
+    assert.deepEqual(trace.filter(e => e.operation === 'select_member').map(e => e.outcome),
+        binding.aliases.map((alias, i) => ['decision', alias, i !== 1]));
+    assert.deepEqual(trace.find(e => e.operation === 'select_return').outcome.slice(2), binding.aliases.filter((_, i) => i !== 1));
+    assert.ok(binding.aliases.every(alias => trace.some(e => e.alias === alias && e.operation === 'get' && e.path[0] === 'id')));
+});
+
 test('N02G:SNAPSHOT-ACCESS-003 projection cannot bypass package or composite snapshot identity admission', async () => {
     const validation = await validators();
     assert.throws(() => compileSnapshotAccess({ documents: [] }, validation), /package_not_admitted/);

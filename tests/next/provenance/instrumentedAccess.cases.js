@@ -12,6 +12,120 @@ function fixture(emit = () => {}) {
     }] };
 }
 
+function selectionFixture(emit = () => {}) {
+    return { role: 'events', emit, bindings: [8, 3, 5].map((amount, i) => ({
+        alias: `event_${i}`, role: 'events', value: { amount },
+        shape: { type: 'record', fields: { amount: { type: 'scalar' } } }
+    })) };
+}
+
+test('N02G:ACCESS-017 selection computes every decision and keeps immutable ordered views', () => {
+    const events = []; const access = createNodeSetAccess(selectionFixture(e => events.push(e)));
+    const seen = [];
+    const selected = access.handle.select((node, index) => { seen.push(index); return node.get('amount') >= 5; });
+    assert.deepEqual(seen, [0, 1, 2]);
+    assert.equal(Object.getPrototypeOf(selected), null);
+    assert.equal(selected.select.constructor, undefined);
+    assert.equal(selected.length(), 2);
+    assert.deepEqual([...selected].map(node => node.get('amount')), [8, 5]);
+    assert.equal(access.handle.length(), 3);
+    const narrower = selected.select(node => node.get('amount') < 8);
+    assert.deepEqual([...narrower].map(node => node.get('amount')), [5]);
+    assert.deepEqual([...access.handle.select(() => false)], []);
+    const noMembers = createNodeSetAccess({ role: 'events', bindings: [], emit: e => events.push(e) });
+    let emptyCalls = 0;
+    assert.equal(noMembers.handle.select(() => { emptyCalls++; return true; }).length(), 0);
+    assert.equal(emptyCalls, 0);
+    const decisions = events.filter(e => e[1] === 'select_member').map(e => e[6]);
+    assert.deepEqual(decisions.slice(0, 3), [['decision', 'event_0', true], ['decision', 'event_1', false], ['decision', 'event_2', true]]);
+    const completed = events.filter(e => e[1] === 'select_return');
+    assert.deepEqual(completed[0][6].slice(2), ['event_0', 'event_2']);
+    assert.match(completed[0][6][1], /^view_[a-f0-9]{64}$/);
+    assert.equal(completed[1][5], 'operand_selection');
+    assert.deepEqual(completed[1][4], [completed[0][6][1]]);
+    const { decodeObservation } = require('../../../src/next/provenance/observationContract');
+    for (const event of events) assert.deepEqual(decodeObservation(event), event);
+});
+
+test('N02G:ACCESS-018 invalid selection outputs never coerce and poison all retained capabilities', () => {
+    let getters = 0;
+    const coercible = { get then() { getters++; return () => {}; }, valueOf() { getters++; return true; } };
+    for (const value of [undefined, null, 1, 'true', [], coercible, Promise.resolve(true)]) {
+        const events = []; const access = createNodeSetAccess(selectionFixture(e => events.push(e)));
+        const retained = access.handle.at(0);
+        assert.throws(() => access.handle.select(() => value), /access_set_predicate_result/);
+        assert.equal(events.filter(e => e[1] === 'select_return').length, 0);
+        assert.throws(() => retained.get('amount'), /access_/);
+        assert.throws(() => access.assertHealthy(), /access_/);
+    }
+    assert.equal(getters, 0);
+    for (const predicate of [null, {}, [], 'predicate']) {
+        const access = createNodeSetAccess(selectionFixture());
+        assert.throws(() => access.handle.select(predicate), /access_set_predicate/);
+        assert.throws(() => access.assertHealthy(), /access_/);
+    }
+});
+
+test('N02G:ACCESS-019 caught callback failures, reentry and revocation cannot return a selection', () => {
+    for (const behavior of ['throw', 'reentry', 'revoked', 'caught_read']) {
+        const events = []; const access = createNodeSetAccess(selectionFixture(e => events.push(e)));
+        assert.throws(() => access.handle.select(node => {
+            if (behavior === 'throw') throw new Error('guest failed');
+            if (behavior === 'reentry') { try { access.handle.select(() => true); } catch {} }
+            if (behavior === 'revoked') access.revoke();
+            if (behavior === 'caught_read') { try { node.get('label'); } catch {} }
+            return true;
+        }), /access_/);
+        assert.equal(events.filter(e => e[1] === 'select_return').length, 0);
+        assert.throws(() => access.assertHealthy(), /access_/);
+    }
+});
+
+test('N02G:ACCESS-020 repeated equal selections share content identity but retain every execution', () => {
+    const events = []; const access = createNodeSetAccess(selectionFixture(e => events.push(e)));
+    access.handle.select(n => n.get('amount') > 4);
+    access.handle.select(n => n.get('amount') >= 5);
+    const completed = events.filter(e => e[1] === 'select_return');
+    assert.equal(completed.length, 2);
+    assert.deepEqual(completed[0][6], completed[1][6]);
+    assert.equal(events.filter(e => e[1] === 'select_member').length, 6);
+    const capped = createNodeSetAccess({ role: 'events', bindings: [], emit: () => {} });
+    for (let i = 0; i < 512; i++) capped.handle.select(() => false);
+    assert.throws(() => capped.handle.select(() => false), /access_set_selection_limit/);
+    assert.throws(() => capped.assertHealthy(), /access_/);
+});
+
+test('N02G:ACCESS-021 sink failure cancels selection and invalidates already returned views', () => {
+    let reject = false; const events = [];
+    const access = createNodeSetAccess(selectionFixture(e => {
+        if (reject && e[1] === 'select_member') throw new Error('observation quota');
+        events.push(e);
+    }));
+    const first = access.handle.select(() => true); const member = first.at(0);
+    reject = true;
+    assert.throws(() => access.handle.select(node => node.get('amount') > 4), /access_set_sink/);
+    assert.equal(events.filter(e => e[1] === 'select_return').length, 1);
+    assert.throws(() => first.length(), /access_/);
+    assert.throws(() => member.get('amount'), /access_/);
+    assert.throws(() => access.assertHealthy(), /access_/);
+});
+
+test('N02G:ACCESS-022 selection tuples reject forged view identities and namespace confusion', () => {
+    const { digest } = require('../../../src/next/kernel/canonicalValue');
+    const { decodeObservation } = require('../../../src/next/provenance/observationContract');
+    const id = `view_${digest({ role: 'events', aliases: ['event_a'] })}`;
+    const good = ['I', 'select_return', 'operand/events', 'events', [], 'operand_set', ['selected', id, 'event_a']];
+    assert.deepEqual(decodeObservation(good), good);
+    for (const change of [e => { e[5] = 'data'; }, e => { e[6][1] = `view_${'0'.repeat(64)}`; },
+        e => { e[6].push('event_a'); }, e => { e[3] = 'other'; e[2] = 'operand/other'; },
+        e => { e[5] = 'operand_selection'; }, e => { e[4] = [1]; }]) {
+        const mutated = structuredClone(good); change(mutated); assert.throws(() => decodeObservation(mutated));
+    }
+    for (const outcome of [['decision', 'event_a', 'true'], ['decision', {}, true], ['decision', 'event_a', true, false]]) {
+        assert.throws(() => decodeObservation(['I', 'select_member', 'operand/events', 'events', [0], 'operand_set', outcome]));
+    }
+});
+
 test('N02G:ACCESS-013 heterogeneous and empty operand sets expose only observed handles', () => {
     const events = []; const options = fixture(e => events.push(e));
     options.role = 'events';

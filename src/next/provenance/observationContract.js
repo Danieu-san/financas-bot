@@ -1,4 +1,5 @@
 'use strict';
+const { digest } = require('../kernel/canonicalValue');
 const { types } = require('node:util');
 const fail = () => { throw new Error('observation_shape_invalid'); };
 const identifier = v => typeof v === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.:#/-]{0,127}$/.test(v);
@@ -54,14 +55,19 @@ function decodeObservation(raw) {
     if (!Array.isArray(e) || e.length !== 7 || e[0] !== 'I' || !identifier(e[2]) || !identifier(e[3])
         || !Array.isArray(e[4]) || e[4].length > 32
         || e[4].some(p => !field(p) && !(Number.isSafeInteger(p) && p >= 0))
-        || !['data', 'keys', 'operand_set'].includes(e[5]) || !Array.isArray(e[6])) fail();
+        || !['data', 'keys', 'operand_set', 'operand_selection'].includes(e[5]) || !Array.isArray(e[6])) fail();
     const o = e[6]; const tag = o[0];
-    const nodeSet = e[5] === 'operand_set';
+    const selectedView = e[5] === 'operand_selection';
+    const nodeSet = e[5] === 'operand_set' || selectedView;
+    const viewId = value => typeof value === 'string' && /^view_[a-f0-9]{64}$/.test(value);
+    if (selectedView && !viewId(e[4][0])) fail();
+    const setPath = selectedView ? e[4].slice(1) : e[4];
     if (nodeSet && (e[2] !== `operand/${e[3]}`
-        || !['length', 'includes', 'at', 'iterate', 'next', 'return', 'reuse_iterator'].includes(e[1])
-        || (['at', 'next'].includes(e[1])
-            ? e[4].length !== 1 || !Number.isSafeInteger(e[4][0]) || e[4][0] < 0 || Object.is(e[4][0], -0)
-            : e[4].length !== 0))) fail();
+        || !['length', 'includes', 'at', 'iterate', 'next', 'return', 'reuse_iterator',
+            'select_start', 'select_member', 'select_return'].includes(e[1])
+        || (['at', 'next', 'select_member'].includes(e[1])
+            ? setPath.length !== 1 || !Number.isSafeInteger(setPath[0]) || setPath[0] < 0 || Object.is(setPath[0], -0)
+            : setPath.length !== 0))) fail();
     const valueOutcome = tag === 'scalar' && o.length === 2 && scalar(o[1])
         || tag === 'container' && o.length === 2 && ['record', 'sequence'].includes(o[1]);
     const accessOutcome = nodeSet ? tag === 'node' && o.length === 2 && identifier(o[1]) : valueOutcome;
@@ -78,6 +84,12 @@ function decodeObservation(raw) {
     case 'return': valid = tag === 'closed' && o.length === 2 && Number.isSafeInteger(o[1]) && o[1] >= 0; break;
     case 'reuse_iterator': valid = tag === 'cursor' && o.length === 3 && Number.isSafeInteger(o[1])
         && o[1] >= 0 && typeof o[2] === 'boolean'; break;
+    case 'select_start': valid = nodeSet && tag === 'selection_opened' && o.length === 1; break;
+    case 'select_member': valid = nodeSet && tag === 'decision' && o.length === 3
+        && identifier(o[1]) && typeof o[2] === 'boolean'; break;
+    case 'select_return': valid = nodeSet && tag === 'selected' && o.length >= 2 && o.length <= 514 && viewId(o[1])
+        && o.slice(2).every(identifier) && new Set(o.slice(2)).size === o.length - 2
+        && o[1] === `view_${digest({ role: e[3], aliases: o.slice(2) })}`; break;
     default: fail();
     }
     if (!valid) fail();

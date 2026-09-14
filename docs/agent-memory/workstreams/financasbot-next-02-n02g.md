@@ -512,4 +512,33 @@ ao iniciá-la, pausar sem polling, conforme preferência de Daniel.
 Telemetria de calibração: não consultada nesta abertura; métricas de uso
 NAO_DISPONIVEL. Não amplia coleta nem bloqueia o produto.
 
+Retomada após `7cea49cfca281e94792fdc4acc183c3e105078b0`, árvore limpa.
+Incremento de seleção: `instrumentedAccess.js`, `observationContract.js`, cases
+existentes instrumentedAccess/authoringIndex e probe SES existente. Sem paths novos.
+`select` deve calcular decisões booleanas por membro via callback instrumentado,
+sem receber selected_set/expected_trace. Views imutáveis identificadas pelo hash
+do roster ordenado e role; esse identificador não prova valor, snapshot ou fórmula.
+I distingue abertura, decisão de cada membro e fechamento, preservando lineage
+e leituras. Recusar resultado não booleano sem coerção, reentrância, exceção,
+revogação ou quota excedida com falha persistente. Não declarar as 73 seleções
+executadas até conectar o programa de predicados tipados e validar a captura.
+
+Seleção instrumentada implementada e validada: callback executado para cada
+membro, resultado estritamente booleano, view ordenada imutável e seleção
+encadeada. Eventos select_start/select_member/select_return preservam execução;
+o digest da view inclui role/aliases e é conferido no decoder, sem substituir
+identidade de snapshot ou prova da fórmula. Views/membros compartilham falha e
+revogação. Limite de 512 seleções por controlador; reentrância recusada.
+Seis testes causais novos cobrem cálculo, coerção/getters, exceção capturada,
+revogação, quota/sink, identidade forjada e namespace. Integração com dados
+admitidos confirma leituras e decisões sem lista esperada de seleção.
+REDs observados antes da implementação; access/recorder 30/30 e integração
+snapshot 6/6 PASS. Bateria focal integrada final: 158/158 PASS, zero FAIL,
+SKIP ou TODO. Probe SES: 13 checks de autoridade, 12 de handles/conjuntos,
+22 observações no recorder pai e três recusas de lifecycle. Syntax, diff-check
+e agent-workflow OK. Ampla não iniciada; dependências/produção/canal intactos.
+Próxima ação exata: traversal material por handles e conexão dos operadores
+tipados à seleção. As 73 seleções contratuais ainda não foram executadas pelo
+motor final; manter N02-G WIP, sem GO e sem auditoria final prematura.
+
 Codex → Astra → Alto → vincular shapes/bindings e seleção/traversal aos contratos admitidos, sem GO parcial.

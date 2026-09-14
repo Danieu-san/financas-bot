@@ -211,8 +211,9 @@ function compileAuthoringIR(admitted, validators) {
 
 // Host/TCB factory only; never endow this controller into a guest compartment.
 // No caller-supplied payload, shape, role declaration or identity override.
-// openSet observes the ordered roster, not predicate-based selection. Neither
-// method authorizes validated-parent receipts or claim-context access.
+// openSet admits the initial ordered roster; its handle.select computes new
+// views, but neither is approval of graph selection obligations. These methods
+// do not authorize validated-parent receipts or claim-context access.
 function compileSnapshotAccess(admitted, validators) {
     const context = compileAuthoring(admitted, validators);
     const reject = code => { throw new Error(`snapshot_access_${code}`); };

@@ -1,6 +1,7 @@
 'use strict';
 const { types } = require('node:util');
 const { copyData, identifier, field, scalar } = require('./observationContract');
+const { digest } = require('../kernel/canonicalValue');
 const failSetup = () => { throw new Error('access_shape_invalid'); };
 
 // Shape is supplied by trusted schema/registry admission, not by guest. This
@@ -149,49 +150,78 @@ function createNodeSetAccess(options) {
     const members = bindings.length ? createInstrumentedAccess({ bindings, emit }) : null;
     const aliases = bindings.map(b => b.alias);
     const b = { alias: `operand/${role}`, role };
-    let revoked = false; let failed = false;
+    let revoked = false; let failed = false; let selectionBusy = false; let selectionCount = 0;
     function fail(code) { failed = true; members?.revoke(); throw new Error(`access_set_${code}`); }
     function check() {
         if (failed) fail('failed'); if (revoked) fail('revoked');
         try { members?.assertHealthy(); } catch { fail('member_failed'); }
     }
-    function event(op, path, outcome) {
+    function event(op, path, outcome, projection) {
         check();
-        try { emit(copyData(['I', op, b.alias, b.role, path, 'operand_set', outcome])); }
+        try { emit(copyData(['I', op, b.alias, b.role, path, projection, outcome])); }
         catch { fail('sink'); }
         check();
     }
-    function at(index, op = 'at') {
-        check(); if (!Number.isSafeInteger(index) || index < 0 || Object.is(index, -0)) fail('index');
-        if (index >= aliases.length) { event(op, [index], [op === 'next' ? 'done' : 'absent']); return undefined; }
-        const alias = aliases[index]; event(op, [index], ['node', alias]);
-        return members.handle(alias);
-    }
-    function iterator() {
-        event('iterate', [], ['opened']); let index = 0; let closed = false; let result;
-        const packet = (done, value) => Object.freeze(Object.assign(Object.create(null), { done, value }));
-        result = frozenInterface({
-            next: () => {
-                check();
-                if (closed || index >= aliases.length) {
-                    event('next', [index], ['done']); closed = true; return packet(true, undefined);
-                }
-                const value = at(index, 'next'); index++; return packet(false, value);
+    function view(roster, viewId) {
+        const prefix = viewId ? [viewId] : [];
+        const projection = viewId ? 'operand_selection' : 'operand_set';
+        const observe = (op, path, outcome) => event(op, [...prefix, ...path], outcome, projection);
+        function at(index, op = 'at') {
+            check(); if (!Number.isSafeInteger(index) || index < 0 || Object.is(index, -0)) fail('index');
+            if (index >= roster.length) { observe(op, [index], [op === 'next' ? 'done' : 'absent']); return undefined; }
+            const alias = roster[index]; observe(op, [index], ['node', alias]);
+            return members.handle(alias);
+        }
+        function iterator() {
+            observe('iterate', [], ['opened']); let index = 0; let closed = false; let result;
+            const packet = (done, value) => Object.freeze(Object.assign(Object.create(null), { done, value }));
+            result = frozenInterface({
+                next: () => {
+                    check();
+                    if (closed || index >= roster.length) {
+                        observe('next', [index], ['done']); closed = true; return packet(true, undefined);
+                    }
+                    const value = at(index, 'next'); index++; return packet(false, value);
+                },
+                return: () => { observe('return', [], ['closed', index]); closed = true; return packet(true, undefined); },
+                [Symbol.iterator]: () => { observe('reuse_iterator', [], ['cursor', index, closed]); return result; }
+            });
+            return result;
+        }
+        return frozenInterface({
+            length: () => { observe('length', [], ['count', roster.length]); return roster.length; },
+            at: index => at(index),
+            includes: alias => {
+                check(); if (!identifier(alias)) fail('membership');
+                const present = roster.includes(alias); observe('includes', [], ['membership', alias, present]); return present;
             },
-            return: () => { event('return', [], ['closed', index]); closed = true; return packet(true, undefined); },
-            [Symbol.iterator]: () => { event('reuse_iterator', [], ['cursor', index, closed]); return result; }
+            select: predicate => {
+                check(); if (typeof predicate !== 'function') fail('predicate');
+                if (selectionBusy) fail('selection_reentry');
+                if (selectionCount >= 512) fail('selection_limit');
+                selectionCount++; selectionBusy = true;
+                try {
+                    observe('select_start', [], ['selection_opened']);
+                    const selected = [];
+                    for (let index = 0; index < roster.length; index++) {
+                        let decision;
+                        try { decision = predicate(at(index), index); } catch { fail('predicate_threw'); }
+                        check(); // Caught forbidden reads/revocation still invalidate this operation.
+                        if (typeof decision !== 'boolean') fail('predicate_result');
+                        observe('select_member', [index], ['decision', roster[index], decision]);
+                        if (decision) selected.push(roster[index]);
+                    }
+                    // Content identity of the ordered roster only, not proof of
+                    // snapshot/value identity. Repeated executions remain in I.
+                    const id = `view_${digest({ role, aliases: selected })}`;
+                    observe('select_return', [], ['selected', id, ...selected]);
+                    return view(Object.freeze(selected), id);
+                } finally { selectionBusy = false; }
+            },
+            [Symbol.iterator]: iterator
         });
-        return result;
     }
-    return Object.freeze({ handle: frozenInterface({
-        length: () => { event('length', [], ['count', aliases.length]); return aliases.length; },
-        at: index => at(index),
-        includes: alias => {
-            check(); if (!identifier(alias)) fail('membership');
-            const present = aliases.includes(alias); event('includes', [], ['membership', alias, present]); return present;
-        },
-        [Symbol.iterator]: iterator
-    }),
+    return Object.freeze({ handle: view(aliases),
     revoke: () => { revoked = true; members?.revoke(); },
     assertHealthy: () => { if (failed) fail('failed'); members?.assertHealthy(); }
     });

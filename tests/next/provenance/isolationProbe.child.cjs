@@ -94,6 +94,7 @@ if (['authority', 'bad_exit', 'duplicate', 'hang_after_result'].includes(scenari
     const setGuest = compartment(harden(nodes.handle));
     checks.setStructure = setGuest.evaluate(`operands.length() === 1 && operands.at.constructor === undefined
         && !Array.isArray(operands) && (() => { for (const node of operands) return node.get('amount') === 9; return false; })()`, EXECUTION_PROFILE.evaluate);
+    checks.setSelection = setGuest.evaluate(`operands.select(node => node.get('amount') >= 9).length() === 1`, EXECUTION_PROFILE.evaluate);
     const retainedGuest = compartment(harden(nodes.handle.at(0)));
     nodes.revoke(); nodes.assertHealthy();
     try { retainedGuest.evaluate('operands.get("amount")', EXECUTION_PROFILE.evaluate); checks.setRetainedRevoked = false; }
