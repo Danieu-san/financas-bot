@@ -21,3 +21,4 @@ require('./next/provenance/artifactLoader.cases');
 require('./next/provenance/executionProfile.cases');
 require('./next/provenance/instrumentedAccess.cases');
 require('./next/provenance/causalRecorder.cases');
+require('./next/provenance/scalarProofOperators.cases');

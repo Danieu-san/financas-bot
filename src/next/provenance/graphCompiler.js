@@ -258,8 +258,8 @@ function compileSnapshotAccess(admitted, validators) {
         if (node.binding !== 'snapshot' || !snapshot) reject('snapshot');
         return { alias, role, value: snapshot.value, shape: snapshot.shape };
     }
-    function reachable(fact_key, role, alias) {
-        const graph = graphs.get(fact_key); const visited = new Set([alias]); const queue = [alias]; const links = [];
+    function reachable(fact_key, role, aliases) {
+        const graph = graphs.get(fact_key); const visited = new Set(aliases); const queue = [...aliases]; const links = [];
         for (let i = 0; i < queue.length; i++) {
             for (const edge of graph.edges) {
                 if (edge.relation !== 'material_ref' || edge.source !== queue[i]) continue;
@@ -280,7 +280,7 @@ function compileSnapshotAccess(admitted, validators) {
             if (!['node', 'node_set'].includes(binding.kind)) reject('binding_kind');
             const aliases = binding.kind === 'node' ? [binding.alias] : binding.aliases;
             if (!aliases.includes(alias)) reject('alias');
-            const access = createInstrumentedAccess({ ...reachable(fact_key, role_id, alias), emit });
+            const access = createInstrumentedAccess({ ...reachable(fact_key, role_id, [alias]), emit });
             return Object.freeze({ handle: access.handle(alias),
                 revoke: access.revoke, assertHealthy: access.assertHealthy });
         },
@@ -288,7 +288,7 @@ function compileSnapshotAccess(admitted, validators) {
             const { fact_key, role_id, binding } = select(selector, emit, true);
             if (binding.kind !== 'node_set') reject('binding_kind');
             return createNodeSetAccess({ role: role_id,
-                bindings: binding.aliases.map(alias => sourceBinding(fact_key, role_id, alias)), emit });
+                ...reachable(fact_key, role_id, binding.aliases), roster: binding.aliases, emit });
         }
     });
 }

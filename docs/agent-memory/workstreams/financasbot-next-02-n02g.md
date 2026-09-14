@@ -563,4 +563,36 @@ e views selecionadas (hoje somente open individual configura links), depois
 programa dos operadores/predicados tipados. Não confundir suporte genérico
 role_ref_list com aceitação de parent_claim/recibo da mesma execução: pendente.
 
+Retomada contínua após e8fd2c4: ligar os links de membros de conjuntos e views,
+preservando roster inicial separado do fechamento alcançável. Paths existentes:
+instrumentedAccess/graphCompiler e seus cases. Sem novo path ou mudança de gate.
+Daniel reiterou: não encerrar turnos em cada WIP; continuar até auditoria ou
+impedimento real. Checkpoints/commits intermediários não são pontos de pausa.
+Traversal em conjuntos/views integrado: roster separado do fechamento de links;
+36 testes access/recorder e oito de integração PASS, sem ampla repetida.
+Próximos paths registrados antes da criação: `src/next/provenance/scalarProofOperators.js`
+e `tests/next/provenance/scalarProofOperators.cases.js`, entry focal existente.
+Implementar relações escalares/civis com tipos compilados, reaproveitando
+operatorTypes/literalTypes/civilCalendar; não gera R nem aceita evidência crua.
+Helper interno recebe valores já resolvidos por instrumentação; integração com
+programa fechado/recorder e operadores de nós/conjuntos continua pendente.
+Integração de traversal em conjuntos/views validada. Helper escalar executa
+19 IDs contratados: comparações escalares/campos/estado, períodos, quatro
+relações civis, sinais/magnitude, soma/count/cardinality/set_eq e all_dates.
+Parte de set_eq/cardinality/count ainda restringe membros a escalares; nós
+exigem próxima projeção de identidade. `as_of`/`through` em containment e
+conversão instant/timezone continuam recusados explicitamente, não inferidos
+por nome ou relógio local; period_eq preserva seus kinds distintos.
+Tipos nominais verificados antes de cálculo; soma checa overflow por passo;
+datetime compara instante/fracionário exato sem Date. Períodos prototype-free
+comparados pelos campos fechados, não passados indevidamente ao canonicalValue.
+REDs de funções ausentes e famílias não implementadas observados. Afetada
+operadores/calendar/types 17/17 PASS; focal integrada final 175/175 PASS,
+zero FAIL/SKIP/TODO. Probe SES 13 checks de autoridade, 14 de handles/conjuntos,
+31 observações externas, três recusas de lifecycle. Syntax/workflow/diff OK.
+Não houve ampla, dependência, canal ou produção. Próxima ação: projeção
+instrumentada da identidade kind/ref/version dos nós, operadores de nós e
+resolver/programa de prova. Nunca copiar identidade declarada do grafo para
+resultado de operador como se tivesse sido observada no snapshot.
+
 Codex → Astra → Alto → vincular shapes/bindings e seleção/traversal aos contratos admitidos, sem GO parcial.

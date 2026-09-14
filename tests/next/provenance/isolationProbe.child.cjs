@@ -103,16 +103,21 @@ if (['authority', 'bad_exit', 'duplicate', 'hang_after_result'].includes(scenari
     catch { checks.setRevoked = true; }
     try { nodes.assertHealthy(); checks.setFailureLatched = false; }
     catch { checks.setFailureLatched = true; }
-    const relation = createInstrumentedAccess({ emit: event => process.send({ kind: 'observation', event }), bindings: [
+    const relationOptions = { emit: event => process.send({ kind: 'observation', event }), bindings: [
         { alias: 'origin', role: 'source', value: { id: 'origin-id', ref: 'target-id' },
             shape: { type: 'record', fields: { id: { type: 'scalar' }, ref: { type: 'scalar' } } } },
         { alias: 'target', role: 'source', value: { id: 'target-id', amount: 11 },
             shape: { type: 'record', fields: { id: { type: 'scalar' }, amount: { type: 'scalar' } } } }
-    ], links: [{ id: 'link', source: 'origin', field: 'ref', target: 'target', type: 'ref' }] });
+    ], links: [{ id: 'link', source: 'origin', field: 'ref', target: 'target', type: 'ref' }] };
+    const relation = createInstrumentedAccess(relationOptions);
     const relationGuest = compartment(harden(relation.handle('origin')));
     checks.traversal = relationGuest.evaluate(`operands.traverse('link').get('amount') === 11
         && operands.traverse.constructor === undefined`, EXECUTION_PROFILE.evaluate);
     relation.revoke(); relation.assertHealthy();
+    const linkedSet = createNodeSetAccess({ ...relationOptions, role: 'source', roster: ['origin'] });
+    const linkedSetGuest = compartment(harden(linkedSet.handle));
+    checks.setTraversal = linkedSetGuest.evaluate(`operands.at(0).traverse('link').get('amount') === 11`, EXECUTION_PROFILE.evaluate);
+    linkedSet.revoke(); linkedSet.assertHealthy();
     value = { checks }; // Probe booleans, not a functional-result/trace envelope.
 } else if (scenario === 'fresh') {
     let mutationDenied = false;

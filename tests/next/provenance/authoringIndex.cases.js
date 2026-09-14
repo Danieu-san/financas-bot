@@ -214,6 +214,27 @@ test('N02G:SNAPSHOT-ACCESS-007 traversal follows only admitted reachable materia
     assert.ok(traversals > 100); assert.ok(visitedKinds.size > 5);
 });
 
+test('N02G:SNAPSHOT-ACCESS-008 admitted node-set selections retain traversal and shared revocation', async () => {
+    const { plan, claims, graphs } = await snapshotAccessFixture(); let exercised = 0;
+    for (const claim of claims) for (const [role_id, binding] of Object.entries(claim.operand_bindings)) {
+        if (binding.kind !== 'node_set' || !binding.aliases.length) continue;
+        const graph = graphs.find(g => g.fact_key === claim.fact_key);
+        const edge = graph.edges.find(e => e.relation === 'material_ref' && e.source === binding.aliases[0]);
+        if (!edge) continue;
+        const events = []; const access = plan.openSet({ fact_key: claim.fact_key, role_id }, e => events.push(e));
+        const selected = access.handle.select((node, index) => index === 0 && node.traverse(edge.id).get('id') === graph.nodes[edge.target].ref_id);
+        assert.equal(selected.length(), 1); assert.equal(access.handle.length(), binding.aliases.length);
+        const target = selected.at(0).traverse(edge.id);
+        assert.equal(target.get('id'), graph.nodes[edge.target].ref_id);
+        assert.equal(events.filter(e => e[1] === 'traverse').length, 2);
+        access.revoke(); access.assertHealthy();
+        assert.throws(() => target.get('id'), /access_revoked/);
+        assert.throws(() => access.assertHealthy(), /access_failed/);
+        exercised++;
+    }
+    assert.ok(exercised > 10);
+});
+
 test('N02G:SNAPSHOT-ACCESS-003 projection cannot bypass package or composite snapshot identity admission', async () => {
     const validation = await validators();
     assert.throws(() => compileSnapshotAccess({ documents: [] }, validation), /package_not_admitted/);

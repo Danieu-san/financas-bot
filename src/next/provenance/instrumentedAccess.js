@@ -181,13 +181,19 @@ function createInstrumentedAccess(options) {
 function createNodeSetAccess(options) {
     if (!options || typeof options !== 'object' || types.isProxy(options)) failSetup();
     const d = Object.getOwnPropertyDescriptors(options);
-    if (Reflect.ownKeys(d).length !== 3 || ['role', 'bindings', 'emit'].some(k => !d[k] || !Object.hasOwn(d[k], 'value'))
+    const withLinks = Object.hasOwn(d, 'links') || Object.hasOwn(d, 'roster');
+    const expected = withLinks ? ['role', 'bindings', 'emit', 'links', 'roster'] : ['role', 'bindings', 'emit'];
+    if (Reflect.ownKeys(d).length !== expected.length || expected.some(k => !d[k] || !Object.hasOwn(d[k], 'value'))
         || typeof d.emit.value !== 'function') failSetup();
     const role = d.role.value; const bindings = copyData(d.bindings.value); const emit = d.emit.value;
     if (!identifier(role) || !identifier(`operand/${role}`) || !Array.isArray(bindings) || bindings.length > 512
         || bindings.some(b => b?.role !== role)) failSetup();
-    const members = bindings.length ? createInstrumentedAccess({ bindings, emit }) : null;
-    const aliases = bindings.map(b => b.alias);
+    const links = withLinks ? copyData(d.links.value) : [];
+    const aliases = withLinks ? copyData(d.roster.value) : bindings.map(b => b.alias);
+    if (!Array.isArray(links) || !Array.isArray(aliases) || new Set(aliases).size !== aliases.length
+        || aliases.some(alias => !identifier(alias) || !bindings.some(b => b.alias === alias))
+        || !bindings.length && links.length) failSetup();
+    const members = bindings.length ? createInstrumentedAccess({ bindings, emit, links }) : null;
     const b = { alias: `operand/${role}`, role };
     let revoked = false; let failed = false; let selectionBusy = false; let selectionCount = 0;
     function fail(code) { failed = true; members?.revoke(); throw new Error(`access_set_${code}`); }

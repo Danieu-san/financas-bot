@@ -33,6 +33,34 @@ function traversalFixture(emit = () => {}) {
     ] };
 }
 
+test('N02G:ACCESS-027 set members and selected views traverse without adding targets to the roster', () => {
+    const events = []; const f = traversalFixture(e => events.push(e));
+    const access = createNodeSetAccess({ ...f, role: 'source', roster: ['a'] });
+    assert.equal(access.handle.length(), 1);
+    assert.equal(access.handle.includes('b'), false);
+    const selected = access.handle.select(node => node.traverse('owner_link').get('amount') > 10);
+    assert.equal(selected.length(), 1);
+    const retained = selected.at(0).traverse('members_link');
+    assert.equal(retained.get('amount'), 14);
+    assert.equal(access.handle.length(), 1);
+    assert.equal(events.filter(e => e[1] === 'traverse').length, 2);
+    access.revoke(); access.assertHealthy();
+    assert.throws(() => retained.get('amount'), /access_revoked/);
+    assert.throws(() => access.assertHealthy(), /access_failed/);
+});
+
+test('N02G:ACCESS-028 invalid set roster/closure cannot silently substitute a member', () => {
+    for (const roster of [['missing'], ['a', 'a'], null, 'a']) {
+        assert.throws(() => createNodeSetAccess({ ...traversalFixture(), role: 'source', roster }), /access_shape_invalid/);
+    }
+    for (const changed of [{ roster: ['a'] }, { links: [] }]) {
+        assert.throws(() => createNodeSetAccess({ ...fixture(), role: 'events', ...changed }), /access_shape_invalid/);
+    }
+    assert.throws(() => createNodeSetAccess({ role: 'events', bindings: [], roster: [], links: [
+        { id: 'link', source: 'a', target: 'b', field: 'ref', type: 'ref' }
+    ], emit: () => {} }), /access_shape_invalid/);
+});
+
 test('N02G:ACCESS-023 traversal observes source reference and target identity before returning a handle', () => {
     const events = []; const access = createInstrumentedAccess(traversalFixture(e => events.push(e)));
     const source = access.handle('a');
