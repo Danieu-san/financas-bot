@@ -24,3 +24,6 @@ require('./next/provenance/causalRecorder.cases');
 require('./next/provenance/scalarProofOperators.cases');
 require('./next/provenance/proofOperators.cases');
 require('./next/provenance/claimContext.cases');
+require('./next/provenance/pinnedCivilTimezone.cases');
+require('./next/provenance/metricSelection.cases');
+require('./next/provenance/guestBundle.cases');

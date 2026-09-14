@@ -2,8 +2,9 @@
 const { copyData, field } = require('./observationContract');
 const { validateLiteral } = require('./literalTypes');
 const { digest } = require('../kernel/canonicalValue');
-const { evaluateScalarProof } = require('./scalarProofOperators');
+const { evaluateScalarProof, compareTypedScalars } = require('./scalarProofOperators');
 const { unifyOperatorTypes } = require('./operatorTypes');
+const { civilDateInPinnedTimezone } = require('./pinnedCivilTimezone');
 const fail = () => { throw new Error('proof_material_invalid'); };
 
 // Internal TCB primitive, not an acceptance API. The caller supplies an
@@ -131,6 +132,51 @@ function evaluateObservedOperator(rawOperator, rawOperands, scope) {
     const operator = copyData(rawOperator); const operands = copyData(rawOperands);
     if (!Array.isArray(operands)) throw new Error('proof_expression_operands');
     for (const operand of operands) expressionShape(operand, ['type', 'expression']);
+    const special = {
+        all_match: ['all_members_satisfy_expanded_conjunction', ['set:node:K', 'predicate_template_ref']],
+        none_match: ['no_member_satisfies_expanded_conjunction', ['set:node:K', 'predicate_template_ref']],
+        same_field: ['one_distinct_field_value', ['set:node:K', 'field_selector:K:T']],
+        join_eq: ['equal_unique_key_domains_and_pairwise_join', ['set:node:A', 'set:node:B', 'field_selector:A:T', 'field_selector:B:T']],
+        ordered_by: ['lexicographic_order_with_explicit_ties', ['sequence:node:K', 'sort_key_descriptor:K']],
+        edge_pair_complete: ['two_distinct_nodes_share_exact_identity', ['set:node:K', 'edge_selector:K:J', 'node:J']]
+    };
+    function members(operand) {
+        expressionShape(operand.expression, ['kind', 'name']);
+        if (operand.expression.kind !== 'set_ref' || !['set', 'sequence'].includes(operand.type.form) || operand.type.item?.form !== 'node') throw new Error('proof_expression_set');
+        const seen = new Set();
+        return sequence(scope.set(operand.expression.name), member => {
+            const id = readObservedIdentity(member); const key = JSON.stringify([id.kind, id.ref_id, id.version]);
+            if (id.kind !== operand.type.item.kind || operand.type.form === 'set' && seen.has(key)) throw new Error('proof_expression_member');
+            seen.add(key); return member;
+        });
+    }
+    function fieldType(kind, segments) {
+        const descriptor = scope.fieldDescriptor(kind, segments);
+        if (['ref', 'id'].includes(descriptor.type)) {
+            const nominal = descriptor.type === 'id' ? (segments[0] === 'id' ? kind : `${kind}.${segments[0]}`)
+                : descriptor.targets?.length === 1 ? descriptor.targets[0] : null;
+            if (!nominal) throw new Error('proof_expression_nominal');
+            return { form: 'scalar', type: 'id', kind: nominal };
+        }
+        if (descriptor.type === 'enum') return { form: 'scalar', type: 'enum', domain: JSON.stringify([...descriptor.values].sort()) };
+        if (descriptor.type === 'money_minor') return { form: 'scalar', type: 'money_minor', unit: 'BRL_minor' };
+        if (['ref_list', 'role_ref_list', 'typed_period', 'typed_result'].includes(descriptor.type)) throw new Error('proof_expression_scalar');
+        return { form: 'scalar', type: descriptor.type };
+    }
+    function selector(operand, kind) {
+        const expression = operand.expression;
+        expressionShape(expression, ['kind', 'node_kind', 'segments']);
+        if (expression.kind !== 'field_selector' || expression.node_kind !== kind) throw new Error('proof_expression_selector');
+        const type = fieldType(kind, expression.segments);
+        if (operand.type.value) unifyOperatorTypes({ args: ['scalar:T', 'scalar:T'] }, [type, operand.type.value]);
+        return { type, segments: expression.segments };
+    }
+    function values(nodes, selected) {
+        return nodes.map(member => {
+            const value = readPath(member, selected.segments);
+            compareTypedScalars(selected.type, value, value); return value;
+        });
+    }
     function resolve(expression, type) {
         let value;
         switch (expression.kind) {
@@ -140,6 +186,34 @@ function evaluateObservedOperator(rawOperator, rawOperands, scope) {
         case 'edge_ref':
             expressionShape(expression, ['kind', 'id']);
             return readObservedIdentity(scope.edge(expression.id));
+        case 'set_ref':
+            expressionShape(expression, ['kind', 'name']);
+            return sequence(scope.set(expression.name), member => readObservedIdentity(member));
+        case 'reference_set': {
+            expressionShape(expression, ['kind', 'field']);
+            expressionShape(expression.field, ['kind', 'alias', 'segments']);
+            const source = expression.field;
+            if (source.kind !== 'field_ref' || source.segments.length !== 1) throw new Error('proof_expression_reference');
+            const refs = sequence(readPath(scope.node(source.alias), source.segments), ref => {
+                validateLiteral({ type: 'id', value: ref }); return ref;
+            });
+            return refs.map(ref => {
+                const identity = readObservedIdentity(scope.resolveReference(source.alias, source.segments[0], ref));
+                if (identity.ref_id !== ref) throw new Error('proof_expression_reference');
+                return identity;
+            });
+        }
+        case 'projection': {
+            expressionShape(expression, ['kind', 'set', 'selector', 'as']);
+            expressionShape(expression.set, ['kind', 'name']);
+            expressionShape(expression.selector, ['kind', 'node_kind', 'segments']);
+            if (expression.set.kind !== 'set_ref' || expression.selector.kind !== 'field_selector'
+                || !['set', 'sequence'].includes(expression.as) || type.form !== expression.as) throw new Error('proof_expression_projection');
+            return sequence(scope.set(expression.set.name), member => {
+                if (readObservedIdentity(member).kind !== expression.selector.node_kind) throw new Error('proof_expression_projection_kind');
+                return readPath(member, expression.selector.segments);
+            });
+        }
         case 'field_ref':
             expressionShape(expression, ['kind', 'alias', 'segments']);
             value = readPath(scope.node(expression.alias), expression.segments); break;
@@ -200,6 +274,110 @@ function evaluateObservedOperator(rawOperator, rawOperands, scope) {
         return measureMaterialFingerprint(scope.node(alias), scope.material(alias)) === expected;
     }
     unifyOperatorTypes(operator, operands.map(o => o.type));
+    if (operator.id === 'civil_date_matches') {
+        if (Object.keys(operator).sort().join(',') !== 'args,id,semantics'
+            || operator.semantics !== 'instant_local_civil_date_equal'
+            || JSON.stringify(operator.args) !== JSON.stringify(['datetime', 'date', 'timezone', 'calendar'])) throw new Error('proof_operator_contract');
+        const [instant, date, timezone, calendar] = operands.map(o => resolve(o.expression, o.type));
+        validateLiteral({ type: 'date', value: date });
+        return civilDateInPinnedTimezone(instant, timezone, calendar) === date;
+    }
+    if (Object.hasOwn(special, operator.id)) {
+        const spec = special[operator.id];
+        if (Object.keys(operator).sort().join(',') !== 'args,id,semantics'
+            || operator.semantics !== spec[0] || JSON.stringify(operator.args) !== JSON.stringify(spec[1])) throw new Error('proof_operator_contract');
+        const nodes = members(operands[0]);
+        if (operator.id === 'same_field') {
+            const selected = selector(operands[1], operands[0].type.item.kind);
+            const read = values(nodes, selected);
+            return read.length > 0 && read.every(value => compareTypedScalars(selected.type, value, read[0]) === 0);
+        }
+        if (operator.id === 'join_eq') {
+            const rightNodes = members(operands[1]);
+            const leftSelector = selector(operands[2], operands[0].type.item.kind);
+            const rightSelector = selector(operands[3], operands[1].type.item.kind);
+            unifyOperatorTypes({ args: ['scalar:T', 'scalar:T'] }, [leftSelector.type, rightSelector.type]);
+            const left = values(nodes, leftSelector); const right = values(rightNodes, rightSelector);
+            for (const side of [left, right]) for (let i = 0; i < side.length; i++) for (let j = 0; j < i; j++) {
+                if (compareTypedScalars(leftSelector.type, side[i], side[j]) === 0) throw new Error('proof_expression_join_duplicate');
+            }
+            return left.length === right.length && left.every(value => right.some(other => compareTypedScalars(leftSelector.type, value, other) === 0));
+        }
+        if (operator.id === 'ordered_by') {
+            const order = operands[1].expression;
+            expressionShape(order, ['kind', 'keys', 'tie_break']);
+            if (order.kind !== 'sort' || order.tie_break !== 'kind_ref_version' || !Array.isArray(order.keys) || !order.keys.length) throw new Error('proof_expression_sort');
+            const keys = order.keys.map(key => {
+                expressionShape(key, ['selector', 'direction']);
+                if (!['asc', 'desc'].includes(key.direction)) throw new Error('proof_expression_sort');
+                return { ...selector({ expression: key.selector, type: {} }, operands[0].type.item.kind), direction: key.direction };
+            });
+            const rows = nodes.map(member => ({ identity: readObservedIdentity(member),
+                values: keys.map(key => values([member], key)[0]) }));
+            let ordered = true;
+            for (let i = 1; i < rows.length; i++) {
+                let comparison = 0;
+                for (let k = 0; k < keys.length && comparison === 0; k++) comparison = compareTypedScalars(keys[k].type,
+                    rows[i - 1].values[k], rows[i].values[k]) * (keys[k].direction === 'asc' ? 1 : -1);
+                for (const key of ['kind', 'ref_id', 'version']) {
+                    if (comparison) break;
+                    const a = rows[i - 1].identity[key]; const b = rows[i].identity[key];
+                    comparison = a === b ? 0 : a < b ? -1 : 1;
+                }
+                if (comparison === 0) throw new Error('proof_expression_sort_unresolved_tie');
+                if (comparison > 0) ordered = false;
+            }
+            return ordered;
+        }
+        if (operator.id === 'edge_pair_complete') {
+            const selector = operands[1].expression;
+            expressionShape(selector, ['kind', 'node_kind', 'segments']);
+            if (selector.kind !== 'field_selector' || selector.segments.length !== 1
+                || selector.node_kind !== operands[0].type.item.kind) throw new Error('proof_expression_edge_selector');
+            const expected = resolve(operands[2].expression, operands[2].type);
+            evaluateScalarProof({ id: 'same_identity', args: ['node:K', 'node:K'], semantics: 'same_kind_ref_version' },
+                [{ type: operands[2].type, value: expected }, { type: operands[2].type, value: expected }]);
+            let equal = true;
+            for (const member of nodes) {
+                const target = readObservedIdentity(scope.memberEdge(member, selector.segments[0]));
+                const result = evaluateScalarProof({ id: 'same_identity', args: ['node:K', 'node:K'], semantics: 'same_kind_ref_version' },
+                    [{ type: operands[2].type, value: target }, { type: operands[2].type, value: expected }]);
+                if (!result) equal = false;
+            }
+            return nodes.length === 2 && equal;
+        }
+        const template = operands[1].expression;
+        expressionShape(template, ['kind', 'template_ref', 'combinator', 'member_slot', 'bindings', 'body']);
+        if (template.kind !== 'predicate_template' || template.combinator !== 'all'
+            || template.member_slot !== 'current_member' || !Array.isArray(template.body) || !template.body.length) throw new Error('proof_expression_template');
+        const prepared = template.body.map(predicate => {
+                expressionShape(predicate, ['op', 'operands']);
+                const op = scope.operator(predicate.op);
+                // The admitted template grammar is a conjunction of binary
+                // field comparisons. No callback, branch or nested quantifier.
+                if (!['eq', 'state_is', 'date_in_period'].includes(op.id) || predicate.operands.length !== 2) throw new Error('proof_expression_template_operator');
+                const [left, right] = predicate.operands;
+                expressionShape(left, ['kind', 'slot', 'node_kind', 'segments']);
+                if (left.kind !== 'member_field' || left.slot !== 'current_member' || left.node_kind !== operands[0].type.item.kind) throw new Error('proof_expression_template_member');
+                const type = fieldType(left.node_kind, left.segments);
+                const leftType = op.id === 'state_is' ? { form: 'field', value: type } : type;
+                const rightType = op.id === 'date_in_period' ? { form: 'period' } : op.id === 'state_is' ? { form: 'state_literal' } : type;
+                unifyOperatorTypes(op, [leftType, rightType]);
+                return { op, left, right, leftType, rightType };
+        });
+        let all = true; let any = false;
+        for (const member of nodes) {
+            let conjunction = true;
+            for (const { op, left, right, leftType, rightType } of prepared) {
+                const result = evaluateScalarProof(op, [{ type: leftType, value: readPath(member, left.segments) },
+                    { type: rightType, value: resolve(right, rightType) }]);
+                if (!result) conjunction = false;
+            }
+            if (!conjunction) all = false;
+            if (conjunction) any = true;
+        }
+        return operator.id === 'all_match' ? all : !any;
+    }
     return evaluateScalarProof(operator, operands.map(operand => ({ type: operand.type,
         value: resolve(operand.expression, operand.type) })));
 }

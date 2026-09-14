@@ -637,5 +637,55 @@ Syntax/diff-check/agent-workflow OK. Nenhuma suíte ampla iniciada, canal,
 dependência, produção ou dado real alterado. Próxima ação exata: conjuntos de
 prova com roster observado, resolução de ref_set/projection e quantificadores,
 sem usar selected_set esperado como resultado de seleção.
+Incremento seguinte nos paths existentes graphCompiler/proofOperators e seus
+cases: abrir conjuntos de prova a partir do roster declarado de candidatos;
+selected_set não pode ser aberto enquanto não houver view calculada por select.
+Controllers de conjuntos/contexto/nós compartilham falha e revogação. Resolver
+ref_set por reads da lista e traversal observado de cada referência, não por
+cópia das identidades declaradas do grafo.
+Conjuntos/ref_set ligados: 102 predicados observados, 794 traversals. Quantificadores
+e pares: 79 predicados, 1890 observações. Helpers same_field/join_eq/ordered_by
+testados com falsos, duplicatas, direção e conjuntos vazios. Ainda sem aceitação.
+Próximo path registrado: `src/next/provenance/pinnedCivilTimezone.js` e
+`tests/next/provenance/pinnedCivilTimezone.cases.js`. Adaptador temporal interno
+TCB, sem expor Intl/Date ao guest; locale/calendar/timezone explícitos. Usar ICU
+full embutido no Node 22.17.0 já pinado (ICU77.1/tz2025b/CLDR47.0/Unicode16.0),
+recusar versões/overrides divergentes. Bootstrap final deve confirmar binário
+full-ICU e hash do runtime, além do closure do adaptador; números de versão não
+substituem identidade de bytes. Não afirmar que esse bootstrap já existe.
+Fonte técnica: https://nodejs.org/download/release/v22.17.0/docs/api/intl.html
+especifica full-ICU embutido nos binários oficiais e overrides alternativos.
+Conversão pinada: 3/3 testes temporais e ligação observada aos dois
+safe_daily_pace PASS; nenhuma alegação de bootstrap final ou aceitação integral.
+Próximos paths registrados: `src/next/provenance/metricSelection.js` e
+`tests/next/provenance/metricSelection.cases.js`. Adaptar a seleção de consumo
+já definida nos evaluator contracts e na referência de comportamento, somente
+por handles (context/events/categories/family), sem importar o oracle nem
+consultar selected_sets/fact_key. Primeiro helpers internos com testes causais;
+a execução final continua condicionada à cápsula/closure e ao gate completo.
+Pré-requisito nos paths existentes instrumentedAccess e seus cases: follow(field)
+somente para referência singular com uma aresta admitida inequívoca. Reutiliza
+traverse e suas leituras/checagens; não expõe IDs específicos do grafo ao kernel
+nem retorna topologia crua. Listas/ambiguidade ficam recusadas nessa operação.
+follow(field): RED confirmado e 32/32 access PASS. Seleção de consumo:
+5/5 testes sintéticos PASS e 16 claims confrontados com oracle/selected_sets
+somente no harness. Retorna R escalar, decisões são observadas pela seleção.
+Próximo incremento no builder existente buildNextProvenanceArtifacts.mjs:
+bundle CommonJS fechado de fontes puros para FunctionExpression(operands),
+sem resolução de filesystem/runtime. Novo case registrado:
+`tests/next/provenance/guestBundle.cases.js`. AST limita imports estáticos;
+capabilities continuam protegidas por SES, não pela classificação sintática.
+Bundle fechado: 3/3 cases PASS, helpers transitivos preservados byte a byte.
+Estender o probe existente (script e isolationProbe.child.cjs), sem novo runner:
+cenário sintético de consumo recebe somente o bundle construído dos três fontes
+fixos, admite seu artefato no filho e executa em SES; I/M chegam ao recorder no
+pai e R é separado. Root esperado desse probe é autoridade de teste, não registry
+revisado nem prova da cápsula TCB completa. Nenhum input CLI de código/dados.
+Incremento validado: focal integrada 217/217 PASS, zero FAIL/SKIP/TODO;
+probe com 13 checks de autoridade, 14 handles, três recusas de lifecycle e
+bundle de consumo em SES (R=125, 49 observações/medições separadas). Diff-check e
+agent-workflow OK. Ampla não iniciada. Publicar somente como WIP, não auditável
+final. Próxima ação: continuar os contratos métricos por handles e o confronto
+exato de observações, preservando a pendência de parents/TCB/witnesses/76 grafos.
 
 Codex → Astra → Alto → vincular shapes/bindings e seleção/traversal aos contratos admitidos, sem GO parcial.

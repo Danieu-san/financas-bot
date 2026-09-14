@@ -59,6 +59,40 @@ function snapshotAccessFixture() {
     return accessFixture;
 }
 
+test('N02G:OBSERVED-METRIC-001 consumption roles select independently of graph expectations and oracle', async () => {
+    const { evaluateConsumption } = require('../../../src/next/provenance/metricSelection');
+    const { createCausalRecorder } = require('../../../src/next/provenance/causalRecorder');
+    const oracle = JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/financasbot-next/golden-claim-oracles-v1.json'), 'utf8'));
+    const { plan, claims, graphs } = await snapshotAccessFixture(); let checked = 0;
+    for (const claim of claims.filter(c => ['consumption_total', 'category_consumption', 'category_spent'].includes(c.metric))) {
+        const recorder = createCausalRecorder({ executionId: `consumption-${checked}`, maxEvents: 10000 });
+        const phase = recorder.open({ invocationId: claim.fact_key, phase: 'derivation' });
+        const controls = []; const operands = {};
+        for (const [role_id, binding] of Object.entries(claim.operand_bindings)) {
+            const selector = { fact_key: claim.fact_key, role_id };
+            const access = binding.kind === 'claim_context' ? plan.openContext(selector, phase.observe)
+                : binding.kind === 'node_set' ? plan.openSet(selector, phase.observe)
+                    : plan.open({ ...selector, alias: binding.alias }, phase.observe);
+            controls.push(access); operands[role_id] = access.handle;
+        }
+        const result = evaluateConsumption(Object.freeze(operands), { consumption_total: 'total', category_consumption: 'category', category_spent: 'spent' }[claim.metric]);
+        for (const access of controls) { access.revoke(); access.assertHealthy(); }
+        phase.seal(); const trace = recorder.finish().derivation_trace;
+        const split = claim.fact_key.lastIndexOf('#');
+        const expected = oracle.turns[claim.fact_key.slice(0, split)].facts[Number(claim.fact_key.slice(split + 1)) - 1];
+        assert.equal(expected.metric, claim.metric);
+        assert.equal(result, expected.value, claim.fact_key);
+        const graph = graphs.find(g => g.fact_key === claim.fact_key);
+        const decisions = trace.filter(e => e.operation === 'select_member');
+        assert.equal(decisions.length, claim.operand_bindings.events.aliases.length);
+        const selected = decisions.filter(e => e.outcome[2]).map(e => e.outcome[1]);
+        assert.deepEqual(selected, graph.sets[graph.selections[0].selected_set], claim.fact_key);
+        assert.ok(trace.some(e => e.operation === 'traverse'));
+        checked++;
+    }
+    assert.equal(checked, 16);
+});
+
 test('N02G:SNAPSHOT-ACCESS-001 handles resolve exact admitted fact/role/alias identities', async () => {
     const { plan, graphs, claims, snapshots, registry } = await snapshotAccessFixture();
     assert.equal(plan.stage, 'snapshot_access_plan_only');
@@ -189,6 +223,91 @@ test('N02G:OBSERVED-PROOF-001 compiled scalar, identity and fingerprint predicat
     // selections, timezone and validated parents remain explicitly pending.
     assert.ok(executed > 11000); assert.ok(observations > executed);
     t.diagnostic(`compiled_predicates_executed=${executed}; instrumented_observations=${observations}; acceptance_gate=false`);
+});
+
+test('N02G:SNAPSHOT-ACCESS-012 proof selected sets exist only after observed computation', async () => {
+    const { plan, graphs } = await snapshotAccessFixture();
+    const graph = graphs.find(g => g.selections.length && Object.values(g.nodes).every(n => n.binding === 'snapshot'));
+    const selection = graph.selections[0]; const events = [];
+    const early = plan.openProof({ fact_key: graph.fact_key }, () => {});
+    assert.throws(() => early.set(selection.selected_set), /proof_selection_pending/);
+    assert.throws(() => early.assertHealthy(), /proof_failed/);
+    const scope = plan.openProof({ fact_key: graph.fact_key }, e => events.push(e));
+    const candidates = scope.set(selection.candidate_set);
+    assert.equal(candidates.length(), graph.sets[selection.candidate_set].length);
+    let calls = 0;
+    const selected = scope.select(selection.candidate_set, selection.selected_set, member => {
+        member.get('id'); calls++; return false;
+    });
+    assert.equal(calls, graph.sets[selection.candidate_set].length);
+    assert.equal(selected.length(), 0);
+    assert.ok(graph.sets[selection.selected_set].length > 0); // No copying the authored expected roster.
+    assert.equal(scope.set(selection.selected_set), selected);
+    assert.equal(events.filter(e => e[1] === 'select_member').length, calls);
+    const member = candidates.at(0); scope.revoke();
+    assert.throws(() => selected.length(), /access_set_revoked/);
+    assert.throws(() => member.get('id'), /access_/);
+});
+
+test('N02G:SNAPSHOT-ACCESS-013 proof sets cannot survive a sibling failure or replace selection targets', async () => {
+    const { plan, graphs } = await snapshotAccessFixture();
+    const graph = graphs.find(g => g.selections.length && Object.values(g.nodes).every(n => n.binding === 'snapshot'));
+    const selection = graph.selections[0];
+    const scope = plan.openProof({ fact_key: graph.fact_key }, () => {});
+    const candidates = scope.set(selection.candidate_set);
+    assert.throws(() => scope.claim().get('result'), /access_/);
+    assert.throws(() => candidates.length(), /access_/);
+    const second = plan.openProof({ fact_key: graph.fact_key }, () => {});
+    assert.throws(() => second.select(selection.candidate_set, 'forged_set', () => true), /proof_selection/);
+    assert.throws(() => second.assertHealthy(), /proof_failed/);
+});
+
+test('N02G:OBSERVED-PROOF-002 reference sets resolve observed list members through graph traversals', async t => {
+    const { evaluateObservedOperator } = require('../../../src/next/provenance/proofOperators');
+    const { plan, ir, operators } = await snapshotAccessFixture(); let executed = 0; let traversals = 0;
+    for (const graph of ir.graphs) {
+        if (Object.values(graph.nodes).some(n => n.binding !== 'snapshot')) continue;
+        const access = plan.openProof({ fact_key: graph.fact_key }, e => { if (e[1] === 'traverse') traversals++; });
+        for (const predicate of graph.predicates.filter(p => ['set_eq', 'edge_target_in_set'].includes(p.op))) {
+            assert.equal(evaluateObservedOperator(operators.find(o => o.id === predicate.op), predicate.operands, access), true);
+            executed++;
+        }
+        access.assertHealthy(); access.revoke();
+    }
+    assert.equal(executed, 102); assert.ok(traversals > 500);
+    t.diagnostic(`observed_set_predicates=${executed}; reference_traversals=${traversals}`);
+});
+
+test('N02G:OBSERVED-PROOF-003 quantified exclusions and paired edges consume all members', async t => {
+    const { evaluateObservedOperator } = require('../../../src/next/provenance/proofOperators');
+    const { plan, ir, operators } = await snapshotAccessFixture(); let executed = 0; let observations = 0;
+    for (const graph of ir.graphs) {
+        if (Object.values(graph.nodes).some(n => n.binding !== 'snapshot')) continue;
+        const access = plan.openProof({ fact_key: graph.fact_key }, () => observations++);
+        const scope = { ...access, window: name => graph.windows[name] };
+        for (const predicate of graph.predicates.filter(p => ['none_match', 'edge_pair_complete'].includes(p.op))) {
+            try { assert.equal(evaluateObservedOperator(operators.find(o => o.id === predicate.op), predicate.operands, scope), true); }
+            catch (error) { throw new Error(`${graph.fact_key}:${predicate.id}:${error.message}`, { cause: error }); }
+            executed++;
+        }
+        access.assertHealthy(); access.revoke();
+    }
+    assert.equal(executed, 79); assert.ok(observations > executed);
+    t.diagnostic(`observed_quantified_predicates=${executed}; observations=${observations}`);
+});
+
+test('N02G:OBSERVED-PROOF-004 clock cutoff uses observed clock and policy through pinned timezone conversion', async () => {
+    const { evaluateObservedOperator } = require('../../../src/next/provenance/proofOperators');
+    const { plan, ir, operators } = await snapshotAccessFixture(); let executed = 0;
+    for (const graph of ir.graphs) {
+        for (const predicate of graph.predicates.filter(p => p.op === 'civil_date_matches')) {
+            const events = []; const access = plan.openProof({ fact_key: graph.fact_key }, e => events.push(e));
+            assert.equal(evaluateObservedOperator(operators.find(o => o.id === predicate.op), predicate.operands, access), true);
+            for (const name of ['fixed_clock', 'daily_pace_as_of', 'timezone', 'calendar']) assert.ok(events.some(e => e[1] === 'get' && e[4][0] === name));
+            executed++; access.assertHealthy(); access.revoke();
+        }
+    }
+    assert.equal(executed, 2);
 });
 
 test('N02G:SNAPSHOT-ACCESS-002 callers cannot substitute shape, identity or operand roles', async () => {

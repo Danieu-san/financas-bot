@@ -290,23 +290,84 @@ function compileSnapshotAccess(admitted, validators) {
             // role. The execution host must bind this factory to phase proof.
             // No required_reads/expected_trace is used to manufacture events.
             const reachableNodes = reachable(input.fact_key, 'proof/snapshot', Object.keys(graph.nodes));
-            const access = createInstrumentedAccess({ bindings: [...reachableNodes.bindings,
-                { alias: 'claim/context', role: 'proof/context', ...contexts.get(input.fact_key) }],
-                links: reachableNodes.links, emit });
             let failed = false; let revoked = false;
+            let selectionBusy = false;
+            const controllers = []; const sets = new Map(); const selected = new Map();
+            const selectionNames = new Set(graph.selections.map(s => s.selected_set));
             const check = () => {
                 if (failed) reject('proof_failed');
-                access.assertHealthy();
+                for (const controller of controllers) controller.assertHealthy();
                 if (revoked) { failed = true; reject('proof_revoked'); }
             };
             const invalid = code => { failed = true; reject(code); };
+            const observe = event => { check(); emit(event); check(); };
+            const access = createInstrumentedAccess({ bindings: [...reachableNodes.bindings,
+                { alias: 'claim/context', role: 'proof/context', ...contexts.get(input.fact_key) }],
+                links: reachableNodes.links, emit: observe });
+            controllers.push(access);
+            function set(name) {
+                check();
+                if (typeof name !== 'string' || !Object.hasOwn(graph.sets, name)) invalid('proof_set');
+                if (selected.has(name)) return selected.get(name);
+                if (selectionNames.has(name)) invalid('proof_selection_pending');
+                if (!sets.has(name)) {
+                    const role = `proof/set/${name}`;
+                    const controller = createNodeSetAccess({ role,
+                        bindings: reachableNodes.bindings.map(binding => ({ ...binding, role })),
+                        links: reachableNodes.links, roster: graph.sets[name], emit: observe });
+                    controllers.push(controller); sets.set(name, controller.handle);
+                }
+                return sets.get(name);
+            }
+            function resolveReference(alias, field, ref) {
+                check();
+                if (typeof alias !== 'string' || typeof field !== 'string' || typeof ref !== 'string') invalid('proof_reference');
+                const matches = graph.edges.filter(e => e.relation === 'material_ref' && e.source === alias
+                    && e.field === field && graph.nodes[e.target].ref_id === ref);
+                if (matches.length !== 1) invalid('proof_reference');
+                return access.handle(alias).traverse(matches[0].id);
+            }
             return Object.freeze({
                 node(alias) { check(); return access.handle(alias); },
                 claim() { check(); return access.handle('claim/context'); },
+                set,
+                select(candidate, target, predicate) {
+                    check();
+                    if (selectionBusy || selected.has(target) || !graph.selections.some(s =>
+                        s.candidate_set === candidate && s.selected_set === target)) invalid('proof_selection');
+                    selectionBusy = true;
+                    try {
+                        const view = set(candidate).select(predicate);
+                        check(); selected.set(target, view); return view;
+                    } finally { selectionBusy = false; }
+                },
                 edge(id) {
                     check(); const edge = graph.edges.find(e => e.id === id && e.relation === 'material_ref');
                     if (!edge) invalid('proof_edge');
                     return access.handle(edge.source).traverse(id);
+                },
+                resolveReference,
+                memberEdge(member, field) {
+                    check();
+                    const tuple = ['kind', 'ref_id', 'version'].map(key => member.identity(key));
+                    const aliases = Object.entries(graph.nodes).filter(([, n]) => identity(n) === JSON.stringify(tuple));
+                    if (aliases.length !== 1) invalid('proof_reference');
+                    return resolveReference(aliases[0][0], field, member.get(field));
+                },
+                fieldDescriptor(kind, segments) {
+                    check();
+                    if (typeof kind !== 'string' || !Object.hasOwn(context.materialRegistry.kinds, kind)
+                        || !Array.isArray(segments) || segments.length !== 1) invalid('proof_field');
+                    const fields = context.materialRegistry.kinds[kind].fields;
+                    if (typeof segments[0] !== 'string' || !Object.hasOwn(fields, segments[0])
+                        || fields[segments[0]].class === 'non_material') invalid('proof_field');
+                    return fields[segments[0]];
+                },
+                operator(id) {
+                    check();
+                    const registry = context.documents.find(d => d.value?.registry_id === 'operator_registry');
+                    const result = registry?.value.operators.find(o => o.id === id);
+                    if (!result) invalid('proof_operator'); return result;
                 },
                 material(alias) {
                     check();
@@ -315,8 +376,8 @@ function compileSnapshotAccess(admitted, validators) {
                     return freeze({ registry_version: context.materialRegistry.registry_version, kind,
                         fields: context.materialRegistry.kinds[kind].fields });
                 },
-                revoke() { revoked = true; access.revoke(); },
-                assertHealthy() { if (failed) reject('proof_failed'); access.assertHealthy(); }
+                revoke() { revoked = true; for (const controller of controllers) controller.revoke(); },
+                assertHealthy() { if (failed) reject('proof_failed'); for (const controller of controllers) controller.assertHealthy(); }
             });
         },
         openContext(selector, emit) {

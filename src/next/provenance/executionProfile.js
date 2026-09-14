@@ -9,6 +9,7 @@ const EXECUTION_PROFILE = freezeDeep({
     version: 1,
     ses_version: '2.3.0',
     node_version: '22.17.0',
+    native_timezone: { icu: '77.1', tz: '2025b', cldr: '47.0', unicode: '16.0' },
     guest: { ecma_version: 2022, source_type: 'script', parameter: 'operands' },
     lockdown: {
         errorTaming: 'safe', errorTrapping: 'none', reporting: 'none',

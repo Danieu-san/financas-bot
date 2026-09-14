@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createInstrumentedAccess } = require('../../../src/next/provenance/instrumentedAccess');
+const { createInstrumentedAccess, createNodeSetAccess } = require('../../../src/next/provenance/instrumentedAccess');
 const { digest } = require('../../../src/next/kernel/canonicalValue');
 const { readObservedIdentity, measureMaterialFingerprint, evaluateObservedOperator } = require('../../../src/next/provenance/proofOperators');
 const operators = require('../../../docs/contracts/next/provenance-v2/operator-registry-v2.json').operators;
@@ -93,4 +93,71 @@ test('N02G:PROOF-006 expressions cannot smuggle raw snapshots, override node kin
     assert.throws(() => evaluateObservedOperator(op, [{ type: { form: 'node', kind: 'card' },
         expression: { kind: 'node_ref', alias: 'a' } }, literal], scope), /scalar_proof_node/);
     assert.throws(() => evaluateObservedOperator({ ...operators.find(op => op.id === 'fingerprint_is'), semantics: 'declared' }, [], scope), /proof_operator/);
+});
+
+function quantifiedFixture(values) {
+    const events = [];
+    const control = createNodeSetAccess({ role: 'proof/events', emit: e => events.push(e), bindings: values.map((amount, i) => ({
+        alias: `event_${i}`, role: 'proof/events', identity: { ...identity, ref_id: `event-${i}` },
+        value: { id: `event-${i}`, amount }, shape: { type: 'record', fields: { id: { type: 'scalar' }, amount: { type: 'scalar' } } }
+    })) });
+    const scope = { set: () => control.handle, operator: id => operators.find(o => o.id === id),
+        fieldDescriptor: () => ({ class: 'dimension', type: 'money_minor', required: true }) };
+    const operands = [{ type: { form: 'set', item: { form: 'node', kind: 'event' } }, expression: { kind: 'set_ref', name: 'events' } },
+        { type: { form: 'predicate_template_ref', kind: 'event' }, expression: { kind: 'predicate_template',
+            template_ref: { id: 'field_equals_scalar', version: 1, hash: `sha256:${'a'.repeat(64)}` }, combinator: 'all', member_slot: 'current_member', bindings: {},
+            body: [{ op: 'eq', operands: [{ kind: 'member_field', slot: 'current_member', node_kind: 'event', segments: ['amount'] },
+                { kind: 'literal', value_type: 'money_minor', value: 10 }] }] } }];
+    return { events, control, scope, operands };
+}
+test('N02G:PROOF-007 quantifiers never short-circuit later observed members or infer coverage', () => {
+    for (const [op, values, expected] of [['all_match', [0, 10, 10], false], ['none_match', [10, 0, 0], false],
+        ['all_match', [10, 10], true], ['none_match', [0, 0], true], ['all_match', [], true], ['none_match', [], true]]) {
+        const f = quantifiedFixture(values);
+        assert.equal(evaluateObservedOperator(operators.find(o => o.id === op), f.operands, f.scope), expected);
+        assert.equal(f.events.filter(e => e[1] === 'get' && e[4][0] === 'amount').length, values.length);
+        assert.ok(f.events.some(e => e[1] === 'length'));
+    }
+});
+test('N02G:PROOF-008 invalid template on empty set is rejected, never vacuously approved', () => {
+    const f = quantifiedFixture([]);
+    f.operands[1].expression.body[0].op = 'fingerprint_is';
+    assert.throws(() => evaluateObservedOperator(operators.find(o => o.id === 'all_match'), f.operands, f.scope), /proof_expression_template_operator/);
+    const other = quantifiedFixture([10, 10]); other.control.revoke();
+    assert.throws(() => evaluateObservedOperator(operators.find(o => o.id === 'all_match'), other.operands, other.scope), /access_/);
+});
+
+const moneyType = { form: 'scalar', type: 'money_minor', unit: 'BRL_minor' };
+const setOperand = (name, form = 'set') => ({ type: { form, item: { form: 'node', kind: 'event' } }, expression: { kind: 'set_ref', name } });
+const selectorOperand = () => ({ type: { form: 'field_selector', kind: 'event', value: moneyType },
+    expression: { kind: 'field_selector', node_kind: 'event', segments: ['amount'] } });
+test('N02G:PROOF-009 same_field requires a nonempty set and reads every member', () => {
+    for (const [values, expected] of [[[10, 10], true], [[0, 10, 10], false], [[], false]]) {
+        const f = quantifiedFixture(values);
+        assert.equal(evaluateObservedOperator(operators.find(o => o.id === 'same_field'), [setOperand('events'), selectorOperand()], f.scope), expected);
+        assert.equal(f.events.filter(e => e[1] === 'get' && e[4][0] === 'amount').length, values.length);
+    }
+});
+test('N02G:PROOF-010 join_eq requires two unique equal key domains without deduplication', () => {
+    for (const [left, right, expected] of [[[1, 2], [2, 1], true], [[1, 2], [1, 3], false], [[], [], true]]) {
+        const a = quantifiedFixture(left); const b = quantifiedFixture(right);
+        const scope = { ...a.scope, set: name => name === 'a' ? a.control.handle : b.control.handle };
+        assert.equal(evaluateObservedOperator(operators.find(o => o.id === 'join_eq'),
+            [setOperand('a'), setOperand('b'), selectorOperand(), selectorOperand()], scope), expected);
+    }
+    const a = quantifiedFixture([1, 1]); const b = quantifiedFixture([1]);
+    assert.throws(() => evaluateObservedOperator(operators.find(o => o.id === 'join_eq'),
+        [setOperand('a'), setOperand('b'), selectorOperand(), selectorOperand()],
+        { ...a.scope, set: name => name === 'a' ? a.control.handle : b.control.handle }), /proof_expression_join_duplicate/);
+});
+test('N02G:PROOF-011 ordered_by uses explicit direction and full identity tie-breaking', () => {
+    const order = direction => ({ type: { form: 'sort', kind: 'event' }, expression: { kind: 'sort', tie_break: 'kind_ref_version',
+        keys: [{ selector: selectorOperand().expression, direction }] } });
+    for (const [values, direction, expected] of [[[1, 2, 3], 'asc', true], [[3, 2, 1], 'desc', true], [[1, 3, 2], 'asc', false], [[1, 1], 'asc', true]]) {
+        const f = quantifiedFixture(values);
+        assert.equal(evaluateObservedOperator(operators.find(o => o.id === 'ordered_by'), [setOperand('events', 'sequence'), order(direction)], f.scope), expected);
+        assert.equal(f.events.filter(e => e[1] === 'get' && e[4][0] === 'amount').length, values.length);
+    }
+    const f = quantifiedFixture([]); const invalid = order('asc'); invalid.expression.tie_break = 'implicit';
+    assert.throws(() => evaluateObservedOperator(operators.find(o => o.id === 'ordered_by'), [setOperand('events', 'sequence'), invalid], f.scope), /proof_expression_sort/);
 });

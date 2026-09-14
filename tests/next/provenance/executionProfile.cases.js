@@ -8,6 +8,8 @@ const { validateGuestBundle } = require('../../../scripts/agent/nextProvenanceGu
 test('N02G:PROFILE-001 configuration is immutable and pins runtime/SES without ambient defaults', () => {
     assert.equal(EXECUTION_PROFILE.ses_version, '2.3.0');
     assert.equal(EXECUTION_PROFILE.node_version, '22.17.0');
+    assert.deepEqual(EXECUTION_PROFILE.native_timezone, { icu: '77.1', tz: '2025b', cldr: '47.0', unicode: '16.0' });
+    assert.ok(Object.isFrozen(EXECUTION_PROFILE.native_timezone));
     assert.equal(EXECUTION_PROFILE.guest.ecma_version, 2022);
     assert.equal(EXECUTION_PROFILE.guest.parameter, 'operands');
     assert.deepEqual(EXECUTION_PROFILE.evaluate, {

@@ -135,6 +135,16 @@ function createInstrumentedAccess(options) {
                 if (path.length || projection !== 'data' || !b.identity || !['kind', 'ref_id', 'version'].includes(key)) fail('identity_forbidden');
                 const value = b.identity[key]; event('identity', b, [key], 'node_identity', ['scalar', value]); return value;
             },
+            follow: (...args) => {
+                check();
+                if (path.length || projection !== 'data' || args.length !== 1 || !field(args[0])) fail('traversal_forbidden');
+                const matches = [...relations.values()].filter(link => link.source === b.alias && link.field === args[0]);
+                if (matches.length !== 1 || matches[0].type !== 'ref') fail('traversal_ambiguous');
+                // Only resolve the admitted singular address here. Actual
+                // source/target values and the traversal are observed by the
+                // existing primitive before any target handle is returned.
+                return handle(value, shape, b, [], 'data').traverse(matches[0].id);
+            },
             traverse: edgeId => {
                 check();
                 const link = typeof edgeId === 'string' ? relations.get(edgeId) : undefined;

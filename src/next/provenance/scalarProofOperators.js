@@ -181,4 +181,17 @@ function evaluateScalarProof(rawOperator, rawOperands) {
     }
 }
 
-module.exports = { evaluateScalarProof };
+function compareTypedScalars(rawType, a, b) {
+    const type = copyData(rawType);
+    scalarValue(type, a); scalarValue(type, b);
+    if (type.type === 'datetime') {
+        const [secondsA, fractionA] = instant(a).split(':');
+        const [secondsB, fractionB] = instant(b).split(':');
+        if (Number(secondsA) !== Number(secondsB)) return Number(secondsA) < Number(secondsB) ? -1 : 1;
+        const length = Math.max(fractionA.length, fractionB.length);
+        a = fractionA.padEnd(length, '0'); b = fractionB.padEnd(length, '0');
+    }
+    return a === b ? 0 : a < b ? -1 : 1;
+}
+
+module.exports = { evaluateScalarProof, compareTypedScalars };

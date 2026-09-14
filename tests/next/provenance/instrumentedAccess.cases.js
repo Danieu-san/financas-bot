@@ -33,6 +33,39 @@ function traversalFixture(emit = () => {}) {
     ] };
 }
 
+test('N02G:ACCESS-031 following a singular material field reuses observed traversal without graph IDs', () => {
+    const events = []; const access = createInstrumentedAccess(traversalFixture(e => events.push(e)));
+    const source = access.handle('a');
+    assert.equal(source.follow.constructor, undefined);
+    const target = source.follow('owner');
+    assert.equal(target.get('amount'), 14);
+    assert.deepEqual(events.slice(0, 3).map(e => [e[1], e[2], e[4], e[6]]), [
+        ['get', 'a', ['owner'], ['scalar', 'b-id']], ['get', 'b', ['id'], ['scalar', 'b-id']],
+        ['traverse', 'a', ['owner'], ['edge', 'owner_link', 'b']]
+    ]);
+    access.revoke(); assert.throws(() => target.get('amount'), /access_revoked/);
+    assert.throws(() => access.assertHealthy(), /access_failed/);
+});
+
+test('N02G:ACCESS-032 following fields rejects ambiguity, lists, forged inputs and actual ref mismatch', () => {
+    for (const args of [['members'], ['unknown'], [null], [{}], ['owner', 'b-id']]) {
+        const access = createInstrumentedAccess(traversalFixture());
+        assert.throws(() => access.handle('a').follow(...args), /access_traversal/);
+        assert.throws(() => access.assertHealthy(), /access_failed/);
+    }
+    for (const modify of [f => f.links.push({ ...f.links[0], id: 'duplicate_relation' }),
+        f => { f.bindings[0].value.owner = 'wrong'; }]) {
+        const f = traversalFixture(); modify(f); const access = createInstrumentedAccess(f);
+        assert.throws(() => access.handle('a').follow('owner'), /access_traversal/);
+        assert.throws(() => access.assertHealthy(), /access_failed/);
+    }
+    const access = createInstrumentedAccess(traversalFixture());
+    assert.throws(() => access.handle('a').get('members').follow('owner'), /access_traversal/);
+    const failed = createInstrumentedAccess(traversalFixture(() => { throw new Error('sink'); }));
+    assert.throws(() => failed.handle('a').follow('owner'), /access_sink_failed/);
+    assert.throws(() => failed.assertHealthy(), /access_failed/);
+});
+
 test('N02G:ACCESS-029 snapshot identity is observed separately from economic payload kind', () => {
     const events = []; const f = fixture(e => events.push(e));
     f.bindings[0].identity = { kind: 'category', ref_id: 'category-a', version: `sha256:${'a'.repeat(64)}` };

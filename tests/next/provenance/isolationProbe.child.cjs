@@ -2,14 +2,15 @@
 
 const { EXECUTION_PROFILE } = require('../../../src/next/provenance/executionProfile');
 const { createInstrumentedAccess, createNodeSetAccess } = require('../../../src/next/provenance/instrumentedAccess');
+const { admitArtifact, artifactContents } = require('../../../src/next/provenance/artifactLoader');
 require('ses');
 
 // env={} and fixed execArgv are supplied by the development probe. No
-// financial modules, credentials, fixtures or evaluator artifacts are loaded.
-// Only the development profile and observation primitives are used below.
+// credentials or real fixtures are loaded. The consumption scenario receives
+// only the parent probe's fixed synthetic build, never command-line source.
 if (process.versions.node !== EXECUTION_PROFILE.node_version) throw new Error('probe_runtime_mismatch');
 const scenario = process.argv[2];
-if (!['authority', 'fresh', 'termination', 'bad_exit', 'duplicate', 'hang_after_result', 'handles'].includes(scenario)) {
+if (!['authority', 'fresh', 'termination', 'bad_exit', 'duplicate', 'hang_after_result', 'handles', 'consumption'].includes(scenario)) {
     throw new Error('unknown_probe');
 }
 lockdown(EXECUTION_PROFILE.lockdown);
@@ -29,6 +30,49 @@ function compartment(operands) {
 }
 const c = compartment();
 const evaluate = source => c.evaluate(source, EXECUTION_PROFILE.evaluate);
+if (scenario === 'consumption') {
+    process.once('message', message => {
+        if (!message || Object.keys(message).sort().join(',') !== 'expectedRoot,kind,manifest,source'
+            || message.kind !== 'artifact' || typeof message.source !== 'string' || typeof message.manifest !== 'string'
+            || Buffer.byteLength(message.source) > 8 * 1024 * 1024) throw new Error('probe_artifact_protocol');
+        const receipt = admitArtifact({ manifestBytes: Buffer.from(message.manifest), expectedRoot: message.expectedRoot,
+            entries: [{ path: 'bundle.js', bytes: Buffer.from(message.source) }] });
+        const contents = artifactContents(receipt);
+        if (contents.kind !== 'metric' || contents.entry !== 'bundle.js' || contents.files.length !== 1) throw new Error('probe_artifact_kind');
+        process.send({ kind: 'measurement', event: ['M', 'evaluator_artifact_root', receipt.observed_root] });
+        const emit = event => process.send({ kind: 'observation', event });
+        const scalar = { type: 'scalar' }; const version = `sha256:${'a'.repeat(64)}`;
+        const category = role => ({ alias: 'food', role, identity: { kind: 'category', ref_id: 'food', version },
+            value: { id: 'food', kind: 'expense' }, shape: { type: 'record', fields: { id: scalar, kind: scalar } } });
+        const rows = ['confirmed', 'projected'].map((state, i) => ({ alias: `e${i}`, role: 'events',
+            identity: { kind: 'event', ref_id: `e${i}`, version },
+            value: { id: `e${i}`, date: '2042-06-10', person_id: 'p1', category_id: 'food', state, amount_minor: -125 },
+            shape: { type: 'record', fields: Object.fromEntries(['id', 'date', 'person_id', 'category_id', 'state', 'amount_minor'].map(k => [k, scalar])) } }));
+        const events = createNodeSetAccess({ role: 'events', emit, bindings: [...rows, category('events')], roster: ['e0', 'e1'],
+            links: rows.map(row => ({ id: `category-${row.alias}`, source: row.alias, target: 'food', field: 'category_id', type: 'ref' })) });
+        const categories = createNodeSetAccess({ role: 'categories', emit, bindings: [category('categories')] });
+        const context = createInstrumentedAccess({ emit, bindings: [{ alias: 'context', role: 'context',
+            value: { time_basis: 'event_date', evidence_state: 'confirmed', subject: { kind: 'person', ref_id: 'p1' }, period: { kind: 'month', value: '2042-06' } },
+            shape: { type: 'record', fields: { time_basis: scalar, evidence_state: scalar,
+                subject: { type: 'record', fields: { kind: scalar, ref_id: scalar } },
+                period: { type: 'record', fields: { kind: scalar, value: scalar } } } } }] });
+        const family = createInstrumentedAccess({ emit, bindings: [{ alias: 'family', role: 'family', value: { id: 'f1', members: ['p1'] },
+            shape: { type: 'record', fields: { id: scalar, members: { type: 'sequence', item: scalar } } } }] });
+        const operands = harden({ events: events.handle, categories: categories.handle, context: context.handle('context'), family: family.handle('family') });
+        const guest = compartment(operands);
+        const evaluateMetric = guest.evaluate(contents.files[0].source, EXECUTION_PROFILE.evaluate);
+        const result = evaluateMetric(operands);
+        for (const control of [events, categories, context, family]) { control.revoke(); control.assertHealthy(); }
+        if (!Number.isSafeInteger(result) || Object.is(result, -0)) throw new Error('probe_functional_result');
+        let revoked = false;
+        try { evaluateMetric(operands); } catch { revoked = true; }
+        process.send({ kind: 'result', value: { functionalResult: result, revoked } }, error => {
+            if (error) process.exitCode = 1;
+            process.disconnect();
+        });
+    });
+    process.send({ kind: 'ready' });
+} else {
 process.send({ kind: 'ready' });
 if (scenario === 'termination') {
     evaluate('for (;;) {}');
@@ -140,3 +184,4 @@ process.send({ kind: 'result', value }, error => {
     }
     process.disconnect();
 });
+}

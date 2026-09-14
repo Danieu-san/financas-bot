@@ -281,6 +281,48 @@ via IPC foi demonstrada, mas a cápsula TCB medida e o protocolo final ainda nã
 
 Referências técnicas consultadas, não autoridades de GO do projeto:
 
+### Incremento observado posterior — 2026-09-14
+
+Os limites de shape/seleção acima registram o estágio anterior. A factory agora
+deriva shapes do pacote admitido e oferece contexto, identidade, conjuntos e
+traversal com revogação compartilhada. `follow(field)` resolve apenas referência
+singular inequívoca e reutiliza a observação de `traverse`; o evaluator não
+precisa receber IDs de aresta particulares do grafo. Nenhum resultado esperado
+é usado para construir uma seleção.
+
+Foram exercitados 102 predicados de conjuntos/ref_set (794 traversals), 79
+quantificadores/pares (1.890 observações), operadores de igualdade/join/ordenação
+e os dois vínculos de data civil de safe_daily_pace. O adaptador temporal TCB
+usa timezone/calendário explícitos e o perfil Node 22.17.0 com ICU 77.1, tz 2025b,
+CLDR 47.0 e Unicode 16.0; recusa overrides de dados. A verificação do binário
+full-ICU no bootstrap final ainda é necessária: versões não provam identidade.
+
+O helper de consumo adapta comportamento existente por handles. Dezesseis
+claims de consumption_total/category_consumption/category_spent foram
+confrontados com valor e seleção esperados exclusivamente no harness. Essa
+execução de desenvolvimento não aprova os traces completos nem substitui os
+demais 36 contratos. Category_spent preserva event_date/budget_cycle explicitamente.
+
+O builder produz FunctionExpression(operands) a partir de um closure CommonJS
+virtual fechado, sem lookup de filesystem em runtime. Imports relativos estáticos
+precisam resolver em um único fonte fornecido; fontes extras, ciclos e loaders
+dinâmicos são recusados. Todos os bytes dos fontes entram no bundle. `require`
+gerado é uma função guest-local sobre uma tabela finita, nunca o loader Node.
+Essa restrição de build não promete analisar capacidades arbitrárias; SES e
+admissão de conteúdo revisado continuam necessários.
+
+No probe existente, o filho admitiu o bundle sintético de consumo, executou em
+SES e revogou handles; R=125 ficou separado de 49 observações/medições enviadas
+ao recorder no pai. Mantidos 13 checks de autoridade, 14 checks de handles e
+três recusas de lifecycle. O root esperado desse probe é construído pelo teste,
+não pelo registry revisado. A cápsula TCB completa e seus roots permanecem
+pendentes; não há promoção do authoring a executável por flag.
+
+Bateria focal integrada desse incremento: 217/217 PASS, zero FAIL/SKIP/TODO.
+Suíte ampla ainda não iniciada. Pendentes: execução integral dos 39 contratos,
+recibos de pais, confronto exato de traces/obrigações para 76 grafos, witnesses,
+capsule/build final e integração de produto. Nenhum GO parcial é declarado.
+
 - [SES: compartimentos e capabilities](https://github.com/endojs/endo/blob/master/packages/ses/README.md).
 - [SES: limitações de isolamento e disponibilidade](https://github.com/endojs/endo/blob/master/docs/lockdown.md#limitations).
 - [Node 22.17: limites de recursos dos workers](https://nodejs.org/download/release/v22.17.0/docs/api/worker_threads.html).
