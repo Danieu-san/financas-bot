@@ -55,8 +55,9 @@ function decodeObservation(raw) {
     if (!Array.isArray(e) || e.length !== 7 || e[0] !== 'I' || !identifier(e[2]) || !identifier(e[3])
         || !Array.isArray(e[4]) || e[4].length > 32
         || e[4].some(p => !field(p) && !(Number.isSafeInteger(p) && p >= 0))
-        || !['data', 'keys', 'operand_set', 'operand_selection'].includes(e[5]) || !Array.isArray(e[6])) fail();
+        || !['data', 'keys', 'operand_set', 'operand_selection', 'node_identity'].includes(e[5]) || !Array.isArray(e[6])) fail();
     const o = e[6]; const tag = o[0];
+    if (e[5] === 'node_identity' && e[1] !== 'identity') fail();
     const selectedView = e[5] === 'operand_selection';
     const nodeSet = e[5] === 'operand_set' || selectedView;
     const viewId = value => typeof value === 'string' && /^view_[a-f0-9]{64}$/.test(value);
@@ -73,6 +74,13 @@ function decodeObservation(raw) {
     const accessOutcome = nodeSet ? tag === 'node' && o.length === 2 && identifier(o[1]) : valueOutcome;
     let valid = false;
     switch (e[1]) {
+    case 'identity': {
+        const key = e[4][0];
+        valid = e[5] === 'node_identity' && e[4].length === 1 && tag === 'scalar' && o.length === 2 && typeof o[1] === 'string'
+            && (key === 'kind' ? /^[a-z][a-z0-9_]*$/.test(o[1]) : key === 'version' ? /^sha256:[a-f0-9]{64}$/.test(o[1])
+                : key === 'ref_id' && /^[A-Za-z0-9][A-Za-z0-9._:/#@-]{0,159}$/.test(o[1]));
+        break;
+    }
     case 'traverse': valid = e[5] === 'data' && e[4].length === 1 && field(e[4][0])
         && tag === 'edge' && o.length === 3 && identifier(o[1]) && identifier(o[2]); break;
     case 'get': case 'at': valid = accessOutcome || tag === 'absent' && o.length === 1; break;

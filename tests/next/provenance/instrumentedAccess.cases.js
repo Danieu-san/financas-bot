@@ -33,6 +33,45 @@ function traversalFixture(emit = () => {}) {
     ] };
 }
 
+test('N02G:ACCESS-029 snapshot identity is observed separately from economic payload kind', () => {
+    const events = []; const f = fixture(e => events.push(e));
+    f.bindings[0].identity = { kind: 'category', ref_id: 'category-a', version: `sha256:${'a'.repeat(64)}` };
+    f.bindings[0].value.id = 'category-a'; f.bindings[0].shape.fields.id = { type: 'scalar' };
+    f.bindings[0].value.kind = 'expense'; f.bindings[0].shape.fields.kind = { type: 'scalar' };
+    const access = createInstrumentedAccess(f); const node = access.handle('event_a');
+    assert.equal(node.identity.constructor, undefined);
+    assert.equal(node.identity('kind'), 'category');
+    assert.equal(node.get('kind'), 'expense');
+    assert.equal(node.identity('ref_id'), 'category-a');
+    assert.equal(node.identity('version'), `sha256:${'a'.repeat(64)}`);
+    assert.deepEqual(events[0].slice(1), ['identity', 'event_a', 'events', ['kind'], 'node_identity', ['scalar', 'category']]);
+    const { decodeObservation } = require('../../../src/next/provenance/observationContract');
+    for (const event of events) assert.deepEqual(decodeObservation(event), event);
+    assert.throws(() => node.identity('label'), /access_identity/);
+    assert.throws(() => access.assertHealthy(), /access_failed/);
+});
+
+test('N02G:ACCESS-030 unbound, inconsistent or forged identities cannot be observed', () => {
+    const bare = createInstrumentedAccess(fixture());
+    assert.throws(() => bare.handle('event_a').identity('kind'), /access_identity/);
+    assert.throws(() => bare.assertHealthy(), /access_failed/);
+    for (const identity of [
+        { kind: 'event', ref_id: 'wrong', version: `sha256:${'a'.repeat(64)}` },
+        { kind: 'event', ref_id: 'event-a', version: 'unversioned' },
+        { kind: 'event', ref_id: 'event-a', version: `sha256:${'a'.repeat(64)}`, result: 1 }
+    ]) {
+        const f = fixture(); f.bindings[0].value.id = 'event-a'; f.bindings[0].shape.fields.id = { type: 'scalar' };
+        f.bindings[0].identity = identity; assert.throws(() => createInstrumentedAccess(f), /access_shape_invalid/);
+    }
+    const { decodeObservation } = require('../../../src/next/provenance/observationContract');
+    for (const event of [
+        ['I', 'identity', 'a', 'source', ['kind'], 'data', ['scalar', 'event']],
+        ['I', 'identity', 'a', 'source', ['version'], 'node_identity', ['scalar', 'forged']],
+        ['I', 'get', 'a', 'source', ['kind'], 'node_identity', ['scalar', 'event']],
+        ['I', 'identity', 'a', 'source', ['label'], 'node_identity', ['scalar', 'private']]
+    ]) assert.throws(() => decodeObservation(event));
+});
+
 test('N02G:ACCESS-027 set members and selected views traverse without adding targets to the roster', () => {
     const events = []; const f = traversalFixture(e => events.push(e));
     const access = createNodeSetAccess({ ...f, role: 'source', roster: ['a'] });

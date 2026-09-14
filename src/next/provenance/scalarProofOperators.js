@@ -11,6 +11,10 @@ const { parseDate, parseMonth, dayOrdinal, offsetDate, monthBounds, inclusiveDay
 const definitions = Object.freeze({
     eq: ['typed_equal', ['scalar:T', 'scalar:T']],
     not_eq: ['typed_unequal', ['scalar:T', 'scalar:T']],
+    same_identity: ['same_kind_ref_version', ['node:K', 'node:K']],
+    kind_is: ['exact_kind', ['node:K', 'kind_literal']],
+    ref_targets_node: ['edge_resolves_exact_target', ['edge_ref:K', 'node:K']],
+    edge_target_in_set: ['resolved_target_member', ['edge_ref:K', 'set:node:K']],
     field_eq: ['typed_field_equal', ['field_path:T', 'field_path:T']],
     state_is: ['exact_state', ['state_path', 'state_literal']],
     date_in_period: ['contains_civil_date', ['date', 'period']],
@@ -68,21 +72,37 @@ function periodValue(value) {
         if (typeof value.turn_id !== 'string' || !/^[SMFN]-[0-9]{2}#[1-9][0-9]*$/.test(value.turn_id)) fail('period');
     } else fail('period');
 }
+function nodeValue(kind, value) {
+    keys(value, ['kind', 'ref_id', 'version']);
+    if (typeof kind !== 'string' || !/^[a-z][a-z0-9_]*$/.test(kind) || value.kind !== kind
+        || typeof value.ref_id !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._:/#@-]{0,159}$/.test(value.ref_id)
+        || typeof value.version !== 'string' || !/^sha256:[a-f0-9]{64}$/.test(value.version)) fail('node');
+}
+function memberValue(type, value) {
+    if (type?.form === 'node') nodeValue(type.kind, value);
+    else scalarValue(type, value);
+}
 function operandValue(operand) {
     keys(operand, ['type', 'value']); const { type, value } = operand;
     if (type.form === 'scalar') scalarValue(type, value);
+    else if (type.form === 'node') nodeValue(type.kind, value);
+    else if (type.form === 'edge') nodeValue(type.target, value);
+    else if (type.form === 'kind_literal') { if (typeof value !== 'string' || !/^[a-z][a-z0-9_]*$/.test(value)) fail('node_kind'); }
     else if (type.form === 'field') scalarValue(type.value, value);
     else if (type.form === 'state_literal') { if (typeof value !== 'string' || !value.length) fail('state'); }
     else if (['range', 'period'].includes(type.form)) {
         periodValue(value);
         if (type.form === 'range' && value.kind !== 'range' || type.periodKind !== undefined && type.periodKind !== value.kind) fail('period_type');
     } else if (['sequence', 'set'].includes(type.form)) {
-        if (!Array.isArray(value) || type.item?.form !== 'scalar') fail('collection');
-        value.forEach(item => scalarValue(type.item, item));
+        if (!Array.isArray(value) || !['scalar', 'node'].includes(type.item?.form)) fail('collection');
+        value.forEach(item => memberValue(type.item, item));
         if (type.form === 'set' && new Set(value.map(item => scalarKey(type.item, item))).size !== value.length) fail('duplicate');
     } else fail('value_type');
 }
-function scalarKey(type, value) { return type.type === 'datetime' ? instant(value) : value; }
+function scalarKey(type, value) {
+    if (type.form === 'node' || type.form === 'edge') return JSON.stringify([value.kind, value.ref_id, value.version]);
+    return type.type === 'datetime' ? instant(value) : value;
+}
 function instant(value) {
     // Exact second and fractional identity, independent of Date precision and
     // machine timezone. Literal validation has already checked the civil date.
@@ -94,14 +114,17 @@ function instant(value) {
 function contains(date, period) {
     const ordinal = dayOrdinal(date);
     if (period.kind === 'date' || period.kind === 'statement_due') return date === period.value;
+    // installments_realized_v1 explicitly defines through as an inclusive
+    // cutoff. It is not period equality and does not impose a guessed start.
+    if (period.kind === 'through') return ordinal <= dayOrdinal(period.value);
     if (['month', 'statement_competence', 'budget_cycle'].includes(period.kind)) return date.slice(0, 7) === period.value;
     if (period.kind === 'range') {
         const start = dayOrdinal(period.start); const end = dayOrdinal(period.end);
         return (ordinal > start || ordinal === start && period.start_inclusive)
             && (ordinal < end || ordinal === end && period.end_inclusive);
     }
-    // Do not silently turn financial lenses as_of/through into date equality
-    // or an unbounded range. Their explicit lowering remains an integration task.
+    // as_of is a snapshot lens, not an implicit accumulation range. Balance
+    // graphs explicitly lower it with the opening-balance date into a range.
     fail('period_containment_pending');
 }
 function evaluateScalarProof(rawOperator, rawOperands) {
@@ -117,9 +140,12 @@ function evaluateScalarProof(rawOperator, rawOperands) {
     const v = operands.map(o => o.value); const [a, b] = v;
     const type = operands[0].type.form === 'field' ? operands[0].type.value : operands[0].type;
     if (['date_in_period', 'all_dates_in_period'].includes(operator.id)
-        && !['date', 'statement_due', 'month', 'statement_competence', 'budget_cycle', 'range'].includes(b.kind)) fail('period_containment_pending');
+        && !['date', 'through', 'statement_due', 'month', 'statement_competence', 'budget_cycle', 'range'].includes(b.kind)) fail('period_containment_pending');
     if (operator.id === 'state_is' && !JSON.parse(type.domain).includes(b)) fail('state_domain');
     switch (operator.id) {
+    case 'same_identity': case 'ref_targets_node': return scalarKey(type, a) === scalarKey(operands[1].type, b);
+    case 'kind_is': return a.kind === b;
+    case 'edge_target_in_set': return b.some(value => scalarKey(operands[1].type.item, value) === scalarKey(type, a));
     case 'eq': case 'not_eq': case 'field_eq': case 'state_is': {
         const equal = type.type === 'datetime' ? instant(a) === instant(b) : a === b;
         return operator.id === 'not_eq' ? !equal : equal;

@@ -52,8 +52,16 @@ function createInstrumentedAccess(options) {
     const roots = new Map();
     for (const b of bindings) {
         if (!b || typeof b !== 'object' || Array.isArray(b)
-            || Object.keys(b).sort().join(',') !== 'alias,role,shape,value' || !identifier(b.alias) || !identifier(b.role)
+            || !['alias,role,shape,value', 'alias,identity,role,shape,value'].includes(Object.keys(b).sort().join(',')) || !identifier(b.alias) || !identifier(b.role)
             || roots.has(b.alias) || !['record', 'sequence'].includes(b.shape?.type)) failSetup();
+        if (Object.hasOwn(b, 'identity')) {
+            const id = b.identity;
+            if (!id || Object.keys(id).sort().join(',') !== 'kind,ref_id,version'
+                || typeof id.kind !== 'string' || !/^[a-z][a-z0-9_]*$/.test(id.kind)
+                || typeof id.ref_id !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._:/#@-]{0,159}$/.test(id.ref_id)
+                || typeof id.version !== 'string' || !/^sha256:[a-f0-9]{64}$/.test(id.version)
+                || b.shape.type !== 'record' || b.shape.fields.id?.type !== 'scalar' || b.value.id !== id.ref_id) failSetup();
+        }
         checkShape(b.shape); checkValue(b.value, b.shape); roots.set(b.alias, b);
     }
     if (!Array.isArray(links) || links.length > 8192) failSetup();
@@ -122,6 +130,11 @@ function createInstrumentedAccess(options) {
             return result;
         }
         return frozenInterface({
+            identity: key => {
+                check();
+                if (path.length || projection !== 'data' || !b.identity || !['kind', 'ref_id', 'version'].includes(key)) fail('identity_forbidden');
+                const value = b.identity[key]; event('identity', b, [key], 'node_identity', ['scalar', value]); return value;
+            },
             traverse: edgeId => {
                 check();
                 const link = typeof edgeId === 'string' ? relations.get(edgeId) : undefined;

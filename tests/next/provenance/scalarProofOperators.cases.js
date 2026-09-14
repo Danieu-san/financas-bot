@@ -34,7 +34,7 @@ test('N02G:SCALAR-PROOF-002 datetime equality compares instants with exact fract
 test('N02G:SCALAR-PROOF-003 civil periods distinguish all kinds and inclusivity', () => {
     assert.equal(run('date_in_period', scalar('date', '2040-02-29'), period({ kind: 'month', value: '2040-02' })), true);
     assert.equal(run('date_in_period', scalar('date', '2042-06-01'), range('2042-06-01', '2042-06-30', false)), false);
-    assert.throws(() => run('date_in_period', scalar('date', '2042-05-31'), period({ kind: 'through', value: '2042-06-01' })), /scalar_proof_period_containment_pending/);
+    assert.throws(() => run('date_in_period', scalar('date', '2042-05-31'), period({ kind: 'as_of', value: '2042-06-01' })), /scalar_proof_period_containment_pending/);
     assert.equal(run('date_in_period', scalar('date', '2042-05-31'), period({ kind: 'date', value: '2042-06-01' })), false);
     assert.equal(run('period_eq', period({ kind: 'month', value: '2042-06' }), period({ kind: 'budget_cycle', value: '2042-06' })), false);
     assert.equal(run('same_month', scalar('date', '2042-06-01'), scalar('date', '2042-06-30')), true);
@@ -98,8 +98,37 @@ test('N02G:SCALAR-PROOF-008 scalar sets enforce uniqueness and exact typed membe
 test('N02G:SCALAR-PROOF-009 all dates respects empty sequence without claiming coverage', () => {
     const seq = values => collection('sequence', { form: 'scalar', type: 'date' }, values);
     assert.equal(run('all_dates_in_period', seq([]), period({ kind: 'month', value: '2042-06' })), true);
-    assert.throws(() => run('all_dates_in_period', seq([]), period({ kind: 'through', value: '2042-06-01' })), /period_containment_pending/);
+    assert.throws(() => run('all_dates_in_period', seq([]), period({ kind: 'as_of', value: '2042-06-01' })), /period_containment_pending/);
     assert.equal(run('all_dates_in_period', seq(['2042-06-01', '2042-06-30']), period({ kind: 'month', value: '2042-06' })), true);
     assert.equal(run('all_dates_in_period', seq(['2042-06-01', '2042-07-01']), period({ kind: 'month', value: '2042-06' })), false);
     assert.throws(() => run('all_dates_in_period', seq(['2042-02-30']), period({ kind: 'month', value: '2042-02' })));
+});
+
+const node = (kind, ref_id, version = `sha256:${'a'.repeat(64)}`) => ({ type: { form: 'node', kind }, value: { kind, ref_id, version } });
+test('N02G:SCALAR-PROOF-012 through includes the cutoff and prior dates, never future dates', () => {
+    const through = period({ kind: 'through', value: '2042-06-15' });
+    for (const day of ['0001-01-01', '2042-06-14', '2042-06-15']) assert.equal(run('date_in_period', scalar('date', day), through), true);
+    assert.equal(run('date_in_period', scalar('date', '2042-06-16'), through), false);
+    assert.equal(run('period_eq', through, period({ kind: 'as_of', value: '2042-06-15' })), false);
+});
+test('N02G:SCALAR-PROOF-010 node equality and sets compare complete kind/ref/version identities', () => {
+    assert.equal(run('same_identity', node('person', 'a'), node('person', 'a')), true);
+    assert.equal(run('same_identity', node('person', 'a'), node('person', 'a', `sha256:${'b'.repeat(64)}`)), false);
+    assert.equal(run('kind_is', node('category', 'a'), { type: { form: 'kind_literal' }, value: 'category' }), true);
+    assert.equal(run('kind_is', node('category', 'a'), { type: { form: 'kind_literal' }, value: 'event' }), false);
+    assert.throws(() => run('same_identity', node('person', 'a'), node('card', 'a')), /nominal_mismatch/);
+    const nodes = values => collection('set', { form: 'node', kind: 'person' }, values);
+    assert.equal(run('set_eq', nodes([node('person', 'a').value]), nodes([node('person', 'a', `sha256:${'b'.repeat(64)}`).value])), false);
+    assert.throws(() => run('cardinality_eq', nodes([node('person', 'a').value, node('person', 'a').value]), scalar('nonnegative_integer', 2)), /duplicate/);
+    const bad = node('person', 'a'); bad.value.kind = 'card';
+    assert.throws(() => run('same_identity', bad, node('person', 'a')), /scalar_proof_node/);
+});
+
+test('N02G:SCALAR-PROOF-011 resolved edge targets compare full observed identities', () => {
+    const edge = { type: { form: 'edge', target: 'person' }, value: node('person', 'a').value };
+    assert.equal(run('ref_targets_node', edge, node('person', 'a')), true);
+    assert.equal(run('ref_targets_node', edge, node('person', 'a', `sha256:${'b'.repeat(64)}`)), false);
+    assert.equal(run('edge_target_in_set', edge, collection('set', { form: 'node', kind: 'person' }, [node('person', 'a').value])), true);
+    assert.equal(run('edge_target_in_set', edge, collection('set', { form: 'node', kind: 'person' }, [])), false);
+    assert.throws(() => run('ref_targets_node', edge, node('card', 'a')), /nominal_mismatch/);
 });

@@ -50,9 +50,11 @@ function snapshotAccessFixture() {
         const snapshots = documents.get(graphs.snapshot_manifest.path).snapshots;
         const registry = documents.get(graphs.material_registry.path);
         const plan = compileSnapshotAccess(admitted, await validators());
+        const ir = compileAuthoringIR(admitted, await validators());
+        const operators = documents.get(graphs.operator_registry.path).operators;
         // Subsequent caller mutation of input bytes cannot retarget a handle.
         for (const entry of f.entries) entry.bytes.fill(0);
-        return { plan, graphs: graphs.graphs, claims, snapshots, registry };
+        return { plan, graphs: graphs.graphs, claims, snapshots, registry, ir, operators };
     })();
     return accessFixture;
 }
@@ -62,7 +64,7 @@ test('N02G:SNAPSHOT-ACCESS-001 handles resolve exact admitted fact/role/alias id
     assert.equal(plan.stage, 'snapshot_access_plan_only');
     assert.equal(plan.executable, false);
     assert.equal(plan.snapshot_count, 115);
-    assert.deepEqual(Object.keys(plan).sort(), ['executable', 'open', 'openSet', 'snapshot_count', 'stage']);
+    assert.deepEqual(Object.keys(plan).sort(), ['executable', 'open', 'openContext', 'openProof', 'openSet', 'snapshot_count', 'stage']);
     let opened = 0;
     for (const claim of claims) {
         const graph = graphs.find(g => g.fact_key === claim.fact_key);
@@ -74,6 +76,7 @@ test('N02G:SNAPSHOT-ACCESS-001 handles resolve exact admitted fact/role/alias id
                 const events = [];
                 const access = plan.open({ fact_key: claim.fact_key, role_id, alias }, e => events.push(e));
                 assert.equal(access.handle.get('id'), snapshot.payload.id);
+                for (const key of ['kind', 'ref_id', 'version']) assert.equal(access.handle.identity(key), snapshot[key]);
                 const material = Object.keys(snapshot.payload).filter(k => registry.kinds[node.kind].fields[k].class !== 'non_material');
                 assert.deepEqual([...access.handle.keys()], material);
                 for (const field of material) {
@@ -93,6 +96,99 @@ test('N02G:SNAPSHOT-ACCESS-001 handles resolve exact admitted fact/role/alias id
         }
     }
     assert.ok(opened > 100);
+});
+
+test('N02G:SNAPSHOT-ACCESS-009 proof snapshots are read independently of metric operand bindings', async () => {
+    const { measureMaterialFingerprint } = require('../../../src/next/provenance/proofOperators');
+    const { plan, graphs, snapshots } = await snapshotAccessFixture();
+    const measured = new Set(); let traversals = 0;
+    for (const graph of graphs) {
+        if (Object.values(graph.nodes).some(node => node.binding !== 'snapshot')) {
+            assert.throws(() => plan.openProof({ fact_key: graph.fact_key }, () => {}), /proof_parent_pending/);
+            continue;
+        }
+        const events = []; const scope = plan.openProof({ fact_key: graph.fact_key }, e => events.push(e));
+        for (const [alias, node] of Object.entries(graph.nodes)) {
+            const key = JSON.stringify([node.kind, node.ref_id, node.version]);
+            if (measured.has(key)) continue;
+            const actual = measureMaterialFingerprint(scope.node(alias), scope.material(alias));
+            const snapshot = snapshots.find(s => s.kind === node.kind && s.ref_id === node.ref_id && s.version === node.version);
+            assert.equal(actual, snapshot.semantic_fingerprint); measured.add(key);
+        }
+        for (const edge of graph.edges.filter(e => e.relation === 'material_ref')) {
+            const target = scope.edge(edge.id);
+            assert.equal(target.identity('ref_id'), graph.nodes[edge.target].ref_id); traversals++;
+        }
+        assert.ok(events.every(e => e[0] === 'I' && e[3] === 'proof/snapshot'));
+        scope.assertHealthy(); const handle = scope.node(Object.keys(graph.nodes)[0]); scope.revoke();
+        assert.throws(() => handle.get('id'), /access_revoked/);
+        assert.throws(() => scope.assertHealthy(), /access_failed/);
+    }
+    const referenced = new Set(graphs.flatMap(graph => Object.values(graph.nodes)
+        .filter(node => node.binding === 'snapshot').map(node => JSON.stringify([node.kind, node.ref_id, node.version]))));
+    assert.deepEqual([...measured].sort(), [...referenced].sort());
+    assert.equal(referenced.size, 61);
+    assert.equal(snapshots.length, 115); // 54 admitted snapshots are not graph operands.
+    assert.ok(traversals > 4000);
+});
+
+test('N02G:SNAPSHOT-ACCESS-010 proof scope rejects data injection, unknown aliases and edges', async () => {
+    const { plan, graphs } = await snapshotAccessFixture();
+    const graph = graphs.find(g => Object.values(g.nodes).every(n => n.binding === 'snapshot'));
+    for (const extra of [{ phase: 'derivation' }, { expected_trace: {} }, { payload: {} }, { role_id: 'events' }]) {
+        assert.throws(() => plan.openProof({ fact_key: graph.fact_key, ...extra }, () => {}), /snapshot_access_/);
+    }
+    const scope = plan.openProof({ fact_key: graph.fact_key }, () => {});
+    assert.throws(() => scope.node('unknown'), /access_binding_invalid/);
+    assert.throws(() => scope.assertHealthy(), /access_failed/);
+    const second = plan.openProof({ fact_key: graph.fact_key }, () => {});
+    assert.throws(() => second.edge('unknown'), /snapshot_access_proof_edge/);
+    assert.throws(() => second.assertHealthy(), /snapshot_access_proof_failed/);
+});
+
+test('N02G:SNAPSHOT-ACCESS-011 metric and proof contexts are observed without output or binding tables', async () => {
+    const { plan, graphs, claims } = await snapshotAccessFixture(); let count = 0;
+    for (const claim of claims) {
+        for (const [role_id, binding] of Object.entries(claim.operand_bindings)) {
+            if (binding.kind !== 'claim_context') continue;
+            const events = []; const access = plan.openContext({ fact_key: claim.fact_key, role_id }, e => events.push(e));
+            assert.equal(access.handle.get('period').get('kind'), claim.period.kind);
+            assert.ok(events.every(e => e[2] === 'claim/context' && e[3] === role_id));
+            access.revoke(); assert.throws(() => access.handle.get('coverage'), /access_revoked/); count++;
+        }
+    }
+    assert.ok(count > 60);
+    const graph = graphs.find(g => Object.values(g.nodes).every(n => n.binding === 'snapshot'));
+    const events = []; const scope = plan.openProof({ fact_key: graph.fact_key }, e => events.push(e));
+    assert.equal(scope.claim().get('period').get('kind'), claims.find(c => c.fact_key === graph.fact_key).period.kind);
+    assert.ok(events.every(e => e[2] === 'claim/context' && e[3] === 'proof/context'));
+    assert.throws(() => scope.claim().get('operand_bindings'), /access_/);
+    assert.throws(() => scope.node(Object.keys(graph.nodes)[0]), /access_failed/);
+});
+
+test('N02G:OBSERVED-PROOF-001 compiled scalar, identity and fingerprint predicates execute from handles', async t => {
+    const { evaluateObservedOperator } = require('../../../src/next/provenance/proofOperators');
+    const { plan, ir, operators } = await snapshotAccessFixture();
+    const implemented = new Set(['kind_is', 'fingerprint_is', 'same_identity', 'ref_targets_node', 'eq', 'not_eq',
+        'field_eq', 'state_is', 'date_in_period', 'period_eq', 'same_month', 'range_contains', 'opposite_sign', 'abs_eq',
+        'civil_offset_matches', 'month_bounds_match', 'day_of_month_matches', 'inclusive_day_count_matches']);
+    let executed = 0; let observations = 0;
+    for (const graph of ir.graphs) {
+        if (Object.values(graph.nodes).some(n => n.binding !== 'snapshot')) continue;
+        const access = plan.openProof({ fact_key: graph.fact_key }, () => observations++);
+        const scope = { ...access, window(name) { if (!Object.hasOwn(graph.windows, name)) throw new Error('unknown_window'); return graph.windows[name]; } };
+        for (const predicate of graph.predicates.filter(p => implemented.has(p.op))) {
+            try {
+                assert.equal(evaluateObservedOperator(operators.find(o => o.id === predicate.op), predicate.operands, scope), true);
+            } catch (error) { throw new Error(`${graph.fact_key}:${predicate.id}:${error.message}`, { cause: error }); }
+            executed++;
+        }
+        access.assertHealthy(); access.revoke();
+    }
+    // Development integration, NOT the 76-graph acceptance gate. Quantifiers,
+    // selections, timezone and validated parents remain explicitly pending.
+    assert.ok(executed > 11000); assert.ok(observations > executed);
+    t.diagnostic(`compiled_predicates_executed=${executed}; instrumented_observations=${observations}; acceptance_gate=false`);
 });
 
 test('N02G:SNAPSHOT-ACCESS-002 callers cannot substitute shape, identity or operand roles', async () => {

@@ -594,5 +594,48 @@ Não houve ampla, dependência, canal ou produção. Próxima ação: projeção
 instrumentada da identidade kind/ref/version dos nós, operadores de nós e
 resolver/programa de prova. Nunca copiar identidade declarada do grafo para
 resultado de operador como se tivesse sido observada no snapshot.
+Próximo incremento (paths existentes): metadados de identidade opcionais em
+bindings internos de instrumentedAccess, obrigatórios na factory de snapshots;
+identity(field) retorna somente escalar observado em projeção node_identity,
+sem misturar envelope.kind com payload.kind. Tests nos cases access/authoring.
+Depois adicionar operadores same_identity/kind_is e sets de identidades ao
+helper existente. Fingerprint continua pendente até medir todo payload material.
+Identidade instrumentada e quatro operadores de identidade/target implementados;
+REDs confirmados, 49 testes afetados PASS (zero fail/skip/todo). Novo incremento
+registrado antes da criação: `src/next/provenance/proofOperators.js` e
+`tests/next/provenance/proofOperators.cases.js`, entry focal existente. Medir
+fingerprint somente lendo handles e a projeção de registry admitida, preservando
+ausência, falsy e ordem; nunca ler semantic_fingerprint do objeto como medição.
+O digest continua sem provar sozinho predicados/seleções ou aceitação integral.
+Próxima ligação nos paths existentes graphCompiler/authoringIndex: scope TCB
+de prova dos snapshots do grafo inteiro, independente dos bindings de cálculo.
+`proof/snapshot` é tag de escopo de transporte, não operand role do evaluator;
+somente a futura fase proof do host poderá usar esse scope. A factory não recebe
+expected_trace nem digest esperado. Pais derivados continuam recusados até recibo
+validado, sem fallback para snapshots fabricados.
+Medição e scope de prova testados: 4 testes unitários e 10 snapshot-access PASS.
+O manifesto tem 115 snapshots admitidos; os grafos referenciam exatamente 61
+identidades de snapshot. As 61 foram medidas por handles e confrontadas com os
+digests; as 54 restantes (family/person/proposal/collection/turn) não foram
+alegadas como executadas. Traversals >4000 observados nesse teste de acesso.
+Registrar próximos paths antes de criá-los: `src/next/provenance/claimContext.js`
+e `tests/next/provenance/claimContext.cases.js`. Projetar somente descriptor
+funcional do claim a partir do schema admitido, sem R/operand_bindings; conectar
+à factory existente com mesmo lifecycle. Não é recibo validado de parent nem GO.
+Contexto ligado à factory: 76 projeções schema-driven; openContext respeita
+role claim_context, openProof usa tags de transporte proof/snapshot e
+proof/context (não são roles normativos do evaluator). Lifecycle compartilhado.
+Dispatch observado conecta expressões tipadas escalares/identidade/fingerprint,
+campos de claim e janelas; não recebe expected_trace. Corte through inclusivo
+confirmado no contrato installments_realized_v1, com RED de fronteira e testes;
+as_of continua sem acumulação implícita.
+Focal integrada: 193/193 PASS, zero fail/skip/todo. Na mesma execução,
+11.204 predicados foram executados por handles e 125.993 observações capturadas.
+Isso é integração de desenvolvimento, não aceitação de 76 grafos: conjuntos,
+quantificadores, timezone, pais e demais partes do gate continuam pendentes.
+Syntax/diff-check/agent-workflow OK. Nenhuma suíte ampla iniciada, canal,
+dependência, produção ou dado real alterado. Próxima ação exata: conjuntos de
+prova com roster observado, resolução de ref_set/projection e quantificadores,
+sem usar selected_set esperado como resultado de seleção.
 
 Codex → Astra → Alto → vincular shapes/bindings e seleção/traversal aos contratos admitidos, sem GO parcial.

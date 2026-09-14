@@ -14,6 +14,7 @@ const { lowerAuthoringIR } = require('./authoringIR');
 const { validateCollectionRequirements } = require('./collectionRequirements');
 const { createInstrumentedAccess, createNodeSetAccess } = require('./instrumentedAccess');
 const { copyData, identifier } = require('./observationContract');
+const { projectClaimContext } = require('./claimContext');
 
 function fail(code) { throw new Error(`graph_index_${code}`); }
 function text(value) {
@@ -198,7 +199,7 @@ function compileAuthoring(admitted, validators) {
         materialRegistry: resolved.material_registry });
     return { documents: [...documents.values()], graphs: graphs.graphs, claims: claims.claims,
         index, operandBindings, predicateTypes, selectionBindings, templates,
-        snapshots: snapshots.snapshots, materialRegistry: resolved.material_registry };
+        snapshots: snapshots.snapshots, materialRegistry: resolved.material_registry, claimSchema };
 }
 
 function compileAuthoringIndex(admitted, validators) {
@@ -237,9 +238,11 @@ function compileSnapshotAccess(admitted, validators) {
         const descriptors = context.materialRegistry.kinds[snapshot.kind].fields;
         const shape = { type: 'record', fields: Object.fromEntries(Object.entries(descriptors)
             .map(([name, descriptor]) => [name, project(descriptor)])) };
-        return [identity(snapshot), { value: snapshot.payload, shape: freeze(shape) }];
+        return [identity(snapshot), { value: snapshot.payload, shape: freeze(shape),
+            identity: freeze({ kind: snapshot.kind, ref_id: snapshot.ref_id, version: snapshot.version }) }];
     }));
     const graphs = new Map(context.graphs.map(g => [g.fact_key, g]));
+    const contexts = new Map(context.claims.map(claim => [claim.fact_key, projectClaimContext(claim, context.claimSchema)]));
     const bindings = new Map(context.operandBindings.graphs.map(g => [g.fact_key,
         new Map(g.operands.map(b => [b.role_ref.role_id, b]))]));
     function select(selector, emit, set) {
@@ -256,7 +259,7 @@ function compileSnapshotAccess(admitted, validators) {
         const node = graphs.get(fact_key).nodes[alias];
         const snapshot = snapshots.get(identity(node));
         if (node.binding !== 'snapshot' || !snapshot) reject('snapshot');
-        return { alias, role, value: snapshot.value, shape: snapshot.shape };
+        return { alias, role, value: snapshot.value, shape: snapshot.shape, identity: snapshot.identity };
     }
     function reachable(fact_key, role, aliases) {
         const graph = graphs.get(fact_key); const visited = new Set(aliases); const queue = [...aliases]; const links = [];
@@ -275,6 +278,55 @@ function compileSnapshotAccess(admitted, validators) {
     }
     return Object.freeze({ stage: 'snapshot_access_plan_only', executable: false,
         snapshot_count: snapshots.size,
+        openProof(selector, emit) {
+            let input;
+            try { input = copyData(selector); } catch { reject('proof_selector'); }
+            if (!input || Object.keys(input).join(',') !== 'fact_key'
+                || !identifier(input.fact_key) || typeof emit !== 'function') reject('proof_selector');
+            const graph = graphs.get(input.fact_key);
+            if (!graph) reject('proof_graph');
+            if (Object.values(graph.nodes).some(node => node.binding !== 'snapshot')) reject('proof_parent_pending');
+            // This tag names the proof transport scope, NOT a metric operand
+            // role. The execution host must bind this factory to phase proof.
+            // No required_reads/expected_trace is used to manufacture events.
+            const reachableNodes = reachable(input.fact_key, 'proof/snapshot', Object.keys(graph.nodes));
+            const access = createInstrumentedAccess({ bindings: [...reachableNodes.bindings,
+                { alias: 'claim/context', role: 'proof/context', ...contexts.get(input.fact_key) }],
+                links: reachableNodes.links, emit });
+            let failed = false; let revoked = false;
+            const check = () => {
+                if (failed) reject('proof_failed');
+                access.assertHealthy();
+                if (revoked) { failed = true; reject('proof_revoked'); }
+            };
+            const invalid = code => { failed = true; reject(code); };
+            return Object.freeze({
+                node(alias) { check(); return access.handle(alias); },
+                claim() { check(); return access.handle('claim/context'); },
+                edge(id) {
+                    check(); const edge = graph.edges.find(e => e.id === id && e.relation === 'material_ref');
+                    if (!edge) invalid('proof_edge');
+                    return access.handle(edge.source).traverse(id);
+                },
+                material(alias) {
+                    check();
+                    if (typeof alias !== 'string' || !Object.hasOwn(graph.nodes, alias)) invalid('proof_alias');
+                    const kind = graph.nodes[alias].kind;
+                    return freeze({ registry_version: context.materialRegistry.registry_version, kind,
+                        fields: context.materialRegistry.kinds[kind].fields });
+                },
+                revoke() { revoked = true; access.revoke(); },
+                assertHealthy() { if (failed) reject('proof_failed'); access.assertHealthy(); }
+            });
+        },
+        openContext(selector, emit) {
+            const { fact_key, role_id, binding } = select(selector, emit, true);
+            if (binding.kind !== 'claim_context') reject('binding_kind');
+            const access = createInstrumentedAccess({ bindings: [{ alias: 'claim/context', role: role_id,
+                ...contexts.get(fact_key) }], emit });
+            return Object.freeze({ handle: access.handle('claim/context'),
+                revoke: access.revoke, assertHealthy: access.assertHealthy });
+        },
         open(selector, emit) {
             const { fact_key, role_id, alias, binding } = select(selector, emit, false);
             if (!['node', 'node_set'].includes(binding.kind)) reject('binding_kind');
