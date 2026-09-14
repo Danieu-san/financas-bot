@@ -17,3 +17,4 @@ require('./next/provenance/operandBindings.cases');
 require('./next/provenance/claimRequirements.cases');
 require('./next/provenance/selectionBindings.cases');
 require('./next/provenance/collectionRequirements.cases');
+require('./next/provenance/artifactLoader.cases');

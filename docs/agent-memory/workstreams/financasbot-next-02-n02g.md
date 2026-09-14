@@ -347,15 +347,54 @@ Não provar compatibilidade com Node 20 a partir desse teste em Node 22.
 Não repetir os 103 testes verdes do compiler sem mudança causal: este
 experimento não alterou seus fontes ou dependências existentes. Ampla pendente.
 
-Próxima ação exata: fixar o modelo de ameaça e o contrato de execução do TCB,
-closures e capabilities antes de implementar a fronteira efetiva. O probe
-não prova isolamento contra esgotamento de memória do processo, roots medidos,
-ausência de objeto financeiro cru, captura I/M/L/T ou admissão de R. A decisão
-de arquitetura/segurança dessa fronteira requer Astra/Extra Alto; a próxima
-ação material fica aguardando essa seleção, conforme contrato de capacidade.
-Depois dessa decisão delimitada, reavaliar para retornar a Alto na implementação.
-Requisitos
-temporais/time_basis e coverage restantes continuam pendentes. O IR completo em inventário
+Registro antes da criação: documento de decisão de implementação
+`docs/plans/workstreams/financasbot-next-02-n02g-execution-boundary-v1.md`.
+Limita-se a aplicar a fronteira ratificada, distinguir probe de enforcement e
+ordenar os REDs; não altera autoria N02-F, charter, runtime ou contratos normativos.
+
+Decisão de implementação registrada em 2026-09-12 no documento acima:
+SES com processo descartável por grafo, compartments separados por fase e
+recorder no host chamador; L único por execução. Receitas/bytes de bootstrap,
+SES/wrapper/configuração e dependências integram as fronteiras medidas; nada de
+hashear entry e executar helper ambiente. No modo evaluate escolhido, transforms
+SES 2.3.0 inspecionados rejeitam ou preservam source; isso ainda exige teste do
+perfil empacotado. Sem sandbox de SO ou promessa de disponibilidade absoluta.
+Handles revogados antes de inspecionar R; saída não executa getter/coerção/trap.
+Recibo só depois de término limpo, depois inicia o próximo grafo do DAG.
+Programa de prova gerado não recebe payload/expected_trace como constante.
+Ainda é decisão WIP, não prova implementada nem nova ratificação do charter.
+
+Retomada de 2026-09-14: HEAD/remoto `35839dcd4aedb685a9ce9a881b6c1457ce5118d2`,
+somente os dois documentos locais da decisão pendentes. Workflow e diff check
+confirmados após a interrupção da ferramenta por limite de uso; nada havia sido
+commitado nessa interrupção. Registrar antes da criação:
+`src/next/provenance/artifactLoader.js` e
+`tests/next/provenance/artifactLoader.cases.js`, com entry focal existente.
+Primeiro passe somente admite bytes capturados contra root confiado de manifesto
+canônico e inventário fechado. Reutiliza canonicalValue; não executa source,
+não prova completude semântica do closure nem promove authoring a runtime.
+Manifesto é raiz Merkle plana contendo digests dos arquivos; o registry/freeze
+fornece a raiz esperada. Nenhuma autoridade é gerada pelo loader.
+
+Admissão inicial implementada em 2026-09-14: raiz do manifesto canônico vinculada
+ao inventário e aos bytes de cada arquivo; tipos/entry/paths fechados, captura
+imutável, limites de entrada e recibo marcado internamente. Usa canonicalValue
+existente sem alterá-lo; loader não resolve filesystem nem executa JavaScript.
+RED de módulo ausente observado. Revisão adversarial gerou RED adicional:
+Buffer.copy consultava metadata redefinível; substituído por TypedArray.set
+sobre slots internos. O teste confirma zero getters/callbacks durante captura.
+Focal integrado: 116/116 PASS, 0 FAIL/SKIP/TODO (13 novos + 103 existentes).
+Syntax do loader OK. Nenhuma ampla iniciada. Sem mudança de dependências,
+canal, autoria ratificada, runtime v1, integração produtiva ou dados reais.
+
+Próxima ação exata: materializar o perfil fechado de execução e a prova de
+encapsulamento do TCB/processo com dados sintéticos mínimos, sem evaluators
+financeiros. O passe de identidade não prova sozinho closure completo ou
+segurança; recibo continua executable=false. Usar build já previsto, registrar
+novos paths de perfil/testes antes da criação; depois handles/recorder/lifecycle.
+Capacidade recomendada: Astra/Alto. Não repetir compiler/probe verdes sem
+mudança causal; gate executável e ampla permanecem pendentes.
+Requisitos temporais/time_basis e coverage restantes continuam pendentes. O IR completo em inventário
 ainda não constitui um motor executável. Nenhum PASS intermediário
 libera rollout ou substitui o gate integral. Ampla somente no candidato estável;
 ao iniciá-la, pausar sem polling, conforme preferência de Daniel.
@@ -363,4 +402,4 @@ ao iniciá-la, pausar sem polling, conforme preferência de Daniel.
 Telemetria de calibração: não consultada nesta abertura; métricas de uso
 NAO_DISPONIVEL. Não amplia coleta nem bloqueia o produto.
 
-Codex → Astra → Extra Alto → fechar o desenho técnico do TCB/closures a partir do probe, sem executar evaluators antes dos REDs.
+Codex → Astra → Alto → implementar admissão de artefatos e perfil fechado com REDs, sem evaluators financeiros antes da fronteira provada.
