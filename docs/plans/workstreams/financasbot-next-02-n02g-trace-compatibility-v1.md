@@ -1,6 +1,8 @@
 # N02-G — resolução focal de compatibilidade entre traversal e trace
 
-Estado: **CORREÇÃO IMPLEMENTADA; REAUDITORIA FOCAL PENDENTE**.
+Estado: **CORREÇÃO FOCAL APROVADA EM REAUDITORIA INDEPENDENTE**.
+Parecer `4bc20076fa4fbd6f90dbc505cdaa306789862376` sobre `fd2d996b45bb7cecd4ae0d7d19cacece5afbe98b`,
+sem findings; recibo canônico `32dde4a514a5874d3ec1d15cd1e406aa55383160`.
 Não é GO global do N02-G. Não altera grafos, fixtures, oracle ou contratos
 ratificados e não autoriza NEXT-03, deploy, produção ou dados reais.
 
@@ -67,5 +69,5 @@ GREEN atual:
 A suíte ampla do repositório não foi executada neste incremento focal. O N02-G
 permanece em desenvolvimento e ainda exige integração integral, confronto exato
 de ambos os traces, recibos de parents validados, mutações/witnesses, closure/TCB
-final e gate global. A próxima decisão é a reauditoria independente deste delta
-corretivo; somente depois dela o desenvolvimento do N02-G pode continuar.
+final e gate global. A reauditoria focal foi concluída e o desenvolvimento
+continua pelo confronto integral dos traces, sob o checkpoint N02-G.

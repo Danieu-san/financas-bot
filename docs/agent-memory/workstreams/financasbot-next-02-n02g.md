@@ -758,8 +758,21 @@ a falha antiga; GREEN: 6/6 causais, 70/70 módulos afetados e 241/241 bateria
 N02-G integrada, zero FAIL/SKIP/TODO. Suíte ampla não executada porque o N02-G
 ainda não é candidato global estável.
 
-Estado: correção focal pronta para commit imutável e reauditoria curta. Não
-alterar graphs, contratos, fixtures ou oracle. Após aprovação, retomar a
-integração integral de trace/prova; sem GO parcial, NEXT-03, deploy ou produção.
+Estado vigente em 2026-09-15: correção `fd2d996b45bb7cecd4ae0d7d19cacece5afbe98b`
+APROVÁVEL na reauditoria independente, sem findings. Parecer integral publicado
+em `4bc20076fa4fbd6f90dbc505cdaa306789862376`, recebido e validado no canal
+canônico em `32dde4a514a5874d3ec1d15cd1e406aa55383160`, com CHAT_READY remoto.
+Não repetir esta auditoria nem a bateria verde sem mudança causal nova.
 
-Codex → Sol → Alto → publicar o delta corretivo e obter reauditoria focal por hash.
+O retorno original foi escrito equivocadamente na branch do produto. O watcher
+consulta somente `chat/chat-codex-orchestration-20260824`; sua ausência nessa
+branch não demonstrava auditoria em andamento. Nos próximos prompts declarar
+explicitamente essa branch como destino exclusivo de parecer, slot e state,
+e a branch do candidato como fonte somente de leitura. Monitor antigo removido.
+
+Próxima ação: integrar o confronto exato de trace/prova aos contratos admitidos,
+com RED causal e sem preencher expected a partir de actual. Parents continuam
+sem recibos validados até aceitação integral. Não alterar graphs, contratos,
+fixtures ou oracle; NEXT-03/produção continuam bloqueados pelo gate global.
+
+Codex → Sol → Alto → integrar o confronto completo dos traces no N02-G.
