@@ -47,7 +47,7 @@ test('N02G:INSTALLMENT-METRIC-002 inconsistent plan membership, index, dates and
     const mutations = [rows => rows[0][2].members.pop(), rows => rows[0][2].members.push('second'),
         rows => rows[2][2].installment_number = 1, rows => rows[2][2].installment_total = 4,
         rows => rows[2][2].person_id = 'foreign', rows => rows[2][2].date = '2042-05-14'];
-    for (const mutate of mutations) assert.throws(() => evaluateInstallments(fixture(mutate).operands(range), 'installments_projected'), /installment_metric_|access_set_predicate_threw/);
+    for (const mutate of mutations) assert.throws(() => evaluateInstallments(fixture(mutate).operands(range), 'installments_projected'), /installment_metric_|access_set_predicate_threw|access_shape_invalid/);
     assert.throws(() => evaluateInstallments(fixture().operands({ ...range, start_inclusive: false }), 'installments_projected'), /installment_metric_period/);
 });
 

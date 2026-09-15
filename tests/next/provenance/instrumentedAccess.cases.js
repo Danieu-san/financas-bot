@@ -53,15 +53,15 @@ function traversalFixture(emit = () => {}) {
     ] };
 }
 
-test('N02G:ACCESS-031 following a singular material field reuses observed traversal without graph IDs', () => {
+test('N02G:ACCESS-031 following a singular material field emits only the admitted edge before target reads', () => {
     const events = []; const access = createInstrumentedAccess(traversalFixture(e => events.push(e)));
     const source = access.handle('a');
     assert.equal(source.follow.constructor, undefined);
     const target = source.follow('owner');
     assert.equal(target.get('amount'), 14);
-    assert.deepEqual(events.slice(0, 3).map(e => [e[1], e[2], e[4], e[6]]), [
-        ['get', 'a', ['owner'], ['scalar', 'b-id']], ['get', 'b', ['id'], ['scalar', 'b-id']],
-        ['traverse', 'a', ['owner'], ['edge', 'owner_link', 'b']]
+    assert.deepEqual(events.map(e => [e[1], e[2], e[4], e[6]]), [
+        ['traverse', 'a', ['owner'], ['edge', 'owner_link', 'b']],
+        ['get', 'b', ['amount'], ['scalar', 14]]
     ]);
     access.revoke(); assert.throws(() => target.get('amount'), /access_revoked/);
     assert.throws(() => access.assertHealthy(), /access_failed/);
@@ -73,12 +73,12 @@ test('N02G:ACCESS-032 following fields rejects ambiguity, lists, forged inputs a
         assert.throws(() => access.handle('a').follow(...args), /access_traversal/);
         assert.throws(() => access.assertHealthy(), /access_failed/);
     }
-    for (const modify of [f => f.links.push({ ...f.links[0], id: 'duplicate_relation' }),
-        f => { f.bindings[0].value.owner = 'wrong'; }]) {
-        const f = traversalFixture(); modify(f); const access = createInstrumentedAccess(f);
-        assert.throws(() => access.handle('a').follow('owner'), /access_traversal/);
-        assert.throws(() => access.assertHealthy(), /access_failed/);
-    }
+    const duplicate = traversalFixture(); duplicate.links.push({ ...duplicate.links[0], id: 'duplicate_relation' });
+    const duplicateAccess = createInstrumentedAccess(duplicate);
+    assert.throws(() => duplicateAccess.handle('a').follow('owner'), /access_traversal/);
+    assert.throws(() => duplicateAccess.assertHealthy(), /access_failed/);
+    const mismatch = traversalFixture(); mismatch.bindings[0].value.owner = 'wrong';
+    assert.throws(() => createInstrumentedAccess(mismatch), /access_shape_invalid/);
     const access = createInstrumentedAccess(traversalFixture());
     assert.throws(() => access.handle('a').get('members').follow('owner'), /access_traversal/);
     const failed = createInstrumentedAccess(traversalFixture(() => { throw new Error('sink'); }));
@@ -153,18 +153,18 @@ test('N02G:ACCESS-028 invalid set roster/closure cannot silently substitute a me
     ], emit: () => {} }), /access_shape_invalid/);
 });
 
-test('N02G:ACCESS-023 traversal observes source reference and target identity before returning a handle', () => {
+test('N02G:ACCESS-023 traversal observes only the admitted edge before explicit target reads', () => {
     const events = []; const access = createInstrumentedAccess(traversalFixture(e => events.push(e)));
     const source = access.handle('a');
     const target = source.traverse('owner_link');
     assert.equal(target.amount, undefined); assert.equal(Object.getPrototypeOf(target), null);
     assert.equal(target.get('amount'), 14);
-    assert.deepEqual(events.slice(0, 3).map(e => [e[1], e[2], e[4], e[6]]), [
-        ['get', 'a', ['owner'], ['scalar', 'b-id']], ['get', 'b', ['id'], ['scalar', 'b-id']],
-        ['traverse', 'a', ['owner'], ['edge', 'owner_link', 'b']]
+    assert.deepEqual(events.map(e => [e[1], e[2], e[4], e[6]]), [
+        ['traverse', 'a', ['owner'], ['edge', 'owner_link', 'b']],
+        ['get', 'b', ['amount'], ['scalar', 14]]
     ]);
     assert.equal(source.traverse('members_link').get('amount'), 14);
-    assert.ok(events.some(e => e[1] === 'next' && e[2] === 'a' && e[4][0] === 'members'));
+    assert.equal(events.filter(e => e[1] === 'get' && e[2] === 'a').length, 0);
     const { decodeObservation } = require('../../../src/next/provenance/observationContract');
     for (const event of events) assert.deepEqual(decodeObservation(event), event);
     access.revoke();
@@ -176,10 +176,8 @@ test('N02G:ACCESS-024 missing actual relation, foreign edge and invalid referenc
     for (const change of [f => { f.bindings[0].value.owner = 'wrong'; },
         f => { f.bindings[1].value.id = 'wrong'; }, f => { delete f.bindings[0].value.owner; }]) {
         const events = []; const f = traversalFixture(e => events.push(e)); change(f);
-        const access = createInstrumentedAccess(f);
-        assert.throws(() => access.handle('a').traverse('owner_link'), /access_traversal/);
+        assert.throws(() => createInstrumentedAccess(f), /access_shape_invalid/);
         assert.equal(events.filter(e => e[1] === 'traverse').length, 0);
-        assert.throws(() => access.handle('b'), /access_failed/);
     }
     for (const [alias, edge] of [['b', 'owner_link'], ['a', 'missing'], ['a', {}]]) {
         const access = createInstrumentedAccess(traversalFixture());
@@ -209,7 +207,7 @@ test('N02G:ACCESS-025 traversal cannot run from nested handles or survive observ
     ]) assert.throws(() => decodeObservation(e));
 });
 
-test('N02G:ACCESS-026 structured parent references are observed without treating the link as evidence', () => {
+test('N02G:ACCESS-026 structured parent references are admitted without incidental traversal reads', () => {
     const events = []; const f = traversalFixture(e => events.push(e));
     f.bindings[0].value.parents = [{ role_id: 'left', parent_ref: 'b-id' }];
     f.bindings[0].shape.fields.parents = { type: 'sequence', item: { type: 'record', fields: {
@@ -218,11 +216,9 @@ test('N02G:ACCESS-026 structured parent references are observed without treating
     f.links.push({ id: 'parent_link', source: 'a', field: 'parents', target: 'b', type: 'role_ref_list' });
     const access = createInstrumentedAccess(f);
     assert.equal(access.handle('a').traverse('parent_link').get('amount'), 14);
-    assert.ok(events.some(e => e[1] === 'get' && e[2] === 'a' && JSON.stringify(e[4]) === JSON.stringify(['parents', 0, 'parent_ref'])));
+    assert.equal(events.some(e => e[1] === 'get' && e[2] === 'a'), false);
     f.bindings[0].value.parents[0].parent_ref = 'missing';
-    const invalid = createInstrumentedAccess(f);
-    assert.throws(() => invalid.handle('a').traverse('parent_link'), /access_traversal_mismatch/);
-    assert.throws(() => invalid.assertHealthy(), /access_failed/);
+    assert.throws(() => createInstrumentedAccess(f), /access_shape_invalid/);
 });
 
 test('N02G:ACCESS-017 selection computes every decision and keeps immutable ordered views', () => {

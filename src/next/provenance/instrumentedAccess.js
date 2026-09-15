@@ -78,6 +78,15 @@ function createInstrumentedAccess(options) {
             || (link.type === 'ref' ? shape?.type !== 'scalar'
                 : shape?.type !== 'sequence' || (link.type === 'ref_list' ? shape.item.type !== 'scalar'
                     : shape.item.type !== 'record' || shape.item.fields.parent_ref?.type !== 'scalar'))) failSetup();
+        // The TCB admits the structural relation once, before guest execution.
+        // Runtime traversal observes only that admitted edge; it must not create
+        // causal reads merely to rediscover the same binding.
+        const targetId = target.value.id; const references = source.value[link.field];
+        if (typeof targetId !== 'string' || references === undefined) failSetup();
+        const matches = link.type === 'ref'
+            ? Number(references === targetId)
+            : references.filter(item => (link.type === 'ref_list' ? item : item?.parent_ref) === targetId).length;
+        if (matches !== 1) failSetup();
         relations.set(link.id, link);
     }
     let revoked = false; let failed = false;
@@ -162,21 +171,8 @@ function createInstrumentedAccess(options) {
                 check();
                 const link = typeof edgeId === 'string' ? relations.get(edgeId) : undefined;
                 if (path.length || projection !== 'data' || !link || link.source !== b.alias) fail('traversal_forbidden');
-                // Re-enter observed field APIs; the compiled graph alone is
-                // never evidence that a runtime reference actually matches.
-                const source = handle(value, shape, b, [], 'data');
-                const references = source.get(link.field);
                 const targetBinding = roots.get(link.target);
                 const target = handle(targetBinding.value, targetBinding.shape, targetBinding, [], 'data');
-                const targetId = target.get('id');
-                if (typeof targetId !== 'string' || references === undefined) fail('traversal_identity');
-                let matches = false;
-                if (link.type === 'ref') matches = references === targetId;
-                else for (const item of references) {
-                    const ref = link.type === 'ref_list' ? item : item.get('parent_ref');
-                    if (ref === targetId) matches = true;
-                }
-                if (!matches) fail('traversal_mismatch');
                 event('traverse', b, [link.field], 'data', ['edge', link.id, link.target]);
                 return target;
             },

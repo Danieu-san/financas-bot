@@ -743,4 +743,23 @@ não emitir recibo validado de parent enquanto a integração permanece bloquead
 Escopo da revisão: decidir a incompatibilidade e a menor correção coerente;
 não aprovar as novas métricas globalmente nem liberar NEXT-03/produção.
 
-Codex → Astra → Alto → vincular shapes/bindings e seleção/traversal aos contratos admitidos, sem GO parcial.
+Reauditoria focal B concluída: CRITICAL 0, HIGH 1, MEDIUM 0, LOW 0. O parecer
+confirmou que `required_edges` e `required_reads` são dimensões independentes e
+que o bloqueio estava nas leituras incidentais executadas por `traverse`, não na
+autoria dos 76 grafos. Evidência independente em `77d894b...`; parecer/slot em
+`1a2466d...`; recibo operacional concluído em `54d90d3...`.
+
+Correção local: relações materiais agora são validadas pelo TCB na admissão dos
+bindings, sem emissão de trace. `traverse` executa somente a aresta admitida e
+não relê a referência da origem nem `target.id`; reads posteriores realmente
+executados permanecem instrumentados. O diagnóstico preserva as 1.133
+obrigações edge-only como informação válida, não como gap. RED focal confirmou
+a falha antiga; GREEN: 6/6 causais, 70/70 módulos afetados e 241/241 bateria
+N02-G integrada, zero FAIL/SKIP/TODO. Suíte ampla não executada porque o N02-G
+ainda não é candidato global estável.
+
+Estado: correção focal pronta para commit imutável e reauditoria curta. Não
+alterar graphs, contratos, fixtures ou oracle. Após aprovação, retomar a
+integração integral de trace/prova; sem GO parcial, NEXT-03, deploy ou produção.
+
+Codex → Sol → Alto → publicar o delta corretivo e obter reauditoria focal por hash.

@@ -180,13 +180,13 @@ test('N02G:OBSERVED-METRIC-004 economic effects use observed links, not signed a
     assert.equal(checked, 13);
 });
 
-test('N02G:TRACE-COMPAT-001 required traversal exposes a read and node excluded by the authored derivation contract', async () => {
+test('N02G:TRACE-COMPAT-001 required edge remains independent from derivation node and read coverage', async () => {
     const { inspectTraversalCoverage } = await import(pathToFileURL(path.join(root, 'scripts/agent/inspectNextProvenanceTraceCompatibility.mjs')));
     const { plan, graphs } = await snapshotAccessFixture();
     const report = inspectTraversalCoverage(graphs);
-    assert.equal(report.compatible, false); assert.equal(report.graphs_checked, 76);
-    assert.equal(report.affected_graphs, 66); assert.equal(report.gap_count, 1133);
-    assert.ok(report.gaps.every(g => g.phase === 'derivation'));
+    assert.equal(report.compatible, true); assert.equal(report.graphs_checked, 76);
+    assert.equal(report.edge_only_graphs, 66); assert.equal(report.edge_only_count, 1133);
+    assert.ok(report.edge_only.every(g => g.phase === 'derivation'));
     const graph = graphs.find(g => g.fact_key === 'S-01#1#1');
     const contract = graph.trace_contract.derivation;
     const edge = graph.edges.find(e => e.id === 'e0023');
@@ -195,22 +195,18 @@ test('N02G:TRACE-COMPAT-001 required traversal exposes a read and node excluded 
     const access = plan.open({ fact_key: graph.fact_key, role_id: 'events', alias: edge.source }, e => observations.push(e));
     access.handle.traverse(edge.id); access.assertHealthy(); access.revoke();
     const actualReads = observations.filter(e => e[1] === 'get').map(e => [e[2], e[4]]);
-    assert.deepEqual(actualReads, [[edge.source, [edge.field]], [edge.target, ['id']]]);
+    assert.deepEqual(actualReads, []);
     assert.equal(contract.required_nodes.includes(edge.target), false);
     assert.equal(contract.required_reads.some(r => r.node === edge.target && r.segments.join('.') === 'id'), false);
     assert.ok(observations.some(e => e[1] === 'traverse' && e[6][1] === edge.id));
-    // The test proves a blocker, not successful graph acceptance. A copied
-    // local contract can cover this one edge; normative authoring is untouched.
+    // Edge observation is a separate causal dimension. Removing its endpoints
+    // from read coverage cannot manufacture or suppress runtime reads.
     const minimal = { fact_key: 'diagnostic', edges: [edge], trace_contract: Object.fromEntries(['derivation', 'proof'].map(phase => [phase, {
-        required_edges: [edge.id], required_nodes: [edge.source, edge.target],
-        required_reads: actualReads.map(([node, segments]) => ({ node, segments }))
+        required_edges: [edge.id], required_nodes: [], required_reads: []
     }])) };
     assert.equal(inspectTraversalCoverage([minimal]).compatible, true);
-    for (const endpoint of [edge.source, edge.target]) {
-        const broken = structuredClone(minimal);
-        broken.trace_contract.derivation.required_nodes = broken.trace_contract.derivation.required_nodes.filter(n => n !== endpoint);
-        assert.equal(inspectTraversalCoverage([broken]).compatible, false);
-    }
+    const broken = structuredClone(minimal); broken.trace_contract.derivation.required_edges = ['missing'];
+    assert.throws(() => inspectTraversalCoverage([broken]), /trace_compatibility_unknown_edge/);
 });
 
 test('N02G:SNAPSHOT-ACCESS-001 handles resolve exact admitted fact/role/alias identities', async () => {

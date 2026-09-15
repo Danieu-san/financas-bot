@@ -1,94 +1,71 @@
-# N02-G — incompatibilidade focal entre traversal e cobertura de trace
+# N02-G — resolução focal de compatibilidade entre traversal e trace
 
-Estado: **BLOQUEIO DE INTEGRAÇÃO; REVISÃO INDEPENDENTE PENDENTE**.
-Não é veredito global contra N02-F, nem aprovação do N02-G. Nenhuma alteração
-dos grafos/fixtures/contratos ratificados foi feita para contornar o problema.
+Estado: **CORREÇÃO IMPLEMENTADA; REAUDITORIA FOCAL PENDENTE**.
+Não é GO global do N02-G. Não altera grafos, fixtures, oracle ou contratos
+ratificados e não autoriza NEXT-03, deploy, produção ou dados reais.
 
-## Questão única para revisão
+## Decisão independente
 
-A implementação deve conciliar três exigências: consumir as arestas de
-`required_edges`, observar externamente os acessos reais e respeitar a igualdade
-exata de `required_nodes`/`required_reads` da fase. O contrato de autoria atual
-não cobre todos os endpoints das arestas que exige na derivação.
+A revisão independente do candidato `9ffaa60669904c2a7d5af547a529e60f09c5e36b`
+confirmou que `required_edges` e `required_reads` são obrigações exatas e
+independentes. O grafo `S-01#1#1` exige `e0023` na derivação sem exigir o nó
+`person_b` ou leituras desse nó nessa fase. Essas leituras pertencem à prova.
 
-O diagnóstico é relativo à primitiva de traversal efetivamente implementada,
-não uma afirmação de impossibilidade matemática de qualquer implementação.
-O auditor deve confrontar também se outra interpretação preservaria TODAS as
-exigências, sem ocultar acesso a endpoint ou reduzir a observação causal.
+O bloqueio era da implementação: `instrumentedAccess.traverse` relia a referência
+da origem e `target.id` apenas para redescobrir uma relação já validada pelo TCB.
+Essas leituras incidentais entravam corretamente no trace real, mas não eram
+causalmente necessárias à derivação. Copiar o trace observado para o contrato ou
+filtrar leituras reais continuaria proibido.
 
-## Instância mínima reproduzida
+Evidência independente:
 
-Fonte: `docs/contracts/next/provenance-v2/graphs-v2.json`, grafo `S-01#1#1`.
+- evidence commit `77d894b705f58c1e76d7333c5330ae4a1dc714b0`, parent `9ffaa606...`;
+- SHA-256 do source focal `0fb853ce45ee06f6abade90176a332caf20d3f592fa932a1300a1e519bc777f7`;
+- blob do registro focal `5abcb5d528065b00bd575298176947ec605600ba`;
+- parecer publicado em `1a2466dae00712d9ad10428eaff37eb61548ec81`;
+- recibo operacional concluído em `54d90d3fee3bc4154fe25d92aa1acb433fc58cb6`.
 
-1. `trace_contract.derivation.required_edges` contém `e0023`.
-2. A aresta é `evt_bill_projected.person_id → person_b`, relação `material_ref`.
-3. `person_b` é snapshot de `person-b`, papel `link_proof`.
-4. A derivação não inclui `person_b` em `required_nodes` e não declara qualquer
-   leitura de `person_b` em `required_reads`.
-5. A primitiva real `handle.traverse('e0023')` lê
-   `evt_bill_projected.person_id`, lê `person_b.id`, verifica a correspondência
-   e emite a observação da aresta. O teste confronta exatamente essas leituras.
+## Correção aplicada
 
-`graph-binding-contract-v1.md`, seção 4, determina igualdade exata dos pares
-node/path, define required_nodes como nós examinados/consumidos e rejeita leitura
-extra/ausente ou aresta ignorada. Portanto o caminho atual não pode aceitar esse
-trace: omitir o traversal deixa uma aresta obrigatória sem consumo; executá-lo
-introduz nó/leitura que a mesma fase exclui.
+Na construção de `createInstrumentedAccess`, o TCB agora admite cada relação
+material contra os valores copiados e já validados dos bindings:
 
-## Evidência local e alcance
+- origem, alvo, campo e tipo continuam fechados pelo link compilado;
+- o identificador real do alvo deve coincidir exatamente uma vez com a referência
+  escalar, lista de referências ou `parent_ref` estruturado;
+- relação ausente, divergente ou ambígua falha antes da execução guest;
+- a admissão não emite evento de leitura e não materializa trace.
 
-Comandos:
+Durante a execução guest, `traverse(edgeId)` aceita somente uma aresta admitida e
+alcançável a partir do handle corrente, emite a observação `traverse` e devolve o
+handle do alvo. Não executa `get` na origem nem em `target.id`. Qualquer leitura
+posterior realmente feita pelo guest continua instrumentada e visível.
 
-```text
-node --test --test-name-pattern=TRACE-COMPAT-001 tests/next/provenance/authoringIndex.cases.js
-node scripts/agent/inspectNextProvenanceTraceCompatibility.mjs
-```
+O diagnóstico `inspectNextProvenanceTraceCompatibility.mjs` deixou de chamar a
+independência entre aresta e reads de incompatibilidade. Ele continua verificando
+que toda aresta exigida existe, informa os casos edge-only e nunca fabrica trace:
 
-Resultado observado: reprodução causal **1/1 PASS** (o teste prova o bloqueio,
-não a aceitação do grafo); diagnóstico **exit 1**, `compatible=false`,
-76 grafos/152 fases examinados, 66 grafos afetados, 1.133 ocorrências de arestas
-sem cobertura do endpoint. Todas estão na fase derivation; nenhuma em proof.
-Bateria focal integrada posterior: **241/241 PASS**, zero FAIL/SKIP/TODO,
-54,03 segundos. A reprodução do bloqueio faz parte desses testes; esse verde
-não transforma o diagnóstico em compatível nem fecha o N02-G.
+- 76 grafos e 152 fases examinados;
+- 66 grafos e 1.133 obrigações edge-only, todas em derivation;
+- `compatible=true`, pois edge-only é uma combinação normativa válida.
 
-O helper faz apenas análise de compatibilidade entre campos do contrato. Não
-executa o motor, não fabrica observações e não é um gate completo de provenance.
-O teste adicional usa uma cópia mínima em memória com cobertura explícita para
-demonstrar que a checagem aceita a cobertura e rejeita a remoção de cada endpoint.
-Não modifica o arquivo ratificado para produzir verde.
+## Evidência local após a correção
 
-O resultado não implica 1.133 falhas independentes, nem demonstra que corrigir
-esta classe bastará para fechar todos os traces. Seleções, reads escalares,
-operações estruturais, roles e fases ainda exigem confronto completo.
+RED prévio: seis casos focais falharam no comportamento antigo pelas leituras
+incidentais e pela admissão tardia.
 
-## Decisão proposta, ainda não aplicada
+GREEN atual:
 
-Revisar a autoria de trace por uma regra única de coerência entre obrigações,
-traversals e cobertura. A fase derivation deve exigir somente relações realmente
-necessárias ao cálculo/seleção e cobrir seus endpoints; relações exclusivas de
-prova ficam na fase proof, com sua cobertura própria. A necessidade de cada
-relação deve decorrer do contrato, não do resultado esperado nem do fact_key.
+- seis casos causais de trace/traversal: 6/6 PASS;
+- módulos `instrumentedAccess` + `authoringIndex`: 70/70 PASS;
+- regressão de parcela divergente agora aceita a rejeição antecipada da admissão;
+- bateria focal integrada `tests/nextProvenance.test.js`: 241/241 PASS,
+  zero FAIL/SKIP/TODO;
+- diagnóstico: exit 0, 76 grafos/152 fases, 66 grafos edge-only e 1.133
+  ocorrências informativas.
 
-Não é proposta uma permissão genérica para reads extras, nem adicionar todos os
-nós a todas as fases. Também não é proposta a regeneração automática do contrato
-esperado a partir do trace observado: isso seria autorreferencial. Autoria
-esperada continua independente, revisada e imutável; a execução a confronta.
-
-Antes de aplicar qualquer mudança, o parecer deve decidir se a incompatibilidade
-é real sob a semântica ratificada e qual lado precisa ser corrigido: autoria,
-projeção de observações ou primitiva. Preservar os requisitos de observação
-externa, separação de fases, seleção real e rejeição de evidência extra.
-
-## Estado do produto
-
-73/76 claims (36/39 métricas) tiveram resultados funcionais confrontados com o
-oracle somente no harness. Isso não constitui aceitação de grafos. As três
-métricas derivadas continuam aguardando recibos de pais realmente validados.
-A cápsula/TCB, confronto integral de trace, mutações e gate completo permanecem
-pendentes. Suíte ampla final ainda não foi iniciada: seria prematura enquanto
-essa decisão de integração está aberta. A bateria focal cobre os incrementos.
-
-Esta revisão não autoriza NEXT-03, deploy, produção ou dados reais. Seu objeto é
-apenas a compatibilidade descrita acima, com nova evidência executável que não
-existia na auditoria documental anterior.
+A suíte ampla do repositório não foi executada neste incremento focal. O N02-G
+permanece em desenvolvimento e ainda exige integração integral, confronto exato
+de ambos os traces, recibos de parents validados, mutações/witnesses, closure/TCB
+final e gate global. A próxima decisão é a reauditoria independente deste delta
+corretivo; somente depois dela o desenvolvimento do N02-G pode continuar.
