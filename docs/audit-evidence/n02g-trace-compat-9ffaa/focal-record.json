@@ -1,0 +1,35 @@
+{
+  "fact_key": "S-01#1#1",
+  "claim_id": "claim-S-01#1#1",
+  "edge": {
+    "id": "e0023",
+    "source": "evt_bill_projected",
+    "field": "person_id",
+    "target": "person_b",
+    "relation": "material_ref",
+    "proof_predicates": [
+      "p0066_target"
+    ]
+  },
+  "derivation": {
+    "required_edges_contains_e0023": true,
+    "required_nodes_contains_person_b": false,
+    "required_reads_for_person_b": []
+  },
+  "proof": {
+    "required_reads_for_person_b": [
+      {
+        "node": "person_b",
+        "segments": [
+          "id"
+        ]
+      },
+      {
+        "node": "person_b",
+        "segments": [
+          "family_id"
+        ]
+      }
+    ]
+  }
+}

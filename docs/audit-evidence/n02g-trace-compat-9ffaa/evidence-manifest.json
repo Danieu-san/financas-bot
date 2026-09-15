@@ -1,0 +1,17 @@
+{
+  "schema": "financasbot-n02g-trace-compat-evidence-v1",
+  "candidate_sha": "9ffaa60669904c2a7d5af547a529e60f09c5e36b",
+  "candidate_parent_sha": "8a4e0ead9c59e5999fa69b4211b5a9e5d14b34a3",
+  "source": {
+    "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+    "git_blob_sha1": "5abcb5d528065b00bd575298176947ec605600ba",
+    "sha256": "0fb853ce45ee06f6abade90176a332caf20d3f592fa932a1300a1e519bc777f7"
+  },
+  "locator": {
+    "fact_key": "S-01#1#1",
+    "edge_id": "e0023"
+  },
+  "derived_file": "docs/audit-evidence/n02g-trace-compat-9ffaa/focal-record.json",
+  "verifier": "docs/audit-evidence/n02g-trace-compat-9ffaa/verify-evidence.cjs",
+  "scope": "Evidence extraction only; this manifest does not alter or approve the candidate."
+}
