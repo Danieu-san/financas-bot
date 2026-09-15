@@ -1,27 +1,28 @@
 {
   "schema": "financasbot-chat-codex-task-v1",
-  "task_id": "FIN-NEXT02-N02G-TRACE-COMPAT-AUDIT-B-RETURN-20260915",
-  "objective": "Valide o parecer independente focal em docs/agent-memory/workstreams/results/FIN-NEXT02-N02G-TRACE-COMPAT-AUDIT-B-20260915.md contra o candidate imutável 9ffaa60669904c2a7d5af547a529e60f09c5e36b e parent único 8a4e0ead9c59e5999fa69b4211b5a9e5d14b34a3. Trate o finding HIGH sobre traverse/reads pela cadeia causal; não preencha expected a partir de actual e não oculte leitura real. Produza somente o recibo em docs/agent-memory/workstreams/results/FIN-NEXT02-N02G-TRACE-COMPAT-AUDIT-B-RETURN-20260915.md. Finding bloqueante impede fechamento focal até correção e revalidação, mas não impede a publicação deste recibo.",
-  "expected_base_sha": "9ffaa60669904c2a7d5af547a529e60f09c5e36b",
+  "task_id": "FIN-NEXT02-N02G-TRACE-COMPAT-CORRECTION-AUDIT-RETURN-20260915",
+  "objective": "Valide o parecer independente focal em docs/agent-memory/workstreams/results/FIN-NEXT02-N02G-TRACE-COMPAT-CORRECTION-AUDIT-20260915.md contra o candidate imutável fd2d996b45bb7cecd4ae0d7d19cacece5afbe98b e parent único 9ffaa60669904c2a7d5af547a529e60f09c5e36b. O parecer é APROVÁVEL somente para a correção focal traversal/trace, sem findings. Confirme pela cadeia causal que a admissão TCB valida a relação material antes do guest sem produzir trace, que traversal não executa reads incidentais, que reads reais posteriores continuam observados e que o diagnóstico edge-only não esconde required_edge inexistente. Produza somente o recibo em docs/agent-memory/workstreams/results/FIN-NEXT02-N02G-TRACE-COMPAT-CORRECTION-AUDIT-RETURN-20260915.md e pare.",
+  "expected_base_sha": "fd2d996b45bb7cecd4ae0d7d19cacece5afbe98b",
   "required_files": [
-    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02G-TRACE-COMPAT-AUDIT-B-20260915.md"
+    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02G-TRACE-COMPAT-CORRECTION-AUDIT-20260915.md"
   ],
   "allowed_paths": [
-    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02G-TRACE-COMPAT-AUDIT-B-RETURN-20260915.md"
+    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02G-TRACE-COMPAT-CORRECTION-AUDIT-RETURN-20260915.md"
   ],
-  "result_file": "docs/agent-memory/workstreams/results/FIN-NEXT02-N02G-TRACE-COMPAT-AUDIT-B-RETURN-20260915.md",
+  "result_file": "docs/agent-memory/workstreams/results/FIN-NEXT02-N02G-TRACE-COMPAT-CORRECTION-AUDIT-RETURN-20260915.md",
   "validation": [
-    "Confirma candidate 9ffaa60669904c2a7d5af547a529e60f09c5e36b e parent único 8a4e0ead9c59e5999fa69b4211b5a9e5d14b34a3.",
-    "Confere que e0023 é obrigatório em derivation enquanto person_b e seus reads não são obrigatórios em derivation; os reads de person_b do recorte pertencem a proof.",
-    "Confere que required_edges e required_reads permanecem independentes segundo o contrato §4 já auditado na Parte A.",
-    "Confere o finding HIGH: traverse realiza reads instrumentados adicionais; não tratar isso como autorização para completar expected a partir de actual nem para filtrar leitura real do trace.",
-    "Confere que a menor correção elimina a leitura incidental no traversal e preserva observação independente de edge/read.",
-    "Registra o recibo no result_file e para; não implementa a correção nesta tarefa de retorno."
+    "Confirma candidate fd2d996b45bb7cecd4ae0d7d19cacece5afbe98b e parent único 9ffaa60669904c2a7d5af547a529e60f09c5e36b.",
+    "Confere que a admissão TCB valida a relação material contra bindings copiados sem emitir trace.",
+    "Confere que traverse emite somente a aresta admitida e não executa reads incidentais de source.field ou target.id.",
+    "Confere que reads realmente solicitados depois do traversal continuam instrumentados e visíveis.",
+    "Confere que relações ausentes, divergentes ou ambíguas falham fechado e que required_edge inexistente não é mascarado pelo diagnóstico.",
+    "Confere que required_edges e required_reads permanecem independentes e que expected não é derivado do actual.",
+    "Registra o recibo no result_file e para; não implementa produto nesta tarefa de retorno."
   ],
   "constraints": [
     "Não alterar produto, fontes, src/, tests/, scripts/, fixtures, contratos, dependencies, package/lockfile ou branch de produto durante esta tarefa de recibo.",
     "Não acessar produção, dados reais, Pluggy, planilhas reais, segredos, sessões ou .env.",
-    "GitHub e os SHAs imutáveis indicados são a fonte de verdade; autoridade de modelo ou contagem de testes não substitui cadeia causal.",
+    "GitHub e os SHAs imutáveis indicados são a fonte de verdade; contagem de testes relatada não substitui a cadeia causal.",
     "Não autorizar GO global do N02-G, NEXT-03, deploy ou produção.",
     "Após registrar o recibo, parar sem implementar."
   ]
