@@ -1,0 +1,136 @@
+'use strict';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { createInstrumentedAccess, createNodeSetAccess } = require('../../../src/next/provenance/instrumentedAccess');
+const { evaluateDirectMetric } = require('../../../src/next/provenance/metricDirectReads');
+const scalar = { type: 'scalar' }; const version = `sha256:${'a'.repeat(64)}`;
+function instrument(rows, links = [], roster) {
+    const observations = [];
+    const bindings = rows.map(([alias, kind, value, fields]) => ({ alias, role: 'test', value,
+        ...(kind ? { identity: { kind, ref_id: value.id, version } } : {}),
+        shape: { type: 'record', fields: fields || Object.fromEntries(Object.keys(value).map(k => [k, scalar])) } }));
+    const options = { bindings, links, emit: e => observations.push(e) };
+    const access = roster ? createNodeSetAccess({ ...options, role: 'test', roster }) : createInstrumentedAccess(options);
+    return { access, observations };
+}
+function context(subject, period, time_basis) {
+    return instrument([['ctx', null, { subject, period, time_basis }, { subject: { type: 'record', fields: { kind: scalar, ref_id: scalar } },
+        period: { type: 'record', fields: { kind: scalar, value: scalar, start: scalar, end: scalar, start_inclusive: scalar, end_inclusive: scalar } }, time_basis: scalar }]]).access.handle('ctx');
+}
+function payment() {
+    const f = instrument([['event', 'event', { id: 'payment', date: '2042-06-13', state: 'confirmed', amount_minor: -300,
+        category_id: 'neutral', account_id: 'account', settles_card_id: 'card' }],
+    ['category', 'category', { id: 'neutral', kind: 'neutral' }], ['account', 'account', { id: 'account' }],
+    ['card', 'card', { id: 'card' }]], ['category_id', 'account_id', 'settles_card_id'].map((field, i) => ({
+        id: `link${i}`, source: 'event', field, target: ['category', 'account', 'card'][i], type: 'ref' })));
+    return { ...f, operands: { context: context({ kind: 'event', ref_id: 'payment' }, { kind: 'date', value: '2042-06-13' }, 'event_date'),
+        event: f.access.handle('event'), card: f.access.handle('card') } };
+}
+
+test('N02G:DIRECT-METRIC-001 movement preserves sign and payment magnitude requires observed links', () => {
+    const f = payment();
+    assert.equal(evaluateDirectMetric(f.operands, 'invoice_payment_amount'), 300);
+    const balance = { ...f.operands, context: context({ kind: 'account', ref_id: 'account' }, { kind: 'date', value: '2042-06-13' }, 'event_date') };
+    assert.equal(evaluateDirectMetric(balance, 'balance_delta'), -300);
+    assert.equal(evaluateDirectMetric(f.operands, 'invoice_payment_target_card'), 'card');
+    assert.ok(f.observations.some(e => e[1] === 'traverse' && e[4][0] === 'settles_card_id'));
+    assert.throws(() => evaluateDirectMetric({ ...balance, context: context({ kind: 'account', ref_id: 'foreign' },
+        { kind: 'date', value: '2042-06-13' }, 'event_date') }, 'balance_delta'), /direct_metric_scope/);
+});
+
+test('N02G:DIRECT-METRIC-002 card link never becomes proof of a particular statement', () => {
+    const f = payment();
+    assert.equal(evaluateDirectMetric(f.operands, 'statement_payment_correspondence'), 'unproven');
+    assert.ok(f.observations.some(e => e[1] === 'keys' && e[2] === 'event'));
+    f.access.revoke(); assert.throws(() => evaluateDirectMetric(f.operands, 'invoice_payment_amount'), /access_/);
+});
+
+test('N02G:DIRECT-METRIC-003 source coverage preserves each valid status and rejects period mismatch', () => {
+    for (const coverage of ['complete', 'partial', 'unavailable']) {
+        const f = instrument([['source', 'source_state', { id: 'source', period: '2042-06', coverage }]]);
+        const operands = { source: f.access.handle('source'), context: context({ kind: 'source', ref_id: 'source' },
+            { kind: 'month', value: '2042-06' }, 'source_period') };
+        assert.equal(evaluateDirectMetric(operands, 'source_coverage'), coverage);
+        assert.throws(() => evaluateDirectMetric({ ...operands, context: context({ kind: 'source', ref_id: 'source' },
+            { kind: 'month', value: '2042-05' }, 'source_period') }, 'source_coverage'), /direct_metric_period/);
+    }
+});
+
+test('N02G:DIRECT-METRIC-008 account opening balance bounds are inclusive and movement IDs do not filter economic kind', () => {
+    const rows = [['a', 'account', { id: 'a', opening_balance_minor: 1000, opening_balance_as_of: '2042-06-10' }],
+        ['b', 'account', { id: 'b' }]];
+    const data = [['before', '2042-06-09', 'a', 'confirmed', 700], ['first', '2042-06-10', 'a', 'confirmed', 100],
+        ['last', '2042-06-15', 'a', 'confirmed', -30], ['after', '2042-06-16', 'a', 'confirmed', -800],
+        ['foreign', '2042-06-12', 'b', 'confirmed', 900], ['future', '2042-06-12', 'a', 'projected', 600],
+        ['card-only', '2042-06-12', null, 'confirmed', -20]];
+    for (const [ref, date, account, state, amount_minor] of data) rows.push([ref, 'event', { id: ref, date, state,
+        amount_minor, ...(account ? { account_id: account } : {}) }, { id: scalar, date: scalar, state: scalar, amount_minor: scalar, account_id: scalar }]);
+    const f = instrument(rows, data.filter(d => d[2]).map(([source, , target]) => ({ id: source, source, target, field: 'account_id', type: 'ref' })), data.map(d => d[0]));
+    const account = instrument([rows[0]]).access.handle('a');
+    const args = period => ({ account, events: f.access.handle,
+        context: context({ kind: 'account', ref_id: 'a' }, period, 'event_date') });
+    assert.equal(evaluateDirectMetric(args({ kind: 'as_of', value: '2042-06-15' }), 'account_balance'), 1070);
+    assert.deepEqual(evaluateDirectMetric(args({ kind: 'month', value: '2042-06' }), 'movement_ids'), ['before', 'first', 'last', 'after']);
+    assert.throws(() => evaluateDirectMetric(args({ kind: 'as_of', value: '2042-06-09' }), 'account_balance'), /direct_metric_period/);
+    assert.ok(f.observations.some(e => e[1] === 'has' && e[2] === 'card-only'));
+});
+
+test('N02G:DIRECT-METRIC-004 ownership is computed from references, preserves order and excludes foreign owners', () => {
+    const f = instrument([['a', 'card', { id: 'a', owner_id: 'p1' }], ['b', 'card', { id: 'b', owner_id: 'p2' }],
+        ['c', 'card', { id: 'c', owner_id: 'p1' }], ['p1', 'person', { id: 'p1' }], ['p2', 'person', { id: 'p2' }]],
+    ['a', 'b', 'c'].map((source, i) => ({ id: `owner${i}`, source, target: i === 1 ? 'p2' : 'p1', field: 'owner_id', type: 'ref' })), ['c', 'b', 'a']);
+    const person = instrument([['p', 'person', { id: 'p1' }]]).access.handle('p');
+    assert.deepEqual(evaluateDirectMetric({ cards: f.access.handle, person, context: context({ kind: 'person', ref_id: 'p1' },
+        { kind: 'as_of', value: '2042-06-15' }, 'registry_current') }, 'owned_cards'), ['c', 'a']);
+    assert.equal(f.observations.filter(e => e[1] === 'select_member').length, 3);
+});
+
+test('N02G:DIRECT-METRIC-005 effect count is tied to complete collection and actual turn references', () => {
+    function run(members) {
+        const f = instrument([['e1', 'side_effect', { id: 'e1', turn_id: 't1' }], ['e2', 'side_effect', { id: 'e2', turn_id: 't2' }],
+            ['t1', 'turn', { id: 't1' }], ['t2', 'turn', { id: 't2' }]],
+        ['e1', 'e2'].map((source, i) => ({ id: `turn${i}`, source, target: `t${i + 1}`, field: 'turn_id', type: 'ref' })), ['e1', 'e2']);
+        const collection = instrument([['collection', 'collection', { id: 'effects', collection_name: 'side_effects', members },
+            { id: scalar, collection_name: scalar, members: { type: 'sequence', item: scalar } }]]).access.handle('collection');
+        const turn = instrument([['turn', 'turn', { id: 't1' }]]).access.handle('turn');
+        const result = evaluateDirectMetric({ entries: f.access.handle, collection, turn,
+            context: context({ kind: 'turn', ref_id: 't1' }, { kind: 'as_of', value: '2042-06-15' }, 'request_execution') }, 'side_effect_count');
+        assert.equal(f.observations.filter(e => e[1] === 'select_member').length, 2);
+        return result;
+    }
+    assert.equal(run(['e1', 'e2']), 1);
+    assert.throws(() => run([]), /direct_metric_collection/);
+    assert.throws(() => run(['e1', 'e1']), /direct_metric_collection/);
+});
+
+const juneRange = { kind: 'range', start: '2042-06-15', end: '2042-06-30', start_inclusive: true, end_inclusive: true };
+test('N02G:DIRECT-METRIC-006 due dates include both boundaries and exclude status, owner and date mismatches', () => {
+    const rows = [['start', '2042-06-15', 'open', 'p1'], ['end', '2042-06-30', 'open', 'p1'],
+        ['after', '2042-07-01', 'open', 'p1'], ['paid', '2042-06-20', 'paid', 'p1'], ['foreign', '2042-06-20', 'open', 'p2']];
+    function operands(range = juneRange) {
+        const f = instrument([...rows.map(([alias, due_date, status, person_id]) => [alias, 'bill', { id: alias, due_date, status, person_id, amount_minor: 100 }]),
+            ['p1', 'person', { id: 'p1' }], ['p2', 'person', { id: 'p2' }]], rows.map(([source, , , target], i) => ({
+                id: `owner${i}`, source, target, field: 'person_id', type: 'ref' })), rows.map(row => row[0]));
+        return { bills: f.access.handle, person: instrument([['person', 'person', { id: 'p1' }]]).access.handle('person'),
+            context: context({ kind: 'person', ref_id: 'p1' }, range, 'due_date') };
+    }
+    assert.deepEqual(evaluateDirectMetric(operands(), 'due_bill_ids'), ['start', 'end']);
+    assert.equal(evaluateDirectMetric(operands(), 'due_bills_total'), 200);
+    assert.throws(() => evaluateDirectMetric(operands({ ...juneRange, end_inclusive: false }), 'due_bills_total'), /direct_metric_period/);
+    assert.throws(() => evaluateDirectMetric(operands({ ...juneRange, start: '2042-07-01' }), 'due_bill_ids'), /direct_metric_period/);
+});
+
+test('N02G:DIRECT-METRIC-007 calendar and reminder zeros require a complete population, including positive witnesses', () => {
+    for (const [metric, kind, name] of [['reminder_count', 'reminder', 'reminders'], ['calendar_event_count', 'calendar_event', 'calendar_events']]) {
+        const rows = [['start', '2042-06-15'], ['end', '2042-06-30'], ['after', '2042-07-01']];
+        const f = instrument([...rows.map(([alias, scheduled_at]) => [alias, kind, { id: alias, scheduled_at, person_id: 'p1' }]),
+            ['p1', 'person', { id: 'p1' }]], rows.map(([source], i) => ({ id: `owner${i}`, source, target: 'p1', field: 'person_id', type: 'ref' })), rows.map(row => row[0]));
+        const collection = members => instrument([['collection', 'collection', { id: 'col', collection_name: name, members },
+            { id: scalar, collection_name: scalar, members: { type: 'sequence', item: scalar } }]]).access.handle('collection');
+        const operands = { entries: f.access.handle, collection: collection(rows.map(row => row[0])),
+            person: instrument([['person', 'person', { id: 'p1' }]]).access.handle('person'),
+            context: context({ kind: 'person', ref_id: 'p1' }, juneRange, 'scheduled_at') };
+        assert.equal(evaluateDirectMetric(operands, metric), 2);
+        assert.throws(() => evaluateDirectMetric({ ...operands, collection: collection([]) }, metric), /direct_metric_collection/);
+    }
+});

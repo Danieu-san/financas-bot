@@ -27,3 +27,6 @@ require('./next/provenance/claimContext.cases');
 require('./next/provenance/pinnedCivilTimezone.cases');
 require('./next/provenance/metricSelection.cases');
 require('./next/provenance/guestBundle.cases');
+require('./next/provenance/metricDirectReads.cases');
+require('./next/provenance/metricInstallments.cases');
+require('./next/provenance/metricEffects.cases');

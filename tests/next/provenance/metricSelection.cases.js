@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createInstrumentedAccess, createNodeSetAccess } = require('../../../src/next/provenance/instrumentedAccess');
-const { evaluateConsumption } = require('../../../src/next/provenance/metricSelection');
+const { evaluateConsumption, evaluateEconomicMetric } = require('../../../src/next/provenance/metricSelection');
 
 const version = `sha256:${'a'.repeat(64)}`;
 const scalar = { type: 'scalar' };
@@ -16,29 +16,37 @@ function fixture(options = {}) {
         { id: 'old', date: '2042-05-31', state: 'confirmed', person_id: 'p1', category_id: 'food', amount_minor: -50 },
         { id: 'other-person', date: '2042-06-10', state: 'confirmed', person_id: 'p2', category_id: 'food', amount_minor: -60 }
     ];
-    const categoryRows = [{ id: 'food', kind: 'expense' }, { id: 'refund-kind', kind: 'compensation' }, { id: 'salary', kind: 'income' }];
+    const categoryRows = [{ id: 'food', kind: 'expense', budget_class: 'essential' }, { id: 'refund-kind', kind: 'compensation' }, { id: 'salary', kind: 'income' }];
     function binding(kind, value, role) {
-        const names = kind === 'event' ? ['id', 'date', 'state', 'person_id', 'category_id', 'amount_minor', 'compensates'] : ['id', 'kind'];
+        const names = kind === 'event' ? ['id', 'date', 'state', 'person_id', 'category_id', 'amount_minor', 'compensates', 'account_id', 'card_id'] : ['id', 'kind', 'budget_class'];
         return { alias: value.id, role, identity: { kind, ref_id: value.id, version }, value,
             shape: { type: 'record', fields: Object.fromEntries(names.map(name => [name, scalar])) } };
     }
     const links = rows.flatMap(row => [{ id: `cat-${row.id}`, source: row.id, field: 'category_id', target: row.category_id, type: 'ref' },
-        ...(row.compensates ? [{ id: `comp-${row.id}`, source: row.id, field: 'compensates', target: row.compensates, type: 'ref' }] : [])]);
+        ...(row.compensates ? [{ id: `comp-${row.id}`, source: row.id, field: 'compensates', target: row.compensates, type: 'ref' }] : []),
+        ...(options.instrument && row[`${options.instrument.kind}_id`] ? [{ id: `instrument-${row.id}`, source: row.id,
+            field: `${options.instrument.kind}_id`, target: options.instrument.id, type: 'ref' }] : [])]);
     const events = createNodeSetAccess({ role: 'events', emit, roster: rows.map(r => r.id), links,
-        bindings: [...rows.map(r => binding('event', r, 'events')), ...categoryRows.map(r => binding('category', r, 'events'))] });
+        bindings: [...rows.map(r => binding('event', r, 'events')), ...categoryRows.map(r => binding('category', r, 'events')),
+            ...(options.instrument ? [binding(options.instrument.kind, { id: options.instrument.id }, 'events')] : [])] });
     const categories = createNodeSetAccess({ role: 'categories', emit,
         bindings: categoryRows.map(r => binding('category', r, 'categories')) });
     const subject = options.subject || { kind: 'person', ref_id: 'p1' };
     const context = createInstrumentedAccess({ emit, bindings: [{ alias: 'context', role: 'context', value: {
-        subject, period: options.period || { kind: 'month', value: '2042-06' }, evidence_state: options.evidence_state || 'confirmed', time_basis: options.time_basis || 'event_date'
-    }, shape: { type: 'record', fields: { evidence_state: scalar, time_basis: scalar,
+        subject, period: options.period || { kind: 'month', value: '2042-06' }, evidence_state: options.evidence_state || 'confirmed', time_basis: options.time_basis || 'event_date',
+        ...(options.filters ? { filters: options.filters } : {})
+    }, shape: { type: 'record', fields: { evidence_state: scalar, time_basis: scalar, filters: { type: 'record', fields: { budget_class: scalar } },
         period: { type: 'record', fields: { kind: scalar, value: scalar } }, subject: { type: 'record',
-            fields: { kind: scalar, ref_id: scalar, family_id: scalar, category_id: scalar, person_id: scalar } } } } }] });
+            fields: { kind: scalar, ref_id: scalar, family_id: scalar, category_id: scalar, person_id: scalar, budget_id: scalar } } } } }] });
     const family = createInstrumentedAccess({ emit, bindings: [{ alias: 'family', role: 'family', value: { id: 'f1', members: ['p1', 'p2'] },
         shape: { type: 'record', fields: { id: scalar, members: { type: 'sequence', item: scalar } } } }] });
     controls.push(events, categories, context, family);
+    const instrument = options.instrument ? createInstrumentedAccess({ emit,
+        bindings: [binding(options.instrument.kind, { id: options.instrument.id }, 'instrument')] }) : null;
+    if (instrument) controls.push(instrument);
     return { observations, controls, operands: { events: events.handle, categories: categories.handle,
-        context: context.handle('context'), family: family.handle('family') } };
+        context: context.handle('context'), family: family.handle('family'),
+        ...(instrument ? { instrument: instrument.handle(options.instrument.id) } : {}) } };
 }
 
 test('N02G:METRIC-SELECTION-001 consumption computes membership from handles and returns only the amount', () => {
@@ -82,4 +90,54 @@ test('N02G:METRIC-SELECTION-005 basis and scope are explicit even for empty popu
     assert.throws(() => evaluateConsumption(fixture({ rows: [], subject: { kind: 'category', ref_id: 'missing' } }).operands, 'category'), /metric_selection_category/);
     assert.throws(() => evaluateConsumption(fixture({ rows: [], evidence_state: 'estimated' }).operands, 'total'), /metric_selection_context/);
     assert.throws(() => evaluateConsumption(fixture({ rows: [], period: { kind: 'month', value: '2042-13' } }).operands, 'total'), /civil_month/);
+});
+
+test('N02G:METRIC-SELECTION-006 source count must equal eligible cardinality, not money or a declared zero', () => {
+    const { evaluateDirectMetric } = require('../../../src/next/provenance/metricDirectReads');
+    function run(count, coverage = 'complete') {
+        const f = fixture({ subject: { kind: 'family_category', family_id: 'f1', category_id: 'food' } });
+        const source = createInstrumentedAccess({ emit: e => f.observations.push(e), bindings: [{ alias: 'source', role: 'source',
+            identity: { kind: 'source_state', ref_id: 'source', version },
+            value: { id: 'source', period: '2042-06', category_id: 'food', coverage, ...(count === undefined ? {} : { event_count: count }) },
+            shape: { type: 'record', fields: Object.fromEntries(['id', 'period', 'category_id', 'coverage', 'event_count', 'entity_id'].map(k => [k, scalar])) } }] });
+        return evaluateDirectMetric({ ...f.operands, source: source.handle('source') }, 'eligible_event_count');
+    }
+    assert.equal(run(3), 3); // monetary total is 135, not 3
+    for (const count of [0, 2, 4, undefined]) assert.throws(() => run(count), /direct_metric_count/);
+    assert.throws(() => run(3, 'partial'), /direct_metric_coverage/);
+});
+
+test('N02G:METRIC-SELECTION-007 income preserves its sign and budget class follows the compensated expense', () => {
+    assert.equal(evaluateEconomicMetric(fixture().operands, 'income'), 400);
+    const options = { subject: { kind: 'family', ref_id: 'f1' }, filters: { budget_class: 'essential' } };
+    assert.equal(evaluateEconomicMetric(fixture(options).operands, 'budget_class'), 135);
+    assert.equal(evaluateEconomicMetric(fixture({ ...options, filters: { budget_class: 'flexible' } }).operands, 'budget_class'), 0);
+    assert.throws(() => evaluateEconomicMetric(fixture({ ...options, filters: { budget_class: 'guessed' } }).operands, 'budget_class'), /metric_selection_filter/);
+});
+
+test('N02G:METRIC-SELECTION-008 instrument uses the declared kind and observed reference, never an owner or amount coincidence', () => {
+    for (const kind of ['account', 'card']) {
+        const row = { id: 'purchase', date: '2042-06-10', state: 'confirmed', person_id: 'p1', category_id: 'food', amount_minor: -42, [`${kind}_id`]: 'i' };
+        const options = { instrument: { kind, id: 'i' }, subject: { kind, ref_id: 'i' }, rows: [row, { ...row, id: 'unlinked', [`${kind}_id`]: undefined }] };
+        delete options.rows[1][`${kind}_id`];
+        assert.equal(evaluateEconomicMetric(fixture(options).operands, 'instrument'), 42);
+        assert.throws(() => evaluateEconomicMetric(fixture({ ...options, subject: { kind, ref_id: 'foreign' } }).operands, 'instrument'), /metric_selection_scope/);
+    }
+});
+
+test('N02G:METRIC-SELECTION-009 a personal query uses the family limit but only that person consumption', () => {
+    function run(subject, changes = {}) {
+        const f = fixture({ subject, time_basis: 'budget_cycle' });
+        const value = { id: 'budget', family_id: 'f1', category_id: 'food', period: '2042-06', evidence_state: 'confirmed', limit_minor: 200, ...changes };
+        const budget = createInstrumentedAccess({ emit: e => f.observations.push(e), bindings: [{ alias: 'budget', role: 'budget',
+            identity: { kind: 'budget', ref_id: 'budget', version }, value,
+            shape: { type: 'record', fields: Object.fromEntries(Object.keys(value).map(k => [k, scalar])) } }] });
+        return evaluateEconomicMetric({ ...f.operands, budget: budget.handle('budget') }, 'budget_remaining');
+    }
+    assert.equal(run({ kind: 'budget', ref_id: 'budget' }), 65);
+    assert.equal(run({ kind: 'budget_person', budget_id: 'budget', person_id: 'p2' }), 140);
+    assert.equal(run({ kind: 'budget', ref_id: 'budget' }, { limit_minor: 100 }), -35);
+    assert.throws(() => run({ kind: 'budget_person', budget_id: 'budget', person_id: 'foreign' }), /metric_selection_scope/);
+    assert.throws(() => run({ kind: 'budget', ref_id: 'budget' }, { period: '2042-05' }), /metric_selection_budget/);
+    assert.throws(() => run({ kind: 'budget', ref_id: 'budget' }, { family_id: 'foreign' }), /metric_selection_scope/);
 });

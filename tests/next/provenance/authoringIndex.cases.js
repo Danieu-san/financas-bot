@@ -60,11 +60,14 @@ function snapshotAccessFixture() {
 }
 
 test('N02G:OBSERVED-METRIC-001 consumption roles select independently of graph expectations and oracle', async () => {
-    const { evaluateConsumption } = require('../../../src/next/provenance/metricSelection');
+    const { evaluateEconomicMetric } = require('../../../src/next/provenance/metricSelection');
     const { createCausalRecorder } = require('../../../src/next/provenance/causalRecorder');
     const oracle = JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/financasbot-next/golden-claim-oracles-v1.json'), 'utf8'));
     const { plan, claims, graphs } = await snapshotAccessFixture(); let checked = 0;
-    for (const claim of claims.filter(c => ['consumption_total', 'category_consumption', 'category_spent'].includes(c.metric))) {
+    const modes = { consumption_total: 'total', category_consumption: 'category', category_spent: 'spent',
+        income_realized: 'income', consumption_by_instrument: 'instrument', budget_class_consumption: 'budget_class',
+        category_budget_remaining: 'budget_remaining' };
+    for (const claim of claims.filter(c => Object.hasOwn(modes, c.metric))) {
         const recorder = createCausalRecorder({ executionId: `consumption-${checked}`, maxEvents: 10000 });
         const phase = recorder.open({ invocationId: claim.fact_key, phase: 'derivation' });
         const controls = []; const operands = {};
@@ -75,7 +78,7 @@ test('N02G:OBSERVED-METRIC-001 consumption roles select independently of graph e
                     : plan.open({ ...selector, alias: binding.alias }, phase.observe);
             controls.push(access); operands[role_id] = access.handle;
         }
-        const result = evaluateConsumption(Object.freeze(operands), { consumption_total: 'total', category_consumption: 'category', category_spent: 'spent' }[claim.metric]);
+        const result = evaluateEconomicMetric(Object.freeze(operands), modes[claim.metric]);
         for (const access of controls) { access.revoke(); access.assertHealthy(); }
         phase.seal(); const trace = recorder.finish().derivation_trace;
         const split = claim.fact_key.lastIndexOf('#');
@@ -90,7 +93,91 @@ test('N02G:OBSERVED-METRIC-001 consumption roles select independently of graph e
         assert.ok(trace.some(e => e.operation === 'traverse'));
         checked++;
     }
-    assert.equal(checked, 16);
+    assert.equal(checked, 26);
+});
+
+test('N02G:OBSERVED-METRIC-002 direct reads preserve values and identities through admitted roles', async () => {
+    const { evaluateDirectMetric } = require('../../../src/next/provenance/metricDirectReads');
+    const oracle = JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/financasbot-next/golden-claim-oracles-v1.json'), 'utf8'));
+    const { plan, claims } = await snapshotAccessFixture(); let checked = 0;
+    const supported = ['balance_delta', 'invoice_payment_amount', 'invoice_payment_target_card', 'statement_payment_correspondence',
+        'source_coverage', 'owned_cards', 'merchant_rule_ids', 'eligible_event_count', 'side_effect_count',
+        'bills_open', 'due_bill_ids', 'due_bills_total', 'reminder_count', 'calendar_event_count', 'similar_event_ids',
+        'account_balance', 'movement_ids'];
+    for (const claim of claims.filter(c => supported.includes(c.metric))) {
+        const controls = []; const operands = {}; const events = [];
+        for (const [role_id, binding] of Object.entries(claim.operand_bindings)) {
+            const selector = { fact_key: claim.fact_key, role_id }; const observe = e => events.push(e);
+            const access = binding.kind === 'claim_context' ? plan.openContext(selector, observe)
+                : binding.kind === 'node_set' ? plan.openSet(selector, observe)
+                    : plan.open({ ...selector, alias: binding.alias }, observe);
+            controls.push(access); operands[role_id] = access.handle;
+        }
+        const result = evaluateDirectMetric(Object.freeze(operands), claim.metric);
+        for (const access of controls) { access.revoke(); access.assertHealthy(); }
+        const split = claim.fact_key.lastIndexOf('#');
+        const expected = oracle.turns[claim.fact_key.slice(0, split)].facts[Number(claim.fact_key.slice(split + 1)) - 1];
+        assert.equal(expected.metric, claim.metric); assert.deepEqual(result, expected.value, claim.fact_key);
+        assert.ok(events.some(e => e[1] === 'get'));
+        checked++;
+    }
+    assert.equal(checked, 21);
+});
+
+test('N02G:OBSERVED-METRIC-003 installment selection is independently observed for each state and period', async () => {
+    const { evaluateInstallments } = require('../../../src/next/provenance/metricInstallments');
+    const oracle = JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/financasbot-next/golden-claim-oracles-v1.json'), 'utf8'));
+    const { plan, claims, graphs } = await snapshotAccessFixture(); let checked = 0;
+    const supported = ['installments_realized', 'installments_realized_amount', 'installments_projected', 'installments_projected_amount'];
+    for (const claim of claims.filter(c => supported.includes(c.metric))) {
+        const controls = []; const operands = {}; const observations = [];
+        for (const [role_id, binding] of Object.entries(claim.operand_bindings)) {
+            const selector = { fact_key: claim.fact_key, role_id }; const observe = e => observations.push(e);
+            const access = binding.kind === 'claim_context' ? plan.openContext(selector, observe)
+                : binding.kind === 'node_set' ? plan.openSet(selector, observe)
+                    : plan.open({ ...selector, alias: binding.alias }, observe);
+            controls.push(access); operands[role_id] = access.handle;
+        }
+        const result = evaluateInstallments(Object.freeze(operands), claim.metric);
+        for (const access of controls) { access.revoke(); access.assertHealthy(); }
+        const split = claim.fact_key.lastIndexOf('#');
+        const expected = oracle.turns[claim.fact_key.slice(0, split)].facts[Number(claim.fact_key.slice(split + 1)) - 1];
+        assert.equal(expected.metric, claim.metric); assert.equal(result, expected.value, claim.fact_key);
+        const graph = graphs.find(g => g.fact_key === claim.fact_key);
+        const decisions = observations.filter(e => e[1] === 'select_member');
+        assert.equal(decisions.length, claim.operand_bindings.events.aliases.length);
+        assert.deepEqual(decisions.filter(e => e[6][2]).map(e => e[6][1]), graph.sets[graph.selections[0].selected_set], claim.fact_key);
+        checked++;
+    }
+    assert.equal(checked, 7);
+});
+
+test('N02G:OBSERVED-METRIC-004 economic effects use observed links, not signed amount coincidence', async () => {
+    const { evaluateEffects } = require('../../../src/next/provenance/metricEffects');
+    const oracle = JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/financasbot-next/golden-claim-oracles-v1.json'), 'utf8'));
+    const { plan, claims, graphs } = await snapshotAccessFixture(); let checked = 0;
+    const supported = ['consumption_effect', 'net_consumption', 'invoice_payment_consumption_effect', 'gross_consumption', 'refund_amount'];
+    for (const claim of claims.filter(c => supported.includes(c.metric))) {
+        const controls = []; const operands = {}; const observations = [];
+        for (const [role_id, binding] of Object.entries(claim.operand_bindings)) {
+            const selector = { fact_key: claim.fact_key, role_id }; const observe = e => observations.push(e);
+            const access = binding.kind === 'claim_context' ? plan.openContext(selector, observe)
+                : binding.kind === 'node_set' ? plan.openSet(selector, observe)
+                    : plan.open({ ...selector, alias: binding.alias }, observe);
+            controls.push(access); operands[role_id] = access.handle;
+        }
+        const result = evaluateEffects(Object.freeze(operands), claim.metric);
+        for (const access of controls) { access.revoke(); access.assertHealthy(); }
+        const split = claim.fact_key.lastIndexOf('#');
+        const expected = oracle.turns[claim.fact_key.slice(0, split)].facts[Number(claim.fact_key.slice(split + 1)) - 1];
+        assert.equal(expected.metric, claim.metric); assert.equal(result, expected.value, claim.fact_key);
+        const graph = graphs.find(g => g.fact_key === claim.fact_key);
+        const decisions = observations.filter(e => e[1] === 'select_member');
+        assert.equal(decisions.length, claim.operand_bindings.events.aliases.length);
+        assert.deepEqual(decisions.filter(e => e[6][2]).map(e => e[6][1]), graph.sets[graph.selections[0].selected_set], claim.fact_key);
+        checked++;
+    }
+    assert.equal(checked, 13);
 });
 
 test('N02G:SNAPSHOT-ACCESS-001 handles resolve exact admitted fact/role/alias identities', async () => {

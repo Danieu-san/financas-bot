@@ -687,5 +687,35 @@ bundle de consumo em SES (R=125, 49 observações/medições separadas). Diff-ch
 agent-workflow OK. Ampla não iniciada. Publicar somente como WIP, não auditável
 final. Próxima ação: continuar os contratos métricos por handles e o confronto
 exato de observações, preservando a pendência de parents/TCB/witnesses/76 grafos.
+WIP publicado e remoto confirmado: bec932d23a4aab958d9546733fa3ceedc8f386f9,
+parent e0d4e315f2544251eb56d016ff74dcdfb077dc03. Próximos paths registrados:
+`src/next/provenance/metricDirectReads.js` e
+`tests/next/provenance/metricDirectReads.cases.js`. Implementar leituras diretas,
+ownership, regras e contagens dos contratos existentes por handles; resultado
+continua funcional e não substitui prova/trace. Reutilizar seleção de consumo
+para conferir contagem da fonte, sem usar total monetário como cardinalidade.
+
+Leituras diretas: 8 casos causais + 21 claims admitidos PASS; com consumo,
+37 claims exercitados (20 métricas), ainda sem aceitação integrada de trace.
+Próximos paths autorizados pelo escopo N02-G: `src/next/provenance/metricInstallments.js`
+e `tests/next/provenance/metricInstallments.cases.js`. Selecionar parcelas pelos
+handles de plano/eventos/contexto; não sintetizar cronograma nem importar oracle.
+O kernel de schedule existente usa outro contrato (compra/parcelas explícitas),
+portanto não será forçado sobre os snapshots de autoria.
+Incremento funcional: 26 claims de seleção econômica (incluindo renda,
+instrumento e orçamento), 21 de leituras diretas e 7 de parcelas PASS = 54
+claims/28 métricas. Três cases de bundle preservados. Não é gate de aceitação.
+Próximos paths: `src/next/provenance/metricEffects.js` e
+`tests/next/provenance/metricEffects.cases.js`, efeitos econômicos pelos roles
+ratificados. Comparar compensação com alvo, não somente soma/valor coincidente.
+Efeitos: 13 claims adicionais PASS. Estado do incremento: 67/76 claims,
+33/39 métricas exercitados funcionalmente; seleção confrontada externamente
+nos 26 econômicos, 7 de parcelas e 13 de efeitos. Leituras diretas: 21 valores.
+Bateria focal integrada: 236/236 PASS, zero FAIL/SKIP/TODO, 52,40s. Não foi
+executada suíte ampla. Saídas funcionais não equivalem a aceitação de grafos.
+Continuam pendentes: statement_total, projected_installments, safe_daily_pace e
+as três métricas derivadas de parents; execução integrada/TCB, confronto exato
+de trace e witnesses. Nenhum contrato/fixture/oracle foi alterado neste incremento.
+Checkpoint WIP, não candidato de auditoria nem GO parcial.
 
 Codex → Astra → Alto → vincular shapes/bindings e seleção/traversal aos contratos admitidos, sem GO parcial.
