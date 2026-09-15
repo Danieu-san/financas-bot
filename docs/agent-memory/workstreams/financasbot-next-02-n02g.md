@@ -717,5 +717,30 @@ Continuam pendentes: statement_total, projected_installments, safe_daily_pace e
 as três métricas derivadas de parents; execução integrada/TCB, confronto exato
 de trace e witnesses. Nenhum contrato/fixture/oracle foi alterado neste incremento.
 Checkpoint WIP, não candidato de auditoria nem GO parcial.
+WIP local salvo em 8a4e0ead9c59e5999fa69b4211b5a9e5d14b34a3; push recusado pelo
+controle automático, sem confirmação remota. Continuação local autorizada.
+Faturas e parcelas por família: +4 claims, total funcional 71/76. Próxima
+composição: safe_daily_pace. Usar o adaptador civil TCB existente por operação
+observada civilDate do handle; reads do relógio e policy continuam externos,
+nenhum Date/Intl ou objeto de trace entra no guest. Atualizar os paths existentes
+instrumentedAccess/observationContract e seus cases; métrica no seletor econômico.
+Composição temporal validada: 73/76 resultados (36/39 métricas). Os três parents
+não serão promovidos a recibos validados antes da aceitação de trace/prova.
+Cross-check novo: 1133 arestas material_ref obrigatórias em derivation, em 66
+grafos, têm target fora de required_nodes/required_reads. Exemplo S-01#1#1/e0023
+termina em person_b, que não é admitido no trace da fase. O runtime traverse
+observa source.person_id + target.id; ocultar essa leitura viola a observação.
+Confirmar com reprodução mínima antes de solicitar revisão focal dessa
+incompatibilidade. Não alterar graphs/contrato ratificado silenciosamente.
+Paths de evidência reservados: `scripts/agent/inspectNextProvenanceTraceCompatibility.mjs`
+e `docs/plans/workstreams/financasbot-next-02-n02g-trace-compatibility-v1.md`.
+Reprodução executada: TRACE-COMPAT-001 PASS, diagnóstico exit=1/compatible=false.
+Focal integrada atual: 241/241 PASS, zero FAIL/SKIP/TODO, 54,03s. O teste demonstra
+o impedimento, não aceitação. Próxima ação: revisão independente focal da
+compatibilidade traversal/cobertura, conforme relatório acima. Não repetir
+auditoria integral de N02-F, não alterar grafo esperado a partir do trace medido,
+não emitir recibo validado de parent enquanto a integração permanece bloqueada.
+Escopo da revisão: decidir a incompatibilidade e a menor correção coerente;
+não aprovar as novas métricas globalmente nem liberar NEXT-03/produção.
 
 Codex → Astra → Alto → vincular shapes/bindings e seleção/traversal aos contratos admitidos, sem GO parcial.

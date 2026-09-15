@@ -74,6 +74,10 @@ function decodeObservation(raw) {
     const accessOutcome = nodeSet ? tag === 'node' && o.length === 2 && identifier(o[1]) : valueOutcome;
     let valid = false;
     switch (e[1]) {
+    case 'civil_date': valid = e[5] === 'data' && e[4].length >= 1
+        && tag === 'civil' && o.length === 5 && o.slice(1).every(v => typeof v === 'string')
+        && o[2] === 'America/Sao_Paulo' && o[3] === 'proleptic_gregorian'
+        && /^\d{4}-\d{2}-\d{2}$/.test(o[4]); break;
     case 'identity': {
         const key = e[4][0];
         valid = e[5] === 'node_identity' && e[4].length === 1 && tag === 'scalar' && o.length === 2 && typeof o[1] === 'string'

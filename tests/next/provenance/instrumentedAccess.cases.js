@@ -12,6 +12,26 @@ function fixture(emit = () => {}) {
     }] };
 }
 
+test('N02G:ACCESS-033 civil date conversion observes the source read and pinned primitive, never ambient time', () => {
+    const { decodeObservation } = require('../../../src/next/provenance/observationContract');
+    const events = []; const options = { emit: e => { decodeObservation(e); events.push(e); }, bindings: [{
+        alias: 'clock', role: 'clock', value: { instant: '2042-06-15T02:59:59Z', private: '2042-06-15T00:00:00Z' },
+        shape: { type: 'record', fields: { instant: { type: 'scalar' }, private: { type: 'non_material' } } }
+    }] };
+    const access = createInstrumentedAccess(options); const clock = access.handle('clock');
+    assert.equal(clock.civilDate('instant', 'America/Sao_Paulo', 'proleptic_gregorian'), '2042-06-14');
+    assert.deepEqual(events.map(e => e[1]), ['get', 'civil_date']);
+    assert.equal(events[1][6][4], '2042-06-14');
+    assert.equal(clock.civilDate.constructor, undefined);
+    access.revoke(); assert.throws(() => clock.civilDate('instant', 'America/Sao_Paulo', 'proleptic_gregorian'), /access_revoked/);
+    for (const args of [['private', 'America/Sao_Paulo', 'proleptic_gregorian'], ['instant', 'UTC', 'proleptic_gregorian'],
+        ['instant', 'America/Sao_Paulo', 'proleptic_gregorian', 'extra']]) {
+        const bad = createInstrumentedAccess(options);
+        assert.throws(() => bad.handle('clock').civilDate(...args), /access_/);
+        assert.throws(() => bad.assertHealthy(), /access_failed/);
+    }
+});
+
 function selectionFixture(emit = () => {}) {
     return { role: 'events', emit, bindings: [8, 3, 5].map((amount, i) => ({
         alias: `event_${i}`, role: 'events', value: { amount },

@@ -66,7 +66,7 @@ test('N02G:OBSERVED-METRIC-001 consumption roles select independently of graph e
     const { plan, claims, graphs } = await snapshotAccessFixture(); let checked = 0;
     const modes = { consumption_total: 'total', category_consumption: 'category', category_spent: 'spent',
         income_realized: 'income', consumption_by_instrument: 'instrument', budget_class_consumption: 'budget_class',
-        category_budget_remaining: 'budget_remaining' };
+        category_budget_remaining: 'budget_remaining', statement_total: 'statement', safe_daily_pace: 'safe_pace' };
     for (const claim of claims.filter(c => Object.hasOwn(modes, c.metric))) {
         const recorder = createCausalRecorder({ executionId: `consumption-${checked}`, maxEvents: 10000 });
         const phase = recorder.open({ invocationId: claim.fact_key, phase: 'derivation' });
@@ -93,7 +93,7 @@ test('N02G:OBSERVED-METRIC-001 consumption roles select independently of graph e
         assert.ok(trace.some(e => e.operation === 'traverse'));
         checked++;
     }
-    assert.equal(checked, 26);
+    assert.equal(checked, 31);
 });
 
 test('N02G:OBSERVED-METRIC-002 direct reads preserve values and identities through admitted roles', async () => {
@@ -128,7 +128,7 @@ test('N02G:OBSERVED-METRIC-003 installment selection is independently observed f
     const { evaluateInstallments } = require('../../../src/next/provenance/metricInstallments');
     const oracle = JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/financasbot-next/golden-claim-oracles-v1.json'), 'utf8'));
     const { plan, claims, graphs } = await snapshotAccessFixture(); let checked = 0;
-    const supported = ['installments_realized', 'installments_realized_amount', 'installments_projected', 'installments_projected_amount'];
+    const supported = ['installments_realized', 'installments_realized_amount', 'installments_projected', 'installments_projected_amount', 'projected_installments'];
     for (const claim of claims.filter(c => supported.includes(c.metric))) {
         const controls = []; const operands = {}; const observations = [];
         for (const [role_id, binding] of Object.entries(claim.operand_bindings)) {
@@ -149,7 +149,7 @@ test('N02G:OBSERVED-METRIC-003 installment selection is independently observed f
         assert.deepEqual(decisions.filter(e => e[6][2]).map(e => e[6][1]), graph.sets[graph.selections[0].selected_set], claim.fact_key);
         checked++;
     }
-    assert.equal(checked, 7);
+    assert.equal(checked, 8);
 });
 
 test('N02G:OBSERVED-METRIC-004 economic effects use observed links, not signed amount coincidence', async () => {
@@ -178,6 +178,39 @@ test('N02G:OBSERVED-METRIC-004 economic effects use observed links, not signed a
         checked++;
     }
     assert.equal(checked, 13);
+});
+
+test('N02G:TRACE-COMPAT-001 required traversal exposes a read and node excluded by the authored derivation contract', async () => {
+    const { inspectTraversalCoverage } = await import(pathToFileURL(path.join(root, 'scripts/agent/inspectNextProvenanceTraceCompatibility.mjs')));
+    const { plan, graphs } = await snapshotAccessFixture();
+    const report = inspectTraversalCoverage(graphs);
+    assert.equal(report.compatible, false); assert.equal(report.graphs_checked, 76);
+    assert.equal(report.affected_graphs, 66); assert.equal(report.gap_count, 1133);
+    assert.ok(report.gaps.every(g => g.phase === 'derivation'));
+    const graph = graphs.find(g => g.fact_key === 'S-01#1#1');
+    const contract = graph.trace_contract.derivation;
+    const edge = graph.edges.find(e => e.id === 'e0023');
+    assert.ok(contract.required_edges.includes(edge.id));
+    const observations = [];
+    const access = plan.open({ fact_key: graph.fact_key, role_id: 'events', alias: edge.source }, e => observations.push(e));
+    access.handle.traverse(edge.id); access.assertHealthy(); access.revoke();
+    const actualReads = observations.filter(e => e[1] === 'get').map(e => [e[2], e[4]]);
+    assert.deepEqual(actualReads, [[edge.source, [edge.field]], [edge.target, ['id']]]);
+    assert.equal(contract.required_nodes.includes(edge.target), false);
+    assert.equal(contract.required_reads.some(r => r.node === edge.target && r.segments.join('.') === 'id'), false);
+    assert.ok(observations.some(e => e[1] === 'traverse' && e[6][1] === edge.id));
+    // The test proves a blocker, not successful graph acceptance. A copied
+    // local contract can cover this one edge; normative authoring is untouched.
+    const minimal = { fact_key: 'diagnostic', edges: [edge], trace_contract: Object.fromEntries(['derivation', 'proof'].map(phase => [phase, {
+        required_edges: [edge.id], required_nodes: [edge.source, edge.target],
+        required_reads: actualReads.map(([node, segments]) => ({ node, segments }))
+    }])) };
+    assert.equal(inspectTraversalCoverage([minimal]).compatible, true);
+    for (const endpoint of [edge.source, edge.target]) {
+        const broken = structuredClone(minimal);
+        broken.trace_contract.derivation.required_nodes = broken.trace_contract.derivation.required_nodes.filter(n => n !== endpoint);
+        assert.equal(inspectTraversalCoverage([broken]).compatible, false);
+    }
 });
 
 test('N02G:SNAPSHOT-ACCESS-001 handles resolve exact admitted fact/role/alias identities', async () => {

@@ -1,6 +1,6 @@
 'use strict';
 
-const { parseDate, parseMonth } = require('./civilCalendar');
+const { parseDate, parseMonth, offsetDate, monthBounds, inclusiveDayCount } = require('./civilCalendar');
 const { validateLiteral } = require('./literalTypes');
 const fail = code => { throw new Error(`metric_selection_${code}`); };
 const id = value => { validateLiteral({ type: 'id', value }); return value; };
@@ -35,31 +35,62 @@ function createCategoryReader(categories) {
 // Only handles supplied through admitted registry roles are used. No graph,
 // selected roster, fact key, oracle or expected result is an input.
 function selectEconomicEvents(operands, mode) {
-    if (!['total', 'category', 'spent', 'income', 'instrument', 'budget_class', 'budget_remaining'].includes(mode)) fail('mode');
+    if (!['total', 'category', 'spent', 'income', 'instrument', 'budget_class', 'budget_remaining', 'statement', 'safe_pace'].includes(mode)) fail('mode');
+    const pace = mode === 'safe_pace';
     const context = operands.context;
     const basis = context.get('time_basis');
-    if (!(mode === 'budget_remaining' ? basis === 'budget_cycle' : mode === 'spent' ? ['event_date', 'budget_cycle'].includes(basis) : basis === 'event_date')
-        || context.get('evidence_state') !== 'confirmed') fail('context');
+    if (!(pace ? basis === '15_full_days_after_as_of' : mode === 'statement' ? ['statement_due_date', 'statement_competence'].includes(basis)
+        : mode === 'budget_remaining' ? basis === 'budget_cycle' : mode === 'spent' ? ['event_date', 'budget_cycle'].includes(basis) : basis === 'event_date')
+        || context.get('evidence_state') !== (pace ? 'estimated' : 'confirmed')) fail('context');
     const period = context.get('period');
-    if (period.get('kind') !== 'month') fail('period');
-    const month = period.get('value'); parseMonth(month);
+    let month; let contains; let divisor;
+    if (pace) {
+        const policy = operands.policy;
+        const cutoff = operands.clock.civilDate('fixed_clock', policy.get('timezone'), policy.get('calendar'));
+        month = operands.budget.get('period'); const bounds = monthBounds(month);
+        if (cutoff < bounds.start || cutoff >= bounds.end) fail('pace');
+        const start = offsetDate(cutoff, 1, 'day'); const end = bounds.end;
+        divisor = inclusiveDayCount({ start, end, start_inclusive: true, end_inclusive: true });
+        if (divisor !== 15 || policy.get('daily_pace_divisor') !== divisor || policy.get('daily_pace_rounding') !== 'floor'
+            || policy.get('daily_pace_as_of') !== cutoff || policy.get('daily_pace_start') !== start || policy.get('daily_pace_end') !== end
+            || period.get('kind') !== 'range' || period.get('start') !== start || period.get('end') !== end
+            || period.get('start_inclusive') !== true || period.get('end_inclusive') !== true) fail('pace');
+        contains = value => value >= bounds.start && value <= cutoff;
+    } else if (mode === 'statement') {
+        if (period.get('kind') !== 'statement_due' || operands.policy.get('calendar') !== 'proleptic_gregorian') fail('statement');
+        const due = period.get('value'); const date = parseDate(due);
+        const closingDay = operands.card.get('closing_day'); const dueDay = operands.card.get('due_day');
+        if (!Number.isInteger(closingDay) || closingDay < 1 || closingDay > 31
+            || !Number.isInteger(dueDay) || dueDay < 1 || dueDay > 31 || date.day !== dueDay) fail('statement');
+        const end = `${due.slice(0, 7)}-${String(closingDay).padStart(2, '0')}`; parseDate(end);
+        const start = offsetDate(end, -1, 'month');
+        contains = value => value > start && value <= end;
+    } else {
+        if (period.get('kind') !== 'month') fail('period');
+        month = period.get('value'); parseMonth(month);
+        contains = value => value.slice(0, 7) === month;
+    }
     const subject = context.get('subject'); const kind = subject.get('kind');
-    const familyId = mode === 'instrument' ? undefined : id(operands.family.get('id'));
-    const familyMembers = mode === 'instrument' ? undefined : operands.family.get('members');
+    const instrumentMode = mode === 'instrument' || mode === 'statement';
+    const family = pace ? operands.budget.follow('family_id') : operands.family;
+    if (pace && family.identity('kind') !== 'family') fail('scope');
+    const familyId = instrumentMode ? undefined : id(family.get('id'));
+    const familyMembers = instrumentMode ? undefined : family.get('members');
     let person; let category; let expectedFamily; let instrument; let instrumentVersion; let budgetClass;
-    if (mode === 'budget_remaining') {
+    if (mode === 'budget_remaining' || pace) {
         if (operands.budget.identity('kind') !== 'budget') fail('budget');
         const budgetId = id(operands.budget.get('id'));
         if (kind === 'budget') { if (id(subject.get('ref_id')) !== budgetId) fail('scope'); }
-        else if (kind === 'budget_person') {
+        else if (!pace && kind === 'budget_person') {
             if (id(subject.get('budget_id')) !== budgetId) fail('scope');
             person = id(subject.get('person_id')); if (!familyMembers.includes(person)) fail('scope');
         } else fail('scope');
         expectedFamily = id(operands.budget.get('family_id')); category = id(operands.budget.get('category_id'));
         if (operands.budget.get('period') !== month || operands.budget.get('evidence_state') !== 'confirmed') fail('budget');
-    } else if (mode === 'instrument') {
-        if (!['account', 'card'].includes(kind) || operands.instrument.identity('kind') !== kind) fail('scope');
-        instrument = id(operands.instrument.get('id')); instrumentVersion = operands.instrument.identity('version');
+    } else if (instrumentMode) {
+        const target = mode === 'statement' ? operands.card : operands.instrument;
+        if (!['account', 'card'].includes(kind) || mode === 'statement' && kind !== 'card' || target.identity('kind') !== kind) fail('scope');
+        instrument = id(target.get('id')); instrumentVersion = target.identity('version');
         validateLiteral({ type: 'digest', value: instrumentVersion });
         if (id(subject.get('ref_id')) !== instrument) fail('scope');
     } else if (['total', 'income', 'budget_class'].includes(mode)) {
@@ -84,7 +115,7 @@ function selectEconomicEvents(operands, mode) {
     const categoryReader = createCategoryReader(operands.categories);
     if (category !== undefined && !categoryReader.has(category)) fail('category');
     const categoryOf = event => categoryReader.read(event);
-    return operands.events.select(event => {
+    const selected = operands.events.select(event => {
         if (event.identity('kind') !== 'event') fail('event');
         const state = event.get('state');
         if (!['confirmed', 'projected'].includes(state)) fail('state');
@@ -92,7 +123,7 @@ function selectEconomicEvents(operands, mode) {
         const owner = id(event.get('person_id'));
         const ownCategory = categoryOf(event);
         let effectiveCategory = ownCategory;
-        if (['category', 'spent', 'budget_class', 'budget_remaining'].includes(mode) && ownCategory.economicKind === 'compensation') {
+        if (['category', 'spent', 'budget_class', 'budget_remaining', 'safe_pace'].includes(mode) && ownCategory.economicKind === 'compensation') {
             const compensated = event.follow('compensates');
             if (compensated.identity('kind') !== 'event') fail('compensation');
             const originalCategory = categoryOf(compensated);
@@ -100,7 +131,7 @@ function selectEconomicEvents(operands, mode) {
             effectiveCategory = originalCategory;
         }
         let inScope;
-        if (mode === 'instrument') {
+        if (instrumentMode) {
             const field = `${kind}_id`;
             inScope = false;
             if (event.has(field)) {
@@ -117,23 +148,28 @@ function selectEconomicEvents(operands, mode) {
             if (!['essential', 'flexible'].includes(actual)) fail('filter');
             filterMatch = actual === budgetClass;
         }
-        return state === 'confirmed' && date.slice(0, 7) === month && inScope
+        return state === 'confirmed' && contains(date) && inScope
             && economicMatch && filterMatch;
     });
+    return { selected, divisor };
 }
 
 function selectConsumption(operands, mode) {
     if (!['total', 'category', 'spent'].includes(mode)) fail('mode');
-    return selectEconomicEvents(operands, mode);
+    return selectEconomicEvents(operands, mode).selected;
 }
 function evaluateEconomicMetric(operands, mode) {
-    const selected = selectEconomicEvents(operands, mode);
+    const { selected, divisor } = selectEconomicEvents(operands, mode);
     let result = 0;
     for (const event of selected) {
         const amount = money(event.get('amount_minor'));
         result = money(mode === 'income' ? result + amount : result - amount);
     }
-    return mode === 'budget_remaining' ? money(money(operands.budget.get('limit_minor')) - result) : result;
+    if (mode === 'budget_remaining' || mode === 'safe_pace') {
+        result = money(money(operands.budget.get('limit_minor')) - result);
+        return mode === 'safe_pace' ? money(Math.floor(result / divisor)) : result;
+    }
+    return result;
 }
 function evaluateConsumption(operands, mode) {
     if (!['total', 'category', 'spent'].includes(mode)) fail('mode');

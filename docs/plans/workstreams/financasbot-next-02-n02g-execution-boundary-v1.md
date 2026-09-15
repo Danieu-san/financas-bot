@@ -98,6 +98,14 @@ de iterator, seleção e traversal precisam de operações instrumentadas própr
 Consultar non_material ou usar handle revogado/de outra invocação aborta a
 invocação, mesmo se guest capturar a exceção. Nenhum read estrutural é gratuito.
 
+A conversão civil usa `handle.civilDate(field, timezone, calendar)`: o proxy lê
+o campo escalar material pela API observada, aplica o adaptador temporal pinado
+do TCB e emite I com instante, zona, calendário e data obtida. Só o recorder
+materializa esse evento. A operação não lê relógio ambiente e não expõe Date,
+Intl ou código nativo ao guest. Erro de conversão contamina a invocação, inclusive
+se capturado. O adaptador e o runtime nativo continuam sujeitos ao closure/TCB.
+Essa composição ainda não prova a cápsula completa nem aceitação de trace.
+
 O IR tipado atual não será entregue cru ao guest. O build baixa suas instruções
 e literais revisados para o programa de prova fechado; não baixa payloads de
 snapshot, R ou oracle para constantes. Os operadores acessam evidências somente

@@ -18,7 +18,7 @@ function fixture(options = {}) {
     ];
     const categoryRows = [{ id: 'food', kind: 'expense', budget_class: 'essential' }, { id: 'refund-kind', kind: 'compensation' }, { id: 'salary', kind: 'income' }];
     function binding(kind, value, role) {
-        const names = kind === 'event' ? ['id', 'date', 'state', 'person_id', 'category_id', 'amount_minor', 'compensates', 'account_id', 'card_id'] : ['id', 'kind', 'budget_class'];
+        const names = kind === 'event' ? ['id', 'date', 'state', 'person_id', 'category_id', 'amount_minor', 'compensates', 'account_id', 'card_id'] : ['id', 'kind', 'budget_class', 'closing_day', 'due_day'];
         return { alias: value.id, role, identity: { kind, ref_id: value.id, version }, value,
             shape: { type: 'record', fields: Object.fromEntries(names.map(name => [name, scalar])) } };
     }
@@ -28,7 +28,7 @@ function fixture(options = {}) {
             field: `${options.instrument.kind}_id`, target: options.instrument.id, type: 'ref' }] : [])]);
     const events = createNodeSetAccess({ role: 'events', emit, roster: rows.map(r => r.id), links,
         bindings: [...rows.map(r => binding('event', r, 'events')), ...categoryRows.map(r => binding('category', r, 'events')),
-            ...(options.instrument ? [binding(options.instrument.kind, { id: options.instrument.id }, 'events')] : [])] });
+            ...(options.instrument ? [binding(options.instrument.kind, { ...options.instrument }, 'events')] : [])] });
     const categories = createNodeSetAccess({ role: 'categories', emit,
         bindings: categoryRows.map(r => binding('category', r, 'categories')) });
     const subject = options.subject || { kind: 'person', ref_id: 'p1' };
@@ -36,17 +36,17 @@ function fixture(options = {}) {
         subject, period: options.period || { kind: 'month', value: '2042-06' }, evidence_state: options.evidence_state || 'confirmed', time_basis: options.time_basis || 'event_date',
         ...(options.filters ? { filters: options.filters } : {})
     }, shape: { type: 'record', fields: { evidence_state: scalar, time_basis: scalar, filters: { type: 'record', fields: { budget_class: scalar } },
-        period: { type: 'record', fields: { kind: scalar, value: scalar } }, subject: { type: 'record',
+        period: { type: 'record', fields: { kind: scalar, value: scalar, start: scalar, end: scalar, start_inclusive: scalar, end_inclusive: scalar } }, subject: { type: 'record',
             fields: { kind: scalar, ref_id: scalar, family_id: scalar, category_id: scalar, person_id: scalar, budget_id: scalar } } } } }] });
     const family = createInstrumentedAccess({ emit, bindings: [{ alias: 'family', role: 'family', value: { id: 'f1', members: ['p1', 'p2'] },
         shape: { type: 'record', fields: { id: scalar, members: { type: 'sequence', item: scalar } } } }] });
     controls.push(events, categories, context, family);
     const instrument = options.instrument ? createInstrumentedAccess({ emit,
-        bindings: [binding(options.instrument.kind, { id: options.instrument.id }, 'instrument')] }) : null;
+        bindings: [binding(options.instrument.kind, { ...options.instrument }, 'instrument')] }) : null;
     if (instrument) controls.push(instrument);
     return { observations, controls, operands: { events: events.handle, categories: categories.handle,
         context: context.handle('context'), family: family.handle('family'),
-        ...(instrument ? { instrument: instrument.handle(options.instrument.id) } : {}) } };
+        ...(instrument ? { instrument: instrument.handle(options.instrument.id), card: instrument.handle(options.instrument.id) } : {}) } };
 }
 
 test('N02G:METRIC-SELECTION-001 consumption computes membership from handles and returns only the amount', () => {
@@ -140,4 +140,51 @@ test('N02G:METRIC-SELECTION-009 a personal query uses the family limit but only 
     assert.throws(() => run({ kind: 'budget_person', budget_id: 'budget', person_id: 'foreign' }), /metric_selection_scope/);
     assert.throws(() => run({ kind: 'budget', ref_id: 'budget' }, { period: '2042-05' }), /metric_selection_budget/);
     assert.throws(() => run({ kind: 'budget', ref_id: 'budget' }, { family_id: 'foreign' }), /metric_selection_scope/);
+});
+
+test('N02G:METRIC-SELECTION-010 statement uses the historical open-close civil window without clamping', () => {
+    function run({ closing_day = 10, due_day = 17, value = '2042-06-17', basis = 'statement_due_date', calendar = 'proleptic_gregorian' } = {}) {
+        const rows = ['2042-05-10', '2042-05-11', '2042-06-10', '2042-06-11'].map((date, i) => ({
+            id: `e${i}`, date, state: 'confirmed', person_id: 'p1', category_id: 'food', amount_minor: -(i + 1), card_id: 'card' }));
+        const f = fixture({ rows, subject: { kind: 'card', ref_id: 'card' }, period: { kind: 'statement_due', value },
+            time_basis: basis, instrument: { kind: 'card', id: 'card', closing_day, due_day } });
+        const policy = createInstrumentedAccess({ emit: e => f.observations.push(e), bindings: [{ alias: 'policy', role: 'policy',
+            value: { calendar }, shape: { type: 'record', fields: { calendar: scalar } } }] });
+        return evaluateEconomicMetric({ ...f.operands, policy: policy.handle('policy') }, 'statement');
+    }
+    assert.equal(run(), 5);
+    assert.equal(run({ basis: 'statement_competence' }), 5);
+    assert.throws(() => run({ value: '2042-06-18' }), /metric_selection_statement/);
+    assert.throws(() => run({ closing_day: 31 }), /civil_date/);
+    assert.throws(() => run({ closing_day: 30, value: '2042-03-17' }), /civil_nonexistent_target/);
+    assert.throws(() => run({ calendar: 'guessed' }), /metric_selection_statement/);
+});
+
+test('N02G:METRIC-SELECTION-011 safe pace derives remaining civil days before checking literal policy and floors signed results', () => {
+    function run({ clock = '2042-06-15T12:00:00Z', policy = {}, limit = 3400 } = {}) {
+        const f = fixture({ subject: { kind: 'budget', ref_id: 'budget' }, evidence_state: 'estimated',
+            time_basis: '15_full_days_after_as_of', period: { kind: 'range', start: '2042-06-16', end: '2042-06-30', start_inclusive: true, end_inclusive: true } });
+        const emit = e => f.observations.push(e);
+        const budget = { id: 'budget', family_id: 'family', category_id: 'food', period: '2042-06', limit_minor: limit, evidence_state: 'confirmed' };
+        const family = { id: 'family', members: ['p1', 'p2'] };
+        const access = createInstrumentedAccess({ emit, bindings: [['budget', 'budget', budget], ['family', 'family', family]].map(([alias, kind, value]) => ({
+            alias, role: 'budget', value, identity: { kind, ref_id: alias, version }, shape: { type: 'record',
+                fields: Object.fromEntries(Object.keys(value).map(k => [k, k === 'members' ? { type: 'sequence', item: scalar } : scalar])) }
+        })), links: [{ id: 'family', source: 'budget', field: 'family_id', target: 'family', type: 'ref' }] });
+        const policyValue = { timezone: 'America/Sao_Paulo', calendar: 'proleptic_gregorian', daily_pace_as_of: '2042-06-15',
+            daily_pace_start: '2042-06-16', daily_pace_end: '2042-06-30', daily_pace_divisor: 15, daily_pace_rounding: 'floor', ...policy };
+        const temporal = createInstrumentedAccess({ emit, bindings: [['clock', { fixed_clock: clock }], ['policy', policyValue]].map(([alias, value]) => ({
+            alias, role: 'temporal', value, shape: { type: 'record', fields: Object.fromEntries(Object.keys(value).map(k => [k, scalar])) }
+        })) });
+        const operands = { events: f.operands.events, categories: f.operands.categories, context: f.operands.context,
+            budget: access.handle('budget'), clock: temporal.handle('clock'), policy: temporal.handle('policy') };
+        return evaluateEconomicMetric(operands, 'safe_pace');
+    }
+    assert.equal(run(), 217); // (3400 - 135) / 15 = 217.66...
+    assert.equal(run({ limit: 130 }), -1); // floor(-5 / 15), not truncation
+    for (const policy of [{ daily_pace_divisor: 14 }, { daily_pace_as_of: '2042-06-14' },
+        { daily_pace_start: '2042-06-15' }, { daily_pace_end: '2042-06-29' }, { daily_pace_rounding: 'round' }]) {
+        assert.throws(() => run({ policy }), /metric_selection_pace/);
+    }
+    assert.throws(() => run({ clock: '2042-06-15T02:59:59Z' }), /metric_selection_pace/);
 });

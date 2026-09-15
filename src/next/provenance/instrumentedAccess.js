@@ -2,6 +2,7 @@
 const { types } = require('node:util');
 const { copyData, identifier, field, scalar } = require('./observationContract');
 const { digest } = require('../kernel/canonicalValue');
+const { civilDateInPinnedTimezone } = require('./pinnedCivilTimezone');
 const failSetup = () => { throw new Error('access_shape_invalid'); };
 
 // Shape is supplied by trusted schema/registry admission, not by guest. This
@@ -130,6 +131,18 @@ function createInstrumentedAccess(options) {
             return result;
         }
         return frozenInterface({
+            civilDate: (...args) => {
+                check();
+                if (projection !== 'data' || args.length !== 3) fail('civil_arguments');
+                const [key, zone, calendar] = args;
+                if (recordField(key).type !== 'scalar') fail('civil_field');
+                const instant = handle(value, shape, b, path, projection).get(key);
+                let date;
+                try { date = civilDateInPinnedTimezone(instant, zone, calendar); }
+                catch { fail('civil_conversion'); }
+                event('civil_date', b, [...path, key], projection, ['civil', instant, zone, calendar, date]);
+                return date;
+            },
             identity: key => {
                 check();
                 if (path.length || projection !== 'data' || !b.identity || !['kind', 'ref_id', 'version'].includes(key)) fail('identity_forbidden');
