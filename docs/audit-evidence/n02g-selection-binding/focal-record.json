@@ -1,0 +1,697 @@
+{
+  "fact_key": "S-16#1#1",
+  "claim": {
+    "claim_id": "claim-S-16#1#1",
+    "fact_key": "S-16#1#1",
+    "metric": "source_coverage",
+    "unit": "state",
+    "subject": {
+      "kind": "source",
+      "ref_id": "source-complete-june"
+    },
+    "period": {
+      "kind": "month",
+      "value": "2042-06"
+    },
+    "time_basis": "source_period",
+    "coverage": "complete",
+    "evidence_state": "confirmed",
+    "evaluator_ref": {
+      "evaluator_id": "source_coverage",
+      "evaluator_version": 1
+    },
+    "operand_bindings": {
+      "context": {
+        "kind": "claim_context"
+      },
+      "source": {
+        "kind": "node",
+        "alias": "source_complete_june"
+      }
+    }
+  },
+  "evaluator": {
+    "evaluator_id": "source_coverage",
+    "evaluator_version": 1,
+    "metric": "source_coverage",
+    "unit": "state",
+    "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/source_coverage.json",
+    "evaluator_contract_hash": "sha256:9a80ff7de3d119bb6f598db2af660c33095b64c82802741c01ed119ae95d38d8",
+    "artifact_status": "not_built",
+    "roles": [
+      {
+        "role_id": "context",
+        "semantic_role": "scope",
+        "input_kind": "claim_context",
+        "cardinality": "one",
+        "ordered": false
+      },
+      {
+        "role_id": "source",
+        "semantic_role": "source",
+        "input_kind": "node",
+        "cardinality": "one",
+        "ordered": false
+      }
+    ],
+    "witness_contract_ids": [
+      "source_coverage_discriminant"
+    ]
+  },
+  "evaluator_contract": {
+    "schema_version": 1,
+    "contract_id": "source_coverage_v1",
+    "metric": "source_coverage",
+    "unit": "state",
+    "stage": "authoring",
+    "signature": {
+      "context": "explicit_versioned_instrumented_claim",
+      "operands": "resolve_roles_from_metric_evaluator_registry",
+      "output": {
+        "kind": "enum",
+        "enum_values": [
+          "complete",
+          "partial",
+          "unavailable"
+        ]
+      }
+    },
+    "semantics": [
+      "Retornar coverage literal da source_state consultada depois de comprovar período e escopo aplicáveis. Não converter unavailable/partial para complete."
+    ],
+    "algebraic_properties": [
+      "Estado diferente e válido deve ser preservado, sem coerção para complete."
+    ],
+    "reuse": {
+      "path": "scripts/agent/validateFinancasBotNextFacts.mjs",
+      "locator": "derive.source_coverage",
+      "status": "behavior_reference_requires_instrumented_adaptation"
+    },
+    "limitations": [
+      "Assinatura de autoria; executável instrumentado e seu closure ainda não foram construídos/revisados.",
+      "A fórmula opera somente sobre handles e roles resolvidos do registry, com escopo/período comprovados pelo grafo.",
+      "Não usar oracle como input, autodeclarar trace ou aceitar campo non_material."
+    ]
+  },
+  "graph": {
+    "claim_id": "claim-S-16#1#1",
+    "nodes": {
+      "next_golden_financial_v1": {
+        "binding": "snapshot",
+        "ref_id": "NEXT-GOLDEN-FINANCIAL-V1",
+        "kind": "fixture",
+        "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+        "semantic_fingerprint": "sha256:c16747859756cdfdf59378c5f28d0b69cb86a5f732022701d5d3c10b5a92853b",
+        "roles": [
+          "link_proof"
+        ]
+      },
+      "card_offline": {
+        "binding": "snapshot",
+        "ref_id": "card-offline",
+        "kind": "card",
+        "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+        "semantic_fingerprint": "sha256:c08e5381eec0897121a04e9913969f8c663b29a91d64971e2a6b1a7dfd3da668",
+        "roles": [
+          "link_proof"
+        ]
+      },
+      "collection_source_states": {
+        "binding": "snapshot",
+        "ref_id": "collection-source_states",
+        "kind": "collection",
+        "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+        "semantic_fingerprint": "sha256:b31d424330c21d39168e071c3e553659aca99091ba1d5c4eea864c2cddff304c",
+        "roles": [
+          "link_proof"
+        ]
+      },
+      "family_example": {
+        "binding": "snapshot",
+        "ref_id": "family-example",
+        "kind": "family",
+        "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+        "semantic_fingerprint": "sha256:7653bf0250d2422b32119aec2ba137b0da2ba5aa42eb50833e91a26badb389e6",
+        "roles": [
+          "link_proof"
+        ]
+      },
+      "health_general": {
+        "binding": "snapshot",
+        "ref_id": "health.general",
+        "kind": "category",
+        "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+        "semantic_fingerprint": "sha256:58af6bb0b3f80693af1994e737e992d0aba0bd42e74aca055f820a9a958b9529",
+        "roles": [
+          "link_proof"
+        ]
+      },
+      "person_a": {
+        "binding": "snapshot",
+        "ref_id": "person-a",
+        "kind": "person",
+        "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+        "semantic_fingerprint": "sha256:37b8d4a3ec13a7498756b5dcda9162338e06c91d57465288ab3512cf07ac67c6",
+        "roles": [
+          "link_proof"
+        ]
+      },
+      "person_b": {
+        "binding": "snapshot",
+        "ref_id": "person-b",
+        "kind": "person",
+        "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+        "semantic_fingerprint": "sha256:0727eed1b087b390effd2b0bc018c08907be89c583a820d3df42ed74add4bf13",
+        "roles": [
+          "link_proof"
+        ]
+      },
+      "source_complete_june": {
+        "binding": "snapshot",
+        "ref_id": "source-complete-june",
+        "kind": "source_state",
+        "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+        "semantic_fingerprint": "sha256:89bf3b79c8f6b4fbc9575cf148ce7bf147ba55bff0820e46b1ecf2f7b23cf4b3",
+        "roles": [
+          "value_input"
+        ]
+      },
+      "source_empty_health": {
+        "binding": "snapshot",
+        "ref_id": "source-empty-health",
+        "kind": "source_state",
+        "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+        "semantic_fingerprint": "sha256:beb9b796b67566d9ec87044769ee275462fb84b2f3dbec1e3b04a8b4dd2cda9e",
+        "roles": [
+          "link_proof"
+        ]
+      },
+      "source_offline_card": {
+        "binding": "snapshot",
+        "ref_id": "source-offline-card",
+        "kind": "source_state",
+        "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+        "semantic_fingerprint": "sha256:00a4c5eaa554a09625c6f451143eeb1aee15c4952ddd481cfb7ae5292dc71f4d",
+        "roles": [
+          "link_proof"
+        ]
+      },
+      "source_partial_may": {
+        "binding": "snapshot",
+        "ref_id": "source-partial-may",
+        "kind": "source_state",
+        "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+        "semantic_fingerprint": "sha256:d05bb74fc49b4dd0dc265679183ce855b4024b423731db444be7880f4800ac1f",
+        "roles": [
+          "link_proof"
+        ]
+      },
+      "synthetic_ledger": {
+        "binding": "snapshot",
+        "ref_id": "synthetic-ledger",
+        "kind": "source_origin",
+        "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+        "semantic_fingerprint": "sha256:a43f5f95b7b0fd8bcc20296b39a0a452af6056008d6ce719d72cd2afc94a4729",
+        "roles": [
+          "link_proof"
+        ]
+      },
+      "synthetic_open_finance": {
+        "binding": "snapshot",
+        "ref_id": "synthetic-open-finance",
+        "kind": "source_origin",
+        "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+        "semantic_fingerprint": "sha256:72bd9b86dab567fa217c0ca7bc5de59c60c4b22f8d9232c5a8122d8c4c660a28",
+        "roles": [
+          "link_proof"
+        ]
+      }
+    },
+    "sets": {
+      "candidates": [
+        "source_complete_june",
+        "source_partial_may",
+        "source_offline_card",
+        "source_empty_health"
+      ],
+      "selected": [
+        "source_complete_june"
+      ]
+    },
+    "selections": [
+      {
+        "candidate_set": "candidates",
+        "selected_set": "selected",
+        "selected_predicates": [
+          "r0004_include_coverage"
+        ],
+        "excluded": [
+          {
+            "node": "source_partial_may",
+            "reason": "identity",
+            "predicates": [
+              "r0001_exclude_id"
+            ]
+          },
+          {
+            "node": "source_offline_card",
+            "reason": "identity",
+            "predicates": [
+              "r0002_exclude_id"
+            ]
+          },
+          {
+            "node": "source_empty_health",
+            "reason": "identity",
+            "predicates": [
+              "r0003_exclude_id"
+            ]
+          }
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "id": "e0001",
+        "source": "card_offline",
+        "field": "owner_id",
+        "target": "person_a",
+        "relation": "material_ref",
+        "proof_predicates": [
+          "p0011_target"
+        ]
+      },
+      {
+        "id": "e0002",
+        "source": "collection_source_states",
+        "field": "fixture_id",
+        "target": "next_golden_financial_v1",
+        "relation": "material_ref",
+        "proof_predicates": [
+          "p0017_target"
+        ]
+      },
+      {
+        "id": "e0003",
+        "source": "collection_source_states",
+        "field": "members",
+        "target": "source_complete_june",
+        "relation": "material_ref",
+        "proof_predicates": [
+          "p0019_target"
+        ]
+      },
+      {
+        "id": "e0004",
+        "source": "collection_source_states",
+        "field": "members",
+        "target": "source_partial_may",
+        "relation": "material_ref",
+        "proof_predicates": [
+          "p0020_target"
+        ]
+      },
+      {
+        "id": "e0005",
+        "source": "collection_source_states",
+        "field": "members",
+        "target": "source_offline_card",
+        "relation": "material_ref",
+        "proof_predicates": [
+          "p0021_target"
+        ]
+      },
+      {
+        "id": "e0006",
+        "source": "collection_source_states",
+        "field": "members",
+        "target": "source_empty_health",
+        "relation": "material_ref",
+        "proof_predicates": [
+          "p0022_target"
+        ]
+      },
+      {
+        "id": "e0007",
+        "source": "family_example",
+        "field": "members",
+        "target": "person_a",
+        "relation": "material_ref",
+        "proof_predicates": [
+          "p0026_target"
+        ]
+      },
+      {
+        "id": "e0008",
+        "source": "family_example",
+        "field": "members",
+        "target": "person_b",
+        "relation": "material_ref",
+        "proof_predicates": [
+          "p0027_target"
+        ]
+      },
+      {
+        "id": "e0009",
+        "source": "person_a",
+        "field": "family_id",
+        "target": "family_example",
+        "relation": "material_ref",
+        "proof_predicates": [
+          "p0036_target"
+        ]
+      },
+      {
+        "id": "e0010",
+        "source": "person_b",
+        "field": "family_id",
+        "target": "family_example",
+        "relation": "material_ref",
+        "proof_predicates": [
+          "p0040_target"
+        ]
+      },
+      {
+        "id": "e0011",
+        "source": "source_complete_june",
+        "field": "source",
+        "target": "synthetic_ledger",
+        "relation": "material_ref",
+        "proof_predicates": [
+          "p0044_target"
+        ]
+      },
+      {
+        "id": "e0012",
+        "source": "source_empty_health",
+        "field": "source",
+        "target": "synthetic_ledger",
+        "relation": "material_ref",
+        "proof_predicates": [
+          "p0050_target"
+        ]
+      },
+      {
+        "id": "e0013",
+        "source": "source_empty_health",
+        "field": "category_id",
+        "target": "health_general",
+        "relation": "material_ref",
+        "proof_predicates": [
+          "p0052_target"
+        ]
+      },
+      {
+        "id": "e0014",
+        "source": "source_offline_card",
+        "field": "source",
+        "target": "synthetic_open_finance",
+        "relation": "material_ref",
+        "proof_predicates": [
+          "p0058_target"
+        ]
+      },
+      {
+        "id": "e0015",
+        "source": "source_offline_card",
+        "field": "entity_id",
+        "target": "card_offline",
+        "relation": "material_ref",
+        "proof_predicates": [
+          "p0059_target"
+        ]
+      },
+      {
+        "id": "e0016",
+        "source": "source_partial_may",
+        "field": "source",
+        "target": "synthetic_ledger",
+        "relation": "material_ref",
+        "proof_predicates": [
+          "p0064_target"
+        ]
+      },
+      {
+        "id": "e0017",
+        "source": "synthetic_ledger",
+        "field": "fixture_id",
+        "target": "next_golden_financial_v1",
+        "relation": "material_ref",
+        "proof_predicates": [
+          "p0070_target"
+        ]
+      },
+      {
+        "id": "e0018",
+        "source": "synthetic_open_finance",
+        "field": "fixture_id",
+        "target": "next_golden_financial_v1",
+        "relation": "material_ref",
+        "proof_predicates": [
+          "p0074_target"
+        ]
+      }
+    ],
+    "derivation": {
+      "required_nodes": [
+        "source_complete_june"
+      ],
+      "required_reads": [
+        {
+          "node": "source_complete_june",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "source_complete_june",
+          "segments": [
+            "period"
+          ]
+        },
+        {
+          "node": "source_complete_june",
+          "segments": [
+            "coverage"
+          ]
+        }
+      ],
+      "required_claim_reads": [
+        {
+          "segments": [
+            "subject",
+            "kind"
+          ]
+        },
+        {
+          "segments": [
+            "subject",
+            "ref_id"
+          ]
+        },
+        {
+          "segments": [
+            "period",
+            "kind"
+          ]
+        },
+        {
+          "segments": [
+            "period",
+            "value"
+          ]
+        },
+        {
+          "segments": [
+            "time_basis"
+          ]
+        }
+      ],
+      "required_edges": [],
+      "required_structural": [],
+      "selected_nodes": [
+        "source_complete_june"
+      ],
+      "evidence_set_mode": "exact",
+      "required_selections": [
+        {
+          "candidate_set": "candidates",
+          "selected_set": "selected"
+        }
+      ]
+    },
+    "proof": {
+      "required_nodes": [
+        "next_golden_financial_v1",
+        "card_offline",
+        "collection_source_states",
+        "family_example",
+        "health_general",
+        "person_a",
+        "person_b",
+        "source_complete_june",
+        "source_empty_health",
+        "source_offline_card",
+        "source_partial_may",
+        "synthetic_ledger",
+        "synthetic_open_finance"
+      ],
+      "required_reads_for_candidates": [
+        {
+          "node": "source_complete_june",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "source_complete_june",
+          "segments": [
+            "source"
+          ]
+        },
+        {
+          "node": "source_complete_june",
+          "segments": [
+            "period"
+          ]
+        },
+        {
+          "node": "source_complete_june",
+          "segments": [
+            "coverage"
+          ]
+        },
+        {
+          "node": "source_empty_health",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "source_empty_health",
+          "segments": [
+            "source"
+          ]
+        },
+        {
+          "node": "source_empty_health",
+          "segments": [
+            "period"
+          ]
+        },
+        {
+          "node": "source_empty_health",
+          "segments": [
+            "category_id"
+          ]
+        },
+        {
+          "node": "source_empty_health",
+          "segments": [
+            "coverage"
+          ]
+        },
+        {
+          "node": "source_empty_health",
+          "segments": [
+            "event_count"
+          ]
+        },
+        {
+          "node": "source_offline_card",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "source_offline_card",
+          "segments": [
+            "source"
+          ]
+        },
+        {
+          "node": "source_offline_card",
+          "segments": [
+            "entity_id"
+          ]
+        },
+        {
+          "node": "source_offline_card",
+          "segments": [
+            "coverage"
+          ]
+        },
+        {
+          "node": "source_partial_may",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "source_partial_may",
+          "segments": [
+            "source"
+          ]
+        },
+        {
+          "node": "source_partial_may",
+          "segments": [
+            "period"
+          ]
+        },
+        {
+          "node": "source_partial_may",
+          "segments": [
+            "coverage"
+          ]
+        }
+      ],
+      "required_selections": [
+        {
+          "candidate_set": "candidates",
+          "selected_set": "selected"
+        }
+      ],
+      "selected_nodes": [
+        "source_complete_june"
+      ]
+    }
+  },
+  "reachability": {
+    "roots": [
+      "source_complete_june"
+    ],
+    "reachable": [
+      "next_golden_financial_v1",
+      "source_complete_june",
+      "synthetic_ledger"
+    ],
+    "unreachable_candidates": [
+      "source_partial_may",
+      "source_offline_card",
+      "source_empty_health"
+    ]
+  },
+  "source_excerpts": {
+    "observation_contract": {
+      "first_line": 99,
+      "text": "## 4. Contrato de observação\n\nPeríodo, sujeito e filtros usados no cálculo também são inputs explícitos.\nO registry pode declarar input_kind claim_context, cardinalidade one, ligado\nao claim imutável daquela invocação pelo binding fechado `{kind: claim_context}`.\nNão aceita outro claim_id fornecido pelo evaluator. O host fornece esse contexto\npor handle instrumentado, versionado pelo hash do claim contract. Todos os\ncampos do contexto são materiais; o schema de claim é sua autoridade de tipo.\nrequired_claim_reads registra os paths lidos por fase. Não há leitura gratuita\ndo descriptor nem um segundo resultado/role normativo armazenado nele.\n\ntrace_contract contém requisitos separados de derivation e proof. Cada fase\ndeclara nós, campos, arestas, operações estruturais e seleção esperados. A\nexecução futura observa ambos pelo mesmo recorder. Nenhum desses requisitos\né um trace produzido pelo evaluator. R permanece fora desse documento de\nobservação e é validado separadamente com o oracle.\n\nrequired_reads identifica pares node/path; repetições da mesma leitura no log\nnão inventam outra evidência. A projeção de cobertura compara o conjunto exato\ndesses pares, enquanto o log preserva ordem e multiplicidade da execução.\nrequired_structural enumera existência, keys, iterator, índice, ordem,\nmembership, cardinalidade/length, seleção, traversal e terminação antecipada.\nO resultado de cada observação vem de I; a representação é do recorder.\nNão se presume que observar length equivale a ler os membros ou sua ordem.\n\nToda leitura causal, escalar ou estrutural, deve estar coberta pela fase correta;\nleitura ausente/extra, campo non_material ou aresta ignorada impede aprovação.\nselected_nodes e required_nodes são conceitos distintos: um registro examinado\npara exclusão pertence às leituras, mas pode estar fora da seleção financeira.\nrequired_nodes é o inventário de nós examinados/consumidos na fase.\nrequired_selections coincide exatamente com os pares candidate_set/selected_set\nde selections. selected_nodes é a união exata dos sets dessas operações,\nobservada pelo recorder por fase. Não copiar a seleção autorada nem tratar\nleitura como seleção. Em grafo derivado sem selections, selected_nodes é vazio;\nos pais consumidos diretamente permanecem em required_nodes/required_reads.\nNenhum nó adicional pode ser admitido só para inflar a prova; seus papéis devem\nser necessários aos operands ou às obrigações explicitamente justificadas.\n\nFingerprint exige os campos materiais completos do nó. Esses acessos pertencem\nà fase proof e devem aparecer em seu contrato, mesmo quando a fórmula lê apenas\nalguns deles. A representação de trace de leituras compostas deve preservar as\noperações sobre estrutura; uma leitura do container não substitui observação\ndos campos realmente usados. O schema não afirma implementar instrumentação.\n\n"
+    },
+    "access_compiler": {
+      "first_line": 218,
+      "text": "function compileSnapshotAccess(admitted, validators) {\n    const context = compileAuthoring(admitted, validators);\n    const reject = code => { throw new Error(`snapshot_access_${code}`); };\n    const identity = node => JSON.stringify([node.kind, node.ref_id, node.version]);\n    const scalarTypes = new Set(['id', 'text', 'date', 'month', 'datetime', 'integer',\n        'positive_integer', 'nonnegative_integer', 'money_minor', 'boolean', 'enum', 'digest', 'ref']);\n    // Projection follows the already schema-checked finite registry grammar.\n    // Nominal validation remains in the shared admission pass, not this layer.\n    function project(descriptor) {\n        if (descriptor.class === 'non_material') return { type: 'non_material' };\n        if (scalarTypes.has(descriptor.type)) return { type: 'scalar' };\n        if (descriptor.type === 'ref_list') return { type: 'sequence', item: { type: 'scalar' } };\n        if (descriptor.type === 'role_ref_list') return { type: 'sequence', item: {\n            type: 'record', fields: { role_id: { type: 'scalar' }, parent_ref: { type: 'scalar' } }\n        } };\n        // typed_result/typed_period require a separately admitted validated-\n        // parent/claim projection. Do not guess shape from caller data.\n        reject('unsupported_field_type');\n    }\n    const snapshots = new Map(context.snapshots.map(snapshot => {\n        const descriptors = context.materialRegistry.kinds[snapshot.kind].fields;\n        const shape = { type: 'record', fields: Object.fromEntries(Object.entries(descriptors)\n            .map(([name, descriptor]) => [name, project(descriptor)])) };\n        return [identity(snapshot), { value: snapshot.payload, shape: freeze(shape),\n            identity: freeze({ kind: snapshot.kind, ref_id: snapshot.ref_id, version: snapshot.version }) }];\n    }));\n    const graphs = new Map(context.graphs.map(g => [g.fact_key, g]));\n    const contexts = new Map(context.claims.map(claim => [claim.fact_key, projectClaimContext(claim, context.claimSchema)]));\n    const bindings = new Map(context.operandBindings.graphs.map(g => [g.fact_key,\n        new Map(g.operands.map(b => [b.role_ref.role_id, b]))]));\n    function select(selector, emit, set) {\n        let selected;\n        try { selected = copyData(selector); } catch { reject('selector'); }\n        if (!selected || typeof selected !== 'object' || Array.isArray(selected)\n            || Object.keys(selected).sort().join(',') !== (set ? 'fact_key,role_id' : 'alias,fact_key,role_id')\n            || !Object.values(selected).every(identifier) || typeof emit !== 'function') reject('selector');\n        const binding = bindings.get(selected.fact_key)?.get(selected.role_id);\n        if (!binding) reject('binding');\n        return { ...selected, binding };\n    }\n    function sourceBinding(fact_key, role, alias) {\n        const node = graphs.get(fact_key).nodes[alias];\n        const snapshot = snapshots.get(identity(node));\n        if (node.binding !== 'snapshot' || !snapshot) reject('snapshot');\n        return { alias, role, value: snapshot.value, shape: snapshot.shape, identity: snapshot.identity };\n    }\n    function reachable(fact_key, role, aliases) {\n        const graph = graphs.get(fact_key); const visited = new Set(aliases); const queue = [...aliases]; const links = [];\n        for (let i = 0; i < queue.length; i++) {\n            for (const edge of graph.edges) {\n                if (edge.relation !== 'material_ref' || edge.source !== queue[i]) continue;\n                const source = graph.nodes[edge.source]; const target = graph.nodes[edge.target];\n                if (source.binding !== 'snapshot' || target.binding !== 'snapshot') reject('traversal_parent_pending');\n                const descriptor = context.materialRegistry.kinds[source.kind].fields[edge.field];\n                if (descriptor.class !== 'edge') reject('traversal_field');\n                links.push({ id: edge.id, source: edge.source, field: edge.field, target: edge.target, type: descriptor.type });\n                if (!visited.has(edge.target)) { visited.add(edge.target); queue.push(edge.target); }\n            }\n        }\n        return { bindings: queue.map(node => sourceBinding(fact_key, role, node)), links };\n    }\n    return Object.freeze({ stage: 'snapshot_access_plan_only', executable: false,\n        snapshot_count: snapshots.size,\n        openProof(selector, emit) {\n            let input;\n            try { input = copyData(selector); } catch { reject('proof_selector'); }\n            if (!input || Object.keys(input).join(',') !== 'fact_key'\n                || !identifier(input.fact_key) || typeof emit !== 'function') reject('proof_selector');\n            const graph = graphs.get(input.fact_key);\n            if (!graph) reject('proof_graph');\n            if (Object.values(graph.nodes).some(node => node.binding !== 'snapshot')) reject('proof_parent_pending');\n            // This tag names the proof transport scope, NOT a metric operand\n            // role. The execution host must bind this factory to phase proof.\n            // No required_reads/expected_trace is used to manufacture events.\n            const reachableNodes = reachable(input.fact_key, 'proof/snapshot', Object.keys(graph.nodes));\n            let failed = false; let revoked = false;\n            let selectionBusy = false;\n            const controllers = []; const sets = new Map(); const selected = new Map();\n            const selectionNames = new Set(graph.selections.map(s => s.selected_set));\n            const check = () => {\n                if (failed) reject('proof_failed');\n                for (const controller of controllers) controller.assertHealthy();\n                if (revoked) { failed = true; reject('proof_revoked'); }\n            };\n            const invalid = code => { failed = true; reject(code); };\n            const observe = event => { check(); emit(event); check(); };\n            const access = createInstrumentedAccess({ bindings: [...reachableNodes.bindings,\n                { alias: 'claim/context', role: 'proof/context', ...contexts.get(input.fact_key) }],\n                links: reachableNodes.links, emit: observe });\n            controllers.push(access);\n            function set(name) {\n                check();\n                if (typeof name !== 'string' || !Object.hasOwn(graph.sets, name)) invalid('proof_set');\n                if (selected.has(name)) return selected.get(name);\n                if (selectionNames.has(name)) invalid('proof_selection_pending');\n                if (!sets.has(name)) {\n                    const role = `proof/set/${name}`;\n                    const controller = createNodeSetAccess({ role,\n                        bindings: reachableNodes.bindings.map(binding => ({ ...binding, role })),\n                        links: reachableNodes.links, roster: graph.sets[name], emit: observe });\n                    controllers.push(controller); sets.set(name, controller.handle);\n                }\n                return sets.get(name);\n            }\n            function resolveReference(alias, field, ref) {\n                check();\n                if (typeof alias !== 'string' || typeof field !== 'string' || typeof ref !== 'string') invalid('proof_reference');\n                const matches = graph.edges.filter(e => e.relation === 'material_ref' && e.source === alias\n                    && e.field === field && graph.nodes[e.target].ref_id === ref);\n                if (matches.length !== 1) invalid('proof_reference');\n                return access.handle(alias).traverse(matches[0].id);\n            }\n            return Object.freeze({\n                node(alias) { check(); return access.handle(alias); },\n                claim() { check(); return access.handle('claim/context'); },\n                set,\n                select(candidate, target, predicate) {\n                    check();\n                    if (selectionBusy || selected.has(target) || !graph.selections.some(s =>\n                        s.candidate_set === candidate && s.selected_set === target)) invalid('proof_selection');\n                    selectionBusy = true;\n                    try {\n                        const view = set(candidate).select(predicate);\n                        check(); selected.set(target, view); return view;\n                    } finally { selectionBusy = false; }\n                },\n                edge(id) {\n                    check(); const edge = graph.edges.find(e => e.id === id && e.relation === 'material_ref');\n                    if (!edge) invalid('proof_edge');\n                    return access.handle(edge.source).traverse(id);\n                },\n                resolveReference,\n                memberEdge(member, field) {\n                    check();\n                    const tuple = ['kind', 'ref_id', 'version'].map(key => member.identity(key));\n                    const aliases = Object.entries(graph.nodes).filter(([, n]) => identity(n) === JSON.stringify(tuple));\n                    if (aliases.length !== 1) invalid('proof_reference');\n                    return resolveReference(aliases[0][0], field, member.get(field));\n                },\n                fieldDescriptor(kind, segments) {\n                    check();\n                    if (typeof kind !== 'string' || !Object.hasOwn(context.materialRegistry.kinds, kind)\n                        || !Array.isArray(segments) || segments.length !== 1) invalid('proof_field');\n                    const fields = context.materialRegistry.kinds[kind].fields;\n                    if (typeof segments[0] !== 'string' || !Object.hasOwn(fields, segments[0])\n                        || fields[segments[0]].class === 'non_material') invalid('proof_field');\n                    return fields[segments[0]];\n                },\n                operator(id) {\n                    check();\n                    const registry = context.documents.find(d => d.value?.registry_id === 'operator_registry');\n                    const result = registry?.value.operators.find(o => o.id === id);\n                    if (!result) invalid('proof_operator'); return result;\n                },\n                material(alias) {\n                    check();\n                    if (typeof alias !== 'string' || !Object.hasOwn(graph.nodes, alias)) invalid('proof_alias');\n                    const kind = graph.nodes[alias].kind;\n                    return freeze({ registry_version: context.materialRegistry.registry_version, kind,\n                        fields: context.materialRegistry.kinds[kind].fields });\n                },\n                revoke() { revoked = true; for (const controller of controllers) controller.revoke(); },\n                assertHealthy() { if (failed) reject('proof_failed'); for (const controller of controllers) controller.assertHealthy(); }\n            });\n        },\n        openContext(selector, emit) {\n            const { fact_key, role_id, binding } = select(selector, emit, true);\n            if (binding.kind !== 'claim_context') reject('binding_kind');\n            const access = createInstrumentedAccess({ bindings: [{ alias: 'claim/context', role: role_id,\n                ...contexts.get(fact_key) }], emit });\n            return Object.freeze({ handle: access.handle('claim/context'),\n                revoke: access.revoke, assertHealthy: access.assertHealthy });\n        },\n        open(selector, emit) {\n            const { fact_key, role_id, alias, binding } = select(selector, emit, false);\n            if (!['node', 'node_set'].includes(binding.kind)) reject('binding_kind');\n            const aliases = binding.kind === 'node' ? [binding.alias] : binding.aliases;\n            if (!aliases.includes(alias)) reject('alias');\n            const access = createInstrumentedAccess({ ...reachable(fact_key, role_id, [alias]), emit });\n            return Object.freeze({ handle: access.handle(alias),\n                revoke: access.revoke, assertHealthy: access.assertHealthy });\n        },\n        openSet(selector, emit) {\n            const { fact_key, role_id, binding } = select(selector, emit, true);\n            if (binding.kind !== 'node_set') reject('binding_kind');\n            return createNodeSetAccess({ role: role_id,\n                ...reachable(fact_key, role_id, binding.aliases), roster: binding.aliases, emit });\n        }\n    });\n}\n\n"
+    },
+    "metric_helpers": {
+      "first_line": 1,
+      "text": "'use strict';\nconst { parseDate, parseMonth } = require('./civilCalendar');\nconst { validateLiteral } = require('./literalTypes');\nconst { selectConsumption } = require('./metricSelection');\nconst fail = code => { throw new Error(`direct_metric_${code}`); };\nconst id = value => { validateLiteral({ type: 'id', value }); return value; };\nfunction identity(node, kind) {\n    if (node.identity('kind') !== kind) fail('kind');\n    const ref = id(node.get('id')); const version = node.identity('version');\n    validateLiteral({ type: 'digest', value: version });\n    return { ref, version };\n}\nfunction same(a, b) { return a.ref === b.ref && a.version === b.version; }\nfunction period(context, kind, basis) {\n    if (context.get('time_basis') !== basis) fail('basis');\n    const p = context.get('period');\n    if (p.get('kind') !== kind) fail('period');\n    const value = p.get('value');\n    if (kind === 'month') parseMonth(value); else parseDate(value);\n    return value;\n}\nfunction subject(context, kind) {\n    const s = context.get('subject');\n    if (s.get('kind') !== kind) fail('scope');\n    return id(s.get('ref_id'));\n}\nfunction checkedMoney(value) {\n    if (!Number.isSafeInteger(value) || Object.is(value, -0)) fail('amount');\n    return value;\n}\nfunction inclusiveRange(context, basis) {\n    if (context.get('time_basis') !== basis) fail('basis');\n    const p = context.get('period');\n    if (p.get('kind') !== 'range' || p.get('start_inclusive') !== true || p.get('end_inclusive') !== true) fail('period');\n    const start = p.get('start'); const end = p.get('end'); parseDate(start); parseDate(end);\n    if (start > end) fail('period');\n    return date => { parseDate(date); return date >= start && date <= end; };\n}\nfunction collectionMatches(collection, entries, name, kind) {\n    identity(collection, 'collection');\n    if (collection.get('collection_name') !== name) fail('collection');\n    const members = []; for (const member of collection.get('members')) members.push(id(member));\n    const actual = []; for (const entry of entries) actual.push(identity(entry, kind).ref);\n    if (new Set(members).size !== members.length || new Set(actual).size !== actual.length\n        || members.length !== actual.length || members.some((ref, i) => ref !== actual[i])) fail('collection');\n}\nfunction selectedIds(selected) {\n    const result = []; const seen = new Set();\n    for (const node of selected) {\n        const value = id(node.get('id')); if (seen.has(value)) fail('duplicate');\n        seen.add(value); result.push(value);\n    }\n    return result;\n}\n\n// Metric-only fixed dispatch. No graph predicates, expected values or oracle.\n// A functional answer from this helper is not acceptance of a claim.\n"
+    },
+    "source_coverage": {
+      "first_line": 196,
+      "text": "    if (metric === 'source_coverage') {\n        const source = operands.source;\n        if (identity(source, 'source_state').ref !== subject(context, 'source')) fail('scope');\n        const month = period(context, 'month', 'source_period');\n        const actual = source.get('period'); parseMonth(actual);\n        if (month !== actual) fail('period');\n        const coverage = source.get('coverage');\n        if (!['complete', 'partial', 'unavailable'].includes(coverage)) fail('coverage');\n        return coverage;\n    }\n"
+    },
+    "causal_test": {
+      "first_line": 242,
+      "text": "test('N02G:SELECTION-BINDING-001 source coverage exposes one source while its derivation requests the four-source selection', async () => {\n    const { plan, graphs, claims } = await snapshotAccessFixture();\n    const graph = graphs.find(g => g.fact_key === 'S-16#1#1');\n    const claim = claims.find(c => c.fact_key === graph.fact_key);\n    assert.deepEqual(claim.operand_bindings, { context: { kind: 'claim_context' }, source: { kind: 'node', alias: 'source_complete_june' } });\n    assert.deepEqual(graph.sets.candidates, ['source_complete_june', 'source_partial_may', 'source_offline_card', 'source_empty_health']);\n    assert.deepEqual(graph.trace_contract.derivation.required_selections, [{ candidate_set: 'candidates', selected_set: 'selected' }]);\n    assert.deepEqual(graph.trace_contract.derivation.required_nodes, ['source_complete_june']);\n    assert.deepEqual(graph.trace_contract.derivation.selected_nodes, ['source_complete_june']);\n    const reachable = new Set(['source_complete_june']);\n    for (const alias of reachable) for (const edge of graph.edges) {\n        if (edge.relation === 'material_ref' && edge.source === alias) reachable.add(edge.target);\n    }\n    assert.deepEqual([...reachable].sort(), ['next_golden_financial_v1', 'source_complete_june', 'synthetic_ledger']);\n    const observed = [];\n    const selector = { fact_key: graph.fact_key, role_id: 'source' };\n    assert.throws(() => plan.openSet(selector, e => observed.push(e)), /binding_kind/);\n    for (const alias of graph.sets.candidates.slice(1)) {\n        assert.throws(() => plan.open({ ...selector, alias }, e => observed.push(e)), /alias/);\n    }\n    const source = plan.open({ ...selector, alias: 'source_complete_june' }, e => observed.push(e));\n    assert.equal(source.handle.get('coverage'), 'complete');\n    source.revoke(); source.assertHealthy();\n    assert.equal(observed.some(e => e[1].startsWith('select_')), false);\n    // Proof access exists, but its observations cannot be reassigned to the\n    // metric derivation. This test reproduces the boundary, not an architecture verdict.\n    const proofEvents = [];\n    const proof = plan.openProof({ fact_key: graph.fact_key }, e => proofEvents.push(e));\n    const selection = proof.select('candidates', 'selected', node => node.get('id') === claim.subject.ref_id);\n    assert.equal(selection.length(), 1); proof.revoke(); proof.assertHealthy();\n    assert.equal(proofEvents.filter(e => e[1] === 'select_member').length, 4);\n    assert.ok(proofEvents.every(e => e[3].startsWith('proof/')));\n});\n\n"
+    }
+  }
+}

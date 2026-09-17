@@ -1,0 +1,50 @@
+{
+  "schema": "financasbot-n02g-selection-binding-evidence-v1",
+  "source_commit": "2ca7d32505728b985f7616dcaa17bec4acd11e18",
+  "locator": {
+    "fact_key": "S-16#1#1"
+  },
+  "sources": [
+    {
+      "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+      "sha256": "21917c8e3a989b19d036182b19522439d23d60e3621523212c3b1e3588e5e54c",
+      "git_blob_sha1": "5abcb5d528065b00bd575298176947ec605600ba"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claims-v2.json",
+      "sha256": "4810612761ea7f232e4445c0d192ae53ebf0761f0ba8752da758efb826b30494",
+      "git_blob_sha1": "0f0ade4e0f174966ae9f2660df97cc0b29d2d775"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/metric-evaluator-registry-v1.json",
+      "sha256": "61082b9cd31f2bd2627ffb129519126fc920a65b01a7387ce18df740b9d896eb",
+      "git_blob_sha1": "53d53bbb7d235e84d840baaeb152554a8687c246"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/source_coverage.json",
+      "sha256": "9a80ff7de3d119bb6f598db2af660c33095b64c82802741c01ed119ae95d38d8",
+      "git_blob_sha1": "165c9187cb4de56b593a9b893604856795480c33"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/graph-binding-contract-v1.md",
+      "sha256": "0cf6b2449c15432bc60a97d105e182c9fc718cd95ec7a417adf233d075d97fec",
+      "git_blob_sha1": "602933c21a6ea6fbe6583719d37e59d8f698b8c6"
+    },
+    {
+      "path": "src/next/provenance/graphCompiler.js",
+      "sha256": "094f6ddbde357be7692d89162af54f57fd578e9c67b715be60c97ed29d22247e",
+      "git_blob_sha1": "43784035f4c1f0c4e4fc59b5900ff928684dc06f"
+    },
+    {
+      "path": "src/next/provenance/metricDirectReads.js",
+      "sha256": "7c2df09601eaa017a44f9d37572403999d7863a207891cb9a7988b0effa5205c",
+      "git_blob_sha1": "21a578d82dd66507d9d660731f54def274d457e6"
+    },
+    {
+      "path": "tests/next/provenance/authoringIndex.cases.js",
+      "sha256": "7350c11bb28b06b0ce8942bfb6d05df496c418b754a1c5d8866ada403d5360e7",
+      "git_blob_sha1": "b3cab2279a0f4684f74bd6700bc1aceebb12012c"
+    }
+  ],
+  "scope": "Focal evidence only. No verdict, graph acceptance or authorization."
+}
