@@ -828,4 +828,36 @@ Enviar somente a pergunta focal e esses artefatos, sem repetir N02-F ou pedir
 GO global do N02-G. Branch do produto é somente leitura para o auditor;
 retorno exclusivamente em chat/chat-codex-orchestration-20260824.
 
-Codex → Astra → Alto → validar a evidência e confrontar o retorno da revisão focal.
+## Revisão focal enviada — 2026-09-16
+
+WIP preservado/publicado: `2ca7d32505728b985f7616dcaa17bec4acd11e18`, parent
+`6ee7282eb9c77c00afd79fca0368dabb2058c8fc`. Candidato de evidência somente:
+`856bc07272ac630c077492f1c1abb8ca1701e252`, parent único igual ao WIP.
+Quatro paths no delta: plano focal e três artefatos de evidência registrados
+acima. Verificador: um positivo e seis negativos PASS; oito fontes fixadas
+por SHA-256 e blob Git, sem normalizar bytes. 262/262 é a bateria N02-G local,
+não veredito externo e não suíte ampla/global.
+
+Canal canônico publicado em `e7140a5f5f3968424ec771b8101f5ddd5ebb7095`,
+CHAT_WORKING, task FIN-NEXT02-N02G-SELECTION-BINDING-AUDIT-RETURN-20260916.
+State remoto SHA-256:
+`d4765810de17fefc833feedae8ed020ab1910cf09c253b816742903e18e893e5`.
+Slot validado por chatCodexTaskContract: expected_base_sha pertence apenas ao
+state, não ao schema fechado do slot. O slot antecedeu o state em commit
+separado. Não alterar transporte/bot para receber esse parecer.
+
+Uma tentativa de bot realizada. Saída: “Mensagem entregue: turno do usuario
+persistido. A resposta sera recebida separadamente pelo GitHub/watcher.”
+Entrega confirmada não significa auditoria concluída. Heartbeat
+`acompanhar-revis-o-focal-n02-g` ativo a cada cinco minutos, silencioso sem
+mudança acionável; não reenviar. Parecer esperado no canal:
+`docs/agent-memory/workstreams/results/FIN-NEXT02-N02G-SELECTION-BINDING-AUDIT-20260916.md`.
+
+Retomar pelo manifesto fechado se CODEX_READY; evitar recibo duplicado se
+watcher já publicou CHAT_READY. Após confirmação remota, pausar o heartbeat e
+retomar produto nesta worktree. Confrontar o parecer com os bindings e teste;
+aprovação do diagnóstico não é aprovação dos comparadores WIP nem GO N02-G.
+Se a resposta exigir decisão normativa nova, preservar o bloqueio e distinguir
+proposta de auditor de autorização; não reescrever graphs por inferência.
+
+Codex → Astra → Alto → confrontar o retorno focal e seguir pela menor correção autorizada.
