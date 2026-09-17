@@ -21,6 +21,7 @@ require('./next/provenance/artifactLoader.cases');
 require('./next/provenance/executionProfile.cases');
 require('./next/provenance/instrumentedAccess.cases');
 require('./next/provenance/causalRecorder.cases');
+require('./next/provenance/proofAcceptance.cases');
 require('./next/provenance/scalarProofOperators.cases');
 require('./next/provenance/proofOperators.cases');
 require('./next/provenance/claimContext.cases');

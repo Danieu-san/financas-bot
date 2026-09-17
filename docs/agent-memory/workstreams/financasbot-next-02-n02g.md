@@ -775,4 +775,57 @@ com RED causal e sem preencher expected a partir de actual. Parents continuam
 sem recibos validados até aceitação integral. Não alterar graphs, contratos,
 fixtures ou oracle; NEXT-03/produção continuam bloqueados pelo gate global.
 
-Codex → Sol → Alto → integrar o confronto completo dos traces no N02-G.
+Próximos paths concretos: `src/next/provenance/proofAcceptance.js` (previsto no
+charter) e `tests/next/provenance/proofAcceptance.cases.js`, ligados ao entry
+`tests/nextProvenance.test.js`. Primeiro implementar confronto de reads/edges
+por fase e invocação, com falha explícita para observação ainda não classificada.
+Esse comparador componente não produz recibo, GO de grafo nem libera parents.
+Não alterar recorder/contrato para obter aprovação parcial.
+
+Integração causal deste incremento também toca
+`tests/next/provenance/authoringIndex.cases.js`: confrontar seleções das métricas
+já exercitadas usando o mesmo log do recorder, com binding de roles/candidatos
+resolvido antes do confronto e independente dos membros esperados. Não promover
+esse confronto componente a validação integral de grafo.
+
+## Incremento em 2026-09-16 — cobertura observada e pergunta focal
+
+Comparadores componentes de reads/edges/estrutura e seleção implementados,
+sem recibo de parent nem aceitação de grafo. Vinte testes focais PASS. O RED
+de `next()` após `return()` confirmou falsa conclusão de consumo integral;
+o comparador agora distingue encerramento antecipado de esgotamento natural.
+As 52 seleções das métricas econômicas, parcelas e efeitos passaram no
+confronto do log real, mantendo R/oracle separados. Syntax check e diff check
+passaram. Não houve suíte ampla.
+
+O diagnóstico em S-01#1#1 ainda detecta leituras/arestas ausentes, leitura extra
+de evidence_state e diferença de operações estruturais. Não são preenchidos
+expected a partir de actual nem filtrados eventos para declarar compatibilidade.
+
+Pergunta focal antes de ampliar a integração: S-16#1#1/source_coverage recebe
+somente source_complete_june pelo role source:node. O grafo deriva uma seleção
+candidates→selected com quatro candidatos, mas required_nodes/read admite
+somente a fonte escolhida. As três demais fontes não são alcançáveis pelas
+material_ref do role. O teste SELECTION-BINDING-001 passou reproduzindo a
+recusa de openSet/source, a recusa dos três aliases por open/source e a
+possibilidade de seleção em openProof. Isso é evidência de fronteira atual,
+não veredito de incompatibilidade normativa. Avaliar primeiro uma implementação
+compatível; não ampliar os roles nem mudar contratos silenciosamente.
+
+A execução de 2026-09-15 parou antes da bateria N02-G integrada porque a revisão
+automática de permissões atingiu limite de uso. Nenhum commit/push/envio de
+auditoria desse incremento foi feito naquela interrupção. Em 2026-09-16 a
+bateria focal integrada terminou: 262/262 PASS, zero FAIL/SKIP/TODO,
+157,03s. Isso inclui o teste diagnóstico SELECTION-BINDING-001; seu PASS
+comprova a reprodução da fronteira, não sua aprovação arquitetural.
+
+Paths reservados para revisão pequena, reutilizando o formato da evidência
+anterior: `docs/audit-evidence/n02g-selection-binding/evidence-manifest.json`,
+`docs/audit-evidence/n02g-selection-binding/focal-record.json`,
+`docs/audit-evidence/n02g-selection-binding/verify-evidence.cjs` e
+`docs/plans/workstreams/financasbot-next-02-n02g-selection-binding-review-v1.md`.
+Enviar somente a pergunta focal e esses artefatos, sem repetir N02-F ou pedir
+GO global do N02-G. Branch do produto é somente leitura para o auditor;
+retorno exclusivamente em chat/chat-codex-orchestration-20260824.
+
+Codex → Astra → Alto → validar a evidência e confrontar o retorno da revisão focal.

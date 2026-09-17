@@ -9,6 +9,8 @@ const { pathToFileURL } = require('node:url');
 const { admitPackage } = require('../../../src/next/provenance/packageContract');
 const { compileAuthoringIndex, compileAuthoringIR, compileSnapshotAccess } = require('../../../src/next/provenance/graphCompiler');
 const { lowerAuthoringIR } = require('../../../src/next/provenance/authoringIR');
+const { createCausalRecorder } = require('../../../src/next/provenance/causalRecorder');
+const { compareSelectionCoverage } = require('../../../src/next/provenance/proofAcceptance');
 const root = path.resolve(__dirname, '../../..');
 const prefix = 'docs/contracts/next/provenance-v2/';
 const graphPath = prefix + 'graphs-v2.json';
@@ -40,6 +42,21 @@ async function validators() {
     return builder.buildSchemaValidators().validators;
 }
 
+function selectionInput(claim, graph, executionId) {
+    // Association is resolved from the admitted candidate roster BEFORE guest
+    // execution; selected members and observed results cannot select a role.
+    const bindings = graph.selections.map(selection => {
+        const candidates = graph.sets[selection.candidate_set];
+        const roles = Object.entries(claim.operand_bindings).filter(([, binding]) =>
+            binding.kind === 'node_set' && JSON.stringify(binding.aliases) === JSON.stringify(candidates));
+        assert.equal(roles.length, 1, `ambiguous selection binding: ${claim.fact_key}`);
+        return { role: roles[0][0], candidate_set: selection.candidate_set, selected_set: selection.selected_set };
+    });
+    return { executionId, invocationId: claim.fact_key, phase: 'derivation', sets: graph.sets, bindings,
+        expected: { required_selections: graph.trace_contract.derivation.required_selections,
+            selected_nodes: graph.trace_contract.derivation.selected_nodes } };
+}
+
 let accessFixture;
 function snapshotAccessFixture() {
     accessFixture ||= (async () => {
@@ -68,6 +85,8 @@ test('N02G:OBSERVED-METRIC-001 consumption roles select independently of graph e
         income_realized: 'income', consumption_by_instrument: 'instrument', budget_class_consumption: 'budget_class',
         category_budget_remaining: 'budget_remaining', statement_total: 'statement', safe_daily_pace: 'safe_pace' };
     for (const claim of claims.filter(c => Object.hasOwn(modes, c.metric))) {
+        const graph = graphs.find(g => g.fact_key === claim.fact_key);
+        const coverageInput = selectionInput(claim, graph, `consumption-${checked}`);
         const recorder = createCausalRecorder({ executionId: `consumption-${checked}`, maxEvents: 10000 });
         const phase = recorder.open({ invocationId: claim.fact_key, phase: 'derivation' });
         const controls = []; const operands = {};
@@ -80,12 +99,13 @@ test('N02G:OBSERVED-METRIC-001 consumption roles select independently of graph e
         }
         const result = evaluateEconomicMetric(Object.freeze(operands), modes[claim.metric]);
         for (const access of controls) { access.revoke(); access.assertHealthy(); }
-        phase.seal(); const trace = recorder.finish().derivation_trace;
+        phase.seal(); const observed = recorder.finish(); const trace = observed.derivation_trace;
+        const coverage = compareSelectionCoverage({ ...coverageInput, trace: observed });
+        assert.equal(coverage.matched, true, `${claim.fact_key}: ${JSON.stringify(coverage)}`);
         const split = claim.fact_key.lastIndexOf('#');
         const expected = oracle.turns[claim.fact_key.slice(0, split)].facts[Number(claim.fact_key.slice(split + 1)) - 1];
         assert.equal(expected.metric, claim.metric);
         assert.equal(result, expected.value, claim.fact_key);
-        const graph = graphs.find(g => g.fact_key === claim.fact_key);
         const decisions = trace.filter(e => e.operation === 'select_member');
         assert.equal(decisions.length, claim.operand_bindings.events.aliases.length);
         const selected = decisions.filter(e => e.outcome[2]).map(e => e.outcome[1]);
@@ -130,9 +150,13 @@ test('N02G:OBSERVED-METRIC-003 installment selection is independently observed f
     const { plan, claims, graphs } = await snapshotAccessFixture(); let checked = 0;
     const supported = ['installments_realized', 'installments_realized_amount', 'installments_projected', 'installments_projected_amount', 'projected_installments'];
     for (const claim of claims.filter(c => supported.includes(c.metric))) {
+        const graph = graphs.find(g => g.fact_key === claim.fact_key);
+        const coverageInput = selectionInput(claim, graph, `installments-${checked}`);
+        const recorder = createCausalRecorder({ executionId: coverageInput.executionId, maxEvents: 10000 });
+        const phase = recorder.open({ invocationId: claim.fact_key, phase: 'derivation' });
         const controls = []; const operands = {}; const observations = [];
         for (const [role_id, binding] of Object.entries(claim.operand_bindings)) {
-            const selector = { fact_key: claim.fact_key, role_id }; const observe = e => observations.push(e);
+            const selector = { fact_key: claim.fact_key, role_id }; const observe = e => { phase.observe(e); observations.push(e); };
             const access = binding.kind === 'claim_context' ? plan.openContext(selector, observe)
                 : binding.kind === 'node_set' ? plan.openSet(selector, observe)
                     : plan.open({ ...selector, alias: binding.alias }, observe);
@@ -140,10 +164,11 @@ test('N02G:OBSERVED-METRIC-003 installment selection is independently observed f
         }
         const result = evaluateInstallments(Object.freeze(operands), claim.metric);
         for (const access of controls) { access.revoke(); access.assertHealthy(); }
+        phase.seal(); const coverage = compareSelectionCoverage({ ...coverageInput, trace: recorder.finish() });
+        assert.equal(coverage.matched, true, `${claim.fact_key}: ${JSON.stringify(coverage)}`);
         const split = claim.fact_key.lastIndexOf('#');
         const expected = oracle.turns[claim.fact_key.slice(0, split)].facts[Number(claim.fact_key.slice(split + 1)) - 1];
         assert.equal(expected.metric, claim.metric); assert.equal(result, expected.value, claim.fact_key);
-        const graph = graphs.find(g => g.fact_key === claim.fact_key);
         const decisions = observations.filter(e => e[1] === 'select_member');
         assert.equal(decisions.length, claim.operand_bindings.events.aliases.length);
         assert.deepEqual(decisions.filter(e => e[6][2]).map(e => e[6][1]), graph.sets[graph.selections[0].selected_set], claim.fact_key);
@@ -158,9 +183,13 @@ test('N02G:OBSERVED-METRIC-004 economic effects use observed links, not signed a
     const { plan, claims, graphs } = await snapshotAccessFixture(); let checked = 0;
     const supported = ['consumption_effect', 'net_consumption', 'invoice_payment_consumption_effect', 'gross_consumption', 'refund_amount'];
     for (const claim of claims.filter(c => supported.includes(c.metric))) {
+        const graph = graphs.find(g => g.fact_key === claim.fact_key);
+        const coverageInput = selectionInput(claim, graph, `effects-${checked}`);
+        const recorder = createCausalRecorder({ executionId: coverageInput.executionId, maxEvents: 10000 });
+        const phase = recorder.open({ invocationId: claim.fact_key, phase: 'derivation' });
         const controls = []; const operands = {}; const observations = [];
         for (const [role_id, binding] of Object.entries(claim.operand_bindings)) {
-            const selector = { fact_key: claim.fact_key, role_id }; const observe = e => observations.push(e);
+            const selector = { fact_key: claim.fact_key, role_id }; const observe = e => { phase.observe(e); observations.push(e); };
             const access = binding.kind === 'claim_context' ? plan.openContext(selector, observe)
                 : binding.kind === 'node_set' ? plan.openSet(selector, observe)
                     : plan.open({ ...selector, alias: binding.alias }, observe);
@@ -168,10 +197,11 @@ test('N02G:OBSERVED-METRIC-004 economic effects use observed links, not signed a
         }
         const result = evaluateEffects(Object.freeze(operands), claim.metric);
         for (const access of controls) { access.revoke(); access.assertHealthy(); }
+        phase.seal(); const coverage = compareSelectionCoverage({ ...coverageInput, trace: recorder.finish() });
+        assert.equal(coverage.matched, true, `${claim.fact_key}: ${JSON.stringify(coverage)}`);
         const split = claim.fact_key.lastIndexOf('#');
         const expected = oracle.turns[claim.fact_key.slice(0, split)].facts[Number(claim.fact_key.slice(split + 1)) - 1];
         assert.equal(expected.metric, claim.metric); assert.equal(result, expected.value, claim.fact_key);
-        const graph = graphs.find(g => g.fact_key === claim.fact_key);
         const decisions = observations.filter(e => e[1] === 'select_member');
         assert.equal(decisions.length, claim.operand_bindings.events.aliases.length);
         assert.deepEqual(decisions.filter(e => e[6][2]).map(e => e[6][1]), graph.sets[graph.selections[0].selected_set], claim.fact_key);
@@ -207,6 +237,40 @@ test('N02G:TRACE-COMPAT-001 required edge remains independent from derivation no
     assert.equal(inspectTraversalCoverage([minimal]).compatible, true);
     const broken = structuredClone(minimal); broken.trace_contract.derivation.required_edges = ['missing'];
     assert.throws(() => inspectTraversalCoverage([broken]), /trace_compatibility_unknown_edge/);
+});
+
+test('N02G:SELECTION-BINDING-001 source coverage exposes one source while its derivation requests the four-source selection', async () => {
+    const { plan, graphs, claims } = await snapshotAccessFixture();
+    const graph = graphs.find(g => g.fact_key === 'S-16#1#1');
+    const claim = claims.find(c => c.fact_key === graph.fact_key);
+    assert.deepEqual(claim.operand_bindings, { context: { kind: 'claim_context' }, source: { kind: 'node', alias: 'source_complete_june' } });
+    assert.deepEqual(graph.sets.candidates, ['source_complete_june', 'source_partial_may', 'source_offline_card', 'source_empty_health']);
+    assert.deepEqual(graph.trace_contract.derivation.required_selections, [{ candidate_set: 'candidates', selected_set: 'selected' }]);
+    assert.deepEqual(graph.trace_contract.derivation.required_nodes, ['source_complete_june']);
+    assert.deepEqual(graph.trace_contract.derivation.selected_nodes, ['source_complete_june']);
+    const reachable = new Set(['source_complete_june']);
+    for (const alias of reachable) for (const edge of graph.edges) {
+        if (edge.relation === 'material_ref' && edge.source === alias) reachable.add(edge.target);
+    }
+    assert.deepEqual([...reachable].sort(), ['next_golden_financial_v1', 'source_complete_june', 'synthetic_ledger']);
+    const observed = [];
+    const selector = { fact_key: graph.fact_key, role_id: 'source' };
+    assert.throws(() => plan.openSet(selector, e => observed.push(e)), /binding_kind/);
+    for (const alias of graph.sets.candidates.slice(1)) {
+        assert.throws(() => plan.open({ ...selector, alias }, e => observed.push(e)), /alias/);
+    }
+    const source = plan.open({ ...selector, alias: 'source_complete_june' }, e => observed.push(e));
+    assert.equal(source.handle.get('coverage'), 'complete');
+    source.revoke(); source.assertHealthy();
+    assert.equal(observed.some(e => e[1].startsWith('select_')), false);
+    // Proof access exists, but its observations cannot be reassigned to the
+    // metric derivation. This test reproduces the boundary, not an architecture verdict.
+    const proofEvents = [];
+    const proof = plan.openProof({ fact_key: graph.fact_key }, e => proofEvents.push(e));
+    const selection = proof.select('candidates', 'selected', node => node.get('id') === claim.subject.ref_id);
+    assert.equal(selection.length(), 1); proof.revoke(); proof.assertHealthy();
+    assert.equal(proofEvents.filter(e => e[1] === 'select_member').length, 4);
+    assert.ok(proofEvents.every(e => e[3].startsWith('proof/')));
 });
 
 test('N02G:SNAPSHOT-ACCESS-001 handles resolve exact admitted fact/role/alias identities', async () => {
