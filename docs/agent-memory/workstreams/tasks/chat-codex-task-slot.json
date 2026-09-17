@@ -1,29 +1,25 @@
 {
   "schema": "financasbot-chat-codex-task-v1",
-  "task_id": "FIN-NEXT02-N02G-TRACE-COMPAT-CORRECTION-AUDIT-RETURN-20260915",
-  "objective": "Valide o parecer independente focal em docs/agent-memory/workstreams/results/FIN-NEXT02-N02G-TRACE-COMPAT-CORRECTION-AUDIT-20260915.md contra o candidate imutável fd2d996b45bb7cecd4ae0d7d19cacece5afbe98b e parent único 9ffaa60669904c2a7d5af547a529e60f09c5e36b. O parecer é APROVÁVEL somente para a correção focal traversal/trace, sem findings. Confirme pela cadeia causal que a admissão TCB valida a relação material antes do guest sem produzir trace, que traversal não executa reads incidentais, que reads reais posteriores continuam observados e que o diagnóstico edge-only não esconde required_edge inexistente. Produza somente o recibo em docs/agent-memory/workstreams/results/FIN-NEXT02-N02G-TRACE-COMPAT-CORRECTION-AUDIT-RETURN-20260915.md e pare.",
-  "expected_base_sha": "fd2d996b45bb7cecd4ae0d7d19cacece5afbe98b",
+  "task_id": "FIN-NEXT02-N02G-SELECTION-BINDING-AUDIT-RETURN-20260916",
+  "objective": "Receber o parecer focal de compatibilidade da seleção derivacional source_coverage/S-16#1#1. Confirmar candidate 856bc07272ac630c077492f1c1abb8ca1701e252, parent único 2ca7d32505728b985f7616dcaa17bec4acd11e18, oito fontes e escopo focal. Confrontar a conclusão com a evidência local sem tratar o teste diagnóstico como aprovação arquitetural. Produzir somente o recibo; nenhuma implementação pertence a este manifesto.",
   "required_files": [
-    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02G-TRACE-COMPAT-CORRECTION-AUDIT-20260915.md"
+    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02G-SELECTION-BINDING-AUDIT-20260916.md"
   ],
   "allowed_paths": [
-    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02G-TRACE-COMPAT-CORRECTION-AUDIT-RETURN-20260915.md"
+    "docs/agent-memory/workstreams/results/FIN-NEXT02-N02G-SELECTION-BINDING-AUDIT-RETURN-20260916.md"
   ],
-  "result_file": "docs/agent-memory/workstreams/results/FIN-NEXT02-N02G-TRACE-COMPAT-CORRECTION-AUDIT-RETURN-20260915.md",
+  "result_file": "docs/agent-memory/workstreams/results/FIN-NEXT02-N02G-SELECTION-BINDING-AUDIT-RETURN-20260916.md",
   "validation": [
-    "Confirma candidate fd2d996b45bb7cecd4ae0d7d19cacece5afbe98b e parent único 9ffaa60669904c2a7d5af547a529e60f09c5e36b.",
-    "Confere que a admissão TCB valida a relação material contra bindings copiados sem emitir trace.",
-    "Confere que traverse emite somente a aresta admitida e não executa reads incidentais de source.field ou target.id.",
-    "Confere que reads realmente solicitados depois do traversal continuam instrumentados e visíveis.",
-    "Confere que relações ausentes, divergentes ou ambíguas falham fechado e que required_edge inexistente não é mascarado pelo diagnóstico.",
-    "Confere que required_edges e required_reads permanecem independentes e que expected não é derivado do actual.",
-    "Registra o recibo no result_file e para; não implementa produto nesta tarefa de retorno."
+    "Conferir SHA, parent, fontes e integridade da extração focal.",
+    "Separar lacuna de implementação de eventual inconsistência normativa; exigir cadeia causal e regra ratificada.",
+    "Não converter seleção estática, escolha de role ou proof_trace em derivation_trace sem suporte explícito.",
+    "Se parecer incompleto ou inconclusivo, registrar pendência e manter o bloqueio focal; não simular GO.",
+    "Validar recibo e publicar CHAT_READY conforme protocolo antes de encerrar este manifesto."
   ],
   "constraints": [
-    "Não alterar produto, fontes, src/, tests/, scripts/, fixtures, contratos, dependencies, package/lockfile ou branch de produto durante esta tarefa de recibo.",
-    "Não acessar produção, dados reais, Pluggy, planilhas reais, segredos, sessões ou .env.",
-    "GitHub e os SHAs imutáveis indicados são a fonte de verdade; contagem de testes relatada não substitui a cadeia causal.",
-    "Não autorizar GO global do N02-G, NEXT-03, deploy ou produção.",
-    "Após registrar o recibo, parar sem implementar."
+    "Somente o result_file e o estado de protocolo podem mudar nesta execução mecânica.",
+    "Não alterar produto, contratos, graphs, fixtures, testes, registry, compiler, proxy ou recorder neste recibo.",
+    "Não autorizar GO global N02-G, NEXT-03, deploy, produção, integrações ou dados reais.",
+    "Após confirmação remota de CHAT_READY, a retomada separada do produto depende da autorização prévia de Daniel e do checkpoint N02-G, nunca dos allowed_paths deste manifesto."
   ]
 }
