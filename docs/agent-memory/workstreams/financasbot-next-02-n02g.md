@@ -1,6 +1,6 @@
 # N02-G — checkpoint
 
-Data: 2026-09-11. Estado: CHARTER APROVADO; IMPLEMENTAÇÃO INICIADA, SEM GO EXECUTÁVEL.
+Atualização: 2026-09-17. Estado: BLOQUEIO FOCAL NORMATIVO N02G-SB-001; IMPLEMENTAÇÃO WIP, SEM GO EXECUTÁVEL.
 Base: `aea4ac31e358ed8d8907e78f6002c8bb80233bc8`.
 Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
@@ -861,3 +861,40 @@ Se a resposta exigir decisão normativa nova, preservar o bloqueio e distinguir
 proposta de auditor de autorização; não reescrever graphs por inferência.
 
 Codex → Astra → Alto → confrontar o retorno focal e seguir pela menor correção autorizada.
+
+## Retorno focal recebido — 2026-09-17
+
+Parecer completo recebido no canal em `9f9022dad7c33a76a5c99cd57bdbd02780f1202e`:
+`docs/agent-memory/workstreams/results/FIN-NEXT02-N02G-SELECTION-BINDING-AUDIT-20260916.md`.
+Candidato e parent confirmados: `856bc07272ac630c077492f1c1abb8ca1701e252` /
+`2ca7d32505728b985f7616dcaa17bec4acd11e18`. Verifier local novamente executado
+para o recibo: valid=true, oito fontes, três candidatos inacessíveis pelos
+bindings derivacionais. Não houve nova execução dos 262 testes nem suíte ampla.
+
+Conclusão confrontada: AJUSTE NORMATIVO NECESSÁRIO; HIGH N02G-SB-001.
+Derivation exige candidates -> selected, mas só admite reads/nodes da fonte já
+ligada. Seleção real dos quatro candidatos exigiria cobertura dos excluídos;
+escolha estática do binding não é seleção observada. Proof não pode preencher
+derivation. O §4 ratificado sustenta o achado; o teste diagnóstico não o fecha.
+
+Recibo restrito publicado pelo watcher em
+`289f561fdacce69cac3d04015c938cd41e33ed7a`; CHAT_READY remoto, mesma task e
+result_file confirmados. Apenas state e recibo mudaram. O manifesto está
+encerrado; seus allowed_paths não autorizam produto. Heartbeat
+`acompanhar-revis-o-focal-n02-g` pausado. Não reenviar o mesmo hash ao Chat.
+
+Proposta técnica, ainda NÃO RATIFICADA: seleção dos quatro candidatos somente
+em proof; derivation consome source:node e não afirma executar uma seleção.
+Preservar integralmente a prova de identidade, período e escolha da fonte.
+Isso é preferível, neste fluxo, a acrescentar uma segunda seleção no host só
+para satisfazer uma obrigação incompatível com os inputs do evaluator.
+
+Próxima ação exige autorização explícita dessa alteração normativa. Depois,
+formalizar a regra de seleção por fase, confrontar seus validadores e a classe
+de grafos afetada (sem if por fact_key), preservar proof e adicionar RED para
+seleção extra em derivation. Não remover obrigações automaticamente a partir
+do actual; submeter o delta normativo/corretivo a auditoria focal antes de GO.
+Até essa decisão, nenhum contrato, graph, registry, teste ou runtime foi alterado.
+NEXT-03, deploy, produção e dados reais continuam fora do escopo.
+
+Codex → Astra → Alto → formalizar e validar a correção por fase após decisão normativa.
