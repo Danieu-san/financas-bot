@@ -2792,6 +2792,22 @@ function buildImportedTransactionOperationKey(item = {}, index = 0, userId = '')
     });
 }
 
+function canonicalCardId(cardInfo = {}) {
+    return String(cardInfo.cardId || '').trim();
+}
+
+function canonicalCardDisplayName(cardInfo = {}) {
+    return String(cardInfo.displayName || cardInfo.label || cardInfo.sheetName || canonicalCardId(cardInfo)).trim();
+}
+
+function buildCardWriteOptions(cardInfo = {}, writeOptions = {}) {
+    return {
+        ...writeOptions,
+        cardId: canonicalCardId(cardInfo),
+        cardDisplayName: canonicalCardDisplayName(cardInfo)
+    };
+}
+
 async function saveImportedTransactions(transactions = [], { person, userId, filename = '' }) {
     let successCount = 0;
     for (const [index, item] of transactions.entries()) {
@@ -2818,7 +2834,11 @@ async function saveImportedTransactions(transactions = [], { person, userId, fil
             if (!item.cardInfo) {
                 throw new Error('Importação de cartão sem cartão selecionado.');
             }
-            await appendRowToSheet(item.cardInfo.sheetName, buildImportedCreditCardRow(item, item.cardInfo, userId), writeOptions);
+            await appendRowToSheet(
+                item.cardInfo.sheetName,
+                buildImportedCreditCardRow(item, item.cardInfo, userId),
+                buildCardWriteOptions(item.cardInfo, writeOptions)
+            );
             markFinancialReadModelDirty('card_write');
         } else {
             await saveTransactionWithoutExtraPayment(item, { person, userId, writeOptions });
@@ -3192,7 +3212,7 @@ async function maybeNotifyLegacyDailyGoalAfterExpense() {
 
 async function saveCreditCardExpense(gasto, cardInfo, installments, userId, writeOptions = {}) {
     const expenseActorUserId = await resolveCreditCardExpenseActorUserId(gasto, userId);
-    const effectiveWriteOptions = { ...writeOptions, userId: expenseActorUserId };
+    const effectiveWriteOptions = buildCardWriteOptions(cardInfo, { ...writeOptions, userId: expenseActorUserId });
     const purchaseDate = gasto.data ? parseSheetDate(gasto.data) : new Date();
     const safeInstallments = Math.max(1, Number.parseInt(installments, 10) || 1);
     const totalValue = parseValue(gasto.valor);
@@ -7388,8 +7408,7 @@ function buildLegacyCreditCardOptions() {
         label: key,
         cardInfo: {
             ...creditCardConfig[key],
-            key,
-            cardId: key
+            key
         }
     }));
 }
@@ -7412,6 +7431,7 @@ function buildPersonalCreditCardOptionsFromRows(rows) {
                     key: String(row[0] || label).trim(),
                     cardId: String(row[0] || label).trim(),
                     label,
+                    displayName: label,
                     sheetName: `Cartão ${label}`,
                     closingDay: Number.isInteger(closingDay) && closingDay >= 1 && closingDay <= 31 ? closingDay : 1
                 }
@@ -11660,7 +11680,7 @@ async function processMessage(msg) {
                             Math.round((installmentValue + Number.EPSILON) * 100) / 100, `${i}/${numParcelas}`, billingMonthName, userId
                         ];
                         
-                        await appendRowToSheet(cardInfo.sheetName, rowData);
+                        await appendRowToSheet(cardInfo.sheetName, rowData, buildCardWriteOptions(cardInfo, { userId }));
                     }
                 }
 
@@ -12874,6 +12894,10 @@ module.exports = {
         buildAnalyticalLegacyFallbackDisabledReply,
         parseAnalyticalLegacyFallbackDisabledDomains,
         markFinancialReadModelDirty,
+        canonicalCardId,
+        canonicalCardDisplayName,
+        buildCardWriteOptions,
+        buildImportedCreditCardRow,
         saveImportedTransactions,
         handleAccountLifecycleCommands,
         handleAdminCommandBeforeAccess,

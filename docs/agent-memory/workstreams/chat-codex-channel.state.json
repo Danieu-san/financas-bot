@@ -1,0 +1,11 @@
+{
+  "schema": "financasbot-chat-codex-orchestration-v1",
+  "orchestration_state": "CHAT_READY",
+  "next_executor": "chat",
+  "task_id": "FIN-NEXT02-N02G-SELECTION-BINDING-AUDIT-RETURN-20260916",
+  "expected_base_sha": "856bc07272ac630c077492f1c1abb8ca1701e252",
+  "task_file": "docs/agent-memory/workstreams/tasks/chat-codex-task-slot.json",
+  "candidate_sha": "856bc07272ac630c077492f1c1abb8ca1701e252",
+  "result_file": "docs/agent-memory/workstreams/results/FIN-NEXT02-N02G-SELECTION-BINDING-AUDIT-RETURN-20260916.md",
+  "updated_at": "2026-09-17T06:10:25.443Z"
+}
