@@ -24,7 +24,8 @@ test('instalador recusa apagar lock sem provar PID morto', () => {
     assert.match(installer, /ChatNotifierScript exige ChatUrl/);
     assert.match(installer, /Install exige ChatNotifierScript e ChatUrl/);
     assert.match(installer, /AppThreadId invalido/);
-    assert.match(installer, /ChatUrl deve apontar para uma conversa HTTPS do chatgpt\.com/);
+    assert.match(installer, /ChatUrl deve apontar para uma conversa ou projeto HTTPS do chatgpt\.com/);
+    assert.match(installer, /g-p-\[0-9a-fA-F\]\{32\}\/project/);
     assert.match(installer, /'--app-thread-id'/);
     assert.match(installer, /'--chat-url'/);
     assert.match(installer, /'--chat-notifier-script'/);

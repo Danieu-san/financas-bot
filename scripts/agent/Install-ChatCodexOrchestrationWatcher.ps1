@@ -127,8 +127,8 @@ if ($ChatUrl) {
         $parsedChatUrl.Host -ne 'chatgpt.com' -or
         $parsedChatUrl.Query -or
         $parsedChatUrl.Fragment -or
-        $parsedChatUrl.AbsolutePath -notmatch '^/(?:g/[^/]+/)?c/[0-9a-fA-F-]+/?$') {
-        throw 'ChatUrl deve apontar para uma conversa HTTPS do chatgpt.com.'
+        $parsedChatUrl.AbsolutePath -notmatch '^(?:/(?:g/[^/]+/)?c/[0-9a-fA-F-]+|/g/g-p-[0-9a-fA-F]{32}/project)/?$') {
+        throw 'ChatUrl deve apontar para uma conversa ou projeto HTTPS do chatgpt.com.'
     }
     $arguments += @('--chat-url', (Quote-Argument $ChatUrl))
 }

@@ -6,6 +6,7 @@ const { randomUUID } = require('node:crypto');
 const IPC_PATH = '\\\\.\\pipe\\codex-ipc';
 const MAX_FRAME_BYTES = 1024 * 1024;
 const REQUEST_TIMEOUT_MS = 10_000;
+const CHAT_DESTINATION_PATH = /^(?:\/(?:g\/[^/]+\/)?c\/[0-9a-f-]+|\/g\/g-p-[0-9a-f]{32}\/project)\/?$/i;
 
 function parseArgs(argv) {
     const options = {};
@@ -34,9 +35,9 @@ function assertChatUrl(value) {
         throw new Error('chat-url inválida');
     }
     if (url.protocol !== 'https:' || url.hostname !== 'chatgpt.com'
-        || !/^\/(?:g\/[^/]+\/)?c\/[0-9a-f-]+\/?$/i.test(url.pathname)
+        || !CHAT_DESTINATION_PATH.test(url.pathname)
         || url.search || url.hash) {
-        throw new Error('chat-url deve apontar para uma conversa HTTPS do chatgpt.com');
+        throw new Error('chat-url deve apontar para uma conversa ou projeto HTTPS do chatgpt.com');
     }
     return url.toString();
 }
@@ -86,7 +87,9 @@ function buildWakePrompt({ branch, chatUrl, mode, observedHash, repoPath, stateP
         `Retorno mecânico ${taskId}.`,
         `O watcher confirmou GitHub/CHAT_READY em ${safeStatePath} no hash de estado ${observedHash}.`,
         'Use somente a ferramenta Browser do Codex App nesta tarefa.',
-        `Na conversa ${safeChatUrl}, envie exatamente: ORCH_WAKE ${taskId} ${observedHash} ${safeStatePath}`,
+        `Na página ${safeChatUrl}, envie uma única mensagem com exatamente estas duas linhas:`,
+        `ORCH_WAKE ${taskId} ${observedHash} ${safeStatePath}`,
+        'Leia no GitHub o estado e o task_file indicados, e execute somente o manifesto. Responda em português com: task_id e SHA completo confirmados; arquivos realmente lidos; achados por severidade com caminho e linha quando aplicável; limitações de acesso; veredito focal GO ou NO-GO com alcance; e próxima ação única. Se não puder ler os arquivos imutáveis, declare ACESSO INSUFICIENTE e não emita GO. Grave a resposta no result_file e publique CHAT_READY conforme o protocolo.',
         'Não leia Git, arquivos, produção, WhatsApp, Pluggy, planilhas ou dados privados.',
         'Depois de confirmar o envio, termine sem executar outra ação.'
     ].join(' ');

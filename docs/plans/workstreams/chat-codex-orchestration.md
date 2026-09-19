@@ -126,5 +126,9 @@ Estados terminais não possuem transição de saída nesta versão.
 
 ## Próxima ação
 
-Nenhuma. ORCH-01 está encerrado. A automação não autoriza produto, produção,
-dados privados ou ação irreversível.
+ORCH-01 permanece encerrado. Alteração operacional focal autorizada em
+2026-09-19: admitir o destino de projeto ChatGPT fornecido por Daniel, incluir
+no wake o contrato explícito de resposta auditável, executar a bateria do
+domínio, publicar candidato imutável, obter auditoria independente e só então
+atualizar a configuração instalada. A automação continua sem autorizar produto,
+produção, dados privados ou ação irreversível.

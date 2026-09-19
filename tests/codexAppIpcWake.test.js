@@ -13,6 +13,7 @@ const {
 
 const threadId = '11111111-2222-4333-8444-555555555555';
 const chatUrl = 'https://chatgpt.com/c/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+const projectUrl = 'https://chatgpt.com/g/g-p-6aae7fa3ad5c8191a8ace5a6d799fab4/project';
 const statePath = 'docs/agent-memory/workstreams/chat-codex-channel.state.json';
 const branch = 'chat/chat-codex-orchestration-20260824';
 const repoPath = 'C:\\workspace\\financas-bot';
@@ -33,7 +34,7 @@ test('protocolo IPC usa pipe local fixo e start-turn versão 2', () => {
     assert.equal(request.params.turnStart.request.threadId, threadId);
     assert.equal(request.params.turnStart.request.input.length, 1);
     assert.match(request.params.turnStart.request.input[0].text,
-        /envie exatamente: ORCH_WAKE ORCH-01 [a-f0-9]{64} docs\/agent-memory\/workstreams\/chat-codex-channel\.state\.json/);
+        /ORCH_WAKE ORCH-01 [a-f0-9]{64} docs\/agent-memory\/workstreams\/chat-codex-channel\.state\.json/);
     assert.deepEqual(request.params.turnStart.context.attachments, []);
 });
 
@@ -57,8 +58,25 @@ test('prompt identifica tarefa e estado exatos sem dados privados', () => {
     assert.match(prompt, /ORCH02-POC-1/);
     assert.match(prompt, /chat-codex-channel\.state\.json/);
     assert.match(prompt, /Use somente a ferramenta Browser/);
+    assert.match(prompt, /arquivos realmente lidos/);
+    assert.match(prompt, /achados por severidade/);
+    assert.match(prompt, /veredito focal GO ou NO-GO/);
+    assert.match(prompt, /ACESSO INSUFICIENTE/);
+    assert.match(prompt, /result_file/);
     assert.match(prompt, /Depois de confirmar o envio, termine/);
     assert.doesNotMatch(prompt, /senha|token|\.env/i);
+});
+
+test('destino de projeto do Chat é aceito sem query ou fragmento', () => {
+    const prompt = buildWakePrompt({
+        chatUrl: projectUrl, observedHash: 'd'.repeat(64), statePath,
+        taskId: 'ORCH-PROJECT', mode: 'return', branch, repoPath
+    });
+    assert.ok(prompt.includes(projectUrl));
+    assert.throws(() => buildWakePrompt({
+        chatUrl: projectUrl + '?unsafe=1', observedHash: 'd'.repeat(64), statePath,
+        taskId: 'ORCH-PROJECT', mode: 'return', branch, repoPath
+    }), /chat-url deve apontar/);
 });
 
 test('prompt execute entrega Git e manifesto ao App sem usar Browser', () => {

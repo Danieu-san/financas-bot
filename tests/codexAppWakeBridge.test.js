@@ -12,9 +12,12 @@ const {
     REQUEST_SCHEMA,
     RESULT_SCHEMA,
     MAX_WAKE_ATTEMPTS,
+    assertConfig,
     invokeWake,
     processWakeRequest
 } = require('../scripts/agent/processCodexAppWakeRequest');
+
+const projectUrl = 'https://chatgpt.com/g/g-p-6aae7fa3ad5c8191a8ace5a6d799fab4/project';
 
 function fixture(t) {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'orch-app-bridge-'));
@@ -43,6 +46,17 @@ function fixture(t) {
     }));
     return paths;
 }
+
+test('configuração protegida admite projeto do Chat e recusa variantes amplas', () => {
+    const config = {
+        schema: CONFIG_SCHEMA,
+        thread_id: '11111111-2222-4333-8444-555555555555',
+        chat_url: projectUrl
+    };
+    assert.equal(assertConfig(config), config);
+    assert.throws(() => assertConfig({ ...config, chat_url: projectUrl + '/extra' }), /chat_url inválida/);
+    assert.throws(() => assertConfig({ ...config, chat_url: projectUrl + '#fragment' }), /chat_url inválida/);
+});
 
 test('ponte usa configuração protegida e processa hash aceito no máximo uma vez', t => {
     const paths = fixture(t);
@@ -257,6 +271,8 @@ test('instalador usa S4U limitado, cópia protegida e repair in-place', () => {
     assert.match(installer, /Set-BridgeAcl \$statePath \$false/);
     assert.match(installer, /'Repair'\s*\{/);
     assert.match(installer, /Assert-InstalledBridgeConfig/);
+    assert.match(installer, /conversa ou projeto HTTPS do chatgpt\.com/);
+    assert.match(installer, /g-p-\[0-9a-fA-F\]\{32\}\/project/);
     assert.match(installer, /Copy-Item -LiteralPath \$workerSource -Destination \$workerInstalled -Force/);
     assert.match(installer, /Copy-Item -LiteralPath \$helperSource -Destination \$helperInstalled -Force/);
     assert.match(installer, /Status = 'REPAIRED_AND_STARTED'/);

@@ -193,6 +193,26 @@ Nenhuma ação material pendente em ORCH-01. Usar a automação em novos objetiv
 somente por uma nova transição/workstream autorizado; estados terminais não
 reiniciam silenciosamente.
 
+## Destino de projeto e contrato de resposta — 2026-09-19
+
+Daniel autorizou substituir o destino do retorno pelo projeto ChatGPT
+`https://chatgpt.com/g/g-p-6aae7fa3ad5c8191a8ace5a6d799fab4/project`.
+O novo formato admitido é somente `/g/g-p-<32 hex>/project`, além das conversas
+já aceitas; query, fragmento, sufixo extra e host externo continuam recusados.
+
+O prompt manda uma mensagem iniciada por `ORCH_WAKE` e exige resposta em
+português com task_id/SHA confirmados, arquivos lidos, achados por severidade
+com caminho/linha, limitações, GO/NO-GO focal e próxima ação única.
+Sem acesso aos arquivos imutáveis, o Chat deve declarar `ACESSO INSUFICIENTE`,
+não emitir GO e respeitar `result_file`/`CHAT_READY` do manifesto.
+
+Validação: syntax Node/PowerShell verde; 17/17 focais e 75/75 do domínio PASS,
+sem falhas/skips/cancelamentos. A instalação ainda não foi alterada.
+
+Estado máximo: candidato local validado, ainda sem GO independente e sem
+alteração da instalação. Próxima ação: publicar o commit sanitizado, pedir
+auditoria focal no projeto novo e instalar somente após confrontar o parecer.
+
 ## Capacidade
 
-`Codex App -> Sol -> Baixo -> consultar o fechamento, se necessário.`
+`Codex -> Sol -> Médio -> validar e publicar a troca controlada do destino Chat.`

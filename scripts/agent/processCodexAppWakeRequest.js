@@ -10,6 +10,7 @@ const LEGACY_RESULT_SCHEMA = 'financasbot-codex-app-wake-result-v1';
 const PREVIOUS_RESULT_SCHEMA = 'financasbot-codex-app-wake-result-v2';
 const RESULT_SCHEMA = 'financasbot-codex-app-wake-result-v3';
 const MAX_WAKE_ATTEMPTS = 3;
+const CHAT_DESTINATION_PATH = /^(?:\/(?:g\/[^/]+\/)?c\/[0-9a-f-]+|\/g\/g-p-[0-9a-f]{32}\/project)\/?$/i;
 
 function parseArgs(argv) {
     const options = {};
@@ -45,7 +46,7 @@ function assertConfig(value) {
     try { parsed = new URL(value.chat_url); } catch { throw new Error('chat_url inválida'); }
     if (parsed.protocol !== 'https:' || parsed.hostname !== 'chatgpt.com'
         || parsed.search || parsed.hash
-        || !/^\/(?:g\/[^/]+\/)?c\/[0-9a-f-]+\/?$/i.test(parsed.pathname)) {
+        || !CHAT_DESTINATION_PATH.test(parsed.pathname)) {
         throw new Error('chat_url inválida');
     }
     return value;

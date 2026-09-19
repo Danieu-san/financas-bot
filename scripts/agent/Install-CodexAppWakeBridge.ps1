@@ -70,8 +70,8 @@ function Assert-Inputs {
     if (-not [Uri]::TryCreate($ChatUrl, [UriKind]::Absolute, [ref]$parsed) -or
         $parsed.Scheme -ne 'https' -or $parsed.Host -ne 'chatgpt.com' -or
         $parsed.Query -or $parsed.Fragment -or
-        $parsed.AbsolutePath -notmatch '^/(?:g/[^/]+/)?c/[0-9a-fA-F-]+/?$') {
-        throw 'ChatUrl deve apontar para uma conversa HTTPS do chatgpt.com.'
+        $parsed.AbsolutePath -notmatch '^(?:/(?:g/[^/]+/)?c/[0-9a-fA-F-]+|/g/g-p-[0-9a-fA-F]{32}/project)/?$') {
+        throw 'ChatUrl deve apontar para uma conversa ou projeto HTTPS do chatgpt.com.'
     }
 }
 
@@ -94,7 +94,7 @@ function Assert-InstalledBridgeConfig {
     if (-not [Uri]::TryCreate([string]$config.chat_url, [UriKind]::Absolute, [ref]$parsed) -or
         $parsed.Scheme -ne 'https' -or $parsed.Host -ne 'chatgpt.com' -or
         $parsed.Query -or $parsed.Fragment -or
-        $parsed.AbsolutePath -notmatch '^/(?:g/[^/]+/)?c/[0-9a-fA-F-]+/?$') {
+        $parsed.AbsolutePath -notmatch '^(?:/(?:g/[^/]+/)?c/[0-9a-fA-F-]+|/g/g-p-[0-9a-fA-F]{32}/project)/?$') {
         throw 'chat_url instalada invalida.'
     }
 }
