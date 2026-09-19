@@ -1,7 +1,12 @@
 # N02G-SB-001 — seleção observada por fase
 
-Estado: correção autorizada, candidata em validação; sem GO N02-G.
+Estado: GO focal independente ratificado em 2026-09-19; sem GO global N02-G.
 Base: `be520f4f0cf64812c80f0f4b9b8eefb2a5445189`.
+Candidato auditado: `8b66d1e6eac869cf7363beee3b2c1445840fb66e`.
+Recibo: `../../audit-evidence/n02g-selection-phase/independent-review.md`.
+As etapas de validação/auditoria abaixo registram o histórico já concluído.
+Próxima ação vigente: retomar o charter N02-G e delimitar a lacuna de aceitação
+integral/DAG e recibos de parents; manter os 29 módulos sem admissão de release.
 Autorização: Daniel respondeu `sim` em 2026-09-18 à proposta de seleção apenas
 em proof quando derivation consome operandos previamente vinculados.
 

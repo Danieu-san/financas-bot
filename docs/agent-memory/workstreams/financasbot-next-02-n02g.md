@@ -1,10 +1,21 @@
 # N02-G — checkpoint
 
-Atualização: 2026-09-18. Estado: CORREÇÃO NORMATIVA N02G-SB-001 AUTORIZADA E IMPLEMENTADA COMO CANDIDATO; SEM GO EXECUTÁVEL.
+Atualização: 2026-09-19. Estado: N02G-SB-001 COM GO FOCAL INDEPENDENTE RATIFICADO; SEM GO GLOBAL/EXECUTÁVEL N02-G.
 Base: `aea4ac31e358ed8d8907e78f6002c8bb80233bc8`.
 Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
+
+Estado vigente: correção e suporte de validação auditados em
+`8b66d1e6eac869cf7363beee3b2c1445840fb66e`, pai `be520f4f0cf64812c80f0f4b9b8eefb2a5445189`.
+Recibo: `../../audit-evidence/n02g-selection-phase/independent-review.md`.
+Revisão externa estática sem defeitos focais; execuções continuam locais.
+Ampla verde preservada: 2.255 PASS, zero FAIL, dez SKIP esperados. Sem mudança
+causal posterior. `releaseEligible=false` e 29 módulos pendentes permanecem.
+Próxima ação: confrontar charter/código quanto à aceitação integral/DAG e
+recibos de parents da mesma execução para delimitar o primeiro incremento.
+Os registros abaixo são históricos; pendências anteriores de auditoria desta
+correção estão superadas pelo recibo. Capacidade: Codex → Astra → Alto.
 
 Daniel autorizou continuidade e selecionou Astra/Alto. N02-F está encerrado
 documentalmente em A+B+C; seus recibos estão no commit de canal
@@ -1167,3 +1178,23 @@ O candidato aguarda auditoria independente. Não reutilizar a task/recibo da
 auditoria antiga nem afirmar envio antes de confirmar a nova entrega.
 
 Codex → Sol → Alto → conferir o commit sanitizado e fornecer o hash imutável à auditoria focal.
+
+## Retomada da auditoria N02-G — 2026-09-19
+
+Daniel pediu continuar N02-G em Astra/Alto, deixando a instalação do bot de
+envio do outro computador pendente. Candidato publicado e confirmado no remoto:
+`8b66d1e6eac869cf7363beee3b2c1445840fb66e`, pai
+`be520f4f0cf64812c80f0f4b9b8eefb2a5445189`. Código/testes permanecem iguais à
+ampla verde; não repetir a suíte. A mudança posterior de orquestração pertence
+a outra branch e não integra este candidato.
+
+O envio automático está indisponível neste Windows; nenhum pedido deste hash
+foi confirmado como enviado. Prompt manual local preparado em
+`.codex-temp/N02G-audit-prompt.txt`, reconstruível pelos links imutáveis do
+pacote. Próxima ação: obter em conversa limpa do projeto indicado por Daniel
+o parecer sobre as cinco perguntas de `audit-request.md`, com confirmação de
+hash/pai, fontes lidas, achados, limitações e veredito focal. Apenas resposta
+na conversa, sem escrita externa pelo auditor. Depois confrontar o parecer
+com as fontes locais; estado continua candidato aguardando auditoria.
+
+Codex → Astra → Alto → confrontar o parecer independente do candidato N02-G.
