@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
+const { buildDescendantNodeOptions } = require('../tests/helpers/exhaustiveNodeOptions');
 
 const ROOT = path.resolve(__dirname, '..');
 const TEST_ROOT = path.join(ROOT, 'tests');
@@ -213,16 +214,10 @@ function buildNodeTestArgs(files) {
         NETWORK_TRIPWIRE_PATH,
         '--experimental-test-coverage',
         '--test',
+        '--test-reporter=tap',
         '--test-concurrency=1',
         ...files
     ];
-}
-
-function buildDescendantNodeOptions(existingNodeOptions = '') {
-    const preservedFlags = ['--preserve-symlinks', '--preserve-symlinks-main']
-        .filter(flag => String(existingNodeOptions).split(/\s+/).includes(flag));
-    const tripwirePath = NETWORK_TRIPWIRE_PATH.replace(/\\/g, '/').replace(/"/g, '\\"');
-    return [`--require="${tripwirePath}"`, ...preservedFlags].join(' ');
 }
 
 function buildHermeticTestEnvironment(

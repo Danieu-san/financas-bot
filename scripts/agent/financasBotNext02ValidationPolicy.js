@@ -23,6 +23,23 @@ const SUBCATEGORY_IDS = Object.freeze(['TOTAL', 'CATALOG', 'BINDING', 'UNKNOWN',
     'INSTALLMENT', 'PROVENANCE', 'VERSIONS', 'SCOPE', 'OPTIN', 'TOOL', 'NEUTRAL', 'GATE']);
 const GOLDEN_IDS = Object.freeze(['BASELINE', 'CASES', 'REFUSALS', 'REFERENCES', 'MUTATIONS', 'TRACEABILITY', 'GATE']);
 
+// Explicit development inventory, NOT reviewed-source admission. These files
+// remain outside the historical slice and cannot be imported by its sources.
+// Adding a file requires an intentional inventory change; never discover the
+// expected set from the candidate tree or generate reviewed hashes from it.
+const PENDING_PROVENANCE_PATHS = Object.freeze([
+    'artifactLoader.js', 'authoringIR.js', 'causalRecorder.js', 'civilCalendar.js',
+    'claimContext.js', 'claimRequirements.js', 'collectionRequirements.js',
+    'executionProfile.js', 'graphCompiler.js', 'graphStructure.js',
+    'instrumentedAccess.js', 'literalTypes.js', 'metricDirectReads.js',
+    'metricEffects.js', 'metricInstallments.js', 'metricSelection.js',
+    'obligationBindings.js', 'observationContract.js', 'operandBindings.js',
+    'operatorTypes.js', 'packageContract.js', 'pinnedCivilTimezone.js',
+    'predicateTypes.js', 'proofAcceptance.js', 'proofOperators.js',
+    'scalarProofOperators.js', 'schemaRegistryProjection.js',
+    'selectionBindings.js', 'templateReferences.js'
+].map(file => 'provenance/' + file).sort());
+
 function sliceContract(slice = 'N02-A') {
     if (!['N02-A', 'N02-B', 'N02-C', 'N02-D', 'N02-E'].includes(slice)) throw new Error('unknown_next02_slice');
     return {
@@ -41,8 +58,7 @@ function sliceContract(slice = 'N02-A') {
     };
 }
 
-function inspectSources(nextRoot, slice = 'N02-A') {
-    const expected = sliceContract(slice).paths;
+function sourceEntries(nextRoot) {
     const entries = [];
     function walk(directory) {
         for (const item of fs.readdirSync(directory, { withFileTypes: true })) {
@@ -53,8 +69,29 @@ function inspectSources(nextRoot, slice = 'N02-A') {
         }
     }
     walk(nextRoot);
-    const inventory = prior.validateSourceInventory({ expectedPaths: expected, discoveredEntries: entries });
+    return entries;
+}
+
+function inspectSources(nextRoot, slice = 'N02-A') {
+    const expected = sliceContract(slice).paths;
+    const inventory = prior.validateSourceInventory({ expectedPaths: expected, discoveredEntries: sourceEntries(nextRoot) });
     if (inventory.errors.length) return { errors: inventory.errors };
+    return analyzeReviewedSlice(nextRoot, expected);
+}
+
+function inspectDevelopmentSources(nextRoot, slice = 'N02-A') {
+    const reviewed = sliceContract(slice).paths;
+    const inventory = prior.validateSourceInventory({
+        expectedPaths: [...reviewed, ...PENDING_PROVENANCE_PATHS],
+        discoveredEntries: sourceEntries(nextRoot)
+    });
+    const result = inventory.errors.length ? { errors: inventory.errors }
+        : analyzeReviewedSlice(nextRoot, reviewed);
+    return { ...result, scope: 'development-regression', releaseEligible: false,
+        pendingReviewPaths: [...PENDING_PROVENANCE_PATHS] };
+}
+
+function analyzeReviewedSlice(nextRoot, expected) {
     const allowedExternalImports = new Map([
         ['policy/toolBudget.js', new Set(['node:crypto'])],
         ['kernel/canonicalValue.js', new Set(['node:crypto'])],
@@ -89,4 +126,4 @@ function validatePropertyEvents(events, slice = 'N02-A') {
 }
 
 module.exports = { EXPECTED_PATHS, REQUIRED_IDS, INSTALLMENT_IDS, INSTALLMENT_PATHS, BILLING_IDS, SUBCATEGORY_IDS, GOLDEN_IDS,
-    sliceContract, inspectSources, validatePropertyEvents };
+    sliceContract, inspectSources, inspectDevelopmentSources, validatePropertyEvents };

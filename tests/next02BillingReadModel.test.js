@@ -187,5 +187,5 @@ test('NEXT02C:GATE billing properties bind to actual non-skipped events and exac
     }
     assert.ok(policy.validatePropertyEvents(events.slice(0, -1), 'N02-C').errors.length);
     assert.ok(policy.validatePropertyEvents([...events, events.at(-1)], 'N02-C').errors.length);
-    assert.deepEqual(policy.inspectSources(path.resolve(__dirname, '../src/next'), 'N02-C').errors, []);
+    assert.deepEqual(policy.inspectDevelopmentSources(path.resolve(__dirname, '../src/next'), 'N02-C').errors, []);
 });

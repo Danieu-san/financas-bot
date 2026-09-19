@@ -221,6 +221,52 @@ test('coverage runner scrubs credentials and propagates network blocking to Node
     assert.strictEqual(child.status, 0, child.stderr);
 });
 
+test('coverage runner preserves pinned timezone and network blocking through every child API', () => {
+    for (const flags of ['', '--preserve-symlinks --preserve-symlinks-main']) {
+        const environment = buildHermeticTestEnvironment({ ...process.env, NODE_OPTIONS: flags });
+        const child = spawnSync(process.execPath, [
+            path.join(__dirname, 'helpers', 'exhaustiveTimezoneChild.cjs'), 'tree'
+        ], { env: environment, encoding: 'utf8', timeout: 30000 });
+        assert.strictEqual(child.status, 0, child.stderr);
+        assert.strictEqual(child.stdout.trim(), 'protected-tree-ok');
+    }
+});
+
+test('explicit CLI tripwire preload protects descendants without ambient Node options', () => {
+    const environment = buildHermeticTestEnvironment(process.env);
+    delete environment.NODE_OPTIONS;
+    const child = spawnSync(process.execPath, [
+        '--require', path.join(__dirname, 'helpers', 'exhaustiveNetworkTripwire.js'),
+        path.join(__dirname, 'helpers', 'exhaustiveTimezoneChild.cjs'), 'tree'
+    ], { env: environment, encoding: 'utf8', timeout: 30000 });
+    assert.strictEqual(child.status, 0, child.stderr);
+    assert.strictEqual(child.stdout.trim(), 'protected-tree-ok');
+});
+
+test('coverage tripwire never conceals additional Node options from timezone validation', () => {
+    const tripwirePath = path.join(__dirname, 'helpers', 'exhaustiveNetworkTripwire.js');
+    const environment = buildHermeticTestEnvironment(process.env);
+    // Set the override after launch so this assertion also works inside the
+    // broad suite, whose parent tripwire sanitizes every child environment.
+    const child = spawnSync(process.execPath, ['-e', `
+        const assert = require('node:assert/strict');
+        const tripwirePath = ${JSON.stringify(tripwirePath)};
+        const timezone = require(${JSON.stringify(path.join(ROOT, 'src/next/provenance/pinnedCivilTimezone.js'))});
+        const canonical = ${JSON.stringify(environment.NODE_OPTIONS)};
+        const tripwire = require(tripwirePath);
+        for (const extra of ['--no-warnings', '--icu-data-dir=untrusted']) {
+            process.env.NODE_OPTIONS = canonical + ' ' + extra;
+            delete global.__FINANCASBOT_EXHAUSTIVE_NETWORK_TRIPWIRE__;
+            tripwire.installTripwire();
+            assert.equal(process.env.NODE_OPTIONS, canonical + ' ' + extra);
+            assert.throws(() => timezone.civilDateInPinnedTimezone(
+                '2018-11-04T03:00:00Z', 'America/Sao_Paulo', 'proleptic_gregorian'),
+                /timezone_runtime_invalid/);
+        }
+    `], { env: environment, encoding: 'utf8', timeout: 30000 });
+    assert.strictEqual(child.status, 0, child.stderr);
+});
+
 test('coverage runner confines Git and Tar to exact controlled roots', () => {
     const inheritedAuditRoot =
         process.env.EXHAUSTIVE_AUDIT_TEMP_ROOT || null;
@@ -357,6 +403,7 @@ test('coverage runner serializes local test files to avoid shared runtime races'
     assert.ok(args.includes('--test-concurrency=1'));
     assert.ok(args.includes('--experimental-test-coverage'));
     assert.ok(args.includes('--test'));
+    assert.ok(args.includes('--test-reporter=tap'));
 });
 
 test('coverage runner restores pre-existing state and removes test-created state', () => {

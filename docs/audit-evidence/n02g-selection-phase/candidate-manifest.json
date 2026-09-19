@@ -1,0 +1,266 @@
+{
+  "schema": "n02g-selection-phase-candidate-manifest-v1",
+  "base": "be520f4f0cf64812c80f0f4b9b8eefb2a5445189",
+  "candidate": "the immutable commit containing this manifest; verify its full SHA and parent independently",
+  "byte_source": "Git index blobs, not checkout CRLF bytes",
+  "self_exclusion": "docs/audit-evidence/n02g-selection-phase/candidate-manifest.json",
+  "changed_files": [
+    {
+      "path": "docs/agent-memory/workstreams/financasbot-next-02-n02g.md",
+      "bytes": 79478,
+      "sha256": "c3313a13d14f52850a604512e61f99cc05b40bf2d4435584382e79990f486ad5",
+      "git_blob": "495a674ae158edc707a23639b899f92e1f4886a4"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-selection-phase/audit-request.md",
+      "bytes": 4584,
+      "sha256": "b9896f429d4aef330ce33e5e172558ef972211e608ce21877978bda5fffaa322",
+      "git_blob": "d8fe91e948560d166bc03c9974c72ea7a8b8e5d8"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-selection-phase/focal-records.json",
+      "bytes": 12930,
+      "sha256": "e08a77a46cc70129ec460ffbfe4c23bea35895109e833955787729cbf6f4fe9a",
+      "git_blob": "ae430dd55c9f0630397da18f95d9483cb0eaff91"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-selection-phase/local-validation.json",
+      "bytes": 2964,
+      "sha256": "ae2ec6b3e5bbfe26e43002337d5da9e5744bd016143f56501d7e2948025e05fb",
+      "git_blob": "33d9c80cce3c6ec350b14362861729a7bf8ca5a7"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-selection-phase/review-delta.patch",
+      "bytes": 42753,
+      "sha256": "fac493dc0983d777de875317a74763196d893596503ec35c0f0e2f6e5fa2db9f",
+      "git_blob": "2c19f49cb39deff91c497f1445a97730ed4b4800"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-selection-phase/verify-evidence.cjs",
+      "bytes": 4921,
+      "sha256": "0a35063e80eea4fa29e0529d76071a74a81a3fe027c11e3d8aeed389232dcb87",
+      "git_blob": "0b452e8546d4902dda4cd9f80ada3304cd95d696"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-authoring-semantics-v1.md",
+      "bytes": 4875,
+      "sha256": "720e31b2a8a7c0490adf620a8ccaedbe54e06d0502e518e61c8c69252a006a7f",
+      "git_blob": "e3dcbe95fc8d0ed2cbbaa788024d842cf77f8d7f"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/graph-binding-contract-v1.md",
+      "bytes": 16304,
+      "sha256": "2d31e734ab54fb3748012653521e8940d8c581e143525aaa66bafe3224c07429",
+      "git_blob": "df7b37444d05eca63fc764a7137e3ff81cd23166"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+      "bytes": 4955430,
+      "sha256": "62419d3292e37156eb6e970daddb544a688bf527df1c1d0cfe0577944fea7970",
+      "git_blob": "85e57c5916a17ebd88a0327e4cdcd59c33f0c213"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/n02f-correction-review-v1.md",
+      "bytes": 5417,
+      "sha256": "814ddcb57991b6b315fa102a38df0b118447015398b10d934c8967b1e7f5b4ff",
+      "git_blob": "ba6f3d6090e1217785d50ac5b66954d0223e46d9"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/temporal-relations-decision-v1.md",
+      "bytes": 5865,
+      "sha256": "a6581b9533f25d6a8864091ffacda0119e2d93df323c37918bddb0c56e297f1e",
+      "git_blob": "30eb790446fb57d010489bfcef2c04ee813b65dc"
+    },
+    {
+      "path": "docs/plans/workstreams/financasbot-next-02-n02g-selection-phase-correction-v1.md",
+      "bytes": 9773,
+      "sha256": "2fb89b2fceb8bb93e37d3bcb059482b15821c4cb0fde33fad07ec1d7da893c1c",
+      "git_blob": "ac72b740271841a026876fca9adac6c29dce37d0"
+    },
+    {
+      "path": "scripts/agent/financasBotNext02ValidationPolicy.js",
+      "bytes": 6862,
+      "sha256": "576f94013031aba99661c9e4eb94a7e30e03372535d98febbb13b1d4166237ed",
+      "git_blob": "ca04981383b75728d768565c51652fdd278a72b1"
+    },
+    {
+      "path": "scripts/runExhaustiveLocalTestCoverage.js",
+      "bytes": 13047,
+      "sha256": "60812c762868ad27819cd48a4a84327e73ca848446eca55c0e1bf7fb06b76c2a",
+      "git_blob": "a7a82f3c21feb62ffc2e02265e79069b9cb35863"
+    },
+    {
+      "path": "src/next/provenance/graphStructure.js",
+      "bytes": 13395,
+      "sha256": "a8d533ea51cee2c1ea3738fecfa8195a6b700f40184ab2dd86f9a25463945cdd",
+      "git_blob": "d3b0be0157da2769ca3f18e4cbed002ff07593d8"
+    },
+    {
+      "path": "tests/exhaustiveLocalTestCoverageRunner.test.js",
+      "bytes": 18563,
+      "sha256": "779fb233848fe42dfc1d6fa71f16d6aa10cc86ceb41ffb30e3e00979bf0020ba",
+      "git_blob": "e9f649153e3a33cacec069974d7fb986e8ff36d9"
+    },
+    {
+      "path": "tests/financialStateMachine.test.js",
+      "bytes": 289924,
+      "sha256": "c2fb4c3ec38fee24b57ab3565d3051f80d04bfaa24fbe6dd94da370c8800bd61",
+      "git_blob": "1fa644867a2f0b8ed8faf72f74d4f8549d379cfa"
+    },
+    {
+      "path": "tests/helpers/exhaustiveNetworkTripwire.js",
+      "bytes": 16859,
+      "sha256": "b317860c1f1b817d7fe063e316c1e9ec40c2025a5b7b1a9d57b877d7ec69b9b3",
+      "git_blob": "c1f3d8bbc33d45d0bc8718c9bb7da667299d0b54"
+    },
+    {
+      "path": "tests/helpers/exhaustiveNodeOptions.js",
+      "bytes": 671,
+      "sha256": "ed50d35943a4f2cd450d8a1ef4c7d6bc52fc2cd01beba5f97c1f070450367412",
+      "git_blob": "54a6224a236942b1eb486756b55b076e6b40b0a8"
+    },
+    {
+      "path": "tests/helpers/exhaustiveTimezoneChild.cjs",
+      "bytes": 2688,
+      "sha256": "6b6375efd2de4b848b577ef82876e1b0965c03f7d4cea81feaf5f1ae96921a36",
+      "git_blob": "181bd1e3983743d0e0eeefe8b00c0bfda3485416"
+    },
+    {
+      "path": "tests/next/provenance/authoringIndex.cases.js",
+      "bytes": 62844,
+      "sha256": "aec4aa00d31ab620e411f9e25b29e3127027249cb3a9fb0c2d5eb726fd3a5282",
+      "git_blob": "d57e3b4d18abe74cf78e9644c1a4a6670d2dde00"
+    },
+    {
+      "path": "tests/next/provenance/graphStructure.cases.js",
+      "bytes": 8704,
+      "sha256": "dc3bc495dc695cd9968a75bd65b6da419982fb301f2d664f63e8412efefc2f66",
+      "git_blob": "986ee75b7f76372fba0101efa9f660c599116828"
+    },
+    {
+      "path": "tests/next/provenance/proofAcceptance.cases.js",
+      "bytes": 20769,
+      "sha256": "de46bbf1fc47ead7bb836dc8c360c248f9c3c054090894ad2c677878c7edc4ad",
+      "git_blob": "6d292a48a042aea0e38107e71b12f0c93f73787c"
+    },
+    {
+      "path": "tests/next/validatorGate.cases.js",
+      "bytes": 20984,
+      "sha256": "1ff49258f7fbf06d25b2c51ed85dcef58fa343525913eac5a7f8b0c6681b648f",
+      "git_blob": "6ae3988cd25a07c8ada856d3fbfc8d5353bccb98"
+    },
+    {
+      "path": "tests/next02BillingReadModel.test.js",
+      "bytes": 13564,
+      "sha256": "3d0fe1dd7100d674beee108c83174654572d3fce70ae577b4d8703c25caa5c1d",
+      "git_blob": "4a7a10b952d1d95abcb269e3cd1a2f8a1d47a62c"
+    },
+    {
+      "path": "tests/next02DevelopmentInventory.test.js",
+      "bytes": 4029,
+      "sha256": "2199f15cf2489b7c0c690c1c87e437a71615075f63e6c3aaeeff204f2b39c0d8",
+      "git_blob": "95f9884e85db3d952ed26e82325114ef6ce59d6e"
+    },
+    {
+      "path": "tests/next02GoldenExpenses.test.js",
+      "bytes": 11767,
+      "sha256": "9bb36c3e165bff611f8e16c0dfb183a31e8cf4246b3a34530f5f87430096ed10",
+      "git_blob": "ad3e4b435b050508480b079d5761d3791b51ff66"
+    },
+    {
+      "path": "tests/next02InstallmentSchedule.test.js",
+      "bytes": 12814,
+      "sha256": "a9b59421c88d467edec5ffcd888648fa576fdaa79385ddb92570b831d639f060",
+      "git_blob": "bd31ddb2e81f3b45177609b497537129d013346a"
+    },
+    {
+      "path": "tests/next02ObservationKernel.test.js",
+      "bytes": 21078,
+      "sha256": "85f874fdd7d1f743dddfa37c4fe92778aefa5452142d10e25efdb5c04fc03ebc",
+      "git_blob": "2dd7b506f2de80c7462d17d77c5bdfeada46ee77"
+    },
+    {
+      "path": "tests/next02Subcategories.test.js",
+      "bytes": 12661,
+      "sha256": "3c80aeedb35546aeeba329b9ae34a94de4e78e6e34894983c6645d32295a3148",
+      "git_blob": "26410743ea0c39429efb5b4ffa786f5b80e293f9"
+    },
+    {
+      "path": "tests/openFinanceIncomeSaveProposal.test.js",
+      "bytes": 17224,
+      "sha256": "d3bf2eb72a1a17ed499218c9d53a19b051cc93a0d66b2b8dbcb893d739c765cb",
+      "git_blob": "a3d172cc0ed1f27cd834030db25181f0cc4b0b51"
+    },
+    {
+      "path": "tests/openFinanceProactiveIncomeRefund.test.js",
+      "bytes": 30870,
+      "sha256": "0e3be23dd1e6715134e4dc33727e3459b8a22701e24c850218311fcb814821de",
+      "git_blob": "a47107fa40640473d4436827f8d4a3503585be6d"
+    }
+  ],
+  "preserved_references": [
+    {
+      "path": "docs/contracts/next/provenance-v2/claims-v2.json",
+      "bytes": 64240,
+      "sha256": "4810612761ea7f232e4445c0d192ae53ebf0761f0ba8752da758efb826b30494",
+      "git_blob": "0f0ade4e0f174966ae9f2660df97cc0b29d2d775"
+    },
+    {
+      "path": "scripts/agent/financasBotNext01ValidationPolicy.js",
+      "bytes": 26118,
+      "sha256": "abe27e27dd346a28acb3dc99a92839a5f10dc830e718e5895b688fb4a99a9427",
+      "git_blob": "eb7d91f3a07089473cf95ba1d9e6d4b54b4965bb"
+    },
+    {
+      "path": "scripts/agent/validateFinancasBotNext02.mjs",
+      "bytes": 8718,
+      "sha256": "017f7c80d054d03eceb9ef4c384fc473fa9456d4184c3f0249367091536490dc",
+      "git_blob": "dbf03d7dff26d462523867d718fff60402781961"
+    },
+    {
+      "path": "src/next/provenance/executionProfile.js",
+      "bytes": 1688,
+      "sha256": "8030b1f4a120ba37e6713057e9c5aa5b7d413183df4c26e3e8833814ad323abd",
+      "git_blob": "45bcf48c400ab121dbbbfe9f43081c36ec07f4da"
+    },
+    {
+      "path": "src/next/provenance/pinnedCivilTimezone.js",
+      "bytes": 3297,
+      "sha256": "55dcb62295a7e314756fb36c3f0e45c0eb71273e494e223a81d08f74fad7756d",
+      "git_blob": "0d75c2e1ce50d5c514c966c6bcbfc9a7aa673dd3"
+    },
+    {
+      "path": "src/next/provenance/proofAcceptance.js",
+      "bytes": 16483,
+      "sha256": "69bfa088ef81556c0c68b199bf271a97fa456b251d46a61a78d9e0d93d4d207e",
+      "git_blob": "6b88851d78a162463fed1091f81680e0a30d6042"
+    }
+  ],
+  "patch_paths": [
+    "docs/contracts/next/provenance-v2/evaluator-authoring-semantics-v1.md",
+    "docs/contracts/next/provenance-v2/graph-binding-contract-v1.md",
+    "docs/contracts/next/provenance-v2/n02f-correction-review-v1.md",
+    "docs/contracts/next/provenance-v2/temporal-relations-decision-v1.md",
+    "scripts/agent/financasBotNext02ValidationPolicy.js",
+    "scripts/runExhaustiveLocalTestCoverage.js",
+    "src/next/provenance/graphStructure.js",
+    "tests/exhaustiveLocalTestCoverageRunner.test.js",
+    "tests/financialStateMachine.test.js",
+    "tests/helpers/exhaustiveNetworkTripwire.js",
+    "tests/helpers/exhaustiveNodeOptions.js",
+    "tests/helpers/exhaustiveTimezoneChild.cjs",
+    "tests/next/provenance/authoringIndex.cases.js",
+    "tests/next/provenance/graphStructure.cases.js",
+    "tests/next/provenance/proofAcceptance.cases.js",
+    "tests/next/validatorGate.cases.js",
+    "tests/next02BillingReadModel.test.js",
+    "tests/next02DevelopmentInventory.test.js",
+    "tests/next02GoldenExpenses.test.js",
+    "tests/next02InstallmentSchedule.test.js",
+    "tests/next02ObservationKernel.test.js",
+    "tests/next02Subcategories.test.js",
+    "tests/openFinanceIncomeSaveProposal.test.js",
+    "tests/openFinanceProactiveIncomeRefund.test.js"
+  ],
+  "release_eligible": false
+}

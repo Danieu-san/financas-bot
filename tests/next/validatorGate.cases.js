@@ -277,8 +277,9 @@ test('NEXT01:N01-VALIDATOR-002 validator rejects direct effect capabilities', ()
     const copiedRoot = path.join(sandbox, 'next');
     fs.cpSync(actualRoot, copiedRoot, { recursive: true });
     try {
-        const clean = current.inspectSources(copiedRoot, 'N02-E');
+        const clean = current.inspectDevelopmentSources(copiedRoot, 'N02-E');
         assert.deepStrictEqual(clean.errors, []);
+        assert.strictEqual(clean.releaseEligible, false);
         assert.strictEqual(clean.reviewedSourceMatches, 15);
         assert.deepStrictEqual(Object.keys(policy.REVIEWED_SOURCE_SHA256).sort(),
             [...current.sliceContract('N02-E').paths].sort());
@@ -293,11 +294,11 @@ test('NEXT01:N01-VALIDATOR-002 validator rejects direct effect capabilities', ()
                 '\nvoid 42;\n'
             ]) {
                 fs.writeFileSync(file, source + suffix);
-                assert.ok(current.inspectSources(copiedRoot, 'N02-E').errors.includes(
+                assert.ok(current.inspectDevelopmentSources(copiedRoot, 'N02-E').errors.includes(
                     'reviewed_source_mismatch:' + relative));
             }
             fs.writeFileSync(file, source.replace(/\r\n/g, '\n').replace(/\n/g, '\r\n'));
-            assert.deepStrictEqual(current.inspectSources(copiedRoot, 'N02-E').errors, []);
+            assert.deepStrictEqual(current.inspectDevelopmentSources(copiedRoot, 'N02-E').errors, []);
             fs.writeFileSync(file, source);
         }
     } finally { fs.rmSync(sandbox, { recursive: true, force: true }); }

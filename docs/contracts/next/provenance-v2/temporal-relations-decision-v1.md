@@ -76,9 +76,11 @@ distintos; nenhum estado do output justifica exclusão de evento.
 
 required_nodes conserva nós examinados para cálculo, fingerprint, exclusão,
 coverage ou vínculos. Não criar examined_nodes como segunda lista equivalente.
-required_selections enumera pares candidate_set/selected_set e coincide
-exatamente com selections do grafo. selected_nodes é a união exata dos sets
-selecionados dessas operações e subconjunto de required_nodes.
+required_selections enumera pares candidate_set/selected_set por fase conforme
+a regra de bindings de graph-binding-contract-v1.md §4. Proof conserva todas
+as selections do grafo; derivation exige as de roster ligado a node_set e não
+repete seleção de operandos node já vinculados. selected_nodes é a união exata
+dos sets selecionados das operações daquela fase e subconjunto de required_nodes.
 
 O recorder observa seleção real por fase; não copia selected_nodes autorado
 nem transforma leitura em seleção. S-12#1#1 examina 40 nós e seleciona zero.

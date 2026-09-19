@@ -163,13 +163,26 @@ function validateGraphStructure({ graphs, claims, materialRegistry, operatorRegi
         }
         const selectionKey = selection => JSON.stringify([selection.candidate_set, selection.selected_set]);
         const selections = unique(graph.selections, selectionKey);
-        const selectedNodes = new Set();
+        const derivationSelections = new Map();
+        const preboundNodes = new Set();
+        const bindings = Object.values(claim.operand_bindings);
         for (const selection of selections.values()) {
             const candidates = set(selection.candidate_set);
             const selected = set(selection.selected_set);
             for (const alias of selected.keys()) {
                 if (!candidates.has(alias)) fail('selection_subset');
-                selectedNodes.add(alias);
+            }
+            // Determine the required phase from declared inputs, never actual
+            // trace, expected result, metric name or fact_key. A prebound node
+            // does not execute the proof's candidate search a second time.
+            const candidateBindings = bindings.filter(binding => binding.kind === 'node_set'
+                && JSON.stringify(binding.aliases) === JSON.stringify([...candidates.keys()]));
+            if (candidateBindings.length > 1) fail('selection_binding_ambiguous');
+            if (candidateBindings.length === 1) derivationSelections.set(selectionKey(selection), selection);
+            else {
+                const direct = new Set(bindings.filter(binding => binding.kind === 'node').map(binding => binding.alias));
+                if (!selected.size || [...selected.keys()].some(alias => !direct.has(alias))) fail('selection_binding_unresolved');
+                for (const alias of selected.keys()) preboundNodes.add(alias);
             }
             predicateRefs(selection.selected_predicates);
             const excluded = unique(selection.excluded, item => item.node);
@@ -200,13 +213,16 @@ function validateGraphStructure({ graphs, claims, materialRegistry, operatorRegi
                 if (entry.operation === 'keys' && descriptor.type !== 'record') fail('structural_type');
                 if (entry.operation === 'has' && !entry.segments.length) fail('structural_type');
             }
+            const phaseSelections = phase === 'proof' ? selections : derivationSelections;
+            same(unique(trace.required_selections, selectionKey), phaseSelections, 'trace_selections');
+            const selectedNodes = new Set([...phaseSelections.values()].flatMap(selection => [...set(selection.selected_set).keys()]));
             same(unique(trace.selected_nodes), selectedNodes, 'trace_selected_nodes');
-            same(unique(trace.required_selections, selectionKey), selections, 'trace_selections');
             for (const alias of selectedNodes) if (!requiredNodes.has(alias)) fail('selected_not_required');
-            // Proof examines every candidate. Derivation may consume a single
-            // prebound operand and need not reperform the proof's search.
-            if (phase === 'proof') for (const selection of selections.values()) for (const alias of set(selection.candidate_set).keys()) {
+            for (const selection of phaseSelections.values()) for (const alias of set(selection.candidate_set).keys()) {
                 if (!requiredNodes.has(alias) || !readNodes.has(alias)) fail('candidate_unobserved');
+            }
+            for (const alias of preboundNodes) {
+                if (!requiredNodes.has(alias) || !readNodes.has(alias)) fail('prebound_unobserved');
             }
             for (const [alias, value] of Object.entries(graph.nodes)) {
                 if (value.binding === 'validated_parent' && (!requiredNodes.has(alias) || !readNodes.has(alias))) fail('parent_unobserved');

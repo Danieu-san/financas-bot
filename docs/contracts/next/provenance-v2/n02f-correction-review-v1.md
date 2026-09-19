@@ -7,6 +7,12 @@ Este relatório não atribui execução independente ao Codex nem aprova a mudan
 
 ## Confronto crítico
 
+Nota histórica: este relatório registra o delta N02-F de 2026-09-10. A correção
+N02G-SB-001 posterior distingue seleção por fase no §4 do
+graph-binding-contract-v1.md; a presença de required_selections em ambas as
+fases não significa que suas listas devam ser idênticas. Esta nota não altera
+o parecer histórico nem reabre as correções de estado e tempo abaixo.
+
 H-01 confirmado: seis guards de exclusão dos dois safe_daily_pace comparavam
 event.state com estimated, fora do enum do input. Corrigidos para confirmed,
 com input_evidence_state explícito e sem alterar estimated no claim.

@@ -1,6 +1,6 @@
 # N02-G — checkpoint
 
-Atualização: 2026-09-17. Estado: BLOQUEIO FOCAL NORMATIVO N02G-SB-001; IMPLEMENTAÇÃO WIP, SEM GO EXECUTÁVEL.
+Atualização: 2026-09-18. Estado: CORREÇÃO NORMATIVA N02G-SB-001 AUTORIZADA E IMPLEMENTADA COMO CANDIDATO; SEM GO EXECUTÁVEL.
 Base: `aea4ac31e358ed8d8907e78f6002c8bb80233bc8`.
 Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
@@ -898,3 +898,272 @@ Até essa decisão, nenhum contrato, graph, registry, teste ou runtime foi alter
 NEXT-03, deploy, produção e dados reais continuam fora do escopo.
 
 Codex → Astra → Alto → formalizar e validar a correção por fase após decisão normativa.
+
+## Correção autorizada — 2026-09-18
+
+Daniel respondeu `sim` à decisão específica de seleção somente em proof para
+operandos node prebound. A autorização supera a pendência decisória anterior,
+mas não substitui auditoria independente nem o gate integral N02-G.
+Base do delta: `be520f4f0cf64812c80f0f4b9b8eefb2a5445189`.
+Plano focal: `../../plans/workstreams/financasbot-next-02-n02g-selection-phase-correction-v1.md`.
+
+Regra genérica no contrato §4 e graphStructure: roster node_set candidato único
+exige seleção derivacional; selected_set não vazio inteiramente ligado por
+roles node permite seleção somente em proof. Ambiguidade/ausência de binding
+falha fechado. Proof conserva todas as seleções; ambas as fases cobrem cada
+candidato quando executam seleção. Operand prebound conserva seus reads/nodes.
+Nenhum branch por fact_key/métrica, nenhuma alteração de fórmula/oracle/registry.
+
+Seis grafos corrigidos: S-16#1#1, M-04#1#1, M-04#1#2, M-05#1#2, M-05#1#3,
+M-05#1#4. Somente seus dois campos derivacionais de seleção foram alterados.
+Outros 70 grafos, todas as 76 provas e os demais campos preservados por
+deepEqual integral no verifier `docs/audit-evidence/n02g-selection-phase/verify-evidence.cjs`.
+Extração compacta `focal-records.json`, 12.930 bytes; positivo e sete negativos
+PASS. Não enviar graphs-v2 integral à conversa do auditor.
+
+REDs causais antes da correção: STRUCTURE-007/008 FAIL pelos motivos esperados.
+Depois: onze focais PASS; N02-G integrado 265/265 PASS, zero FAIL/SKIP/TODO,
+63,80s. Syntax/diff/agent-workflow OK. Comparadores continuam componentes WIP;
+esses resultados não concedem aceitação integral de graph ou parent.
+
+Suíte ampla hermética concluída uma vez, sem repetição: processo PID 28880,
+`node scripts/runExhaustiveLocalTestCoverage.js`, exit_status=1, `valid=true`.
+Resultado: 2.258 testes, 1.756 PASS, 492 FAIL, 10 SKIP, 0 TODO; cobertura
+76,10% linhas, 76,22% branches, 80,25% funções; duração 1.254.099 ms.
+Os 492 failures concentram-se em legacy reduction, OAuth/Google, canary/read
+model, dashboard e suites do agente; não há evidência ainda de que sejam
+causados por esta correção N02G. Logs completos permanecem temporariamente em
+`$env:TEMP\financasbot-n02g-selection-phase-wide-20260918.log` e `.err.log`;
+não transportar esses logs automaticamente.
+
+Na retomada, diagnosticar uma amostra causal dos failures e comparar com a base
+antes de qualquer repetição. Não iniciar outra suíte ampla. Se o conjunto for
+baseline/ambiente, registrar a separação; se houver regressão N02G, corrigir os
+afetados e só então repetir a escada exigida. Commit/push sanitizado e auditoria
+focal do novo hash permanecem pendentes; não enviar candidato enquanto o delta
+não estiver estabilizado.
+
+O handoff ocorre com árvore suja deliberada: alterações do candidato e novas
+evidências não foram mascaradas nem descartadas. O próximo Codex deve preservar
+esses caminhos e ler o checkpoint antes de editar.
+
+Ainda não houve commit/push deste candidato nem envio de auditoria. Não reabrir
+o recibo antigo; heartbeat anterior permanece pausado. Sem produção/dados reais.
+
+Codex → Astra → Alto → conferir a suíte ampla e preparar a auditoria focal do novo hash.
+
+## Diagnóstico da suíte ampla após retomada portátil — 2026-09-18
+
+Os logs temporários integrais da máquina anterior não estavam presentes no
+novo Windows, conforme a regra do handoff. A suíte ampla não foi repetida.
+Foi executada somente uma amostra hermética representativa dos grupos
+registrados no adendo.
+
+A amostra sem `readModelSqlite.test.js` reuniu 133 testes em cinco arquivos:
+65 PASS e 68 FAIL. Os failures foram um caso do gate de redução legado e 67
+casos de `financialAgent.test.js`; os grupos de canary, dashboard e OAuth da
+amostra passaram. Casos representativos de `readModelSqlite.test.js` também
+falharam antes da lógica funcional porque `ensureSqliteReady()` retornou falso.
+
+Causa local confirmada: o pacote `better-sqlite3` está resolvível, mas a
+instanciação não localiza `better_sqlite3.node` nesta instalação de
+`node_modules`. O mesmo pré-requisito alimenta diretamente o read model e o
+agente; o gate legado exercita essas baterias e herda o bloqueio. Não houve
+evidência de divergência semântica N02-G nessa amostra.
+
+Confronto com a base `be520f4f0cf64812c80f0f4b9b8eefb2a5445189`:
+serviços do read model, agente, runner do gate legado, os três testes
+representativos e `package.json`/`package-lock.json` têm blobs idênticos entre
+HEAD e worktree. A busca de acoplamento não encontrou importação de
+`next/provenance`, `graphStructure` ou `graphs-v2` nesses caminhos. Logo, a
+amostra separa o bloqueio como ambiente/dependência local preexistente ao delta
+N02G-SB-001, não como regressão causada pela correção por fase.
+
+Nenhum arquivo de produto foi alterado pelo diagnóstico. Os logs ignorados e
+as linhas de auditoria local acrescentados pelos testes foram restaurados ao
+estado anterior. Próxima ação: restaurar somente o binding nativo local de
+`better-sqlite3`, sem alterar manifests; repetir a bateria causal afetada e
+somente depois decidir a única nova suíte ampla final exigida para um candidato
+verde. Commit/push e auditoria independente continuam pendentes.
+
+Codex → Sol → Médio → restaurar o binding nativo local e revalidar apenas os testes afetados.
+
+## Resultado amplo no runtime contratual e diagnóstico do harness — 2026-09-18
+
+Binding SQLite local restaurado, sem alteração de manifests. O runner recebeu
+`--test-reporter=tap` explícito após RED causal; teste focal do runner 12/12 PASS.
+A execução posterior em Node 24.19.0 teve 2.258 testes, 2.232 PASS, 16 FAIL e
+10 SKIP. Seis failures N02-G envolviam o adaptador de timezone, cujo contrato
+exige Node 22.17.0, ICU 77.1, tz 2025b, CLDR 47.0 e Unicode 16.0.
+
+Node oficial 22.17.0 instalado em cache local e arquivo ZIP confrontado com
+SHASUMS256 oficial: `721ab118a3aac8584348b132767eadf51379e0616f0db802cc1e66d7f0d98f85`.
+SQLite realinhado ao ABI desse Node; probe de abertura PASS. Cache está em
+`.codex-temp/runtimes/`; `.codex-temp/` aparece como não versionado no status,
+portanto NÃO presumir que está ignorado nem incluí-lo em staging do candidato.
+
+Suíte ampla no Node 22.17.0 concluída: 495.466 ms, exit_status=1, valid=true,
+2.258 testes, 2.233 PASS, 15 FAIL, 10 SKIP esperados, zero cancelados/TODO.
+Cobertura: 92,12% linhas, 77,54% branches, 92,19% funções. `valid=true`
+descreve a integridade do resultado do runner; não autoriza declarar verde.
+
+Separação dos 15 failures:
+- Seis testes de inventário N01/N02-A..E rejeitam `provenance/*`. Os inventários
+  antigos não ampliados já são pendência expressa deste checkpoint.
+- Quatro testes Open Finance criam observações de 09–10/08/2026 e as reabrem
+  com relógio real depois da retenção de 30 dias, produzindo expiração.
+- Cinco N02-G têm conflito entre o ambiente do harness e o contrato de timezone.
+
+Diagnóstico causal local desses cinco, sem repetir a suíte ampla:
+`OBSERVED-METRIC-001`, `OBSERVED-PROOF-004`, `ACCESS-033`, `TIMEZONE-001` e
+`METRIC-SELECTION-011`, selecionados pelo nome no mesmo entrypoint.
+1. Ambiente hermético padrão com cobertura: 0 PASS / 5 FAIL.
+2. Mesmo ambiente sem cobertura: 0 PASS / 5 FAIL.
+3. Com cobertura, tripwire carregado primeiro e somente depois removido
+   `NODE_OPTIONS` do ambiente visível: 5 PASS / 0 FAIL.
+
+O runner usa `NODE_OPTIONS` para carregar o tripwire nos descendentes;
+`pinnedCivilTimezone.checkTimezoneRuntime` rejeita qualquer valor dessa
+variável. O preload diagnóstico preserva a captura original do tripwire para
+os filhos e só isola a checagem do ambiente no processo corrente. Isso NÃO é
+uma correção adotada nem autorização para relaxar o contrato do runtime.
+Artefatos locais: `.codex-temp/diagnoseTimezoneHarness.cjs` e
+`.codex-temp/timezone-harness-diagnostic.json` (não destinados ao commit).
+
+A hipótese anterior de contaminação/ordem não ficou demonstrada; este conflito
+explica os cinco failures sem executar os demais testes. O adaptador, o profile,
+o tripwire, as duas políticas antigas e os três arquivos de teste Open Finance
+são idênticos ao HEAD-base (diff restrito vazio). Nenhuma correção de produto
+foi feita neste diagnóstico. O delta de seleção não demonstrou regressão aqui,
+mas a suíte continua vermelha e a auditoria independente continua pendente.
+
+Próxima ação: reconciliar a integração runner/timezone preservando tanto o
+carregamento obrigatório da proteção nos descendentes quanto a recusa de
+overrides não confiáveis; definir RED causal e testar apenas a fronteira afetada.
+Não ampliar inventários nem alterar Open Finance silenciosamente para obter
+verde. Não repetir ampla antes de correção causal e bateria afetada verde.
+Commit/push e auditoria focal por novo hash continuam pendentes; sem GO N02-G.
+
+Codex → Sol → Alto → corrigir a integração do runner com o contrato de timezone e validar a fronteira afetada.
+
+## Integração do harness corrigida localmente — 2026-09-19
+
+Daniel autorizou a implementação com `Faça` e a continuidade com `continue`.
+Alteração restrita ao suporte de testes: a geração canônica de NODE_OPTIONS
+foi extraída para `tests/helpers/exhaustiveNodeOptions.js`, compartilhada pelo
+runner e tripwire. Após instalar as proteções e capturar as opções para filhos,
+o tripwire remove a variável ambiente somente se ela corresponder exatamente
+às opções canônicas do harness. Valores com opções extras continuam visíveis
+e são rejeitados pelo adaptador. No preload por CLI sem variável, as opções
+canônicas são geradas para garantir proteção também nos descendentes.
+
+O adaptador `pinnedCivilTimezone.js` e `executionProfile.js` permanecem
+idênticos ao HEAD-base. Não foi introduzida exceção de teste no runtime.
+Novos arquivos versionáveis: `tests/helpers/exhaustiveNodeOptions.js` e
+`tests/helpers/exhaustiveTimezoneChild.cjs`. A fixture exercita timezone real,
+recusa de rede externa e propagação por spawn/spawnSync, execFile/execFileSync,
+fork e netos, inclusive com tentativa de sobrescrever NODE_OPTIONS. Também
+há controle de opções adicionais recusadas e preload por CLI. O host externo
+do teste só é usado depois de confirmar instalação do tripwire.
+
+RED causal: o teste de integração falhou por NODE_OPTIONS ainda visível antes
+da correção; controle negativo de overrides passou. Após implementação e
+revisão local, runner 15/15 PASS. Syntax dos cinco arquivos alterados/novos OK.
+Bateria causal final via as mesmas funções de argumentos/ambiente do runner,
+Node 22.17.0 e cobertura habilitada: 284/284 PASS, zero FAIL/SKIP/TODO/cancelados.
+Inclui 265 N02-G, 15 runner e quatro inventário de runtime. Cobertura deste
+recorte: 97,32% linhas, 90,46% branches e 97,14% funções; não é cobertura global.
+Evidência temporária: `.codex-temp/harness-causal.json` e `.tap.log`.
+
+Próxima validação: uma ampla final após essa mudança causal global de preload,
+para confrontar a lista de falhas com as dez pendências já diagnosticadas
+(seis inventários antigos e quatro fixtures expiradas). Não presumir o
+resultado nem declarar verde. Ao iniciar, parar acompanhamento sem polling.
+Wrapper `.codex-temp/runWideNode22.js` grava o resultado quando terminar em
+`.codex-temp/wide-node22-after-harness.json`; consultar uma única vez quando
+Daniel solicitar, sem lançar outra execução. Nenhum commit/push/auditoria
+externa deste candidato realizado; estado máximo é candidato em validação.
+
+Codex → Sol → Baixo → consultar o resultado da ampla final após a correção do harness.
+
+## Dez pendências de regressão corrigidas localmente — 2026-09-19
+
+A ampla pós-harness terminou: 2.261 testes, 2.241 PASS, 10 FAIL, 10 SKIP
+esperados, zero cancelados/TODO, valid=true, exit_status=1, 349.459 ms.
+Cobertura global: 92,18% linhas, 77,78% branches, 92,25% funções. As cinco
+falhas de timezone desapareceram; restaram exatamente as seis de inventário
+e quatro de fixtures temporais. Resultado preservado em
+`.codex-temp/wide-node22-after-harness.json`.
+
+Daniel autorizou a próxima correção com `trocado. prossiga`. Escopo de suporte
+à validação explicitado: política N02, seis consumidores de inventário em
+testes, novo `tests/next02DevelopmentInventory.test.js` e três arquivos de
+testes Open Finance/handler. Nenhuma mudança em serviços financeiros.
+
+Inventário: não ampliar os pins de admissão do CP-01 nem recalculá-los a
+partir da árvore candidata. `inspectDevelopmentSources` verifica a árvore
+completa contra os 15 paths revisados e 29 paths explicitamente pendentes,
+reutilizando a análise/hashes históricos exclusivamente para os revisados.
+Imports de arquivo revisado para arquivo pendente continuam recusados.
+Retorno obrigatório: scope=development-regression, releaseEligible=false e
+pendingReviewPaths explícitos. Arquivo extra, ausente ou redirecionado falha.
+`inspectSources` mantém o contrato estrito; `validateFinancasBotNext02.mjs`
+continua usando essa API e recusando a árvore completa em desenvolvimento.
+O verde da regressão não se converte em admissão dos 29 módulos nem GO N02-G.
+
+Relógio: os quatro casos passam a usar MockTimers de Date no contexto do
+próprio teste, fixado na data de suas observações e restaurado automaticamente.
+O wrapper stateMachineTest encaminha o contexto para permitir essa fixação.
+Política de retenção, asserções e código de produto permanecem inalterados.
+
+RED: quatro controles de inventário falharam pela API ainda ausente; as dez
+falhas originais já estavam reproduzidas sob Node 22 e registradas. GREEN:
+quatro controles novos PASS e dez casos originalmente vermelhos 10/10 PASS.
+Revisão local verificou hashes históricos intactos, importação para pendentes
+recusada e ausência de promoção de bytes pendentes a revisados. Bateria causal
+completa de onze entrypoints, sob cobertura e ambiente hermético: 267/267 PASS,
+zero FAIL/SKIP/TODO/cancelados. Inclui controles reais de expiração e os demais
+testes do handler após o relógio restaurado. Evidência temporária:
+`.codex-temp/remaining-causal.json` e `.codex-temp/remaining-causal.tap.log`.
+
+Próxima ação: uma ampla final após esses deltas causais e bateria afetada
+verde. Wrapper `.codex-temp/runWideNode22.js`; resultado persistido ao terminar
+em `.codex-temp/wide-node22-after-inventory-clock.json`. Parar acompanhamento
+ao iniciar, sem polling. Consultar uma vez quando Daniel avisar; não iniciar
+outra ampla. Depois de conferir o resultado, atualizar evidência e preparar
+commit sanitizado/auditoria independente, ainda pendentes. Os novos testes
+e helpers versionáveis devem ser adicionados explicitamente; nunca incluir
+`.codex-temp/`, node_modules, bases, logs ou credenciais no candidato.
+
+Codex → Sol → Baixo → consultar o resultado da ampla final após inventário e relógios de teste.
+
+## Candidato local verde; preparação imutável — 2026-09-19
+
+Ampla final concluída: 2.265 testes, 2.255 PASS, zero FAIL/cancelados/TODO,
+10 SKIP esperados, valid=true, exit_status=0, 361.254 ms. Cobertura global:
+92,25% linhas, 77,74% branches, 92,48% funções. Registro persistido em
+`docs/audit-evidence/n02g-selection-phase/local-validation.json`. Não repetir
+essa ampla sem mudança causal de código/testes.
+
+Daniel respondeu `trocado. siga` à consolidação, revisão e preparação do
+commit sanitizado para auditoria. HEAD local e remoto confirmados em
+be520f4f0cf64812c80f0f4b9b8eefb2a5445189 antes da preparação. Revisão local
+confrontou regra normativa, delta estrutural, os seis grafos, suporte de
+testes e distinção entre inventário de desenvolvimento e admissão de release.
+Verificador compacto novamente PASS: 76 grafos, seis alterados, 70 intactos,
+76 proofs preservadas. Sem mudança causal posterior à ampla verde.
+
+Pacote de auditoria: `docs/audit-evidence/n02g-selection-phase/audit-request.md`,
+`candidate-manifest.json`, `review-delta.patch`, `local-validation.json`,
+`focal-records.json` e `verify-evidence.cjs`. Manifesto medido sobre os blobs
+do índice Git sanitizado; diferenças de CRLF do checkout não são hashes de
+bytes imutáveis. O hash candidato é o commit que contém o pacote, com pai
+be520f4; conferir seu SHA completo no Git antes de enviar ao auditor.
+
+Escopo focal solicitado: correção de seleção por fase e suporte de validação
+(harness, inventário de desenvolvimento e relógios dos testes). Não promover
+este verde a GO do motor completo ou à admissão dos 29 módulos pendentes.
+O candidato aguarda auditoria independente. Não reutilizar a task/recibo da
+auditoria antiga nem afirmar envio antes de confirmar a nova entrega.
+
+Codex → Sol → Alto → conferir o commit sanitizado e fornecer o hash imutável à auditoria focal.

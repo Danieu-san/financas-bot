@@ -45,7 +45,7 @@ async function validators() {
 function selectionInput(claim, graph, executionId) {
     // Association is resolved from the admitted candidate roster BEFORE guest
     // execution; selected members and observed results cannot select a role.
-    const bindings = graph.selections.map(selection => {
+    const bindings = graph.trace_contract.derivation.required_selections.map(selection => {
         const candidates = graph.sets[selection.candidate_set];
         const roles = Object.entries(claim.operand_bindings).filter(([, binding]) =>
             binding.kind === 'node_set' && JSON.stringify(binding.aliases) === JSON.stringify(candidates));
@@ -119,15 +119,19 @@ test('N02G:OBSERVED-METRIC-001 consumption roles select independently of graph e
 test('N02G:OBSERVED-METRIC-002 direct reads preserve values and identities through admitted roles', async () => {
     const { evaluateDirectMetric } = require('../../../src/next/provenance/metricDirectReads');
     const oracle = JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/financasbot-next/golden-claim-oracles-v1.json'), 'utf8'));
-    const { plan, claims } = await snapshotAccessFixture(); let checked = 0;
+    const { plan, claims, graphs } = await snapshotAccessFixture(); let checked = 0;
     const supported = ['balance_delta', 'invoice_payment_amount', 'invoice_payment_target_card', 'statement_payment_correspondence',
         'source_coverage', 'owned_cards', 'merchant_rule_ids', 'eligible_event_count', 'side_effect_count',
         'bills_open', 'due_bill_ids', 'due_bills_total', 'reminder_count', 'calendar_event_count', 'similar_event_ids',
         'account_balance', 'movement_ids'];
     for (const claim of claims.filter(c => supported.includes(c.metric))) {
+        const graph = graphs.find(g => g.fact_key === claim.fact_key);
+        const coverageInput = selectionInput(claim, graph, `direct-${checked}`);
+        const recorder = createCausalRecorder({ executionId: coverageInput.executionId, maxEvents: 10000 });
+        const phase = recorder.open({ invocationId: claim.fact_key, phase: 'derivation' });
         const controls = []; const operands = {}; const events = [];
         for (const [role_id, binding] of Object.entries(claim.operand_bindings)) {
-            const selector = { fact_key: claim.fact_key, role_id }; const observe = e => events.push(e);
+            const selector = { fact_key: claim.fact_key, role_id }; const observe = e => { phase.observe(e); events.push(e); };
             const access = binding.kind === 'claim_context' ? plan.openContext(selector, observe)
                 : binding.kind === 'node_set' ? plan.openSet(selector, observe)
                     : plan.open({ ...selector, alias: binding.alias }, observe);
@@ -135,6 +139,10 @@ test('N02G:OBSERVED-METRIC-002 direct reads preserve values and identities throu
         }
         const result = evaluateDirectMetric(Object.freeze(operands), claim.metric);
         for (const access of controls) { access.revoke(); access.assertHealthy(); }
+        phase.seal(); const trace = recorder.finish();
+        const coverage = compareSelectionCoverage({ ...coverageInput, trace });
+        assert.equal(coverage.matched, true, `${claim.fact_key}: ${JSON.stringify(coverage)}`);
+        if (!coverageInput.bindings.length) assert.equal(trace.derivation_trace.some(e => e.operation.startsWith('select_')), false);
         const split = claim.fact_key.lastIndexOf('#');
         const expected = oracle.turns[claim.fact_key.slice(0, split)].facts[Number(claim.fact_key.slice(split + 1)) - 1];
         assert.equal(expected.metric, claim.metric); assert.deepEqual(result, expected.value, claim.fact_key);
@@ -239,15 +247,15 @@ test('N02G:TRACE-COMPAT-001 required edge remains independent from derivation no
     assert.throws(() => inspectTraversalCoverage([broken]), /trace_compatibility_unknown_edge/);
 });
 
-test('N02G:SELECTION-BINDING-001 source coverage exposes one source while its derivation requests the four-source selection', async () => {
+test('N02G:SELECTION-BINDING-001 source coverage derives from one bound source and selects four candidates only in proof', async () => {
     const { plan, graphs, claims } = await snapshotAccessFixture();
     const graph = graphs.find(g => g.fact_key === 'S-16#1#1');
     const claim = claims.find(c => c.fact_key === graph.fact_key);
     assert.deepEqual(claim.operand_bindings, { context: { kind: 'claim_context' }, source: { kind: 'node', alias: 'source_complete_june' } });
     assert.deepEqual(graph.sets.candidates, ['source_complete_june', 'source_partial_may', 'source_offline_card', 'source_empty_health']);
-    assert.deepEqual(graph.trace_contract.derivation.required_selections, [{ candidate_set: 'candidates', selected_set: 'selected' }]);
+    assert.deepEqual(graph.trace_contract.derivation.required_selections, []);
     assert.deepEqual(graph.trace_contract.derivation.required_nodes, ['source_complete_june']);
-    assert.deepEqual(graph.trace_contract.derivation.selected_nodes, ['source_complete_june']);
+    assert.deepEqual(graph.trace_contract.derivation.selected_nodes, []);
     const reachable = new Set(['source_complete_june']);
     for (const alias of reachable) for (const edge of graph.edges) {
         if (edge.relation === 'material_ref' && edge.source === alias) reachable.add(edge.target);
@@ -263,14 +271,29 @@ test('N02G:SELECTION-BINDING-001 source coverage exposes one source while its de
     assert.equal(source.handle.get('coverage'), 'complete');
     source.revoke(); source.assertHealthy();
     assert.equal(observed.some(e => e[1].startsWith('select_')), false);
-    // Proof access exists, but its observations cannot be reassigned to the
-    // metric derivation. This test reproduces the boundary, not an architecture verdict.
+    // Proof performs the search. Its observations cannot satisfy derivation.
     const proofEvents = [];
-    const proof = plan.openProof({ fact_key: graph.fact_key }, e => proofEvents.push(e));
+    const recorder = createCausalRecorder({ executionId: 'source-proof', maxEvents: 1000 });
+    const phase = recorder.open({ invocationId: claim.fact_key, phase: 'proof' });
+    const proof = plan.openProof({ fact_key: graph.fact_key }, e => { phase.observe(e); proofEvents.push(e); });
     const selection = proof.select('candidates', 'selected', node => node.get('id') === claim.subject.ref_id);
     assert.equal(selection.length(), 1); proof.revoke(); proof.assertHealthy();
     assert.equal(proofEvents.filter(e => e[1] === 'select_member').length, 4);
     assert.ok(proofEvents.every(e => e[3].startsWith('proof/')));
+    phase.seal(); const trace = recorder.finish();
+    const input = { executionId: 'source-proof', invocationId: claim.fact_key, phase: 'proof', trace, sets: graph.sets,
+        bindings: [{ role: 'proof/set/candidates', candidate_set: 'candidates', selected_set: 'selected' }],
+        expected: { required_selections: graph.trace_contract.proof.required_selections,
+            selected_nodes: graph.trace_contract.proof.selected_nodes } };
+    assert.equal(compareSelectionCoverage(input).matched, true);
+    assert.equal(compareSelectionCoverage({ ...input, phase: 'derivation' }).matched, false);
+    const misplaced = structuredClone(trace);
+    misplaced.derivation_trace = misplaced.proof_trace.map(e => ({ ...e, phase: 'derivation' }));
+    misplaced.proof_trace = [];
+    const extra = compareSelectionCoverage({ ...input, trace: misplaced, phase: 'derivation', bindings: [],
+        expected: { required_selections: [], selected_nodes: [] } });
+    assert.equal(extra.matched, false);
+    assert.ok(extra.errors.some(e => e.code === 'unbound_selection'));
 });
 
 test('N02G:SNAPSHOT-ACCESS-001 handles resolve exact admitted fact/role/alias identities', async () => {

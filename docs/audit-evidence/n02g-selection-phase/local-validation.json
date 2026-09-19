@@ -1,0 +1,48 @@
+{
+  "schema": "n02g-selection-phase-local-validation-v1",
+  "status": "candidate_awaiting_independent_audit",
+  "base": "be520f4f0cf64812c80f0f4b9b8eefb2a5445189",
+  "evidence_kind": "locally_executed_tests_not_independent_verdict",
+  "runtime": { "node": "22.17.0", "icu": "77.1", "tz": "2025b", "cldr": "47.0", "unicode": "16.0" },
+  "wide": {
+    "recorded_at": "2026-09-19T12:11:48.128Z",
+    "command": "node scripts/runExhaustiveLocalTestCoverage.js",
+    "invocation_note": "Local wrapper called exported runLocalCoverage and additionally snapshotted/restored read_model.sqlite, its WAL/SHM and dashboard-access.jsonl; same runner arguments and hermetic environment.",
+    "local_only": true,
+    "test_files": 165,
+    "discovered_test_files": 183,
+    "duration_ms": 361254,
+    "exit_status": 0,
+    "valid": true,
+    "validation_reasons": [],
+    "tap": { "tests": 2265, "suites": 0, "pass": 2255, "fail": 0, "cancelled": 0, "skipped": 10, "todo": 0 },
+    "coverage": { "line_percent": 92.25, "branch_percent": 77.74, "function_percent": 92.48 },
+    "failures": [],
+    "skipped_tests": [
+      "instalador executa install e uninstall restaurando bytes preexistentes",
+      "install adota bloco existente e preserva integralmente os bytes atuais",
+      "install recusa adocao quando backup diverge apenas por BOM sem mutar config",
+      "uninstall recusa configuracao alterada e preserva o arquivo atual",
+      "uninstall recusa divergencia somente de BOM e preserva bytes atuais",
+      "functional: consent, onboarding, settings and dashboard",
+      "functional: expenses, income and credit card installments",
+      "functional: goals, debts, payments and reminders",
+      "functional: analytics, deletion, admin and fallback",
+      "functional: complex analytics handles typos, counts, duplicates and min/max"
+    ],
+    "excluded": ["tests/whatsapp-real-e2e.test.js"]
+  },
+  "causal_batteries": [
+    { "scope": "N02-G plus harness and runtime inventory, hermetic with coverage", "tests": 284, "pass": 284, "fail": 0, "skipped": 0 },
+    { "scope": "Eleven affected entrypoints after inventory and clock fixes, hermetic with coverage", "tests": 267, "pass": 267, "fail": 0, "skipped": 0 },
+    { "scope": "Ten previously failing cases selected by exact names", "tests": 10, "pass": 10, "fail": 0, "skipped": 0 }
+  ],
+  "preservation_verifier": { "valid": true, "graph_count": 76, "changed_graphs": 6, "untouched_graphs": 70, "proof_preserved": 76, "scope": "extraction_and_preservation_only" },
+  "release_eligible": false,
+  "limitations": [
+    "Development inventory reports 29 pending modules; their bytes are not admitted by the historical reviewed-source pins.",
+    "Strict NEXT-02 release inventory remains closed; regression success is not global N02-G acceptance.",
+    "No production, real WhatsApp or external financial integrations were exercised.",
+    "Independent audit of the immutable candidate remains required."
+  ]
+}

@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const net = require('node:net');
 const path = require('node:path');
 const childProcess = require('node:child_process');
+const { buildDescendantNodeOptions } = require('./exhaustiveNodeOptions');
 
 const COMMIT_PATTERN = /^[a-f0-9]{40}$/;
 const RELEASE_ARTIFACT_PATTERN =
@@ -265,7 +266,7 @@ function protectedChildOptions(options, protectedNodeOptions, auditedGit = false
 }
 
 function installSubprocessTripwire() {
-    const protectedNodeOptions = process.env.NODE_OPTIONS || '';
+    const protectedNodeOptions = process.env.NODE_OPTIONS || buildDescendantNodeOptions();
     const originalSpawn = childProcess.spawn.bind(childProcess);
     childProcess.spawn = function guardedSpawn(command, args, options) {
         const auditedGit = isAuditedLocalGitCommand(command, args, options);
@@ -406,6 +407,12 @@ function installTripwire() {
     }
 
     installSubprocessTripwire();
+    // The preload has executed, and child wrappers captured its exact options.
+    // Do not expose harness transport as an ambient runtime override. Unknown
+    // options remain visible so strict runtime consumers still reject them.
+    if (process.env.NODE_OPTIONS === buildDescendantNodeOptions(process.env.NODE_OPTIONS)) {
+        delete process.env.NODE_OPTIONS;
+    }
 }
 
 if (String(process.env.EXHAUSTIVE_NETWORK_TRIPWIRE_ACTIVE || '').toLowerCase() === 'true') {

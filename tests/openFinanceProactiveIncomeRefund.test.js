@@ -488,7 +488,8 @@ test('gate 36 outbox binds one actionable semantic review without creating a sav
     }
 });
 
-test('gate 36 public review command is explicit, durable and never writes', () => {
+test('gate 36 public review command is explicit, durable and never writes', t => {
+    t.mock.timers.enable({ apis: ['Date'], now: new Date('2026-08-09T15:00:00.000Z') });
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-gate36-command-'));
     const databasePath = path.join(directory, 'preview.sqlite');
     const secretPath = path.join(directory, 'secret.txt');
@@ -575,7 +576,8 @@ test('gate 36 public review command reports expiry without falling through to wr
     }
 });
 
-test('gate 37 real canary runtime persists income and reserve reviews with zero writes', async () => {
+test('gate 37 real canary runtime persists income and reserve reviews with zero writes', async t => {
+    t.mock.timers.enable({ apis: ['Date'], now: new Date('2026-08-09T15:00:00.000Z') });
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-gate36-runtime-'));
     const names = ['credentials', 'mapping', 'visibility', 'evidence', 'secret',
         'vault', 'baseline', 'outbox', 'journal', 'preview'];

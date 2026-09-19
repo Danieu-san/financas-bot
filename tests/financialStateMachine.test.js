@@ -139,9 +139,9 @@ let maxConcurrentUsersSheetReads = 0;
 let appendRowDelayMs = 0;
 
 function stateMachineTest(name, fn) {
-    test(name, async () => {
+    test(name, async context => {
         try {
-            await fn();
+            await fn(context);
         } catch (error) {
             stateMachineFailed = true;
             throw error;
@@ -625,7 +625,8 @@ stateMachineTest('public handler consumes an eligible historical ambiguity reply
     assert.strictEqual(userStateManager.getState(SENDER), undefined);
 });
 
-stateMachineTest('public handler consumes one explicit Gate 36 review ahead of active financial state and every writer', async () => {
+stateMachineTest('public handler consumes one explicit Gate 36 review ahead of active financial state and every writer', async t => {
+    t.mock.timers.enable({ apis: ['Date'], now: new Date('2026-08-09T13:00:00.000Z') });
     resetState();
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-public-gate36-review-'));
     const databasePath = path.join(directory, 'preview.sqlite');

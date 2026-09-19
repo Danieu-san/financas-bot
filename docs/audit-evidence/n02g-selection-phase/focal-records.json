@@ -1,0 +1,550 @@
+{
+  "schema": "n02g-selection-phase-evidence-v1",
+  "base": "be520f4f0cf64812c80f0f4b9b8eefb2a5445189",
+  "normalization": "worktree CRLF to LF only; immutable git bytes unchanged",
+  "subobject_digest_encoding": "UTF-8 JSON.stringify(parsed subobject), preserving property order",
+  "graphs_before_sha256": "21917c8e3a989b19d036182b19522439d23d60e3621523212c3b1e3588e5e54c",
+  "graphs_after_sha256": "62419d3292e37156eb6e970daddb544a688bf527df1c1d0cfe0577944fea7970",
+  "claims_sha256": "4810612761ea7f232e4445c0d192ae53ebf0761f0ba8752da758efb826b30494",
+  "graph_count": 76,
+  "changed_graphs": 6,
+  "untouched_graphs": 70,
+  "proof_preserved": 76,
+  "records": [
+    {
+      "fact_key": "S-16#1#1",
+      "evaluator_ref": {
+        "evaluator_id": "source_coverage",
+        "evaluator_version": 1
+      },
+      "operand_bindings": {
+        "context": {
+          "kind": "claim_context"
+        },
+        "source": {
+          "kind": "node",
+          "alias": "source_complete_june"
+        }
+      },
+      "selections_sha256": "82059b4cca916137dc6ceecf91b67694c1a59e5dc505efe5c2076b9688743724",
+      "sets": {
+        "candidates": [
+          "source_complete_june",
+          "source_partial_may",
+          "source_offline_card",
+          "source_empty_health"
+        ],
+        "selected": [
+          "source_complete_june"
+        ]
+      },
+      "derivation_before": {
+        "required_selections": [
+          {
+            "candidate_set": "candidates",
+            "selected_set": "selected"
+          }
+        ],
+        "selected_nodes": [
+          "source_complete_june"
+        ]
+      },
+      "derivation_after": {
+        "required_selections": [],
+        "selected_nodes": []
+      },
+      "preserved_derivation_nodes": [
+        "source_complete_june"
+      ],
+      "preserved_derivation_reads": [
+        {
+          "node": "source_complete_june",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "source_complete_june",
+          "segments": [
+            "period"
+          ]
+        },
+        {
+          "node": "source_complete_june",
+          "segments": [
+            "coverage"
+          ]
+        }
+      ],
+      "proof_sha256": "ec33eafe5867bb2af210a651090d9fadbff2a2d6d7baa39b8b574020a266c761",
+      "proof_preserved": true
+    },
+    {
+      "fact_key": "M-04#1#1",
+      "evaluator_ref": {
+        "evaluator_id": "balance_delta",
+        "evaluator_version": 1
+      },
+      "operand_bindings": {
+        "context": {
+          "kind": "claim_context"
+        },
+        "event": {
+          "kind": "node",
+          "alias": "evt_transfer_out"
+        }
+      },
+      "selections_sha256": "6f7ffd50c346e996f6ea5e22508d5b8d25821e781376086a82de4f4452f06ab8",
+      "sets": {
+        "candidates": [
+          "evt_transfer_out"
+        ],
+        "selected": [
+          "evt_transfer_out"
+        ]
+      },
+      "derivation_before": {
+        "required_selections": [
+          {
+            "candidate_set": "candidates",
+            "selected_set": "selected"
+          }
+        ],
+        "selected_nodes": [
+          "evt_transfer_out"
+        ]
+      },
+      "derivation_after": {
+        "required_selections": [],
+        "selected_nodes": []
+      },
+      "preserved_derivation_nodes": [
+        "evt_transfer_out"
+      ],
+      "preserved_derivation_reads": [
+        {
+          "node": "evt_transfer_out",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "evt_transfer_out",
+          "segments": [
+            "date"
+          ]
+        },
+        {
+          "node": "evt_transfer_out",
+          "segments": [
+            "person_id"
+          ]
+        },
+        {
+          "node": "evt_transfer_out",
+          "segments": [
+            "account_id"
+          ]
+        },
+        {
+          "node": "evt_transfer_out",
+          "segments": [
+            "category_id"
+          ]
+        },
+        {
+          "node": "evt_transfer_out",
+          "segments": [
+            "amount_minor"
+          ]
+        },
+        {
+          "node": "evt_transfer_out",
+          "segments": [
+            "state"
+          ]
+        }
+      ],
+      "proof_sha256": "efedef55ae5fee9e86d3de986f5dae7862b80b73f92d775d9ea11786a0aa9de8",
+      "proof_preserved": true
+    },
+    {
+      "fact_key": "M-04#1#2",
+      "evaluator_ref": {
+        "evaluator_id": "balance_delta",
+        "evaluator_version": 1
+      },
+      "operand_bindings": {
+        "context": {
+          "kind": "claim_context"
+        },
+        "event": {
+          "kind": "node",
+          "alias": "evt_transfer_in"
+        }
+      },
+      "selections_sha256": "6f7ffd50c346e996f6ea5e22508d5b8d25821e781376086a82de4f4452f06ab8",
+      "sets": {
+        "candidates": [
+          "evt_transfer_in"
+        ],
+        "selected": [
+          "evt_transfer_in"
+        ]
+      },
+      "derivation_before": {
+        "required_selections": [
+          {
+            "candidate_set": "candidates",
+            "selected_set": "selected"
+          }
+        ],
+        "selected_nodes": [
+          "evt_transfer_in"
+        ]
+      },
+      "derivation_after": {
+        "required_selections": [],
+        "selected_nodes": []
+      },
+      "preserved_derivation_nodes": [
+        "evt_transfer_in"
+      ],
+      "preserved_derivation_reads": [
+        {
+          "node": "evt_transfer_in",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "evt_transfer_in",
+          "segments": [
+            "date"
+          ]
+        },
+        {
+          "node": "evt_transfer_in",
+          "segments": [
+            "person_id"
+          ]
+        },
+        {
+          "node": "evt_transfer_in",
+          "segments": [
+            "account_id"
+          ]
+        },
+        {
+          "node": "evt_transfer_in",
+          "segments": [
+            "category_id"
+          ]
+        },
+        {
+          "node": "evt_transfer_in",
+          "segments": [
+            "amount_minor"
+          ]
+        },
+        {
+          "node": "evt_transfer_in",
+          "segments": [
+            "state"
+          ]
+        }
+      ],
+      "proof_sha256": "fb80df6ee53b19aee6f94a9348e1bbd1453164fd04071aebea8ca83a82de1990",
+      "proof_preserved": true
+    },
+    {
+      "fact_key": "M-05#1#2",
+      "evaluator_ref": {
+        "evaluator_id": "invoice_payment_amount",
+        "evaluator_version": 1
+      },
+      "operand_bindings": {
+        "context": {
+          "kind": "claim_context"
+        },
+        "event": {
+          "kind": "node",
+          "alias": "evt_invoice_payment"
+        }
+      },
+      "selections_sha256": "7bbbd315c6dd0cab9c7b7a38478953ecfeeb759412484940f19fd9466e77b6c8",
+      "sets": {
+        "candidates": [
+          "evt_invoice_payment"
+        ],
+        "selected": [
+          "evt_invoice_payment"
+        ]
+      },
+      "derivation_before": {
+        "required_selections": [
+          {
+            "candidate_set": "candidates",
+            "selected_set": "selected"
+          }
+        ],
+        "selected_nodes": [
+          "evt_invoice_payment"
+        ]
+      },
+      "derivation_after": {
+        "required_selections": [],
+        "selected_nodes": []
+      },
+      "preserved_derivation_nodes": [
+        "evt_invoice_payment"
+      ],
+      "preserved_derivation_reads": [
+        {
+          "node": "evt_invoice_payment",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "evt_invoice_payment",
+          "segments": [
+            "date"
+          ]
+        },
+        {
+          "node": "evt_invoice_payment",
+          "segments": [
+            "person_id"
+          ]
+        },
+        {
+          "node": "evt_invoice_payment",
+          "segments": [
+            "category_id"
+          ]
+        },
+        {
+          "node": "evt_invoice_payment",
+          "segments": [
+            "amount_minor"
+          ]
+        },
+        {
+          "node": "evt_invoice_payment",
+          "segments": [
+            "state"
+          ]
+        },
+        {
+          "node": "evt_invoice_payment",
+          "segments": [
+            "settles_card_id"
+          ]
+        }
+      ],
+      "proof_sha256": "d45910f97dbdc1c8de0ed28288837713d3c3976551ce9276d22c270b79357a0d",
+      "proof_preserved": true
+    },
+    {
+      "fact_key": "M-05#1#3",
+      "evaluator_ref": {
+        "evaluator_id": "invoice_payment_target_card",
+        "evaluator_version": 1
+      },
+      "operand_bindings": {
+        "context": {
+          "kind": "claim_context"
+        },
+        "event": {
+          "kind": "node",
+          "alias": "evt_invoice_payment"
+        },
+        "card": {
+          "kind": "node",
+          "alias": "card_blue"
+        }
+      },
+      "selections_sha256": "7bbbd315c6dd0cab9c7b7a38478953ecfeeb759412484940f19fd9466e77b6c8",
+      "sets": {
+        "candidates": [
+          "evt_invoice_payment"
+        ],
+        "selected": [
+          "evt_invoice_payment"
+        ]
+      },
+      "derivation_before": {
+        "required_selections": [
+          {
+            "candidate_set": "candidates",
+            "selected_set": "selected"
+          }
+        ],
+        "selected_nodes": [
+          "evt_invoice_payment"
+        ]
+      },
+      "derivation_after": {
+        "required_selections": [],
+        "selected_nodes": []
+      },
+      "preserved_derivation_nodes": [
+        "card_blue",
+        "evt_invoice_payment"
+      ],
+      "preserved_derivation_reads": [
+        {
+          "node": "card_blue",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "card_blue",
+          "segments": [
+            "owner_id"
+          ]
+        },
+        {
+          "node": "evt_invoice_payment",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "evt_invoice_payment",
+          "segments": [
+            "date"
+          ]
+        },
+        {
+          "node": "evt_invoice_payment",
+          "segments": [
+            "person_id"
+          ]
+        },
+        {
+          "node": "evt_invoice_payment",
+          "segments": [
+            "category_id"
+          ]
+        },
+        {
+          "node": "evt_invoice_payment",
+          "segments": [
+            "state"
+          ]
+        },
+        {
+          "node": "evt_invoice_payment",
+          "segments": [
+            "settles_card_id"
+          ]
+        }
+      ],
+      "proof_sha256": "d45910f97dbdc1c8de0ed28288837713d3c3976551ce9276d22c270b79357a0d",
+      "proof_preserved": true
+    },
+    {
+      "fact_key": "M-05#1#4",
+      "evaluator_ref": {
+        "evaluator_id": "statement_payment_correspondence",
+        "evaluator_version": 1
+      },
+      "operand_bindings": {
+        "context": {
+          "kind": "claim_context"
+        },
+        "event": {
+          "kind": "node",
+          "alias": "evt_invoice_payment"
+        },
+        "card": {
+          "kind": "node",
+          "alias": "card_blue"
+        }
+      },
+      "selections_sha256": "7bbbd315c6dd0cab9c7b7a38478953ecfeeb759412484940f19fd9466e77b6c8",
+      "sets": {
+        "candidates": [
+          "evt_invoice_payment"
+        ],
+        "selected": [
+          "evt_invoice_payment"
+        ]
+      },
+      "derivation_before": {
+        "required_selections": [
+          {
+            "candidate_set": "candidates",
+            "selected_set": "selected"
+          }
+        ],
+        "selected_nodes": [
+          "evt_invoice_payment"
+        ]
+      },
+      "derivation_after": {
+        "required_selections": [],
+        "selected_nodes": []
+      },
+      "preserved_derivation_nodes": [
+        "card_blue",
+        "evt_invoice_payment"
+      ],
+      "preserved_derivation_reads": [
+        {
+          "node": "card_blue",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "card_blue",
+          "segments": [
+            "owner_id"
+          ]
+        },
+        {
+          "node": "evt_invoice_payment",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "evt_invoice_payment",
+          "segments": [
+            "date"
+          ]
+        },
+        {
+          "node": "evt_invoice_payment",
+          "segments": [
+            "person_id"
+          ]
+        },
+        {
+          "node": "evt_invoice_payment",
+          "segments": [
+            "category_id"
+          ]
+        },
+        {
+          "node": "evt_invoice_payment",
+          "segments": [
+            "state"
+          ]
+        },
+        {
+          "node": "evt_invoice_payment",
+          "segments": [
+            "settles_card_id"
+          ]
+        }
+      ],
+      "proof_sha256": "d45910f97dbdc1c8de0ed28288837713d3c3976551ce9276d22c270b79357a0d",
+      "proof_preserved": true
+    }
+  ]
+}

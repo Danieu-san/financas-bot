@@ -194,7 +194,7 @@ test('NEXT02B:GATE requires exact slice inventory and executed properties from b
     const path = require('node:path');
     const policy = require('../scripts/agent/financasBotNext02ValidationPolicy');
     const root = path.join(__dirname, '../src/next');
-    assert.deepEqual(policy.inspectSources(root, 'N02-B').errors, []);
+    assert.deepEqual(policy.inspectDevelopmentSources(root, 'N02-B').errors, []);
     assert.ok(policy.inspectSources(root).errors.includes('unexpected_executable_source:kernel/installmentSchedule.js'));
     assert.equal(policy.sliceContract('N02-A').paths.length, 14);
     assert.equal(policy.sliceContract('N02-B').paths.length, 15);

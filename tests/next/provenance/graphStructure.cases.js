@@ -91,3 +91,50 @@ test('N02G:STRUCTURE-006 prebound derivation differs from proof, while validated
         assert.throws(() => validateGraphStructure(f), /parent_unobserved/);
     }
 });
+
+test('N02G:STRUCTURE-007 phase selection follows operand bindings, never fact keys or observed output', () => {
+    const input = fixture();
+    const prebound = [];
+    for (const graph of input.graphs) {
+        const claim = input.claims.find(c => c.fact_key === graph.fact_key);
+        const bindings = Object.values(claim.operand_bindings);
+        const derivation = graph.selections.filter(s => bindings.some(b => b.kind === 'node_set'
+            && JSON.stringify(b.aliases) === JSON.stringify(graph.sets[s.candidate_set])));
+        if (derivation.length !== graph.selections.length) {
+            prebound.push(graph.fact_key);
+            assert.deepEqual(graph.trace_contract.derivation.required_selections, derivation.map(({ candidate_set, selected_set }) => ({ candidate_set, selected_set })));
+            assert.deepEqual(graph.trace_contract.derivation.selected_nodes, [...new Set(derivation.flatMap(s => graph.sets[s.selected_set]))]);
+        }
+    }
+    assert.deepEqual(prebound, ['S-16#1#1', 'M-04#1#1', 'M-04#1#2', 'M-05#1#2', 'M-05#1#3', 'M-05#1#4']);
+    assert.equal(validateGraphStructure(input).graphs, 76);
+    for (const key of prebound) {
+        const f = structuredClone(input), graph = f.graphs.find(g => g.fact_key === key);
+        graph.trace_contract.derivation.required_selections = structuredClone(graph.trace_contract.proof.required_selections);
+        graph.trace_contract.derivation.selected_nodes = structuredClone(graph.trace_contract.proof.selected_nodes);
+        assert.throws(() => validateGraphStructure(f), /trace_selections/);
+    }
+    const missing = structuredClone(input), graph = missing.graphs[0];
+    graph.trace_contract.derivation.required_selections = [];
+    graph.trace_contract.derivation.selected_nodes = [];
+    assert.throws(() => validateGraphStructure(missing), /trace_selections/);
+    const unbound = structuredClone(input);
+    delete unbound.claims.find(c => c.fact_key === prebound[0]).operand_bindings.source;
+    assert.throws(() => validateGraphStructure(unbound), /selection_binding/);
+    const ambiguous = structuredClone(input);
+    const firstClaim = ambiguous.claims.find(c => c.fact_key === ambiguous.graphs[0].fact_key);
+    firstClaim.operand_bindings.duplicate = structuredClone(Object.values(firstClaim.operand_bindings).find(b => b.kind === 'node_set'));
+    assert.throws(() => validateGraphStructure(ambiguous), /selection_binding/);
+    const consumed = structuredClone(input), direct = consumed.graphs.find(g => g.fact_key === prebound[0]);
+    direct.trace_contract.derivation.required_reads = [];
+    assert.throws(() => validateGraphStructure(consumed), /prebound_unobserved/);
+});
+
+test('N02G:STRUCTURE-008 every active phase selection must cover excluded candidates too', () => {
+    for (const phase of ['derivation', 'proof']) {
+        reject(g => {
+            const alias = g.selections[0].excluded[0].node;
+            g.trace_contract[phase].required_reads = g.trace_contract[phase].required_reads.filter(r => r.node !== alias);
+        }, /candidate_unobserved/);
+    }
+});

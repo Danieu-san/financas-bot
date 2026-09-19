@@ -162,5 +162,5 @@ test('NEXT02D:GATE subcategory IDs bind to executed properties without enlarging
     assert.ok(policy.validatePropertyEvents(failed,'N02-D').errors.length);
     const spoof=events.slice(0,-1).concat({type:'test:stdout',data:{message:events.at(-1).data.name}});
     assert.ok(policy.validatePropertyEvents(spoof,'N02-D').errors.length);
-    assert.deepEqual(policy.inspectSources(path.resolve(__dirname,'../src/next'),'N02-D').errors,[]);
+    assert.deepEqual(policy.inspectDevelopmentSources(path.resolve(__dirname,'../src/next'),'N02-D').errors,[]);
 });

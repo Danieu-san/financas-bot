@@ -1,0 +1,629 @@
+diff --git a/docs/contracts/next/provenance-v2/evaluator-authoring-semantics-v1.md b/docs/contracts/next/provenance-v2/evaluator-authoring-semantics-v1.md
+index e8e590a451409f668987792c6b5a85c238c5b431..e3dcbe95fc8d0ed2cbbaa788024d842cf77f8d7f 100644
+--- a/docs/contracts/next/provenance-v2/evaluator-authoring-semantics-v1.md
++++ b/docs/contracts/next/provenance-v2/evaluator-authoring-semantics-v1.md
+@@ -37,0 +38,6 @@ temporal-relations-decision-v1.md.
++Na correção N02G-SB-001, a atribuição de seleção às fases é regida pelo §4 de
++graph-binding-contract-v1.md: node_set candidato exige seleção derivacional;
++operandos node previamente ligados são consumidos sem simular seleção nessa
++fase. Proof continua examinando e selecionando os candidatos, inclusive os
++excluídos. Nenhum role, fórmula ou valor esperado muda por essa distinção.
++
+diff --git a/docs/contracts/next/provenance-v2/graph-binding-contract-v1.md b/docs/contracts/next/provenance-v2/graph-binding-contract-v1.md
+index 602933c21a6ea6fbe6583719d37e59d8f698b8c6..df7b37444d05eca63fc764a7137e3ff81cd23166 100644
+--- a/docs/contracts/next/provenance-v2/graph-binding-contract-v1.md
++++ b/docs/contracts/next/provenance-v2/graph-binding-contract-v1.md
+@@ -130,3 +130,4 @@ required_selections coincide exatamente com os pares candidate_set/selected_set
+-de selections. selected_nodes é a união exata dos sets dessas operações,
+-observada pelo recorder por fase. Não copiar a seleção autorada nem tratar
+-leitura como seleção. Em grafo derivado sem selections, selected_nodes é vazio;
++das operações atribuídas àquela fase pela regra de bindings abaixo.
++selected_nodes é a união exata dos sets dessas operações, observada pelo
++recorder por fase. Não copiar a seleção autorada nem tratar leitura como
++seleção. Em grafo derivado sem selections, selected_nodes é vazio;
+@@ -136,0 +138,32 @@ ser necessários aos operands ou às obrigações explicitamente justificadas.
++### Seleção por fase — correção normativa N02G-SB-001
++
++`selections` continua sendo a autoria completa da escolha financeira, inclusive
++predicados dos selecionados e exclusões. Proof deve executar **todas** essas
++seleções e cobrir todos os candidatos, seus campos e estruturas causais. Essa
++obrigação não pode ser removida porque a derivation usa um operando já ligado.
++
++Antes da execução, cada par é classificado pelos operand_bindings do claim:
++
++- Havendo exatamente um role `node_set` cujo roster coincide, inclusive ordem,
++  com o candidate_set, a seleção é obrigatória também em derivation.
++- Sem esse role, somente é admitido o caso prebound: selected_set não vazio e
++  cada membro explicitamente ligado por um role `node`. Essa seleção pertence
++  apenas a proof. A derivation consome esses operandos e mantém seus
++  required_nodes/required_reads, sem afirmar uma seleção que não executa.
++- Mais de um role candidato, ou ausência de um dos dois bindings acima, falha
++  fechado. Não escolher role por resultado, nome de métrica ou fact_key.
++
++required_selections de cada fase deve ser exatamente a lista classificada;
++selected_nodes é sua união, vazia se não há operação de seleção nessa fase.
++Não confundir ausência de seleção com uma seleção executada cujo resultado é
++vazio: a segunda ainda exige eventos e cobertura dos candidatos examinados.
++Toda fase com seleção cobre todos os candidatos em required_nodes e reads,
++incluindo excluídos. O binding prebound não dispensa a prova da escolha e não
++autoriza preencher derivation com eventos de proof ou de resolução estática.
++
++A regra é declaração de obrigação anterior à execução, nunca comparação
++preenchida a partir do actual. A aceitação final continua exigindo ambas as
++fases e todos os demais gates; ausência de seleção derivacional não concede
++aceitação parcial. Esta correção foi autorizada por Daniel em 2026-09-18 e
++permanece candidata à auditoria focal antes de ratificação/GO.
++
+diff --git a/docs/contracts/next/provenance-v2/n02f-correction-review-v1.md b/docs/contracts/next/provenance-v2/n02f-correction-review-v1.md
+index 56d7f49cf1931843893578f43ae879ada207e2b2..ba6f3d6090e1217785d50ac5b66954d0223e46d9 100644
+--- a/docs/contracts/next/provenance-v2/n02f-correction-review-v1.md
++++ b/docs/contracts/next/provenance-v2/n02f-correction-review-v1.md
+@@ -9,0 +10,6 @@ Este relatório não atribui execução independente ao Codex nem aprova a mudan
++Nota histórica: este relatório registra o delta N02-F de 2026-09-10. A correção
++N02G-SB-001 posterior distingue seleção por fase no §4 do
++graph-binding-contract-v1.md; a presença de required_selections em ambas as
++fases não significa que suas listas devam ser idênticas. Esta nota não altera
++o parecer histórico nem reabre as correções de estado e tempo abaixo.
++
+diff --git a/docs/contracts/next/provenance-v2/temporal-relations-decision-v1.md b/docs/contracts/next/provenance-v2/temporal-relations-decision-v1.md
+index 8254fac8d16df90a56325124c3bad00938220d26..30eb790446fb57d010489bfcef2c04ee813b65dc 100644
+--- a/docs/contracts/next/provenance-v2/temporal-relations-decision-v1.md
++++ b/docs/contracts/next/provenance-v2/temporal-relations-decision-v1.md
+@@ -79,3 +79,5 @@ coverage ou vínculos. Não criar examined_nodes como segunda lista equivalente.
+-required_selections enumera pares candidate_set/selected_set e coincide
+-exatamente com selections do grafo. selected_nodes é a união exata dos sets
+-selecionados dessas operações e subconjunto de required_nodes.
++required_selections enumera pares candidate_set/selected_set por fase conforme
++a regra de bindings de graph-binding-contract-v1.md §4. Proof conserva todas
++as selections do grafo; derivation exige as de roster ligado a node_set e não
++repete seleção de operandos node já vinculados. selected_nodes é a união exata
++dos sets selecionados das operações daquela fase e subconjunto de required_nodes.
+diff --git a/scripts/agent/financasBotNext02ValidationPolicy.js b/scripts/agent/financasBotNext02ValidationPolicy.js
+index 1d35fb1ddeda6d2172c8327632ac9a746f4d8f33..ca04981383b75728d768565c51652fdd278a72b1 100644
+--- a/scripts/agent/financasBotNext02ValidationPolicy.js
++++ b/scripts/agent/financasBotNext02ValidationPolicy.js
+@@ -25,0 +26,17 @@ const GOLDEN_IDS = Object.freeze(['BASELINE', 'CASES', 'REFUSALS', 'REFERENCES',
++// Explicit development inventory, NOT reviewed-source admission. These files
++// remain outside the historical slice and cannot be imported by its sources.
++// Adding a file requires an intentional inventory change; never discover the
++// expected set from the candidate tree or generate reviewed hashes from it.
++const PENDING_PROVENANCE_PATHS = Object.freeze([
++    'artifactLoader.js', 'authoringIR.js', 'causalRecorder.js', 'civilCalendar.js',
++    'claimContext.js', 'claimRequirements.js', 'collectionRequirements.js',
++    'executionProfile.js', 'graphCompiler.js', 'graphStructure.js',
++    'instrumentedAccess.js', 'literalTypes.js', 'metricDirectReads.js',
++    'metricEffects.js', 'metricInstallments.js', 'metricSelection.js',
++    'obligationBindings.js', 'observationContract.js', 'operandBindings.js',
++    'operatorTypes.js', 'packageContract.js', 'pinnedCivilTimezone.js',
++    'predicateTypes.js', 'proofAcceptance.js', 'proofOperators.js',
++    'scalarProofOperators.js', 'schemaRegistryProjection.js',
++    'selectionBindings.js', 'templateReferences.js'
++].map(file => 'provenance/' + file).sort());
++
+@@ -44,2 +61 @@ function sliceContract(slice = 'N02-A') {
+-function inspectSources(nextRoot, slice = 'N02-A') {
+-    const expected = sliceContract(slice).paths;
++function sourceEntries(nextRoot) {
+@@ -56 +72,6 @@ function inspectSources(nextRoot, slice = 'N02-A') {
+-    const inventory = prior.validateSourceInventory({ expectedPaths: expected, discoveredEntries: entries });
++    return entries;
++}
++
++function inspectSources(nextRoot, slice = 'N02-A') {
++    const expected = sliceContract(slice).paths;
++    const inventory = prior.validateSourceInventory({ expectedPaths: expected, discoveredEntries: sourceEntries(nextRoot) });
+@@ -57,0 +79,16 @@ function inspectSources(nextRoot, slice = 'N02-A') {
++    return analyzeReviewedSlice(nextRoot, expected);
++}
++
++function inspectDevelopmentSources(nextRoot, slice = 'N02-A') {
++    const reviewed = sliceContract(slice).paths;
++    const inventory = prior.validateSourceInventory({
++        expectedPaths: [...reviewed, ...PENDING_PROVENANCE_PATHS],
++        discoveredEntries: sourceEntries(nextRoot)
++    });
++    const result = inventory.errors.length ? { errors: inventory.errors }
++        : analyzeReviewedSlice(nextRoot, reviewed);
++    return { ...result, scope: 'development-regression', releaseEligible: false,
++        pendingReviewPaths: [...PENDING_PROVENANCE_PATHS] };
++}
++
++function analyzeReviewedSlice(nextRoot, expected) {
+@@ -92 +129 @@ module.exports = { EXPECTED_PATHS, REQUIRED_IDS, INSTALLMENT_IDS, INSTALLMENT_PA
+-    sliceContract, inspectSources, validatePropertyEvents };
++    sliceContract, inspectSources, inspectDevelopmentSources, validatePropertyEvents };
+diff --git a/scripts/runExhaustiveLocalTestCoverage.js b/scripts/runExhaustiveLocalTestCoverage.js
+index 88a60aed9dfd5aee539b3bee4f94770edeb8605f..a7a82f3c21feb62ffc2e02265e79069b9cb35863 100644
+--- a/scripts/runExhaustiveLocalTestCoverage.js
++++ b/scripts/runExhaustiveLocalTestCoverage.js
+@@ -4,0 +5 @@ const { spawnSync } = require('node:child_process');
++const { buildDescendantNodeOptions } = require('../tests/helpers/exhaustiveNodeOptions');
+@@ -215,0 +217 @@ function buildNodeTestArgs(files) {
++        '--test-reporter=tap',
+@@ -221,7 +222,0 @@ function buildNodeTestArgs(files) {
+-function buildDescendantNodeOptions(existingNodeOptions = '') {
+-    const preservedFlags = ['--preserve-symlinks', '--preserve-symlinks-main']
+-        .filter(flag => String(existingNodeOptions).split(/\s+/).includes(flag));
+-    const tripwirePath = NETWORK_TRIPWIRE_PATH.replace(/\\/g, '/').replace(/"/g, '\\"');
+-    return [`--require="${tripwirePath}"`, ...preservedFlags].join(' ');
+-}
+-
+diff --git a/src/next/provenance/graphStructure.js b/src/next/provenance/graphStructure.js
+index 9b12544fd3fc1e21c53273f5423dfacbc2bbd8de..d3b0be0157da2769ca3f18e4cbed002ff07593d8 100644
+--- a/src/next/provenance/graphStructure.js
++++ b/src/next/provenance/graphStructure.js
+@@ -166 +166,3 @@ function validateGraphStructure({ graphs, claims, materialRegistry, operatorRegi
+-        const selectedNodes = new Set();
++        const derivationSelections = new Map();
++        const preboundNodes = new Set();
++        const bindings = Object.values(claim.operand_bindings);
+@@ -172 +174,12 @@ function validateGraphStructure({ graphs, claims, materialRegistry, operatorRegi
+-                selectedNodes.add(alias);
++            }
++            // Determine the required phase from declared inputs, never actual
++            // trace, expected result, metric name or fact_key. A prebound node
++            // does not execute the proof's candidate search a second time.
++            const candidateBindings = bindings.filter(binding => binding.kind === 'node_set'
++                && JSON.stringify(binding.aliases) === JSON.stringify([...candidates.keys()]));
++            if (candidateBindings.length > 1) fail('selection_binding_ambiguous');
++            if (candidateBindings.length === 1) derivationSelections.set(selectionKey(selection), selection);
++            else {
++                const direct = new Set(bindings.filter(binding => binding.kind === 'node').map(binding => binding.alias));
++                if (!selected.size || [...selected.keys()].some(alias => !direct.has(alias))) fail('selection_binding_unresolved');
++                for (const alias of selected.keys()) preboundNodes.add(alias);
+@@ -202,0 +216,3 @@ function validateGraphStructure({ graphs, claims, materialRegistry, operatorRegi
++            const phaseSelections = phase === 'proof' ? selections : derivationSelections;
++            same(unique(trace.required_selections, selectionKey), phaseSelections, 'trace_selections');
++            const selectedNodes = new Set([...phaseSelections.values()].flatMap(selection => [...set(selection.selected_set).keys()]));
+@@ -204 +219,0 @@ function validateGraphStructure({ graphs, claims, materialRegistry, operatorRegi
+-            same(unique(trace.required_selections, selectionKey), selections, 'trace_selections');
+@@ -206,3 +221 @@ function validateGraphStructure({ graphs, claims, materialRegistry, operatorRegi
+-            // Proof examines every candidate. Derivation may consume a single
+-            // prebound operand and need not reperform the proof's search.
+-            if (phase === 'proof') for (const selection of selections.values()) for (const alias of set(selection.candidate_set).keys()) {
++            for (const selection of phaseSelections.values()) for (const alias of set(selection.candidate_set).keys()) {
+@@ -210,0 +224,3 @@ function validateGraphStructure({ graphs, claims, materialRegistry, operatorRegi
++            for (const alias of preboundNodes) {
++                if (!requiredNodes.has(alias) || !readNodes.has(alias)) fail('prebound_unobserved');
++            }
+diff --git a/tests/exhaustiveLocalTestCoverageRunner.test.js b/tests/exhaustiveLocalTestCoverageRunner.test.js
+index 36d57069206c23e4da61575fa4d04abbbfd62d9f..e9f649153e3a33cacec069974d7fb986e8ff36d9 100644
+--- a/tests/exhaustiveLocalTestCoverageRunner.test.js
++++ b/tests/exhaustiveLocalTestCoverageRunner.test.js
+@@ -223,0 +224,46 @@ test('coverage runner scrubs credentials and propagates network blocking to Node
++test('coverage runner preserves pinned timezone and network blocking through every child API', () => {
++    for (const flags of ['', '--preserve-symlinks --preserve-symlinks-main']) {
++        const environment = buildHermeticTestEnvironment({ ...process.env, NODE_OPTIONS: flags });
++        const child = spawnSync(process.execPath, [
++            path.join(__dirname, 'helpers', 'exhaustiveTimezoneChild.cjs'), 'tree'
++        ], { env: environment, encoding: 'utf8', timeout: 30000 });
++        assert.strictEqual(child.status, 0, child.stderr);
++        assert.strictEqual(child.stdout.trim(), 'protected-tree-ok');
++    }
++});
++
++test('explicit CLI tripwire preload protects descendants without ambient Node options', () => {
++    const environment = buildHermeticTestEnvironment(process.env);
++    delete environment.NODE_OPTIONS;
++    const child = spawnSync(process.execPath, [
++        '--require', path.join(__dirname, 'helpers', 'exhaustiveNetworkTripwire.js'),
++        path.join(__dirname, 'helpers', 'exhaustiveTimezoneChild.cjs'), 'tree'
++    ], { env: environment, encoding: 'utf8', timeout: 30000 });
++    assert.strictEqual(child.status, 0, child.stderr);
++    assert.strictEqual(child.stdout.trim(), 'protected-tree-ok');
++});
++
++test('coverage tripwire never conceals additional Node options from timezone validation', () => {
++    const tripwirePath = path.join(__dirname, 'helpers', 'exhaustiveNetworkTripwire.js');
++    const environment = buildHermeticTestEnvironment(process.env);
++    // Set the override after launch so this assertion also works inside the
++    // broad suite, whose parent tripwire sanitizes every child environment.
++    const child = spawnSync(process.execPath, ['-e', `
++        const assert = require('node:assert/strict');
++        const tripwirePath = ${JSON.stringify(tripwirePath)};
++        const timezone = require(${JSON.stringify(path.join(ROOT, 'src/next/provenance/pinnedCivilTimezone.js'))});
++        const canonical = ${JSON.stringify(environment.NODE_OPTIONS)};
++        const tripwire = require(tripwirePath);
++        for (const extra of ['--no-warnings', '--icu-data-dir=untrusted']) {
++            process.env.NODE_OPTIONS = canonical + ' ' + extra;
++            delete global.__FINANCASBOT_EXHAUSTIVE_NETWORK_TRIPWIRE__;
++            tripwire.installTripwire();
++            assert.equal(process.env.NODE_OPTIONS, canonical + ' ' + extra);
++            assert.throws(() => timezone.civilDateInPinnedTimezone(
++                '2018-11-04T03:00:00Z', 'America/Sao_Paulo', 'proleptic_gregorian'),
++                /timezone_runtime_invalid/);
++        }
++    `], { env: environment, encoding: 'utf8', timeout: 30000 });
++    assert.strictEqual(child.status, 0, child.stderr);
++});
++
+@@ -359,0 +406 @@ test('coverage runner serializes local test files to avoid shared runtime races'
++    assert.ok(args.includes('--test-reporter=tap'));
+diff --git a/tests/financialStateMachine.test.js b/tests/financialStateMachine.test.js
+index fe61e0e914d56fdf5a1d3712c90532bf225a2552..1fa644867a2f0b8ed8faf72f74d4f8549d379cfa 100644
+--- a/tests/financialStateMachine.test.js
++++ b/tests/financialStateMachine.test.js
+@@ -142 +142 @@ function stateMachineTest(name, fn) {
+-    test(name, async () => {
++    test(name, async context => {
+@@ -144 +144 @@ function stateMachineTest(name, fn) {
+-            await fn();
++            await fn(context);
+@@ -628 +628,2 @@ stateMachineTest('public handler consumes an eligible historical ambiguity reply
+-stateMachineTest('public handler consumes one explicit Gate 36 review ahead of active financial state and every writer', async () => {
++stateMachineTest('public handler consumes one explicit Gate 36 review ahead of active financial state and every writer', async t => {
++    t.mock.timers.enable({ apis: ['Date'], now: new Date('2026-08-09T13:00:00.000Z') });
+diff --git a/tests/helpers/exhaustiveNetworkTripwire.js b/tests/helpers/exhaustiveNetworkTripwire.js
+index 2f9f0c59b595a0ee8d4b6a8fd77c8e95b7782c1b..c1f3d8bbc33d45d0bc8718c9bb7da667299d0b54 100644
+--- a/tests/helpers/exhaustiveNetworkTripwire.js
++++ b/tests/helpers/exhaustiveNetworkTripwire.js
+@@ -6,0 +7 @@ const childProcess = require('node:child_process');
++const { buildDescendantNodeOptions } = require('./exhaustiveNodeOptions');
+@@ -268 +269 @@ function installSubprocessTripwire() {
+-    const protectedNodeOptions = process.env.NODE_OPTIONS || '';
++    const protectedNodeOptions = process.env.NODE_OPTIONS || buildDescendantNodeOptions();
+@@ -408,0 +410,6 @@ function installTripwire() {
++    // The preload has executed, and child wrappers captured its exact options.
++    // Do not expose harness transport as an ambient runtime override. Unknown
++    // options remain visible so strict runtime consumers still reject them.
++    if (process.env.NODE_OPTIONS === buildDescendantNodeOptions(process.env.NODE_OPTIONS)) {
++        delete process.env.NODE_OPTIONS;
++    }
+diff --git a/tests/helpers/exhaustiveNodeOptions.js b/tests/helpers/exhaustiveNodeOptions.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..54a6224a236942b1eb486756b55b076e6b40b0a8
+--- /dev/null
++++ b/tests/helpers/exhaustiveNodeOptions.js
+@@ -0,0 +1,13 @@
++const path = require('node:path');
++
++// One exact representation shared by the launcher and its preload. Only these
++// harness options may be consumed after the subprocess guard captures them.
++function buildDescendantNodeOptions(existingNodeOptions = '') {
++    const preservedFlags = ['--preserve-symlinks', '--preserve-symlinks-main']
++        .filter(flag => String(existingNodeOptions).split(/\s+/).includes(flag));
++    const tripwirePath = path.join(__dirname, 'exhaustiveNetworkTripwire.js')
++        .replace(/\\/g, '/').replace(/"/g, '\\"');
++    return [`--require="${tripwirePath}"`, ...preservedFlags].join(' ');
++}
++
++module.exports = { buildDescendantNodeOptions };
+diff --git a/tests/helpers/exhaustiveTimezoneChild.cjs b/tests/helpers/exhaustiveTimezoneChild.cjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..181bd1e3983743d0e0eeefe8b00c0bfda3485416
+--- /dev/null
++++ b/tests/helpers/exhaustiveTimezoneChild.cjs
+@@ -0,0 +1,52 @@
++// Local fixture for the coverage harness. Never contacts a service: refuse to
++// probe network APIs unless the tripwire has already been installed.
++const assert = require('node:assert/strict');
++const cp = require('node:child_process');
++const { civilDateInPinnedTimezone, checkTimezoneRuntime } = require('../../src/next/provenance/pinnedCivilTimezone');
++
++function checkProtectedRuntime() {
++    assert.equal(global.__FINANCASBOT_EXHAUSTIVE_NETWORK_TRIPWIRE__, true);
++    assert.equal(process.env.NODE_OPTIONS, undefined);
++    assert.equal(civilDateInPinnedTimezone('2018-11-04T03:00:00Z',
++        'America/Sao_Paulo', 'proleptic_gregorian'), '2018-11-04');
++    assert.throws(() => require('node:https').get('https://example.com'),
++        { code: 'EXHAUSTIVE_AUDIT_NETWORK_BLOCKED' });
++    assert.throws(() => checkTimezoneRuntime(process.versions, process.config.variables,
++        { NODE_OPTIONS: '--no-warnings' }, []), /timezone_runtime_invalid/);
++}
++
++function collect(child) {
++    return new Promise((resolve, reject) => {
++        let output = '', error = '';
++        child.stdout.on('data', chunk => { output += chunk; });
++        child.stderr.on('data', chunk => { error += chunk; });
++        child.on('error', reject);
++        child.on('close', code => {
++            try { assert.equal(code, 0, error); resolve(output.trim()); }
++            catch (failure) { reject(failure); }
++        });
++    });
++}
++
++async function main() {
++    checkProtectedRuntime();
++    const mode = process.argv[2] || 'leaf';
++    if (mode === 'leaf') return console.log('protected-timezone-ok');
++    process.env.NODE_OPTIONS = '--no-warnings';
++    const options = { env: { ...process.env, NODE_OPTIONS: '' }, encoding: 'utf8' };
++    const args = [__filename, 'leaf'];
++    const sync = cp.spawnSync(process.execPath, args, options);
++    assert.equal(sync.status, 0, sync.stderr);
++    assert.equal(sync.stdout.trim(), 'protected-timezone-ok');
++    if (mode === 'branch') return console.log('protected-timezone-ok');
++    assert.equal(cp.execFileSync(process.execPath, args, options).trim(), 'protected-timezone-ok');
++    assert.equal(await collect(cp.spawn(process.execPath, args, options)), 'protected-timezone-ok');
++    const executed = await new Promise((resolve, reject) => cp.execFile(process.execPath, args, options,
++        (error, stdout) => error ? reject(error) : resolve(stdout.trim())));
++    assert.equal(executed, 'protected-timezone-ok');
++    assert.equal(await collect(cp.fork(__filename, ['branch'], {
++        ...options, execArgv: [], silent: true
++    })), 'protected-timezone-ok');
++    console.log('protected-tree-ok');
++}
++main().catch(error => { console.error(error); process.exitCode = 1; });
+diff --git a/tests/next/provenance/authoringIndex.cases.js b/tests/next/provenance/authoringIndex.cases.js
+index b3cab2279a0f4684f74bd6700bc1aceebb12012c..d57e3b4d18abe74cf78e9644c1a4a6670d2dde00 100644
+--- a/tests/next/provenance/authoringIndex.cases.js
++++ b/tests/next/provenance/authoringIndex.cases.js
+@@ -48 +48 @@ function selectionInput(claim, graph, executionId) {
+-    const bindings = graph.selections.map(selection => {
++    const bindings = graph.trace_contract.derivation.required_selections.map(selection => {
+@@ -122 +122 @@ test('N02G:OBSERVED-METRIC-002 direct reads preserve values and identities throu
+-    const { plan, claims } = await snapshotAccessFixture(); let checked = 0;
++    const { plan, claims, graphs } = await snapshotAccessFixture(); let checked = 0;
+@@ -127,0 +128,4 @@ test('N02G:OBSERVED-METRIC-002 direct reads preserve values and identities throu
++        const graph = graphs.find(g => g.fact_key === claim.fact_key);
++        const coverageInput = selectionInput(claim, graph, `direct-${checked}`);
++        const recorder = createCausalRecorder({ executionId: coverageInput.executionId, maxEvents: 10000 });
++        const phase = recorder.open({ invocationId: claim.fact_key, phase: 'derivation' });
+@@ -130 +134 @@ test('N02G:OBSERVED-METRIC-002 direct reads preserve values and identities throu
+-            const selector = { fact_key: claim.fact_key, role_id }; const observe = e => events.push(e);
++            const selector = { fact_key: claim.fact_key, role_id }; const observe = e => { phase.observe(e); events.push(e); };
+@@ -137,0 +142,4 @@ test('N02G:OBSERVED-METRIC-002 direct reads preserve values and identities throu
++        phase.seal(); const trace = recorder.finish();
++        const coverage = compareSelectionCoverage({ ...coverageInput, trace });
++        assert.equal(coverage.matched, true, `${claim.fact_key}: ${JSON.stringify(coverage)}`);
++        if (!coverageInput.bindings.length) assert.equal(trace.derivation_trace.some(e => e.operation.startsWith('select_')), false);
+@@ -242 +250 @@ test('N02G:TRACE-COMPAT-001 required edge remains independent from derivation no
+-test('N02G:SELECTION-BINDING-001 source coverage exposes one source while its derivation requests the four-source selection', async () => {
++test('N02G:SELECTION-BINDING-001 source coverage derives from one bound source and selects four candidates only in proof', async () => {
+@@ -248 +256 @@ test('N02G:SELECTION-BINDING-001 source coverage exposes one source while its de
+-    assert.deepEqual(graph.trace_contract.derivation.required_selections, [{ candidate_set: 'candidates', selected_set: 'selected' }]);
++    assert.deepEqual(graph.trace_contract.derivation.required_selections, []);
+@@ -250 +258 @@ test('N02G:SELECTION-BINDING-001 source coverage exposes one source while its de
+-    assert.deepEqual(graph.trace_contract.derivation.selected_nodes, ['source_complete_june']);
++    assert.deepEqual(graph.trace_contract.derivation.selected_nodes, []);
+@@ -266,2 +274 @@ test('N02G:SELECTION-BINDING-001 source coverage exposes one source while its de
+-    // Proof access exists, but its observations cannot be reassigned to the
+-    // metric derivation. This test reproduces the boundary, not an architecture verdict.
++    // Proof performs the search. Its observations cannot satisfy derivation.
+@@ -269 +276,3 @@ test('N02G:SELECTION-BINDING-001 source coverage exposes one source while its de
+-    const proof = plan.openProof({ fact_key: graph.fact_key }, e => proofEvents.push(e));
++    const recorder = createCausalRecorder({ executionId: 'source-proof', maxEvents: 1000 });
++    const phase = recorder.open({ invocationId: claim.fact_key, phase: 'proof' });
++    const proof = plan.openProof({ fact_key: graph.fact_key }, e => { phase.observe(e); proofEvents.push(e); });
+@@ -273,0 +283,14 @@ test('N02G:SELECTION-BINDING-001 source coverage exposes one source while its de
++    phase.seal(); const trace = recorder.finish();
++    const input = { executionId: 'source-proof', invocationId: claim.fact_key, phase: 'proof', trace, sets: graph.sets,
++        bindings: [{ role: 'proof/set/candidates', candidate_set: 'candidates', selected_set: 'selected' }],
++        expected: { required_selections: graph.trace_contract.proof.required_selections,
++            selected_nodes: graph.trace_contract.proof.selected_nodes } };
++    assert.equal(compareSelectionCoverage(input).matched, true);
++    assert.equal(compareSelectionCoverage({ ...input, phase: 'derivation' }).matched, false);
++    const misplaced = structuredClone(trace);
++    misplaced.derivation_trace = misplaced.proof_trace.map(e => ({ ...e, phase: 'derivation' }));
++    misplaced.proof_trace = [];
++    const extra = compareSelectionCoverage({ ...input, trace: misplaced, phase: 'derivation', bindings: [],
++        expected: { required_selections: [], selected_nodes: [] } });
++    assert.equal(extra.matched, false);
++    assert.ok(extra.errors.some(e => e.code === 'unbound_selection'));
+diff --git a/tests/next/provenance/graphStructure.cases.js b/tests/next/provenance/graphStructure.cases.js
+index 1c41e9533c8ae26f077a66dca10123882caad697..986ee75b7f76372fba0101efa9f660c599116828 100644
+--- a/tests/next/provenance/graphStructure.cases.js
++++ b/tests/next/provenance/graphStructure.cases.js
+@@ -93,0 +94,47 @@ test('N02G:STRUCTURE-006 prebound derivation differs from proof, while validated
++
++test('N02G:STRUCTURE-007 phase selection follows operand bindings, never fact keys or observed output', () => {
++    const input = fixture();
++    const prebound = [];
++    for (const graph of input.graphs) {
++        const claim = input.claims.find(c => c.fact_key === graph.fact_key);
++        const bindings = Object.values(claim.operand_bindings);
++        const derivation = graph.selections.filter(s => bindings.some(b => b.kind === 'node_set'
++            && JSON.stringify(b.aliases) === JSON.stringify(graph.sets[s.candidate_set])));
++        if (derivation.length !== graph.selections.length) {
++            prebound.push(graph.fact_key);
++            assert.deepEqual(graph.trace_contract.derivation.required_selections, derivation.map(({ candidate_set, selected_set }) => ({ candidate_set, selected_set })));
++            assert.deepEqual(graph.trace_contract.derivation.selected_nodes, [...new Set(derivation.flatMap(s => graph.sets[s.selected_set]))]);
++        }
++    }
++    assert.deepEqual(prebound, ['S-16#1#1', 'M-04#1#1', 'M-04#1#2', 'M-05#1#2', 'M-05#1#3', 'M-05#1#4']);
++    assert.equal(validateGraphStructure(input).graphs, 76);
++    for (const key of prebound) {
++        const f = structuredClone(input), graph = f.graphs.find(g => g.fact_key === key);
++        graph.trace_contract.derivation.required_selections = structuredClone(graph.trace_contract.proof.required_selections);
++        graph.trace_contract.derivation.selected_nodes = structuredClone(graph.trace_contract.proof.selected_nodes);
++        assert.throws(() => validateGraphStructure(f), /trace_selections/);
++    }
++    const missing = structuredClone(input), graph = missing.graphs[0];
++    graph.trace_contract.derivation.required_selections = [];
++    graph.trace_contract.derivation.selected_nodes = [];
++    assert.throws(() => validateGraphStructure(missing), /trace_selections/);
++    const unbound = structuredClone(input);
++    delete unbound.claims.find(c => c.fact_key === prebound[0]).operand_bindings.source;
++    assert.throws(() => validateGraphStructure(unbound), /selection_binding/);
++    const ambiguous = structuredClone(input);
++    const firstClaim = ambiguous.claims.find(c => c.fact_key === ambiguous.graphs[0].fact_key);
++    firstClaim.operand_bindings.duplicate = structuredClone(Object.values(firstClaim.operand_bindings).find(b => b.kind === 'node_set'));
++    assert.throws(() => validateGraphStructure(ambiguous), /selection_binding/);
++    const consumed = structuredClone(input), direct = consumed.graphs.find(g => g.fact_key === prebound[0]);
++    direct.trace_contract.derivation.required_reads = [];
++    assert.throws(() => validateGraphStructure(consumed), /prebound_unobserved/);
++});
++
++test('N02G:STRUCTURE-008 every active phase selection must cover excluded candidates too', () => {
++    for (const phase of ['derivation', 'proof']) {
++        reject(g => {
++            const alias = g.selections[0].excluded[0].node;
++            g.trace_contract[phase].required_reads = g.trace_contract[phase].required_reads.filter(r => r.node !== alias);
++        }, /candidate_unobserved/);
++    }
++});
+diff --git a/tests/next/provenance/proofAcceptance.cases.js b/tests/next/provenance/proofAcceptance.cases.js
+index 4ad020b3d091eab43021be86d97e9216664211c7..6d292a48a042aea0e38107e71b12f0c93f73787c 100644
+--- a/tests/next/provenance/proofAcceptance.cases.js
++++ b/tests/next/provenance/proofAcceptance.cases.js
+@@ -176,0 +177,15 @@ function selectionCheck(trace, overrides = {}) {
++test('N02G:TRACE-SELECTION-008 no selection means zero events, not an empty selected view', () => {
++    const absent = { bindings: [], expected: { required_selections: [], selected_nodes: [] } };
++    assert.equal(selectionCheck(selectionTrace(set => set.at(0).get('amount')), absent).matched, true);
++    for (const predicate of [() => false, () => true]) {
++        const trace = selectionTrace(set => set.select(predicate));
++        const result = selectionCheck(trace, absent);
++        assert.equal(result.matched, false);
++        assert.ok(result.errors.some(e => e.code === 'unbound_selection'));
++    }
++    const proof = selectionTrace(set => set.select(n => n.get('amount') === 1), 'proof');
++    assert.equal(selectionCheck(proof, absent).matched, true);
++    assert.equal(selectionCheck(proof).matched, false);
++    assert.equal(selectionCheck(proof, { phase: 'proof' }).matched, true);
++});
++
+diff --git a/tests/next/validatorGate.cases.js b/tests/next/validatorGate.cases.js
+index ce867eea9e1c775c514be4c4b9b953c5101a56a9..6ae3988cd25a07c8ada856d3fbfc8d5353bccb98 100644
+--- a/tests/next/validatorGate.cases.js
++++ b/tests/next/validatorGate.cases.js
+@@ -280 +280 @@ test('NEXT01:N01-VALIDATOR-002 validator rejects direct effect capabilities', ()
+-        const clean = current.inspectSources(copiedRoot, 'N02-E');
++        const clean = current.inspectDevelopmentSources(copiedRoot, 'N02-E');
+@@ -281,0 +282 @@ test('NEXT01:N01-VALIDATOR-002 validator rejects direct effect capabilities', ()
++        assert.strictEqual(clean.releaseEligible, false);
+@@ -296 +297 @@ test('NEXT01:N01-VALIDATOR-002 validator rejects direct effect capabilities', ()
+-                assert.ok(current.inspectSources(copiedRoot, 'N02-E').errors.includes(
++                assert.ok(current.inspectDevelopmentSources(copiedRoot, 'N02-E').errors.includes(
+@@ -300 +301 @@ test('NEXT01:N01-VALIDATOR-002 validator rejects direct effect capabilities', ()
+-            assert.deepStrictEqual(current.inspectSources(copiedRoot, 'N02-E').errors, []);
++            assert.deepStrictEqual(current.inspectDevelopmentSources(copiedRoot, 'N02-E').errors, []);
+diff --git a/tests/next02BillingReadModel.test.js b/tests/next02BillingReadModel.test.js
+index 7452d922ffaeb8c6c33cba0e18e76eba671275a5..4a7a10b952d1d95abcb269e3cd1a2f8a1d47a62c 100644
+--- a/tests/next02BillingReadModel.test.js
++++ b/tests/next02BillingReadModel.test.js
+@@ -190 +190 @@ test('NEXT02C:GATE billing properties bind to actual non-skipped events and exac
+-    assert.deepEqual(policy.inspectSources(path.resolve(__dirname, '../src/next'), 'N02-C').errors, []);
++    assert.deepEqual(policy.inspectDevelopmentSources(path.resolve(__dirname, '../src/next'), 'N02-C').errors, []);
+diff --git a/tests/next02DevelopmentInventory.test.js b/tests/next02DevelopmentInventory.test.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..95f9884e85db3d952ed26e82325114ef6ce59d6e
+--- /dev/null
++++ b/tests/next02DevelopmentInventory.test.js
+@@ -0,0 +1,77 @@
++'use strict';
++const test = require('node:test');
++const assert = require('node:assert/strict');
++const fs = require('node:fs');
++const os = require('node:os');
++const path = require('node:path');
++const policy = require('../scripts/agent/financasBotNext02ValidationPolicy');
++const prior = require('../scripts/agent/financasBotNext01ValidationPolicy');
++const sourceRoot = path.resolve(__dirname, '../src/next');
++
++function fixture(t) {
++    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'next02-dev-inventory-'));
++    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
++    fs.cpSync(sourceRoot, root, { recursive: true });
++    return root;
++}
++
++test('development inventory preserves reviewed hashes and reports pending sources without release approval', () => {
++    const result = policy.inspectDevelopmentSources(sourceRoot, 'N02-E');
++    assert.deepEqual(result.errors, []);
++    assert.equal(result.reviewedSourceMatches, 15);
++    assert.equal(result.releaseEligible, false);
++    assert.equal(result.scope, 'development-regression');
++    assert.equal(result.pendingReviewPaths.length, 29);
++    assert.deepEqual(Object.keys(prior.REVIEWED_SOURCE_SHA256).sort(),
++        [...policy.sliceContract('N02-E').paths].sort());
++    assert.deepEqual(policy.inspectSources(sourceRoot, 'N02-E').errors,
++        result.pendingReviewPaths.map(file => 'unexpected_executable_source:' + file));
++});
++
++test('development inventory rejects extra files, missing candidates and redirected source entries', t => {
++    const root = fixture(t);
++    for (const relative of ['provenance/extra.js', 'provenance/extra.node', 'unexpected.json']) {
++        const file = path.join(root, relative);
++        fs.writeFileSync(file, '');
++        assert.ok(policy.inspectDevelopmentSources(root, 'N02-E').errors
++            .includes('unexpected_executable_source:' + relative));
++        fs.unlinkSync(file);
++    }
++    const candidate = path.join(root, 'provenance/civilCalendar.js');
++    fs.unlinkSync(candidate);
++    assert.ok(policy.inspectDevelopmentSources(root, 'N02-E').errors
++        .includes('missing_executable_source:provenance/civilCalendar.js'));
++    fs.copyFileSync(path.join(sourceRoot, 'provenance/civilCalendar.js'), candidate);
++    const provenance = path.join(root, 'provenance');
++    fs.renameSync(provenance, path.join(root, 'saved-provenance'));
++    fs.symlinkSync(path.join(root, 'saved-provenance'), provenance, 'junction');
++    const redirected = policy.inspectDevelopmentSources(root, 'N02-E');
++    assert.ok(redirected.errors.includes('unexpected_source_entry_type:provenance:other'));
++    assert.equal(redirected.releaseEligible, false);
++});
++
++test('development inventory rejects changed reviewed bytes and imports into pending sources', t => {
++    const root = fixture(t);
++    const relative = 'contracts/reuseManifest.js';
++    const file = path.join(root, relative);
++    const source = fs.readFileSync(file, 'utf8');
++    for (const suffix of ['\nvoid 42;\n', "\nrequire('../provenance/civilCalendar');\n"]) {
++        fs.writeFileSync(file, source + suffix);
++        const result = policy.inspectDevelopmentSources(root, 'N02-E');
++        assert.ok(result.errors.includes('reviewed_source_mismatch:' + relative));
++        assert.equal(result.releaseEligible, false);
++        if (suffix.includes('require')) assert.ok(result.errors.includes(
++            'relative_import_target_not_in_inventory:' + relative + ':../provenance/civilCalendar'));
++    }
++});
++
++test('development inventory does not promote pending bytes to reviewed sources', t => {
++    const root = fixture(t);
++    fs.appendFileSync(path.join(root, 'provenance/civilCalendar.js'), '\nvoid 42;\n');
++    const result = policy.inspectDevelopmentSources(root, 'N02-E');
++    assert.deepEqual(result.errors, []);
++    assert.equal(result.reviewedSourceMatches, 15);
++    assert.equal(result.releaseEligible, false);
++    assert.ok(result.pendingReviewPaths.includes('provenance/civilCalendar.js'));
++    assert.ok(policy.inspectSources(root, 'N02-E').errors.length > 0);
++});
+diff --git a/tests/next02GoldenExpenses.test.js b/tests/next02GoldenExpenses.test.js
+index 9d695fdf149600e2fbc8560f422eb016efc80088..ad3e4b435b050508480b079d5761d3791b51ff66 100644
+--- a/tests/next02GoldenExpenses.test.js
++++ b/tests/next02GoldenExpenses.test.js
+@@ -168 +168 @@ test('NEXT02E:GATE corpus properties are executed without skips and runtime inve
+-    assert.deepEqual(policy.inspectSources(path.resolve(__dirname,'../src/next'),'N02-E').errors,[]);
++    assert.deepEqual(policy.inspectDevelopmentSources(path.resolve(__dirname,'../src/next'),'N02-E').errors,[]);
+diff --git a/tests/next02InstallmentSchedule.test.js b/tests/next02InstallmentSchedule.test.js
+index bdaed70aa6139ebdef3696b0eff4fb474d6f03cd..bd31ddb2e81f3b45177609b497537129d013346a 100644
+--- a/tests/next02InstallmentSchedule.test.js
++++ b/tests/next02InstallmentSchedule.test.js
+@@ -197 +197 @@ test('NEXT02B:GATE requires exact slice inventory and executed properties from b
+-    assert.deepEqual(policy.inspectSources(root, 'N02-B').errors, []);
++    assert.deepEqual(policy.inspectDevelopmentSources(root, 'N02-B').errors, []);
+diff --git a/tests/next02ObservationKernel.test.js b/tests/next02ObservationKernel.test.js
+index f238fc0485dc965638c57945d9204d9fc28d2ace..2dd7b506f2de80c7462d17d77c5bdfeada46ee77 100644
+--- a/tests/next02ObservationKernel.test.js
++++ b/tests/next02ObservationKernel.test.js
+@@ -363 +363 @@ test('NEXT02:GATE exact source tree and structured properties reject false green
+-    assert.deepEqual(policy.inspectSources(path.join(__dirname, '../src/next'), 'N02-B').errors, []);
++    assert.deepEqual(policy.inspectDevelopmentSources(path.join(__dirname, '../src/next'), 'N02-B').errors, []);
+diff --git a/tests/next02Subcategories.test.js b/tests/next02Subcategories.test.js
+index 799d9864b5b243b8e9ae71400ee87ae248b0714c..26410743ea0c39429efb5b4ffa786f5b80e293f9 100644
+--- a/tests/next02Subcategories.test.js
++++ b/tests/next02Subcategories.test.js
+@@ -165 +165 @@ test('NEXT02D:GATE subcategory IDs bind to executed properties without enlarging
+-    assert.deepEqual(policy.inspectSources(path.resolve(__dirname,'../src/next'),'N02-D').errors,[]);
++    assert.deepEqual(policy.inspectDevelopmentSources(path.resolve(__dirname,'../src/next'),'N02-D').errors,[]);
+diff --git a/tests/openFinanceIncomeSaveProposal.test.js b/tests/openFinanceIncomeSaveProposal.test.js
+index 6321a15c0f2a86707edfe68321896bb068200efa..a3d172cc0ed1f27cd834030db25181f0cc4b0b51 100644
+--- a/tests/openFinanceIncomeSaveProposal.test.js
++++ b/tests/openFinanceIncomeSaveProposal.test.js
+@@ -348 +348,2 @@ test('38.2 guided review uses only income categories, receipt methods and accoun
+-test('38.2 promotes one decided income into one actor-bound durable proposal', async () => {
++test('38.2 promotes one decided income into one actor-bound durable proposal', async t => {
++    t.mock.timers.enable({ apis: ['Date'], now: new Date('2026-08-10T12:01:00.000Z') });
+diff --git a/tests/openFinanceProactiveIncomeRefund.test.js b/tests/openFinanceProactiveIncomeRefund.test.js
+index e2447f97c12cafdae6f359b3735e330dad256463..a47107fa40640473d4436827f8d4a3503585be6d 100644
+--- a/tests/openFinanceProactiveIncomeRefund.test.js
++++ b/tests/openFinanceProactiveIncomeRefund.test.js
+@@ -491 +491,2 @@ test('gate 36 outbox binds one actionable semantic review without creating a sav
+-test('gate 36 public review command is explicit, durable and never writes', () => {
++test('gate 36 public review command is explicit, durable and never writes', t => {
++    t.mock.timers.enable({ apis: ['Date'], now: new Date('2026-08-09T15:00:00.000Z') });
+@@ -578 +579,2 @@ test('gate 36 public review command reports expiry without falling through to wr
+-test('gate 37 real canary runtime persists income and reserve reviews with zero writes', async () => {
++test('gate 37 real canary runtime persists income and reserve reviews with zero writes', async t => {
++    t.mock.timers.enable({ apis: ['Date'], now: new Date('2026-08-09T15:00:00.000Z') });

@@ -127,12 +127,45 @@ selected_nodes e required_nodes são conceitos distintos: um registro examinado
 para exclusão pertence às leituras, mas pode estar fora da seleção financeira.
 required_nodes é o inventário de nós examinados/consumidos na fase.
 required_selections coincide exatamente com os pares candidate_set/selected_set
-de selections. selected_nodes é a união exata dos sets dessas operações,
-observada pelo recorder por fase. Não copiar a seleção autorada nem tratar
-leitura como seleção. Em grafo derivado sem selections, selected_nodes é vazio;
+das operações atribuídas àquela fase pela regra de bindings abaixo.
+selected_nodes é a união exata dos sets dessas operações, observada pelo
+recorder por fase. Não copiar a seleção autorada nem tratar leitura como
+seleção. Em grafo derivado sem selections, selected_nodes é vazio;
 os pais consumidos diretamente permanecem em required_nodes/required_reads.
 Nenhum nó adicional pode ser admitido só para inflar a prova; seus papéis devem
 ser necessários aos operands ou às obrigações explicitamente justificadas.
+
+### Seleção por fase — correção normativa N02G-SB-001
+
+`selections` continua sendo a autoria completa da escolha financeira, inclusive
+predicados dos selecionados e exclusões. Proof deve executar **todas** essas
+seleções e cobrir todos os candidatos, seus campos e estruturas causais. Essa
+obrigação não pode ser removida porque a derivation usa um operando já ligado.
+
+Antes da execução, cada par é classificado pelos operand_bindings do claim:
+
+- Havendo exatamente um role `node_set` cujo roster coincide, inclusive ordem,
+  com o candidate_set, a seleção é obrigatória também em derivation.
+- Sem esse role, somente é admitido o caso prebound: selected_set não vazio e
+  cada membro explicitamente ligado por um role `node`. Essa seleção pertence
+  apenas a proof. A derivation consome esses operandos e mantém seus
+  required_nodes/required_reads, sem afirmar uma seleção que não executa.
+- Mais de um role candidato, ou ausência de um dos dois bindings acima, falha
+  fechado. Não escolher role por resultado, nome de métrica ou fact_key.
+
+required_selections de cada fase deve ser exatamente a lista classificada;
+selected_nodes é sua união, vazia se não há operação de seleção nessa fase.
+Não confundir ausência de seleção com uma seleção executada cujo resultado é
+vazio: a segunda ainda exige eventos e cobertura dos candidatos examinados.
+Toda fase com seleção cobre todos os candidatos em required_nodes e reads,
+incluindo excluídos. O binding prebound não dispensa a prova da escolha e não
+autoriza preencher derivation com eventos de proof ou de resolução estática.
+
+A regra é declaração de obrigação anterior à execução, nunca comparação
+preenchida a partir do actual. A aceitação final continua exigindo ambas as
+fases e todos os demais gates; ausência de seleção derivacional não concede
+aceitação parcial. Esta correção foi autorizada por Daniel em 2026-09-18 e
+permanece candidata à auditoria focal antes de ratificação/GO.
 
 Fingerprint exige os campos materiais completos do nó. Esses acessos pertencem
 à fase proof e devem aparecer em seu contrato, mesmo quando a fórmula lê apenas

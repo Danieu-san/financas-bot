@@ -35,6 +35,12 @@ continua estimated. required_nodes inclui examinados e operandos diretos;
 selected_nodes depende das operações em required_selections, conforme
 temporal-relations-decision-v1.md.
 
+Na correção N02G-SB-001, a atribuição de seleção às fases é regida pelo §4 de
+graph-binding-contract-v1.md: node_set candidato exige seleção derivacional;
+operandos node previamente ligados são consumidos sem simular seleção nessa
+fase. Proof continua examinando e selecionando os candidatos, inclusive os
+excluídos. Nenhum role, fórmula ou valor esperado muda por essa distinção.
+
 A política evaluation-policy-v1.json registra calendário, timezone, critério e
 direção de ranking, desempate e parâmetros do ritmo diário. O snapshot policy
 é medido sobre esses bytes e seus campos materiais entram no fingerprint.

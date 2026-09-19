@@ -165,5 +165,5 @@ test('NEXT02E:GATE corpus properties are executed without skips and runtime inve
     const failed=structuredClone(events);failed.at(-1).type='test:fail';
     assert.ok(policy.validatePropertyEvents(failed,'N02-E').errors.length);
     assert.ok(policy.validatePropertyEvents(events.slice(0,-1).concat({type:'test:stdout',data:{message:events.at(-1).data.name}}),'N02-E').errors.length);
-    assert.deepEqual(policy.inspectSources(path.resolve(__dirname,'../src/next'),'N02-E').errors,[]);
+    assert.deepEqual(policy.inspectDevelopmentSources(path.resolve(__dirname,'../src/next'),'N02-E').errors,[]);
 });

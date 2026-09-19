@@ -174,6 +174,21 @@ function selectionCheck(trace, overrides = {}) {
         ...overrides });
 }
 
+test('N02G:TRACE-SELECTION-008 no selection means zero events, not an empty selected view', () => {
+    const absent = { bindings: [], expected: { required_selections: [], selected_nodes: [] } };
+    assert.equal(selectionCheck(selectionTrace(set => set.at(0).get('amount')), absent).matched, true);
+    for (const predicate of [() => false, () => true]) {
+        const trace = selectionTrace(set => set.select(predicate));
+        const result = selectionCheck(trace, absent);
+        assert.equal(result.matched, false);
+        assert.ok(result.errors.some(e => e.code === 'unbound_selection'));
+    }
+    const proof = selectionTrace(set => set.select(n => n.get('amount') === 1), 'proof');
+    assert.equal(selectionCheck(proof, absent).matched, true);
+    assert.equal(selectionCheck(proof).matched, false);
+    assert.equal(selectionCheck(proof, { phase: 'proof' }).matched, true);
+});
+
 test('N02G:TRACE-SELECTION-001 observed decisions, not reads or authored members, define the selected set', () => {
     const trace = selectionTrace(set => { for (const node of set.select(node => node.get('amount') === 1)) node.get('amount'); });
     const before = JSON.stringify(trace); const result = selectionCheck(trace);

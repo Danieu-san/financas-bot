@@ -345,7 +345,8 @@ test('38.2 guided review uses only income categories, receipt methods and accoun
     }
 });
 
-test('38.2 promotes one decided income into one actor-bound durable proposal', async () => {
+test('38.2 promotes one decided income into one actor-bound durable proposal', async t => {
+    t.mock.timers.enable({ apis: ['Date'], now: new Date('2026-08-10T12:01:00.000Z') });
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'finbot-income-promotion-'));
     const paths = {
         secret: path.join(directory, 'secret.txt'),
