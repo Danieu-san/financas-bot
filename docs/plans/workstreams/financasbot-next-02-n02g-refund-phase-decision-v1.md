@@ -1,6 +1,7 @@
 # N02-G — proposta de responsabilidade de fase para refund_amount
 
-Data: 2026-09-20. Estado: PROPOSTA REVISADA, aguardando nova revisão independente.
+Data: 2026-09-20. Estado: DESENHO APTO PARA IMPLEMENTAR no parecer independente
+do hash `8a95579e8959196ea184d0ed322bd3b464cc35f6`; código ainda não aprovado.
 Base inspecionada: `22e7616b7ed7cb984a26193d53f4fd736ae1c3f6`.
 Escopo desta revisão: proposta, extrato mecânico e recibo da primeira revisão.
 Nenhuma mudança normativa,
@@ -94,7 +95,7 @@ pelo mês do alvo: não acrescentar leitura de sua data para esse fim.
 
 | Condição | Fundamento e situação |
 | --- | --- |
-| Candidato é compensação e tem vínculo ao evento compensado | Semântica literal do evaluator-contract/refund_amount; e0004/e0005 e respectivos predicados de alvo no extrato. |
+| Candidato é compensação e tem vínculo ao evento compensado | A exigência compensation vem da semântica literal do evaluator-contract/refund_amount. e0004/e0005 e seus predicados provam os targets das referências, não o valor econômico kind=compensation. |
 | Mesma pessoa | Predicado existente link_2_refund_person em economic_links, além da implementação. Duplicar a checagem em derivation não remove a obrigação de proof. |
 | Pessoa resolvida | Aresta e0002 já exigida em derivation; p0018_target e p0051_kind/p0052_fingerprint pertencem a proof. Proposta derivacional: ler person_id do estorno, seguir e0002, verificar kind person e igualdade com id do alvo. Não ler família ou nome. |
 | Alvo distinto do candidato | Esclarecimento proposto do significado de compensar outro evento; o grafo atual liga dois nós distintos. Não afirmar que existe predicado genérico explícito de desigualdade já executado. |

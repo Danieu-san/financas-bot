@@ -43,3 +43,28 @@ Permitida somente após nova evidência material e novo hash. Proposta revisada
 e extrato não constituem, por si, parecer aprovado. Código local posterior ao
 commit de base permanece fora deste pacote documental. A revisão seguinte
 deve declarar o alcance real da leitura do extrato e da emenda semântica.
+
+## Segunda tentativa — desenho APTO (2026-09-20)
+
+Candidato: `8a95579e8959196ea184d0ed322bd3b464cc35f6`, pai `614abbe...`.
+Conversa limpa, GPT-5.6 Sol/Alta, uma tentativa para o novo hash.
+O auditor confirmou o candidato/pai e os três documentos do delta. Leu
+proposta, extrato integral dos dois grafos, contrato refund_amount, binding,
+metricEffects e seus casos publicados. Não leu o blob integral de grafos;
+igualdade extrato/origem permanece evidência local, não execução do auditor.
+
+Veredito: **APTO para implementar o desenho e a emenda**, sem bloqueador
+crítico/alto/médio. Condição: a admissibilidade confirmed/expense deve entrar
+deliberadamente no contrato da métrica, não apenas no trace. Inventários de
+cinco nós, 16 reads e quatro arestas são coerentes; pessoa usa e0002 e ID do
+alvo, sem simular a travessia e0006. Proof deve permanecer inalterada.
+
+Achado baixo: separar a origem semântica de compensation da função das arestas
+e0004/e0005, que apenas ligam referências. Precisão incorporada à redação.
+Confronto local: os inventários propostos usam somente campos/nós/arestas já
+presentes em proof; acrescentam quatro nós, dez reads e duas arestas a cada
+derivation, sem exigir alteração da prova. Essa checagem não é aceitação runtime.
+
+Não houve execução externa de testes/host/recorder nem GO de código, do gate
+global ou produção. Implementação, REDs, validação e auditoria do futuro
+candidato de código continuam obrigatórios.
