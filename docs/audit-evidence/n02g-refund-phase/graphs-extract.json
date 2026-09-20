@@ -1,0 +1,3359 @@
+{
+  "purpose": "review_only_full_graph_objects_not_normative_authority",
+  "source_commit": "614abbe9d5088ed756794f276a863fb34360948e",
+  "source_path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+  "source_git_blob": "85e57c5916a17ebd88a0327e4cdcd59c33f0c213",
+  "source_sha256": "62419d3292e37156eb6e970daddb544a688bf527df1c1d0cfe0577944fea7970",
+  "source_bytes": 4955430,
+  "source_graph_count": 76,
+  "extraction": "JSON parse of immutable Git blob; complete objects, property/array order retained; whitespace reformatted",
+  "source_header": {
+    "schema_version": 2,
+    "stage": "authoring",
+    "contract_id": "NEXT-GOLDEN-PROVENANCE-V2",
+    "claim_contract": {
+      "path": "docs/contracts/next/provenance-v2/claims-v2.json",
+      "hash": "sha256:4810612761ea7f232e4445c0d192ae53ebf0761f0ba8752da758efb826b30494"
+    },
+    "snapshot_manifest": {
+      "path": "docs/contracts/next/provenance-v2/snapshot-manifest-v1.json",
+      "hash": "sha256:2547229db3c07f2dd0941601ab5164bf89981ce966e4e23a2e3058124edba8c4"
+    },
+    "material_registry": {
+      "path": "docs/contracts/next/provenance-v2/material-field-registry-v1.json",
+      "hash": "sha256:ee7ef3eff146bc2e9cea2cc986c398371acbff3cf35d858ced8386a9758a4d62"
+    },
+    "operator_registry": {
+      "path": "docs/contracts/next/provenance-v2/operator-registry-v2.json",
+      "hash": "sha256:d28eb3dfbf7ea6949c1ff696e9f9bc7aa572c3ab8433a06d316936092a2dcac7"
+    },
+    "metric_evaluator_registry": {
+      "path": "docs/contracts/next/provenance-v2/metric-evaluator-registry-v1.json",
+      "hash": "sha256:61082b9cd31f2bd2627ffb129519126fc920a65b01a7387ce18df740b9d896eb"
+    }
+  },
+  "graph_sha256": [
+    {
+      "fact_key": "M-06#1#2",
+      "preimage": "UTF-8 JSON.stringify(full parsed graph)",
+      "sha256": "77bf87f5350c1734a39494d446eb6bbe4af64b3b118c67d96306170037faaa13"
+    },
+    {
+      "fact_key": "F-06#2#1",
+      "preimage": "UTF-8 JSON.stringify(full parsed graph)",
+      "sha256": "e9dc4e657a9e0f55725fffbbe5bff6e8ce9becc648f020cadbff9e9f95cd3d6f"
+    }
+  ],
+  "graphs": [
+    {
+      "fact_key": "M-06#1#2",
+      "claim_id": "claim-M-06#1#2",
+      "nodes": {
+        "next_golden_financial_v1": {
+          "binding": "snapshot",
+          "ref_id": "NEXT-GOLDEN-FINANCIAL-V1",
+          "kind": "fixture",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:c16747859756cdfdf59378c5f28d0b69cb86a5f732022701d5d3c10b5a92853b",
+          "roles": [
+            "link_proof"
+          ]
+        },
+        "card_green": {
+          "binding": "snapshot",
+          "ref_id": "card-green",
+          "kind": "card",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:389b9ae67176263c281c5d7f9765c24af08ee88793554dc6ab2cee2bf35f1e2f",
+          "roles": [
+            "link_proof"
+          ]
+        },
+        "evt_refund_b": {
+          "binding": "snapshot",
+          "ref_id": "evt-refund-b",
+          "kind": "event",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:528251b1dfe5dfd5071cb5c65bcd175523803eb563c7b7a86410d282563bb466",
+          "roles": [
+            "value_input"
+          ]
+        },
+        "evt_restaurant_b": {
+          "binding": "snapshot",
+          "ref_id": "evt-restaurant-b",
+          "kind": "event",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:66a132ccbd33680ba7c80e3a3d1b603e8923612da1d9713db631a79ee0077366",
+          "roles": [
+            "link_proof"
+          ]
+        },
+        "family_example": {
+          "binding": "snapshot",
+          "ref_id": "family-example",
+          "kind": "family",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:7653bf0250d2422b32119aec2ba137b0da2ba5aa42eb50833e91a26badb389e6",
+          "roles": [
+            "link_proof"
+          ]
+        },
+        "food_restaurant": {
+          "binding": "snapshot",
+          "ref_id": "food.restaurant",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:f510e2b44dff81c555e6ea65173b0c8e6e6fa884ed0dacd1e48c8aff1f79593f",
+          "roles": [
+            "link_proof"
+          ]
+        },
+        "neutral_refund": {
+          "binding": "snapshot",
+          "ref_id": "neutral.refund",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:372397028e01b2da4309d900affe636c3625e6776154b52330a06fac1255ad25",
+          "roles": [
+            "link_proof"
+          ]
+        },
+        "person_a": {
+          "binding": "snapshot",
+          "ref_id": "person-a",
+          "kind": "person",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:37b8d4a3ec13a7498756b5dcda9162338e06c91d57465288ab3512cf07ac67c6",
+          "roles": [
+            "link_proof"
+          ]
+        },
+        "person_b": {
+          "binding": "snapshot",
+          "ref_id": "person-b",
+          "kind": "person",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:0727eed1b087b390effd2b0bc018c08907be89c583a820d3df42ed74add4bf13",
+          "roles": [
+            "link_proof"
+          ]
+        }
+      },
+      "sets": {
+        "candidates": [
+          "evt_refund_b"
+        ],
+        "selected": [
+          "evt_refund_b"
+        ]
+      },
+      "predicates": [
+        {
+          "id": "p0001_kind",
+          "obligation": "node_identity",
+          "atom": "identity",
+          "op": "kind_is",
+          "args": [
+            {
+              "node": "next_golden_financial_v1"
+            },
+            {
+              "literal": {
+                "type": "kind",
+                "value": "fixture"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0002_fingerprint",
+          "obligation": "semantic_integrity",
+          "atom": "fingerprint",
+          "op": "fingerprint_is",
+          "args": [
+            {
+              "node": "next_golden_financial_v1"
+            },
+            {
+              "literal": {
+                "type": "digest",
+                "value": "sha256:c16747859756cdfdf59378c5f28d0b69cb86a5f732022701d5d3c10b5a92853b"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0008_kind",
+          "obligation": "node_identity",
+          "atom": "identity",
+          "op": "kind_is",
+          "args": [
+            {
+              "node": "card_green"
+            },
+            {
+              "literal": {
+                "type": "kind",
+                "value": "card"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0009_fingerprint",
+          "obligation": "semantic_integrity",
+          "atom": "fingerprint",
+          "op": "fingerprint_is",
+          "args": [
+            {
+              "node": "card_green"
+            },
+            {
+              "literal": {
+                "type": "digest",
+                "value": "sha256:389b9ae67176263c281c5d7f9765c24af08ee88793554dc6ab2cee2bf35f1e2f"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0011_target",
+          "obligation": "economic_links",
+          "atom": "edge",
+          "op": "ref_targets_node",
+          "args": [
+            {
+              "edge": "e0001"
+            },
+            {
+              "node": "person_b"
+            }
+          ]
+        },
+        {
+          "id": "p0014_kind",
+          "obligation": "node_identity",
+          "atom": "identity",
+          "op": "kind_is",
+          "args": [
+            {
+              "node": "evt_refund_b"
+            },
+            {
+              "literal": {
+                "type": "kind",
+                "value": "event"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0015_fingerprint",
+          "obligation": "semantic_integrity",
+          "atom": "fingerprint",
+          "op": "fingerprint_is",
+          "args": [
+            {
+              "node": "evt_refund_b"
+            },
+            {
+              "literal": {
+                "type": "digest",
+                "value": "sha256:528251b1dfe5dfd5071cb5c65bcd175523803eb563c7b7a86410d282563bb466"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0018_target",
+          "obligation": "economic_links",
+          "atom": "edge",
+          "op": "ref_targets_node",
+          "args": [
+            {
+              "edge": "e0002"
+            },
+            {
+              "node": "person_b"
+            }
+          ]
+        },
+        {
+          "id": "p0019_target",
+          "obligation": "economic_links",
+          "atom": "edge",
+          "op": "ref_targets_node",
+          "args": [
+            {
+              "edge": "e0003"
+            },
+            {
+              "node": "card_green"
+            }
+          ]
+        },
+        {
+          "id": "p0020_target",
+          "obligation": "economic_links",
+          "atom": "edge",
+          "op": "ref_targets_node",
+          "args": [
+            {
+              "edge": "e0004"
+            },
+            {
+              "node": "neutral_refund"
+            }
+          ]
+        },
+        {
+          "id": "p0023_target",
+          "obligation": "economic_links",
+          "atom": "edge",
+          "op": "ref_targets_node",
+          "args": [
+            {
+              "edge": "e0005"
+            },
+            {
+              "node": "evt_restaurant_b"
+            }
+          ]
+        },
+        {
+          "id": "p0024_kind",
+          "obligation": "node_identity",
+          "atom": "identity",
+          "op": "kind_is",
+          "args": [
+            {
+              "node": "evt_restaurant_b"
+            },
+            {
+              "literal": {
+                "type": "kind",
+                "value": "event"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0025_fingerprint",
+          "obligation": "semantic_integrity",
+          "atom": "fingerprint",
+          "op": "fingerprint_is",
+          "args": [
+            {
+              "node": "evt_restaurant_b"
+            },
+            {
+              "literal": {
+                "type": "digest",
+                "value": "sha256:66a132ccbd33680ba7c80e3a3d1b603e8923612da1d9713db631a79ee0077366"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0028_target",
+          "obligation": "economic_links",
+          "atom": "edge",
+          "op": "ref_targets_node",
+          "args": [
+            {
+              "edge": "e0006"
+            },
+            {
+              "node": "person_b"
+            }
+          ]
+        },
+        {
+          "id": "p0029_target",
+          "obligation": "economic_links",
+          "atom": "edge",
+          "op": "ref_targets_node",
+          "args": [
+            {
+              "edge": "e0007"
+            },
+            {
+              "node": "card_green"
+            }
+          ]
+        },
+        {
+          "id": "p0030_target",
+          "obligation": "economic_links",
+          "atom": "edge",
+          "op": "ref_targets_node",
+          "args": [
+            {
+              "edge": "e0008"
+            },
+            {
+              "node": "food_restaurant"
+            }
+          ]
+        },
+        {
+          "id": "p0033_kind",
+          "obligation": "node_identity",
+          "atom": "identity",
+          "op": "kind_is",
+          "args": [
+            {
+              "node": "family_example"
+            },
+            {
+              "literal": {
+                "type": "kind",
+                "value": "family"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0034_fingerprint",
+          "obligation": "semantic_integrity",
+          "atom": "fingerprint",
+          "op": "fingerprint_is",
+          "args": [
+            {
+              "node": "family_example"
+            },
+            {
+              "literal": {
+                "type": "digest",
+                "value": "sha256:7653bf0250d2422b32119aec2ba137b0da2ba5aa42eb50833e91a26badb389e6"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0036_target",
+          "obligation": "economic_links",
+          "atom": "edge",
+          "op": "ref_targets_node",
+          "args": [
+            {
+              "edge": "e0009"
+            },
+            {
+              "node": "person_a"
+            }
+          ]
+        },
+        {
+          "id": "p0037_target",
+          "obligation": "economic_links",
+          "atom": "edge",
+          "op": "ref_targets_node",
+          "args": [
+            {
+              "edge": "e0010"
+            },
+            {
+              "node": "person_b"
+            }
+          ]
+        },
+        {
+          "id": "p0038_kind",
+          "obligation": "node_identity",
+          "atom": "identity",
+          "op": "kind_is",
+          "args": [
+            {
+              "node": "food_restaurant"
+            },
+            {
+              "literal": {
+                "type": "kind",
+                "value": "category"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0039_fingerprint",
+          "obligation": "semantic_integrity",
+          "atom": "fingerprint",
+          "op": "fingerprint_is",
+          "args": [
+            {
+              "node": "food_restaurant"
+            },
+            {
+              "literal": {
+                "type": "digest",
+                "value": "sha256:f510e2b44dff81c555e6ea65173b0c8e6e6fa884ed0dacd1e48c8aff1f79593f"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0043_kind",
+          "obligation": "node_identity",
+          "atom": "identity",
+          "op": "kind_is",
+          "args": [
+            {
+              "node": "neutral_refund"
+            },
+            {
+              "literal": {
+                "type": "kind",
+                "value": "category"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0044_fingerprint",
+          "obligation": "semantic_integrity",
+          "atom": "fingerprint",
+          "op": "fingerprint_is",
+          "args": [
+            {
+              "node": "neutral_refund"
+            },
+            {
+              "literal": {
+                "type": "digest",
+                "value": "sha256:372397028e01b2da4309d900affe636c3625e6776154b52330a06fac1255ad25"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0047_kind",
+          "obligation": "node_identity",
+          "atom": "identity",
+          "op": "kind_is",
+          "args": [
+            {
+              "node": "person_a"
+            },
+            {
+              "literal": {
+                "type": "kind",
+                "value": "person"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0048_fingerprint",
+          "obligation": "semantic_integrity",
+          "atom": "fingerprint",
+          "op": "fingerprint_is",
+          "args": [
+            {
+              "node": "person_a"
+            },
+            {
+              "literal": {
+                "type": "digest",
+                "value": "sha256:37b8d4a3ec13a7498756b5dcda9162338e06c91d57465288ab3512cf07ac67c6"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0050_target",
+          "obligation": "economic_links",
+          "atom": "edge",
+          "op": "ref_targets_node",
+          "args": [
+            {
+              "edge": "e0011"
+            },
+            {
+              "node": "family_example"
+            }
+          ]
+        },
+        {
+          "id": "p0051_kind",
+          "obligation": "node_identity",
+          "atom": "identity",
+          "op": "kind_is",
+          "args": [
+            {
+              "node": "person_b"
+            },
+            {
+              "literal": {
+                "type": "kind",
+                "value": "person"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0052_fingerprint",
+          "obligation": "semantic_integrity",
+          "atom": "fingerprint",
+          "op": "fingerprint_is",
+          "args": [
+            {
+              "node": "person_b"
+            },
+            {
+              "literal": {
+                "type": "digest",
+                "value": "sha256:0727eed1b087b390effd2b0bc018c08907be89c583a820d3df42ed74add4bf13"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0054_target",
+          "obligation": "economic_links",
+          "atom": "edge",
+          "op": "ref_targets_node",
+          "args": [
+            {
+              "edge": "e0012"
+            },
+            {
+              "node": "family_example"
+            }
+          ]
+        },
+        {
+          "id": "p0055_selected_period",
+          "obligation": "period",
+          "atom": "period",
+          "op": "date_in_period",
+          "args": [
+            {
+              "field": {
+                "node": "evt_refund_b",
+                "segments": [
+                  "date"
+                ]
+              }
+            },
+            {
+              "claim": {
+                "segments": [
+                  "period"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0056_selected_state",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "state_is",
+          "args": [
+            {
+              "field": {
+                "node": "evt_refund_b",
+                "segments": [
+                  "state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        },
+        {
+          "id": "link_1_refund_sign",
+          "obligation": "economic_links",
+          "atom": "edge",
+          "op": "opposite_sign",
+          "args": [
+            {
+              "field": {
+                "node": "evt_refund_b",
+                "segments": [
+                  "amount_minor"
+                ]
+              }
+            },
+            {
+              "field": {
+                "node": "evt_restaurant_b",
+                "segments": [
+                  "amount_minor"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "link_2_refund_person",
+          "obligation": "economic_links",
+          "atom": "edge",
+          "op": "field_eq",
+          "args": [
+            {
+              "field": {
+                "node": "evt_refund_b",
+                "segments": [
+                  "person_id"
+                ]
+              }
+            },
+            {
+              "field": {
+                "node": "evt_restaurant_b",
+                "segments": [
+                  "person_id"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "link_3_refund_card",
+          "obligation": "economic_links",
+          "atom": "edge",
+          "op": "field_eq",
+          "args": [
+            {
+              "field": {
+                "node": "evt_refund_b",
+                "segments": [
+                  "card_id"
+                ]
+              }
+            },
+            {
+              "field": {
+                "node": "evt_restaurant_b",
+                "segments": [
+                  "card_id"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "binding_1",
+          "obligation": "period",
+          "atom": "period",
+          "op": "period_eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "period"
+                ]
+              }
+            },
+            {
+              "period_literal": {
+                "kind": "month",
+                "value": "2042-06"
+              }
+            }
+          ]
+        },
+        {
+          "id": "binding_2",
+          "obligation": "time_basis",
+          "atom": "time_basis",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "time_basis"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "event_date"
+              }
+            }
+          ]
+        },
+        {
+          "id": "binding_3",
+          "obligation": "coverage",
+          "atom": "coverage",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "complete"
+              }
+            }
+          ]
+        },
+        {
+          "id": "binding_4",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        },
+        {
+          "id": "binding_5",
+          "obligation": "subject_scope",
+          "atom": "subject",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "subject",
+                  "kind"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "event"
+              }
+            }
+          ]
+        },
+        {
+          "id": "binding_6",
+          "obligation": "subject_scope",
+          "atom": "subject",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "subject",
+                  "ref_id"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "id",
+                "value": "evt-refund-b"
+              }
+            }
+          ]
+        },
+        {
+          "id": "binding_7",
+          "obligation": "subject_scope",
+          "atom": "subject",
+          "op": "eq",
+          "args": [
+            {
+              "field": {
+                "node": "evt_refund_b",
+                "segments": [
+                  "id"
+                ]
+              }
+            },
+            {
+              "claim": {
+                "segments": [
+                  "subject",
+                  "ref_id"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "binding_8",
+          "obligation": "coverage",
+          "atom": "coverage",
+          "op": "eq",
+          "args": [
+            {
+              "field": {
+                "node": "next_golden_financial_v1",
+                "segments": [
+                  "closed_world"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "boolean",
+                "value": true
+              }
+            }
+          ]
+        },
+        {
+          "id": "binding_9",
+          "obligation": "coverage",
+          "atom": "coverage",
+          "op": "eq",
+          "args": [
+            {
+              "field": {
+                "node": "next_golden_financial_v1",
+                "segments": [
+                  "synthetic"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "boolean",
+                "value": true
+              }
+            }
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "id": "e0001",
+          "source": "card_green",
+          "field": "owner_id",
+          "target": "person_b",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0011_target"
+          ]
+        },
+        {
+          "id": "e0002",
+          "source": "evt_refund_b",
+          "field": "person_id",
+          "target": "person_b",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0018_target"
+          ]
+        },
+        {
+          "id": "e0003",
+          "source": "evt_refund_b",
+          "field": "card_id",
+          "target": "card_green",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0019_target"
+          ]
+        },
+        {
+          "id": "e0004",
+          "source": "evt_refund_b",
+          "field": "category_id",
+          "target": "neutral_refund",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0020_target"
+          ]
+        },
+        {
+          "id": "e0005",
+          "source": "evt_refund_b",
+          "field": "compensates",
+          "target": "evt_restaurant_b",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0023_target"
+          ]
+        },
+        {
+          "id": "e0006",
+          "source": "evt_restaurant_b",
+          "field": "person_id",
+          "target": "person_b",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0028_target"
+          ]
+        },
+        {
+          "id": "e0007",
+          "source": "evt_restaurant_b",
+          "field": "card_id",
+          "target": "card_green",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0029_target"
+          ]
+        },
+        {
+          "id": "e0008",
+          "source": "evt_restaurant_b",
+          "field": "category_id",
+          "target": "food_restaurant",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0030_target"
+          ]
+        },
+        {
+          "id": "e0009",
+          "source": "family_example",
+          "field": "members",
+          "target": "person_a",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0036_target"
+          ]
+        },
+        {
+          "id": "e0010",
+          "source": "family_example",
+          "field": "members",
+          "target": "person_b",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0037_target"
+          ]
+        },
+        {
+          "id": "e0011",
+          "source": "person_a",
+          "field": "family_id",
+          "target": "family_example",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0050_target"
+          ]
+        },
+        {
+          "id": "e0012",
+          "source": "person_b",
+          "field": "family_id",
+          "target": "family_example",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0054_target"
+          ]
+        }
+      ],
+      "obligations": [
+        {
+          "obligation": "claim_semantics",
+          "predicates": [],
+          "checks": [
+            "claim_registry_binding"
+          ]
+        },
+        {
+          "obligation": "node_identity",
+          "predicates": [
+            "p0001_kind",
+            "p0008_kind",
+            "p0014_kind",
+            "p0024_kind",
+            "p0033_kind",
+            "p0038_kind",
+            "p0043_kind",
+            "p0047_kind",
+            "p0051_kind"
+          ],
+          "checks": [
+            "snapshot_identity"
+          ]
+        },
+        {
+          "obligation": "semantic_integrity",
+          "predicates": [
+            "p0002_fingerprint",
+            "p0009_fingerprint",
+            "p0015_fingerprint",
+            "p0025_fingerprint",
+            "p0034_fingerprint",
+            "p0039_fingerprint",
+            "p0044_fingerprint",
+            "p0048_fingerprint",
+            "p0052_fingerprint"
+          ],
+          "checks": [
+            "all_material_fingerprints"
+          ]
+        },
+        {
+          "obligation": "subject_scope",
+          "predicates": [
+            "binding_5",
+            "binding_6",
+            "binding_7"
+          ],
+          "checks": [
+            "typed_subject_binding"
+          ]
+        },
+        {
+          "obligation": "period",
+          "predicates": [
+            "p0055_selected_period",
+            "binding_1"
+          ],
+          "checks": [
+            "typed_period_binding"
+          ]
+        },
+        {
+          "obligation": "time_basis",
+          "predicates": [
+            "binding_2"
+          ],
+          "checks": [
+            "time_field_reads"
+          ]
+        },
+        {
+          "obligation": "coverage",
+          "predicates": [
+            "binding_3",
+            "binding_8",
+            "binding_9"
+          ],
+          "checks": [
+            "source_collection_completeness"
+          ]
+        },
+        {
+          "obligation": "evidence_state",
+          "predicates": [
+            "p0056_selected_state",
+            "binding_4"
+          ],
+          "checks": [
+            "typed_evidence_state"
+          ]
+        },
+        {
+          "obligation": "evidence_set",
+          "predicates": [],
+          "checks": [
+            "exact_evidence_set"
+          ]
+        },
+        {
+          "obligation": "economic_links",
+          "predicates": [
+            "p0011_target",
+            "p0018_target",
+            "p0019_target",
+            "p0020_target",
+            "p0023_target",
+            "p0028_target",
+            "p0029_target",
+            "p0030_target",
+            "p0036_target",
+            "p0037_target",
+            "p0050_target",
+            "p0054_target",
+            "link_1_refund_sign",
+            "link_2_refund_person",
+            "link_3_refund_card"
+          ],
+          "checks": [
+            "all_material_edges"
+          ]
+        },
+        {
+          "obligation": "derivation_trace",
+          "predicates": [],
+          "checks": [
+            "exact_observed_trace"
+          ]
+        }
+      ],
+      "trace_contract": {
+        "derivation": {
+          "required_nodes": [
+            "evt_refund_b"
+          ],
+          "required_reads": [
+            {
+              "node": "evt_refund_b",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "segments": [
+                "date"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "segments": [
+                "person_id"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "segments": [
+                "category_id"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "segments": [
+                "amount_minor"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "segments": [
+                "state"
+              ]
+            }
+          ],
+          "required_claim_reads": [
+            {
+              "segments": [
+                "subject",
+                "kind"
+              ]
+            },
+            {
+              "segments": [
+                "subject",
+                "ref_id"
+              ]
+            },
+            {
+              "segments": [
+                "period",
+                "kind"
+              ]
+            },
+            {
+              "segments": [
+                "period",
+                "value"
+              ]
+            },
+            {
+              "segments": [
+                "time_basis"
+              ]
+            }
+          ],
+          "required_edges": [
+            "e0002",
+            "e0004"
+          ],
+          "required_structural": [],
+          "selected_nodes": [
+            "evt_refund_b"
+          ],
+          "evidence_set_mode": "exact",
+          "required_selections": [
+            {
+              "candidate_set": "candidates",
+              "selected_set": "selected"
+            }
+          ]
+        },
+        "proof": {
+          "required_nodes": [
+            "next_golden_financial_v1",
+            "card_green",
+            "evt_refund_b",
+            "evt_restaurant_b",
+            "family_example",
+            "food_restaurant",
+            "neutral_refund",
+            "person_a",
+            "person_b"
+          ],
+          "required_reads": [
+            {
+              "node": "next_golden_financial_v1",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "next_golden_financial_v1",
+              "segments": [
+                "synthetic"
+              ]
+            },
+            {
+              "node": "next_golden_financial_v1",
+              "segments": [
+                "closed_world"
+              ]
+            },
+            {
+              "node": "next_golden_financial_v1",
+              "segments": [
+                "currency"
+              ]
+            },
+            {
+              "node": "next_golden_financial_v1",
+              "segments": [
+                "fixed_clock"
+              ]
+            },
+            {
+              "node": "card_green",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "card_green",
+              "segments": [
+                "owner_id"
+              ]
+            },
+            {
+              "node": "card_green",
+              "segments": [
+                "closing_day"
+              ]
+            },
+            {
+              "node": "card_green",
+              "segments": [
+                "due_day"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "segments": [
+                "date"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "segments": [
+                "person_id"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "segments": [
+                "card_id"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "segments": [
+                "category_id"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "segments": [
+                "amount_minor"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "segments": [
+                "state"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "segments": [
+                "compensates"
+              ]
+            },
+            {
+              "node": "evt_restaurant_b",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "evt_restaurant_b",
+              "segments": [
+                "date"
+              ]
+            },
+            {
+              "node": "evt_restaurant_b",
+              "segments": [
+                "person_id"
+              ]
+            },
+            {
+              "node": "evt_restaurant_b",
+              "segments": [
+                "card_id"
+              ]
+            },
+            {
+              "node": "evt_restaurant_b",
+              "segments": [
+                "category_id"
+              ]
+            },
+            {
+              "node": "evt_restaurant_b",
+              "segments": [
+                "amount_minor"
+              ]
+            },
+            {
+              "node": "evt_restaurant_b",
+              "segments": [
+                "state"
+              ]
+            },
+            {
+              "node": "family_example",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "family_example",
+              "segments": [
+                "members"
+              ]
+            },
+            {
+              "node": "food_restaurant",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "food_restaurant",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "food_restaurant",
+              "segments": [
+                "budget_class"
+              ]
+            },
+            {
+              "node": "neutral_refund",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "neutral_refund",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "person_a",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "person_a",
+              "segments": [
+                "family_id"
+              ]
+            },
+            {
+              "node": "person_b",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "person_b",
+              "segments": [
+                "family_id"
+              ]
+            }
+          ],
+          "required_claim_reads": [
+            {
+              "segments": [
+                "claim_id"
+              ]
+            },
+            {
+              "segments": [
+                "fact_key"
+              ]
+            },
+            {
+              "segments": [
+                "metric"
+              ]
+            },
+            {
+              "segments": [
+                "unit"
+              ]
+            },
+            {
+              "segments": [
+                "subject",
+                "kind"
+              ]
+            },
+            {
+              "segments": [
+                "subject",
+                "ref_id"
+              ]
+            },
+            {
+              "segments": [
+                "period",
+                "kind"
+              ]
+            },
+            {
+              "segments": [
+                "period",
+                "value"
+              ]
+            },
+            {
+              "segments": [
+                "time_basis"
+              ]
+            },
+            {
+              "segments": [
+                "coverage"
+              ]
+            },
+            {
+              "segments": [
+                "evidence_state"
+              ]
+            },
+            {
+              "segments": [
+                "evaluator_ref",
+                "evaluator_id"
+              ]
+            },
+            {
+              "segments": [
+                "evaluator_ref",
+                "evaluator_version"
+              ]
+            }
+          ],
+          "required_edges": [
+            "e0001",
+            "e0002",
+            "e0003",
+            "e0004",
+            "e0005",
+            "e0006",
+            "e0007",
+            "e0008",
+            "e0009",
+            "e0010",
+            "e0011",
+            "e0012"
+          ],
+          "required_structural": [
+            {
+              "node": "next_golden_financial_v1",
+              "operation": "keys",
+              "segments": []
+            },
+            {
+              "node": "card_green",
+              "operation": "keys",
+              "segments": []
+            },
+            {
+              "node": "evt_refund_b",
+              "operation": "keys",
+              "segments": []
+            },
+            {
+              "node": "evt_restaurant_b",
+              "operation": "keys",
+              "segments": []
+            },
+            {
+              "node": "family_example",
+              "operation": "iterator",
+              "segments": [
+                "members"
+              ]
+            },
+            {
+              "node": "family_example",
+              "operation": "cardinality",
+              "segments": [
+                "members"
+              ]
+            },
+            {
+              "node": "family_example",
+              "operation": "order",
+              "segments": [
+                "members"
+              ]
+            },
+            {
+              "node": "family_example",
+              "operation": "keys",
+              "segments": []
+            },
+            {
+              "node": "food_restaurant",
+              "operation": "keys",
+              "segments": []
+            },
+            {
+              "node": "neutral_refund",
+              "operation": "keys",
+              "segments": []
+            },
+            {
+              "node": "person_a",
+              "operation": "keys",
+              "segments": []
+            },
+            {
+              "node": "person_b",
+              "operation": "keys",
+              "segments": []
+            }
+          ],
+          "selected_nodes": [
+            "evt_refund_b"
+          ],
+          "evidence_set_mode": "exact",
+          "required_selections": [
+            {
+              "candidate_set": "candidates",
+              "selected_set": "selected"
+            }
+          ]
+        },
+        "producer": "external_recorder",
+        "result_channel": "separate_R"
+      },
+      "selections": [
+        {
+          "candidate_set": "candidates",
+          "selected_set": "selected",
+          "selected_predicates": [
+            "p0055_selected_period",
+            "p0056_selected_state"
+          ],
+          "excluded": []
+        }
+      ],
+      "authoring_sources": [
+        {
+          "path": "tests/fixtures/financasbot-next/golden-fact-contracts-v1.json",
+          "locator": "M-06#1#2"
+        },
+        {
+          "path": "tests/fixtures/financasbot-next/golden-conversation-set-v1.json",
+          "locator": "M-06#1"
+        },
+        {
+          "path": "docs/contracts/next/provenance-v2/evaluator-contracts/refund_amount.json",
+          "locator": "semantics"
+        }
+      ],
+      "windows": {}
+    },
+    {
+      "fact_key": "F-06#2#1",
+      "claim_id": "claim-F-06#2#1",
+      "nodes": {
+        "next_golden_financial_v1": {
+          "binding": "snapshot",
+          "ref_id": "NEXT-GOLDEN-FINANCIAL-V1",
+          "kind": "fixture",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:c16747859756cdfdf59378c5f28d0b69cb86a5f732022701d5d3c10b5a92853b",
+          "roles": [
+            "link_proof"
+          ]
+        },
+        "card_green": {
+          "binding": "snapshot",
+          "ref_id": "card-green",
+          "kind": "card",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:389b9ae67176263c281c5d7f9765c24af08ee88793554dc6ab2cee2bf35f1e2f",
+          "roles": [
+            "link_proof"
+          ]
+        },
+        "evt_refund_b": {
+          "binding": "snapshot",
+          "ref_id": "evt-refund-b",
+          "kind": "event",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:528251b1dfe5dfd5071cb5c65bcd175523803eb563c7b7a86410d282563bb466",
+          "roles": [
+            "value_input"
+          ]
+        },
+        "evt_restaurant_b": {
+          "binding": "snapshot",
+          "ref_id": "evt-restaurant-b",
+          "kind": "event",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:66a132ccbd33680ba7c80e3a3d1b603e8923612da1d9713db631a79ee0077366",
+          "roles": [
+            "link_proof"
+          ]
+        },
+        "family_example": {
+          "binding": "snapshot",
+          "ref_id": "family-example",
+          "kind": "family",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:7653bf0250d2422b32119aec2ba137b0da2ba5aa42eb50833e91a26badb389e6",
+          "roles": [
+            "link_proof"
+          ]
+        },
+        "food_restaurant": {
+          "binding": "snapshot",
+          "ref_id": "food.restaurant",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:f510e2b44dff81c555e6ea65173b0c8e6e6fa884ed0dacd1e48c8aff1f79593f",
+          "roles": [
+            "link_proof"
+          ]
+        },
+        "neutral_refund": {
+          "binding": "snapshot",
+          "ref_id": "neutral.refund",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:372397028e01b2da4309d900affe636c3625e6776154b52330a06fac1255ad25",
+          "roles": [
+            "link_proof"
+          ]
+        },
+        "person_a": {
+          "binding": "snapshot",
+          "ref_id": "person-a",
+          "kind": "person",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:37b8d4a3ec13a7498756b5dcda9162338e06c91d57465288ab3512cf07ac67c6",
+          "roles": [
+            "link_proof"
+          ]
+        },
+        "person_b": {
+          "binding": "snapshot",
+          "ref_id": "person-b",
+          "kind": "person",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:0727eed1b087b390effd2b0bc018c08907be89c583a820d3df42ed74add4bf13",
+          "roles": [
+            "link_proof"
+          ]
+        }
+      },
+      "sets": {
+        "candidates": [
+          "evt_refund_b"
+        ],
+        "selected": [
+          "evt_refund_b"
+        ]
+      },
+      "predicates": [
+        {
+          "id": "p0001_kind",
+          "obligation": "node_identity",
+          "atom": "identity",
+          "op": "kind_is",
+          "args": [
+            {
+              "node": "next_golden_financial_v1"
+            },
+            {
+              "literal": {
+                "type": "kind",
+                "value": "fixture"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0002_fingerprint",
+          "obligation": "semantic_integrity",
+          "atom": "fingerprint",
+          "op": "fingerprint_is",
+          "args": [
+            {
+              "node": "next_golden_financial_v1"
+            },
+            {
+              "literal": {
+                "type": "digest",
+                "value": "sha256:c16747859756cdfdf59378c5f28d0b69cb86a5f732022701d5d3c10b5a92853b"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0008_kind",
+          "obligation": "node_identity",
+          "atom": "identity",
+          "op": "kind_is",
+          "args": [
+            {
+              "node": "card_green"
+            },
+            {
+              "literal": {
+                "type": "kind",
+                "value": "card"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0009_fingerprint",
+          "obligation": "semantic_integrity",
+          "atom": "fingerprint",
+          "op": "fingerprint_is",
+          "args": [
+            {
+              "node": "card_green"
+            },
+            {
+              "literal": {
+                "type": "digest",
+                "value": "sha256:389b9ae67176263c281c5d7f9765c24af08ee88793554dc6ab2cee2bf35f1e2f"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0011_target",
+          "obligation": "economic_links",
+          "atom": "edge",
+          "op": "ref_targets_node",
+          "args": [
+            {
+              "edge": "e0001"
+            },
+            {
+              "node": "person_b"
+            }
+          ]
+        },
+        {
+          "id": "p0014_kind",
+          "obligation": "node_identity",
+          "atom": "identity",
+          "op": "kind_is",
+          "args": [
+            {
+              "node": "evt_refund_b"
+            },
+            {
+              "literal": {
+                "type": "kind",
+                "value": "event"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0015_fingerprint",
+          "obligation": "semantic_integrity",
+          "atom": "fingerprint",
+          "op": "fingerprint_is",
+          "args": [
+            {
+              "node": "evt_refund_b"
+            },
+            {
+              "literal": {
+                "type": "digest",
+                "value": "sha256:528251b1dfe5dfd5071cb5c65bcd175523803eb563c7b7a86410d282563bb466"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0018_target",
+          "obligation": "economic_links",
+          "atom": "edge",
+          "op": "ref_targets_node",
+          "args": [
+            {
+              "edge": "e0002"
+            },
+            {
+              "node": "person_b"
+            }
+          ]
+        },
+        {
+          "id": "p0019_target",
+          "obligation": "economic_links",
+          "atom": "edge",
+          "op": "ref_targets_node",
+          "args": [
+            {
+              "edge": "e0003"
+            },
+            {
+              "node": "card_green"
+            }
+          ]
+        },
+        {
+          "id": "p0020_target",
+          "obligation": "economic_links",
+          "atom": "edge",
+          "op": "ref_targets_node",
+          "args": [
+            {
+              "edge": "e0004"
+            },
+            {
+              "node": "neutral_refund"
+            }
+          ]
+        },
+        {
+          "id": "p0023_target",
+          "obligation": "economic_links",
+          "atom": "edge",
+          "op": "ref_targets_node",
+          "args": [
+            {
+              "edge": "e0005"
+            },
+            {
+              "node": "evt_restaurant_b"
+            }
+          ]
+        },
+        {
+          "id": "p0024_kind",
+          "obligation": "node_identity",
+          "atom": "identity",
+          "op": "kind_is",
+          "args": [
+            {
+              "node": "evt_restaurant_b"
+            },
+            {
+              "literal": {
+                "type": "kind",
+                "value": "event"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0025_fingerprint",
+          "obligation": "semantic_integrity",
+          "atom": "fingerprint",
+          "op": "fingerprint_is",
+          "args": [
+            {
+              "node": "evt_restaurant_b"
+            },
+            {
+              "literal": {
+                "type": "digest",
+                "value": "sha256:66a132ccbd33680ba7c80e3a3d1b603e8923612da1d9713db631a79ee0077366"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0028_target",
+          "obligation": "economic_links",
+          "atom": "edge",
+          "op": "ref_targets_node",
+          "args": [
+            {
+              "edge": "e0006"
+            },
+            {
+              "node": "person_b"
+            }
+          ]
+        },
+        {
+          "id": "p0029_target",
+          "obligation": "economic_links",
+          "atom": "edge",
+          "op": "ref_targets_node",
+          "args": [
+            {
+              "edge": "e0007"
+            },
+            {
+              "node": "card_green"
+            }
+          ]
+        },
+        {
+          "id": "p0030_target",
+          "obligation": "economic_links",
+          "atom": "edge",
+          "op": "ref_targets_node",
+          "args": [
+            {
+              "edge": "e0008"
+            },
+            {
+              "node": "food_restaurant"
+            }
+          ]
+        },
+        {
+          "id": "p0033_kind",
+          "obligation": "node_identity",
+          "atom": "identity",
+          "op": "kind_is",
+          "args": [
+            {
+              "node": "family_example"
+            },
+            {
+              "literal": {
+                "type": "kind",
+                "value": "family"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0034_fingerprint",
+          "obligation": "semantic_integrity",
+          "atom": "fingerprint",
+          "op": "fingerprint_is",
+          "args": [
+            {
+              "node": "family_example"
+            },
+            {
+              "literal": {
+                "type": "digest",
+                "value": "sha256:7653bf0250d2422b32119aec2ba137b0da2ba5aa42eb50833e91a26badb389e6"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0036_target",
+          "obligation": "economic_links",
+          "atom": "edge",
+          "op": "ref_targets_node",
+          "args": [
+            {
+              "edge": "e0009"
+            },
+            {
+              "node": "person_a"
+            }
+          ]
+        },
+        {
+          "id": "p0037_target",
+          "obligation": "economic_links",
+          "atom": "edge",
+          "op": "ref_targets_node",
+          "args": [
+            {
+              "edge": "e0010"
+            },
+            {
+              "node": "person_b"
+            }
+          ]
+        },
+        {
+          "id": "p0038_kind",
+          "obligation": "node_identity",
+          "atom": "identity",
+          "op": "kind_is",
+          "args": [
+            {
+              "node": "food_restaurant"
+            },
+            {
+              "literal": {
+                "type": "kind",
+                "value": "category"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0039_fingerprint",
+          "obligation": "semantic_integrity",
+          "atom": "fingerprint",
+          "op": "fingerprint_is",
+          "args": [
+            {
+              "node": "food_restaurant"
+            },
+            {
+              "literal": {
+                "type": "digest",
+                "value": "sha256:f510e2b44dff81c555e6ea65173b0c8e6e6fa884ed0dacd1e48c8aff1f79593f"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0043_kind",
+          "obligation": "node_identity",
+          "atom": "identity",
+          "op": "kind_is",
+          "args": [
+            {
+              "node": "neutral_refund"
+            },
+            {
+              "literal": {
+                "type": "kind",
+                "value": "category"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0044_fingerprint",
+          "obligation": "semantic_integrity",
+          "atom": "fingerprint",
+          "op": "fingerprint_is",
+          "args": [
+            {
+              "node": "neutral_refund"
+            },
+            {
+              "literal": {
+                "type": "digest",
+                "value": "sha256:372397028e01b2da4309d900affe636c3625e6776154b52330a06fac1255ad25"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0047_kind",
+          "obligation": "node_identity",
+          "atom": "identity",
+          "op": "kind_is",
+          "args": [
+            {
+              "node": "person_a"
+            },
+            {
+              "literal": {
+                "type": "kind",
+                "value": "person"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0048_fingerprint",
+          "obligation": "semantic_integrity",
+          "atom": "fingerprint",
+          "op": "fingerprint_is",
+          "args": [
+            {
+              "node": "person_a"
+            },
+            {
+              "literal": {
+                "type": "digest",
+                "value": "sha256:37b8d4a3ec13a7498756b5dcda9162338e06c91d57465288ab3512cf07ac67c6"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0050_target",
+          "obligation": "economic_links",
+          "atom": "edge",
+          "op": "ref_targets_node",
+          "args": [
+            {
+              "edge": "e0011"
+            },
+            {
+              "node": "family_example"
+            }
+          ]
+        },
+        {
+          "id": "p0051_kind",
+          "obligation": "node_identity",
+          "atom": "identity",
+          "op": "kind_is",
+          "args": [
+            {
+              "node": "person_b"
+            },
+            {
+              "literal": {
+                "type": "kind",
+                "value": "person"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0052_fingerprint",
+          "obligation": "semantic_integrity",
+          "atom": "fingerprint",
+          "op": "fingerprint_is",
+          "args": [
+            {
+              "node": "person_b"
+            },
+            {
+              "literal": {
+                "type": "digest",
+                "value": "sha256:0727eed1b087b390effd2b0bc018c08907be89c583a820d3df42ed74add4bf13"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0054_target",
+          "obligation": "economic_links",
+          "atom": "edge",
+          "op": "ref_targets_node",
+          "args": [
+            {
+              "edge": "e0012"
+            },
+            {
+              "node": "family_example"
+            }
+          ]
+        },
+        {
+          "id": "p0055_selected_period",
+          "obligation": "period",
+          "atom": "period",
+          "op": "date_in_period",
+          "args": [
+            {
+              "field": {
+                "node": "evt_refund_b",
+                "segments": [
+                  "date"
+                ]
+              }
+            },
+            {
+              "claim": {
+                "segments": [
+                  "period"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "p0056_selected_state",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "state_is",
+          "args": [
+            {
+              "field": {
+                "node": "evt_refund_b",
+                "segments": [
+                  "state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        },
+        {
+          "id": "link_1_refund_sign",
+          "obligation": "economic_links",
+          "atom": "edge",
+          "op": "opposite_sign",
+          "args": [
+            {
+              "field": {
+                "node": "evt_refund_b",
+                "segments": [
+                  "amount_minor"
+                ]
+              }
+            },
+            {
+              "field": {
+                "node": "evt_restaurant_b",
+                "segments": [
+                  "amount_minor"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "link_2_refund_person",
+          "obligation": "economic_links",
+          "atom": "edge",
+          "op": "field_eq",
+          "args": [
+            {
+              "field": {
+                "node": "evt_refund_b",
+                "segments": [
+                  "person_id"
+                ]
+              }
+            },
+            {
+              "field": {
+                "node": "evt_restaurant_b",
+                "segments": [
+                  "person_id"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "link_3_refund_card",
+          "obligation": "economic_links",
+          "atom": "edge",
+          "op": "field_eq",
+          "args": [
+            {
+              "field": {
+                "node": "evt_refund_b",
+                "segments": [
+                  "card_id"
+                ]
+              }
+            },
+            {
+              "field": {
+                "node": "evt_restaurant_b",
+                "segments": [
+                  "card_id"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "binding_1",
+          "obligation": "period",
+          "atom": "period",
+          "op": "period_eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "period"
+                ]
+              }
+            },
+            {
+              "period_literal": {
+                "kind": "date",
+                "value": "2042-06-09"
+              }
+            }
+          ]
+        },
+        {
+          "id": "binding_2",
+          "obligation": "time_basis",
+          "atom": "time_basis",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "time_basis"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "event_date"
+              }
+            }
+          ]
+        },
+        {
+          "id": "binding_3",
+          "obligation": "coverage",
+          "atom": "coverage",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "complete"
+              }
+            }
+          ]
+        },
+        {
+          "id": "binding_4",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        },
+        {
+          "id": "binding_5",
+          "obligation": "subject_scope",
+          "atom": "subject",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "subject",
+                  "kind"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "event"
+              }
+            }
+          ]
+        },
+        {
+          "id": "binding_6",
+          "obligation": "subject_scope",
+          "atom": "subject",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "subject",
+                  "ref_id"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "id",
+                "value": "evt-refund-b"
+              }
+            }
+          ]
+        },
+        {
+          "id": "binding_7",
+          "obligation": "subject_scope",
+          "atom": "subject",
+          "op": "eq",
+          "args": [
+            {
+              "field": {
+                "node": "evt_refund_b",
+                "segments": [
+                  "id"
+                ]
+              }
+            },
+            {
+              "claim": {
+                "segments": [
+                  "subject",
+                  "ref_id"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "binding_8",
+          "obligation": "coverage",
+          "atom": "coverage",
+          "op": "eq",
+          "args": [
+            {
+              "field": {
+                "node": "next_golden_financial_v1",
+                "segments": [
+                  "closed_world"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "boolean",
+                "value": true
+              }
+            }
+          ]
+        },
+        {
+          "id": "binding_9",
+          "obligation": "coverage",
+          "atom": "coverage",
+          "op": "eq",
+          "args": [
+            {
+              "field": {
+                "node": "next_golden_financial_v1",
+                "segments": [
+                  "synthetic"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "boolean",
+                "value": true
+              }
+            }
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "id": "e0001",
+          "source": "card_green",
+          "field": "owner_id",
+          "target": "person_b",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0011_target"
+          ]
+        },
+        {
+          "id": "e0002",
+          "source": "evt_refund_b",
+          "field": "person_id",
+          "target": "person_b",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0018_target"
+          ]
+        },
+        {
+          "id": "e0003",
+          "source": "evt_refund_b",
+          "field": "card_id",
+          "target": "card_green",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0019_target"
+          ]
+        },
+        {
+          "id": "e0004",
+          "source": "evt_refund_b",
+          "field": "category_id",
+          "target": "neutral_refund",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0020_target"
+          ]
+        },
+        {
+          "id": "e0005",
+          "source": "evt_refund_b",
+          "field": "compensates",
+          "target": "evt_restaurant_b",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0023_target"
+          ]
+        },
+        {
+          "id": "e0006",
+          "source": "evt_restaurant_b",
+          "field": "person_id",
+          "target": "person_b",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0028_target"
+          ]
+        },
+        {
+          "id": "e0007",
+          "source": "evt_restaurant_b",
+          "field": "card_id",
+          "target": "card_green",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0029_target"
+          ]
+        },
+        {
+          "id": "e0008",
+          "source": "evt_restaurant_b",
+          "field": "category_id",
+          "target": "food_restaurant",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0030_target"
+          ]
+        },
+        {
+          "id": "e0009",
+          "source": "family_example",
+          "field": "members",
+          "target": "person_a",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0036_target"
+          ]
+        },
+        {
+          "id": "e0010",
+          "source": "family_example",
+          "field": "members",
+          "target": "person_b",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0037_target"
+          ]
+        },
+        {
+          "id": "e0011",
+          "source": "person_a",
+          "field": "family_id",
+          "target": "family_example",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0050_target"
+          ]
+        },
+        {
+          "id": "e0012",
+          "source": "person_b",
+          "field": "family_id",
+          "target": "family_example",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0054_target"
+          ]
+        }
+      ],
+      "obligations": [
+        {
+          "obligation": "claim_semantics",
+          "predicates": [],
+          "checks": [
+            "claim_registry_binding"
+          ]
+        },
+        {
+          "obligation": "node_identity",
+          "predicates": [
+            "p0001_kind",
+            "p0008_kind",
+            "p0014_kind",
+            "p0024_kind",
+            "p0033_kind",
+            "p0038_kind",
+            "p0043_kind",
+            "p0047_kind",
+            "p0051_kind"
+          ],
+          "checks": [
+            "snapshot_identity"
+          ]
+        },
+        {
+          "obligation": "semantic_integrity",
+          "predicates": [
+            "p0002_fingerprint",
+            "p0009_fingerprint",
+            "p0015_fingerprint",
+            "p0025_fingerprint",
+            "p0034_fingerprint",
+            "p0039_fingerprint",
+            "p0044_fingerprint",
+            "p0048_fingerprint",
+            "p0052_fingerprint"
+          ],
+          "checks": [
+            "all_material_fingerprints"
+          ]
+        },
+        {
+          "obligation": "subject_scope",
+          "predicates": [
+            "binding_5",
+            "binding_6",
+            "binding_7"
+          ],
+          "checks": [
+            "typed_subject_binding"
+          ]
+        },
+        {
+          "obligation": "period",
+          "predicates": [
+            "p0055_selected_period",
+            "binding_1"
+          ],
+          "checks": [
+            "typed_period_binding"
+          ]
+        },
+        {
+          "obligation": "time_basis",
+          "predicates": [
+            "binding_2"
+          ],
+          "checks": [
+            "time_field_reads"
+          ]
+        },
+        {
+          "obligation": "coverage",
+          "predicates": [
+            "binding_3",
+            "binding_8",
+            "binding_9"
+          ],
+          "checks": [
+            "source_collection_completeness"
+          ]
+        },
+        {
+          "obligation": "evidence_state",
+          "predicates": [
+            "p0056_selected_state",
+            "binding_4"
+          ],
+          "checks": [
+            "typed_evidence_state"
+          ]
+        },
+        {
+          "obligation": "evidence_set",
+          "predicates": [],
+          "checks": [
+            "exact_evidence_set"
+          ]
+        },
+        {
+          "obligation": "economic_links",
+          "predicates": [
+            "p0011_target",
+            "p0018_target",
+            "p0019_target",
+            "p0020_target",
+            "p0023_target",
+            "p0028_target",
+            "p0029_target",
+            "p0030_target",
+            "p0036_target",
+            "p0037_target",
+            "p0050_target",
+            "p0054_target",
+            "link_1_refund_sign",
+            "link_2_refund_person",
+            "link_3_refund_card"
+          ],
+          "checks": [
+            "all_material_edges"
+          ]
+        },
+        {
+          "obligation": "derivation_trace",
+          "predicates": [],
+          "checks": [
+            "exact_observed_trace"
+          ]
+        }
+      ],
+      "trace_contract": {
+        "derivation": {
+          "required_nodes": [
+            "evt_refund_b"
+          ],
+          "required_reads": [
+            {
+              "node": "evt_refund_b",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "segments": [
+                "date"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "segments": [
+                "person_id"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "segments": [
+                "category_id"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "segments": [
+                "amount_minor"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "segments": [
+                "state"
+              ]
+            }
+          ],
+          "required_claim_reads": [
+            {
+              "segments": [
+                "subject",
+                "kind"
+              ]
+            },
+            {
+              "segments": [
+                "subject",
+                "ref_id"
+              ]
+            },
+            {
+              "segments": [
+                "period",
+                "kind"
+              ]
+            },
+            {
+              "segments": [
+                "period",
+                "value"
+              ]
+            },
+            {
+              "segments": [
+                "time_basis"
+              ]
+            }
+          ],
+          "required_edges": [
+            "e0002",
+            "e0004"
+          ],
+          "required_structural": [],
+          "selected_nodes": [
+            "evt_refund_b"
+          ],
+          "evidence_set_mode": "exact",
+          "required_selections": [
+            {
+              "candidate_set": "candidates",
+              "selected_set": "selected"
+            }
+          ]
+        },
+        "proof": {
+          "required_nodes": [
+            "next_golden_financial_v1",
+            "card_green",
+            "evt_refund_b",
+            "evt_restaurant_b",
+            "family_example",
+            "food_restaurant",
+            "neutral_refund",
+            "person_a",
+            "person_b"
+          ],
+          "required_reads": [
+            {
+              "node": "next_golden_financial_v1",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "next_golden_financial_v1",
+              "segments": [
+                "synthetic"
+              ]
+            },
+            {
+              "node": "next_golden_financial_v1",
+              "segments": [
+                "closed_world"
+              ]
+            },
+            {
+              "node": "next_golden_financial_v1",
+              "segments": [
+                "currency"
+              ]
+            },
+            {
+              "node": "next_golden_financial_v1",
+              "segments": [
+                "fixed_clock"
+              ]
+            },
+            {
+              "node": "card_green",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "card_green",
+              "segments": [
+                "owner_id"
+              ]
+            },
+            {
+              "node": "card_green",
+              "segments": [
+                "closing_day"
+              ]
+            },
+            {
+              "node": "card_green",
+              "segments": [
+                "due_day"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "segments": [
+                "date"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "segments": [
+                "person_id"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "segments": [
+                "card_id"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "segments": [
+                "category_id"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "segments": [
+                "amount_minor"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "segments": [
+                "state"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "segments": [
+                "compensates"
+              ]
+            },
+            {
+              "node": "evt_restaurant_b",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "evt_restaurant_b",
+              "segments": [
+                "date"
+              ]
+            },
+            {
+              "node": "evt_restaurant_b",
+              "segments": [
+                "person_id"
+              ]
+            },
+            {
+              "node": "evt_restaurant_b",
+              "segments": [
+                "card_id"
+              ]
+            },
+            {
+              "node": "evt_restaurant_b",
+              "segments": [
+                "category_id"
+              ]
+            },
+            {
+              "node": "evt_restaurant_b",
+              "segments": [
+                "amount_minor"
+              ]
+            },
+            {
+              "node": "evt_restaurant_b",
+              "segments": [
+                "state"
+              ]
+            },
+            {
+              "node": "family_example",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "family_example",
+              "segments": [
+                "members"
+              ]
+            },
+            {
+              "node": "food_restaurant",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "food_restaurant",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "food_restaurant",
+              "segments": [
+                "budget_class"
+              ]
+            },
+            {
+              "node": "neutral_refund",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "neutral_refund",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "person_a",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "person_a",
+              "segments": [
+                "family_id"
+              ]
+            },
+            {
+              "node": "person_b",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "person_b",
+              "segments": [
+                "family_id"
+              ]
+            }
+          ],
+          "required_claim_reads": [
+            {
+              "segments": [
+                "claim_id"
+              ]
+            },
+            {
+              "segments": [
+                "fact_key"
+              ]
+            },
+            {
+              "segments": [
+                "metric"
+              ]
+            },
+            {
+              "segments": [
+                "unit"
+              ]
+            },
+            {
+              "segments": [
+                "subject",
+                "kind"
+              ]
+            },
+            {
+              "segments": [
+                "subject",
+                "ref_id"
+              ]
+            },
+            {
+              "segments": [
+                "period",
+                "kind"
+              ]
+            },
+            {
+              "segments": [
+                "period",
+                "value"
+              ]
+            },
+            {
+              "segments": [
+                "time_basis"
+              ]
+            },
+            {
+              "segments": [
+                "coverage"
+              ]
+            },
+            {
+              "segments": [
+                "evidence_state"
+              ]
+            },
+            {
+              "segments": [
+                "evaluator_ref",
+                "evaluator_id"
+              ]
+            },
+            {
+              "segments": [
+                "evaluator_ref",
+                "evaluator_version"
+              ]
+            }
+          ],
+          "required_edges": [
+            "e0001",
+            "e0002",
+            "e0003",
+            "e0004",
+            "e0005",
+            "e0006",
+            "e0007",
+            "e0008",
+            "e0009",
+            "e0010",
+            "e0011",
+            "e0012"
+          ],
+          "required_structural": [
+            {
+              "node": "next_golden_financial_v1",
+              "operation": "keys",
+              "segments": []
+            },
+            {
+              "node": "card_green",
+              "operation": "keys",
+              "segments": []
+            },
+            {
+              "node": "evt_refund_b",
+              "operation": "keys",
+              "segments": []
+            },
+            {
+              "node": "evt_restaurant_b",
+              "operation": "keys",
+              "segments": []
+            },
+            {
+              "node": "family_example",
+              "operation": "iterator",
+              "segments": [
+                "members"
+              ]
+            },
+            {
+              "node": "family_example",
+              "operation": "cardinality",
+              "segments": [
+                "members"
+              ]
+            },
+            {
+              "node": "family_example",
+              "operation": "order",
+              "segments": [
+                "members"
+              ]
+            },
+            {
+              "node": "family_example",
+              "operation": "keys",
+              "segments": []
+            },
+            {
+              "node": "food_restaurant",
+              "operation": "keys",
+              "segments": []
+            },
+            {
+              "node": "neutral_refund",
+              "operation": "keys",
+              "segments": []
+            },
+            {
+              "node": "person_a",
+              "operation": "keys",
+              "segments": []
+            },
+            {
+              "node": "person_b",
+              "operation": "keys",
+              "segments": []
+            }
+          ],
+          "selected_nodes": [
+            "evt_refund_b"
+          ],
+          "evidence_set_mode": "exact",
+          "required_selections": [
+            {
+              "candidate_set": "candidates",
+              "selected_set": "selected"
+            }
+          ]
+        },
+        "producer": "external_recorder",
+        "result_channel": "separate_R"
+      },
+      "selections": [
+        {
+          "candidate_set": "candidates",
+          "selected_set": "selected",
+          "selected_predicates": [
+            "p0055_selected_period",
+            "p0056_selected_state"
+          ],
+          "excluded": []
+        }
+      ],
+      "authoring_sources": [
+        {
+          "path": "tests/fixtures/financasbot-next/golden-fact-contracts-v1.json",
+          "locator": "F-06#2#1"
+        },
+        {
+          "path": "tests/fixtures/financasbot-next/golden-conversation-set-v1.json",
+          "locator": "F-06#2"
+        },
+        {
+          "path": "docs/contracts/next/provenance-v2/evaluator-contracts/refund_amount.json",
+          "locator": "semantics"
+        }
+      ],
+      "windows": {}
+    }
+  ]
+}
