@@ -8,14 +8,16 @@ Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
 Estado vigente: correção e suporte de validação auditados em
 `8b66d1e6eac869cf7363beee3b2c1445840fb66e`, pai `be520f4f0cf64812c80f0f4b9b8eefb2a5445189`.
-HEAD publicado posterior (documentação e ferramenta mecânica de extração):
-`8b9c4fca93186c9f747ba1a868bf1616ba15d92a`, pai 122b9f7. Desenhos refund, família e contagem APTO;
-incrementos de runtime/testes descritos abaixo continuam locais, não publicados.
+HEAD publicado posterior (composição candidata de runtime/testes e gerador):
+`ace83e80a1a2cf12ba2f9a7a8f6ace9ebdc5adbd`, pai
+`8b9c4fca93186c9f747ba1a868bf1616ba15d92a`. Remoto confirmado.
+Desenhos refund, família e contagem APTO; código posterior ainda sem GO.
 Recibo: `../../audit-evidence/n02g-selection-phase/independent-review.md`.
 Revisão externa estática sem defeitos focais; execuções continuam locais.
 Ampla histórica preservada: 2.255 PASS, zero FAIL, dez SKIP esperados, referente
-ao candidato auditado. A composição local posterior ainda não passou pela
-ampla/auditoria. `releaseEligible=false`; inventário local agora registra 30
+ao candidato auditado. A composição posterior passou pela ampla (2.359 PASS,
+zero FAIL, dez SKIP esperados); auditoria de código permanece pendente.
+`releaseEligible=false`; inventário local agora registra 30
 módulos pendentes (inclui metricReferences), sem alterar os 15 hashes aprovados.
 Diagnóstico inicial pós-GO focal (incrementos atualizados abaixo): as quatro famílias existentes exercitam 73/76
 derivações; seleção coincide em 73/73. Cobertura integral não está concluída:
@@ -116,8 +118,44 @@ Gerados candidate-report/source-extract na mesma pasta; helper
 prepare-evidence.cjs confere hashes testados, igualdade da extração e 76
 proofs/seleções preservadas. Sete deltas anteriores refund/família/contagem
 identificados separadamente; nenhum delta dos seis perfis foi aplicado.
-Próximo passo: commit sanitizado da composição candidata, publicar e pedir
-uma revisão focal por hash do gerador/perfis/delta, conforme audit-request.md.
+Composição publicada em ace83e80a1a2cf12ba2f9a7a8f6ace9ebdc5adbd (39 arquivos).
+Os 29 arquivos causais conferem com os blobs LF testados antes/depois da ampla.
+Uma única solicitação automática de revisão focal do gerador/perfis/delta
+enviada ao Chat, conforme audit-request.md. Conversa limpa:
+https://chatgpt.com/g/g-p-6aae7fa3ad5c8191a8ace5a6d799fab4-financasbot/c/6ab118e7-fdac-83e9-9b79-2236a5934c05
+Resposta recebida: APTO focal estático, mas não ratificado sem correção local.
+Recibo/confronto em n02g-causal-authoring-profile/implementation-independent-review.md.
+Contraexemplo local AUTHOR-GENERATE-010: mesmo instrumento em outra versão
+admitida ainda recebia obrigação de amount_minor (RED observado). Gerador
+preservava/validava version, mas descartava-a antes de decidir pertencimento.
+Correção delimitada retorna version e compara ID + version. Teste percorre
+ambos os contratos/seis claims; 26 focais PASS após RED. Integração hermética
+AUTHOR-INTEGRATION-001 PASS; seis candidate-reports idênticos aos publicados,
+corpus completo preservado. Syntax, diff --check e agent-workflow OK.
+Evidência afetada: `.codex-temp/n02g-author-version-affected.json` e `.tap.log`.
+Única ampla final da correção preparada em
+`.codex-temp/runWideCausalAuthoringVersion20260921.cjs`; saídas exclusivas
+`.codex-temp/wide-n02g-authoring-version-20260921.json` e `-start.json`, com
+HEAD/hashes antes/depois. Depois de iniciar, suspender consultas por 20 minutos
+ou até Daniel chamar. Não iniciar uma segunda execução; consultar o resultado
+existente. Se verde e intacto, preparar novo commit sanitizado e auditoria.
+Execução dessa ampla iniciada em 2026-09-21T21:46:18.282Z, PID 7092,
+base ace83e80a1a2cf12ba2f9a7a8f6ace9ebdc5adbd; marcador e processo confirmados.
+Manifesto fixa três arquivos (gerador, testes e README do perfil); nenhum
+código/normativa deve mudar enquanto roda. Heartbeat existente reativado,
+`retomar-n02-g-ap-s-su-te-ampla`, intervalo 20 minutos, com o novo resultado
+e instrução de se desativar após conclusão. Acompanhamento suspenso durante a execução.
+Resultado consultado após 20 minutos: concluído 2026-09-21T21:56:52.348Z,
+633.964 ms, valid=true, exit=0, 2.370 testes: 2.360 PASS/0 FAIL/10 SKIP
+esperados; candidate_unchanged=true. Heartbeat pausado. Os três arquivos
+testados continuam com hashes iguais; graphs/claims/source-extract e seis
+candidate-reports iguais ao pai ace83e8. Verificador mecânico novo
+prepare-version-fix-evidence.cjs --write-new e --check PASS; evidência em
+n02g-causal-authoring-profile/version-fix-validation.json. Preserva os recibos
+históricos sem sobrescrever. Próximo passo: publicar correção sanitizada e
+uma auditoria focal do novo hash, conforme version-fix-audit-request.md.
+Não repetir esta ampla verde sem mudança causal posterior.
+Não reenviar ace83e8 nem considerar sua ampla como prova da correção posterior.
 GO global/runtime, autenticação de host e demais reconciliações continuam
 pendentes. Não apresentar a ampla verde como aceitação integral.
 

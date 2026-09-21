@@ -378,6 +378,46 @@ test('N02G:AUTHOR-GENERATE-008 foreign target identity remains required even whe
     assert.throws(() => generate(input, unsupportedPolicy), /causal_authoring_reference_policy_not_implemented/);
 });
 
+test('N02G:AUTHOR-GENERATE-010 same instrument ID at another admitted version cannot contribute to the bound instrument', () => {
+    for (const metric of ['consumption_by_instrument', 'statement_total']) {
+        const f = corpusAuthorities(metric);
+        for (const originalClaim of f.claims) {
+            const changed = corpusAuthorities(metric); const claim = structuredClone(originalClaim);
+            const graph = structuredClone(changed.graphs.find(g => g.fact_key === claim.fact_key));
+            const original = generate(project({ graph, claim }), changed);
+            const contribution = original.obligations.required_reads.find(r => r.segments[0] === 'amount_minor');
+            assert.ok(contribution);
+            const role = claim.operand_bindings.instrument || claim.operand_bindings.card;
+            const target = graph.nodes[role.alias];
+            const edge = graph.edges.find(e => e.source === contribution.node && e.field === `${target.kind}_id`);
+            assert.ok(edge);
+            const material = JSON.parse(changed.documents.find(d => d.path === changed.paths.material_registry).content);
+            let otherVersion;
+            replaceDocument(changed, 'snapshot_manifest', manifest => {
+                otherVersion = manifest.sources.find(s => s.sha256 !== target.version).sha256;
+                assert.ok(otherVersion);
+                const copy = structuredClone(manifest.snapshots.find(s => s.kind === target.kind
+                    && s.ref_id === target.ref_id && s.version === target.version));
+                copy.version = otherVersion;
+                const payload = Object.fromEntries(Object.entries(copy.payload)
+                    .filter(([field]) => material.kinds[copy.kind].fields[field].class !== 'non_material'));
+                copy.semantic_fingerprint = `sha256:${semanticDigest({ registry_version: material.registry_version,
+                    kind: copy.kind, ref_id: copy.ref_id, version: copy.version, payload })}`;
+                manifest.snapshots.push(copy);
+            });
+            graph.nodes.alternate_instrument_version = { ...target, version: otherVersion };
+            edge.target = 'alternate_instrument_version';
+            // Synthetic, self-admitted authority: not a claim of source authenticity.
+            const result = generate(project({ graph, claim }), changed);
+            assert.ok(result.obligations.required_nodes.includes(edge.target));
+            assert.ok(result.obligations.required_reads.some(r => r.node === edge.target && r.segments[0] === 'id'));
+            assert.ok(result.obligations.required_edges.includes(edge.id));
+            assert.equal(result.obligations.required_reads.some(r => r.node === contribution.node
+                && r.segments[0] === 'amount_minor'), false, `${claim.fact_key}: version participates in scope`);
+        }
+    }
+});
+
 test('N02G:AUTHOR-GENERATE-009 an absent optional instrument reference still has an obligation but no invented read or traversal', () => {
     const f = corpusAuthorities(); const claim = f.claims.find(c => c.subject.kind === 'account');
     const graph = f.graphs.find(g => g.fact_key === claim.fact_key); const input = project({ graph, claim });

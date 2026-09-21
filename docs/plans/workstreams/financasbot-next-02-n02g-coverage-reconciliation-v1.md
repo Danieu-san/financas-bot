@@ -856,6 +856,19 @@ esperados, valid=true, candidato inalterado durante execução. Evidência e
 pedido focal na pasta n02g-causal-authoring-profile. Preparar publicação da
 composição como candidata; auditoria focal não concederá GO aos incrementos
 fora do gerador/perfis/delta nem ao N02-G global.
+Composição publicada em ace83e80a1a2cf12ba2f9a7a8f6ace9ebdc5adbd. Parecer
+externo APTO focal recebido, mas contraexemplo local de outra versão admitida
+do mesmo instrumento bloqueou ratificação do código. identity retornava só ID,
+e a contribuição ignorava version. RED AUTHOR-GENERATE-010 confirmado;
+correção geral de identidade ID + version, 26 focais e integração hermética
+PASS. Seis relatórios candidatos publicados continuam exatamente iguais;
+nenhuma alteração dos 76 grafos. Uma nova ampla final é necessária pela
+mudança causal, não repetição da evidência verde anterior. Marcador/resultado
+wide-n02g-authoring-version-20260921 em .codex-temp, conforme checkpoint.
+Essa ampla concluiu verde: 2.360 PASS/0 FAIL/10 SKIP esperados, hashes
+inalterados. Evidência separada version-fix-validation.json e pedido focal
+version-fix-audit-request.md. Próximo passo: commit/publicação sanitizados
+e auditoria da correção ID + version; não repetir a suíte verde.
 
 Depois: reconciliar as demais leituras e estruturas das famílias
 de avaliadores, por regra causal geral, com REDs independentes da execução.

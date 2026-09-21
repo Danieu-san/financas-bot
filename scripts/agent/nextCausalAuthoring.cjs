@@ -415,7 +415,7 @@ function interpretCandidate(input, profile) {
         const node = snapshot(alias); if (kind && node.kind !== kind) fail('program_kind');
         const identifier = read(alias, 'id', role);
         if (identifier !== node.ref_id || !digestPattern.test(node.version)) fail('program_identity');
-        return { alias, kind: node.kind, id: identifier };
+        return { alias, kind: node.kind, id: identifier, version: node.version };
     };
     const presence = (alias, field, role) => {
         const node = snapshot(alias);
@@ -511,7 +511,7 @@ function interpretCandidate(input, profile) {
                 } else if (ownClass === op.compensation_class) fail('program_compensation_source');
                 // Observe ALL declared guards first; no implicit short circuit
                 // changes obligations for an excluded financial candidate.
-                if (state === op.required_state && target?.id === instrument.id && window(date)
+                if (state === op.required_state && target?.id === instrument.id && target.version === instrument.version && window(date)
                     && effectiveClass === op.eligible_class) eligible.push(alias);
             }
             break;

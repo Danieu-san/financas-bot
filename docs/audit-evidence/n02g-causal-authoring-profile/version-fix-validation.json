@@ -1,0 +1,130 @@
+{
+  "schema": "n02g-authoring-version-fix-validation-v1",
+  "status": "candidate_awaiting_independent_audit",
+  "evidence_kind": "locally_executed_not_external_verdict",
+  "base": "ace83e80a1a2cf12ba2f9a7a8f6ace9ebdc5adbd",
+  "graph_accepted": false,
+  "releaseEligible": false,
+  "correction": "instrument contribution requires equal id and version; foreign target observations remain required",
+  "red_observed": {
+    "test": "AUTHOR-GENERATE-010",
+    "fact_key": "M-02#1#1",
+    "expected": false,
+    "actual": true
+  },
+  "focal": {
+    "tests": 26,
+    "pass": 26,
+    "fail": 0,
+    "skipped": 0
+  },
+  "affected": {
+    "node": "22.17.0",
+    "scope": "version_fix_integration_only_not_wide",
+    "files": [
+      "tests/next/provenance/authoringIndex.cases.js"
+    ],
+    "original_six_candidate_reports_unchanged": true,
+    "entire_input_corpus_unchanged": true,
+    "exit_status": 0,
+    "tap": {
+      "tests": 1,
+      "suites": 0,
+      "pass": 1,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "failures": []
+  },
+  "wide": {
+    "recorded_at": "2026-09-21T21:56:52.348Z",
+    "started_at": "2026-09-21T21:46:18.282Z",
+    "node": "22.17.0",
+    "source_head": "ace83e80a1a2cf12ba2f9a7a8f6ace9ebdc5adbd",
+    "candidate_files": [
+      {
+        "path": "docs/contracts/next/provenance-v2/causal-authoring-candidates/README.md",
+        "raw_sha256": "sha256:f836de3d736329e1c6ed9569b715e7f7757849a1dc4fd9616b112ad818d8a9e1",
+        "lf_sha256": "sha256:f836de3d736329e1c6ed9569b715e7f7757849a1dc4fd9616b112ad818d8a9e1"
+      },
+      {
+        "path": "scripts/agent/nextCausalAuthoring.cjs",
+        "raw_sha256": "sha256:63665e38675c4303cb9d91cdd4da3a768f19a0c4f89a9188b9c7011939449c1f",
+        "lf_sha256": "sha256:63665e38675c4303cb9d91cdd4da3a768f19a0c4f89a9188b9c7011939449c1f"
+      },
+      {
+        "path": "tests/next/provenance/causalAuthoring.cases.js",
+        "raw_sha256": "sha256:0b957179c843f997701c5da8c8a49f2d0f0b52441c3958e12d1968cbb6a1745f",
+        "lf_sha256": "sha256:0b957179c843f997701c5da8c8a49f2d0f0b52441c3958e12d1968cbb6a1745f"
+      }
+    ],
+    "candidate_unchanged": true,
+    "duration_ms": 633964,
+    "local_only": true,
+    "network_guard_scope": [
+      "fetch",
+      "http",
+      "https",
+      "net",
+      "node_descendants",
+      "non_node_subprocesses_except_audited_local_git_and_tar"
+    ],
+    "test_files": 165,
+    "discovered_test_files": 183,
+    "exit_status": 0,
+    "signal": null,
+    "valid": true,
+    "validation_reasons": [],
+    "tap": {
+      "tests": 2370,
+      "suites": 0,
+      "pass": 2360,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 10,
+      "todo": 0
+    },
+    "coverage": {
+      "line_percent": 92.37,
+      "branch_percent": 78.51,
+      "function_percent": 92.85,
+      "uncovered_lines": ""
+    },
+    "failures": [],
+    "skipped_tests": [
+      "instalador executa install e uninstall restaurando bytes preexistentes",
+      "install adota bloco existente e preserva integralmente os bytes atuais",
+      "install recusa adocao quando backup diverge apenas por BOM sem mutar config",
+      "uninstall recusa configuracao alterada e preserva o arquivo atual",
+      "uninstall recusa divergencia somente de BOM e preserva bytes atuais",
+      "functional: consent, onboarding, settings and dashboard",
+      "functional: expenses, income and credit card installments",
+      "functional: goals, debts, payments and reminders",
+      "functional: analytics, deletion, admin and fallback",
+      "functional: complex analytics handles typos, counts, duplicates and min/max"
+    ]
+  },
+  "unchanged": [
+    {
+      "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+      "lf_sha256": "sha256:9502527469cc0e5fbc224e0ebdc6e088f13b4666b61562f651feb506c8666c48"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claims-v2.json",
+      "lf_sha256": "sha256:4810612761ea7f232e4445c0d192ae53ebf0761f0ba8752da758efb826b30494"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/candidate-report.json",
+      "lf_sha256": "sha256:0140b589491ea40a1f315b744f338b84d987656707e62cb798b420d991eec012"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/source-extract.json",
+      "lf_sha256": "sha256:ab07fc9265c7412943fb814be96b71b3e6eb237f6b6e12f4ccf7b5c6e119363f"
+    }
+  ],
+  "original_six_candidate_reports_unchanged": true,
+  "source_graph_count": 76,
+  "note": "Historical evidence stays bound to its original hash. This mechanical helper was added after the final wide run; no causal source/test changed afterwards. No normative delta applied."
+}

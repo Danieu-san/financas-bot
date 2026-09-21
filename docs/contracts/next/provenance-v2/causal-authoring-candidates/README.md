@@ -31,7 +31,9 @@ aborta, inclusive quando um campo opcional não está presente nos dados.
 A política `identity_for_every_resolved_target` exige identidade e versão
 também do alvo estrangeiro antes de excluí-lo. Sua justificativa proposta é
 que a relação resolvida deve ter identidade nominal validada, não apenas um
-texto coincidente. Essa escolha é candidata à revisão, não inferência do
+texto coincidente. O pertencimento ao instrumento ligado exige o mesmo ID e
+a mesma versão; outra versão admitida do mesmo ID permanece alvo observado,
+mas não contribuição desse instrumento. Essa escolha é candidata à revisão, não inferência do
 runtime. A alternativa reconhecida na fronteira
 `identity_version_only_for_matching_id` não possui interpretação implementada:
 a geração com ela aborta, sem escolher um default.
