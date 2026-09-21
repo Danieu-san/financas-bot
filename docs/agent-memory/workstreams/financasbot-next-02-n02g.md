@@ -8,14 +8,14 @@ Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
 Estado vigente: correção e suporte de validação auditados em
 `8b66d1e6eac869cf7363beee3b2c1445840fb66e`, pai `be520f4f0cf64812c80f0f4b9b8eefb2a5445189`.
-HEAD publicado posterior (composição candidata de runtime/testes e gerador):
-`ace83e80a1a2cf12ba2f9a7a8f6ace9ebdc5adbd`, pai
-`8b9c4fca93186c9f747ba1a868bf1616ba15d92a`. Remoto confirmado.
+HEAD publicado posterior (correção focal de versão no gerador candidato):
+`1e83baacfbb494e1f5cb3c1e70372e4acd50f349`, pai
+`ace83e80a1a2cf12ba2f9a7a8f6ace9ebdc5adbd`. Remoto confirmado.
 Desenhos refund, família e contagem APTO; código posterior ainda sem GO.
 Recibo: `../../audit-evidence/n02g-selection-phase/independent-review.md`.
 Revisão externa estática sem defeitos focais; execuções continuam locais.
 Ampla histórica preservada: 2.255 PASS, zero FAIL, dez SKIP esperados, referente
-ao candidato auditado. A composição posterior passou pela ampla (2.359 PASS,
+ao candidato auditado. A composição posterior corrigida passou pela ampla (2.360 PASS,
 zero FAIL, dez SKIP esperados); auditoria de código permanece pendente.
 `releaseEligible=false`; inventário local agora registra 30
 módulos pendentes (inclui metricReferences), sem alterar os 15 hashes aprovados.
@@ -155,6 +155,17 @@ n02g-causal-authoring-profile/version-fix-validation.json. Preserva os recibos
 históricos sem sobrescrever. Próximo passo: publicar correção sanitizada e
 uma auditoria focal do novo hash, conforme version-fix-audit-request.md.
 Não repetir esta ampla verde sem mudança causal posterior.
+Correção publicada em 1e83baacfbb494e1f5cb3c1e70372e4acd50f349 (nove arquivos,
+três hashes causais do stage iguais aos testados). Uma solicitação automática
+focal enviada; pedido recebido no Chat e revisão em andamento:
+https://chatgpt.com/g/g-p-6aae7fa3ad5c8191a8ace5a6d799fab4-financasbot/c/6ab1ac6c-d8f8-83e9-9207-489715431e66
+Não reenviar este hash. Resposta concluída: APTO focal sem achados, hash/pai
+confirmados. Ratificado somente o conserto ID + version; recibo em
+n02g-causal-authoring-profile/version-fix-independent-review.md. Limites de
+verificação estática explícitos; nenhuma aprovação normativa/runtime/global.
+Próxima fatia: reconciliação de consumption_by_instrument e statement_total
+contra obrigações congeladas antes da execução; começar por RED de cobertura
+dos seis perfis e preservar seleção/R. Não aplicar delta aos 76 grafos.
 Não reenviar ace83e8 nem considerar sua ampla como prova da correção posterior.
 GO global/runtime, autenticação de host e demais reconciliações continuam
 pendentes. Não apresentar a ampla verde como aceitação integral.
