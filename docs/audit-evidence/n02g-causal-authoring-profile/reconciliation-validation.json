@@ -1,0 +1,166 @@
+{
+  "schema": "n02g-profile-reconciliation-validation-v1",
+  "status": "candidate_awaiting_independent_audit",
+  "evidence_kind": "locally_executed_not_external_verdict",
+  "base": "ad43ba41f0558e9329b8e494c824672d21de4b5d",
+  "graph_accepted": false,
+  "releaseEligible": false,
+  "normative_delta_applied": false,
+  "scope": "instrument and statement runtime against independently frozen candidate obligations; selection and R preserved",
+  "red_observed": {
+    "test": "AUTHOR-RECONCILE-001",
+    "graphs": 6,
+    "selection_and_R_matched": true,
+    "discrepancies": [
+      "extra owner dependency",
+      "missing complete coverage read",
+      "missing statement policy id read",
+      "missing compensation presence observations"
+    ]
+  },
+  "focal": {
+    "tests": 33,
+    "pass": 33,
+    "fail": 0,
+    "skipped": 0
+  },
+  "affected": {
+    "recorded_at": "2026-09-21T22:29:33.540Z",
+    "node": "22.17.0",
+    "scope": "affected_only_not_wide",
+    "files": [
+      "tests/next/provenance/metricSelection.cases.js",
+      "tests/next/provenance/metricDirectReads.cases.js",
+      "tests/next/provenance/metricEffects.cases.js",
+      "tests/next/provenance/metricInstallments.cases.js",
+      "tests/next/provenance/authoringIndex.cases.js",
+      "tests/next/provenance/causalAuthoring.cases.js"
+    ],
+    "exit_status": 0,
+    "tap": {
+      "tests": 135,
+      "suites": 0,
+      "pass": 135,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "coverage": {
+      "line_percent": 93.43,
+      "branch_percent": 83.59,
+      "function_percent": 95.02,
+      "uncovered_lines": ""
+    },
+    "failures": []
+  },
+  "wide": {
+    "recorded_at": "2026-09-21T23:36:58.839Z",
+    "started_at": "2026-09-21T23:28:30.361Z",
+    "node": "22.17.0",
+    "source_head": "ad43ba41f0558e9329b8e494c824672d21de4b5d",
+    "candidate_files": [
+      {
+        "path": "src/next/provenance/metricSelection.js",
+        "raw_sha256": "sha256:6df7519462d4aea07d936d370f68f9ea6a311ff545d97f683a5eec81bc3863b7",
+        "lf_sha256": "sha256:6df7519462d4aea07d936d370f68f9ea6a311ff545d97f683a5eec81bc3863b7"
+      },
+      {
+        "path": "tests/next/provenance/authoringIndex.cases.js",
+        "raw_sha256": "sha256:833b3b5355a887c750e9c303ce9d94ee95b83d5b666258cfeff18ee74301e102",
+        "lf_sha256": "sha256:833b3b5355a887c750e9c303ce9d94ee95b83d5b666258cfeff18ee74301e102"
+      },
+      {
+        "path": "tests/next/provenance/metricSelection.cases.js",
+        "raw_sha256": "sha256:ceaba3d89763e1f2823103ac7724e60456196a6b56ee532003fc22ae17f42ea4",
+        "lf_sha256": "sha256:ceaba3d89763e1f2823103ac7724e60456196a6b56ee532003fc22ae17f42ea4"
+      }
+    ],
+    "candidate_unchanged": true,
+    "duration_ms": 508411,
+    "local_only": true,
+    "network_guard_scope": [
+      "fetch",
+      "http",
+      "https",
+      "net",
+      "node_descendants",
+      "non_node_subprocesses_except_audited_local_git_and_tar"
+    ],
+    "test_files": 165,
+    "discovered_test_files": 183,
+    "exit_status": 0,
+    "signal": null,
+    "valid": true,
+    "validation_reasons": [],
+    "tap": {
+      "tests": 2373,
+      "suites": 0,
+      "pass": 2363,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 10,
+      "todo": 0
+    },
+    "coverage": {
+      "line_percent": 92.39,
+      "branch_percent": 78.56,
+      "function_percent": 92.84,
+      "uncovered_lines": ""
+    },
+    "failures": [],
+    "skipped_tests": [
+      "instalador executa install e uninstall restaurando bytes preexistentes",
+      "install adota bloco existente e preserva integralmente os bytes atuais",
+      "install recusa adocao quando backup diverge apenas por BOM sem mutar config",
+      "uninstall recusa configuracao alterada e preserva o arquivo atual",
+      "uninstall recusa divergencia somente de BOM e preserva bytes atuais",
+      "functional: consent, onboarding, settings and dashboard",
+      "functional: expenses, income and credit card installments",
+      "functional: goals, debts, payments and reminders",
+      "functional: analytics, deletion, admin and fallback",
+      "functional: complex analytics handles typos, counts, duplicates and min/max"
+    ]
+  },
+  "unchanged": [
+    {
+      "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+      "lf_sha256": "sha256:9502527469cc0e5fbc224e0ebdc6e088f13b4666b61562f651feb506c8666c48"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claims-v2.json",
+      "lf_sha256": "sha256:4810612761ea7f232e4445c0d192ae53ebf0761f0ba8752da758efb826b30494"
+    },
+    {
+      "path": "scripts/agent/nextCausalAuthoring.cjs",
+      "lf_sha256": "sha256:63665e38675c4303cb9d91cdd4da3a768f19a0c4f89a9188b9c7011939449c1f"
+    },
+    {
+      "path": "scripts/agent/reportNextCausalAuthoring.cjs",
+      "lf_sha256": "sha256:f7e4da37b2b49af3038511a6cbdb8969528aecdcdd85c1c31de0c4e7e9b98c97"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/candidate-report.json",
+      "lf_sha256": "sha256:0140b589491ea40a1f315b744f338b84d987656707e62cb798b420d991eec012"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/source-extract.json",
+      "lf_sha256": "sha256:ab07fc9265c7412943fb814be96b71b3e6eb237f6b6e12f4ccf7b5c6e119363f"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/causal-authoring-candidates/README.md",
+      "lf_sha256": "sha256:f836de3d736329e1c6ed9569b715e7f7757849a1dc4fd9616b112ad818d8a9e1"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/causal-authoring-candidates/consumption-by-instrument-profile-v1.json",
+      "lf_sha256": "sha256:4c2be2d8f773b85e008d8f476d37196bdab9b0bac58848c616294f685fcda99a"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/causal-authoring-candidates/statement-total-profile-v1.json",
+      "lf_sha256": "sha256:12cd0fa53fb62121068cdb85ededa91a0b5faec6976d2a9eb3a8045502485723"
+    }
+  ],
+  "original_six_candidate_reports_unchanged": true,
+  "source_graph_count": 76,
+  "note": "Helper added after the final wide run; no causal source/test changed afterwards. Check revalidates saved evidence and current bytes, not past test execution. No normative delta applied or global acceptance claimed."
+}

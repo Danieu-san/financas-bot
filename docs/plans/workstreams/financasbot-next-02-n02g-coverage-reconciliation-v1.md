@@ -869,6 +869,28 @@ Essa ampla concluiu verde: 2.360 PASS/0 FAIL/10 SKIP esperados, hashes
 inalterados. Evidência separada version-fix-validation.json e pedido focal
 version-fix-audit-request.md. Próximo passo: commit/publicação sanitizados
 e auditoria da correção ID + version; não repetir a suíte verde.
+Correção ID + version ratificada após APTO independente em 1e83baac; recibo
+publicado em ad43ba41f0558e9329b8e494c824672d21de4b5d. Próxima fatia iniciada:
+somente os dois modos instrument/statement reconciliados com o perfil candidato,
+sem aplicar o delta normativo. AUTHOR-RECONCILE-001 gerou expected congelado
+antes do evaluator e observou RED nas seis derivações; seleção/R já preservados.
+Runtime agora exige coverage complete, consome identidade da policy, não lê
+owner sem uso no escopo e observa presença/coerência/self/chain de compensações
+antes do filtro. 33 focais e integração dos seis perfis PASS, com rejeição de
+trace sem os has obrigatórios. Demais modos preservados, graph_accepted=false.
+Bateria causal de seis arquivos concluída: 135 PASS/0 FAIL/0 SKIP, hermética.
+Diff/revisão/syntax/workflow OK; corpus/gerador/perfis intactos no Git.
+Próxima ampla única preparada
+em runWideProfileReconciliation20260921.cjs, somente após afetados verdes,
+com três hashes causais antes/depois. Não confundir com a ampla anterior de
+2.360 PASS, válida apenas para o código anterior. Nenhuma mudança dos grafos,
+perfis ou gerador; reconciliação local ainda exige hash próprio e auditoria.
+Ampla de reconciliação concluída: 2.363 PASS/0 FAIL/10 SKIP esperados,
+valid=true, exit=0, três hashes causais intactos. Heartbeat pausado. Evidência
+sanitizada e checker próprios reconciliation-validation.json e
+prepare-reconciliation-evidence.cjs; pedido reconciliation-audit-request.md.
+Commit/publicação e auditoria focal são a próxima fronteira; nenhuma aplicação
+normativa e nenhuma aceitação integral de grafo decorrem desse verde.
 
 Depois: reconciliar as demais leituras e estruturas das famílias
 de avaliadores, por regra causal geral, com REDs independentes da execução.

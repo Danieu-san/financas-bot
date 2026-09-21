@@ -46,9 +46,9 @@ function fixture(options = {}) {
         bindings: categoryRows.map(r => binding('category', r, 'categories')) });
     const subject = options.subject || { kind: 'person', ref_id: 'p1' };
     const context = createInstrumentedAccess({ emit, bindings: [{ alias: 'context', role: 'context', value: {
-        subject, period: options.period || { kind: 'month', value: '2042-06' }, evidence_state: options.evidence_state || 'confirmed', time_basis: options.time_basis || 'event_date',
+        subject, coverage: options.coverage ?? 'complete', period: options.period || { kind: 'month', value: '2042-06' }, evidence_state: options.evidence_state || 'confirmed', time_basis: options.time_basis || 'event_date',
         ...(options.filters ? { filters: options.filters } : {})
-    }, shape: { type: 'record', fields: { evidence_state: scalar, time_basis: scalar, filters: { type: 'record', fields: { budget_class: scalar } },
+    }, shape: { type: 'record', fields: { coverage: scalar, evidence_state: scalar, time_basis: scalar, filters: { type: 'record', fields: { budget_class: scalar } },
         period: { type: 'record', fields: { kind: scalar, value: scalar, start: scalar, end: scalar, start_inclusive: scalar, end_inclusive: scalar } }, subject: { type: 'record',
             fields: { kind: scalar, ref_id: scalar, family_id: scalar, category_id: scalar, person_id: scalar, budget_id: scalar } } } } }] });
     const familyMembers = options.members || ['p1', 'p2'];
@@ -84,7 +84,8 @@ function compensationFixture(mode, rows, overrides = {}) {
     const f = fixture(options);
     if (mode === 'statement') {
         const policy = createInstrumentedAccess({ emit: e => f.observations.push(e), bindings: [{ alias: 'policy', role: 'policy',
-            value: { calendar: 'proleptic_gregorian' }, shape: { type: 'record', fields: { calendar: scalar } } }] });
+            identity: { kind: 'evaluation_policy', ref_id: 'policy-id', version },
+            value: { id: 'policy-id', calendar: 'proleptic_gregorian' }, shape: { type: 'record', fields: { id: scalar, calendar: scalar } } }] });
         f.controls.push(policy); f.operands.policy = policy.handle('policy');
     }
     return f;
@@ -121,10 +122,48 @@ test('N02G:SCALAR-REFERENCE-001 economic candidates resolve owners without consu
             evaluateEconomicMetric(f.operands, mode);
             const reads = f.observations.filter(e => e[1] === 'get' && e[4][0] === 'person_id');
             const traversals = f.observations.filter(e => e[1] === 'traverse' && e[4][0] === 'person_id');
-            assert.ok(reads.length > 1);
+            if (mode === 'instrument' || mode === 'statement') assert.equal(reads.length, 0);
+            else assert.ok(reads.length > 1);
             assert.deepEqual(traversals.map(e => e[2]), reads.map(e => e[2]), mode);
             assert.equal(f.observations.some(e => e[2].startsWith('owner-person-')), false, mode);
         } finally { for (const c of f.controls) c.revoke(); }
+    }
+});
+
+test('N02G:INSTRUMENT-PROFILE-001 ownership is not a dependency while complete coverage and optional guards are observed', () => {
+    for (const mode of ['instrument', 'statement']) {
+        const rows = [
+            { id: 'original', date: '2042-06-01', state: 'confirmed', person_id: 'p1', category_id: 'food', amount_minor: -100, card_id: 'instrument' },
+            { id: 'refund', date: '2042-06-03', state: 'confirmed', person_id: 'p2', category_id: 'refund-kind', amount_minor: 25, card_id: 'instrument', compensates: 'original' }
+        ];
+        for (const omitOwnerLink of ['original', 'refund']) {
+            const f = compensationFixture(mode, rows, { omitOwnerLink });
+            try {
+                assert.equal(evaluateEconomicMetric(f.operands, mode), 75);
+                assert.equal(f.observations.some(e => e[4][0] === 'person_id'), false);
+                assert.ok(f.observations.some(e => e[1] === 'get' && e[4][0] === 'coverage'));
+                for (const row of rows) assert.ok(f.observations.some(e => e[1] === 'has' && e[2] === row.id && e[4][0] === 'compensates'));
+                if (mode === 'statement') assert.ok(f.observations.some(e => e[2] === 'policy' && e[1] === 'identity' && e[4][0] === 'version'));
+            } finally { for (const c of f.controls) c.revoke(); }
+        }
+        const partial = compensationFixture(mode, rows, { coverage: 'partial' });
+        try { assert.throws(() => evaluateEconomicMetric(partial.operands, mode), /metric_selection_coverage/); }
+        finally { for (const c of partial.controls) c.revoke(); }
+    }
+});
+
+test('N02G:INSTRUMENT-PROFILE-002 inconsistent compensation presence and chains fail before financial exclusion', () => {
+    for (const mode of ['instrument', 'statement']) for (const excluded of [false, true]) {
+        const original = { id: 'original', date: '2042-06-01', state: 'confirmed', person_id: 'p1', category_id: 'food', amount_minor: -100, card_id: 'instrument' };
+        const refund = { id: 'refund', date: '2042-06-03', state: excluded ? 'projected' : 'confirmed', person_id: 'p2',
+            category_id: 'refund-kind', amount_minor: 25, card_id: 'instrument', compensates: 'original' };
+        for (const mutate of [r => { delete r[1].compensates; }, r => { r[1].category_id = 'food'; },
+            r => { r[1].compensates = 'refund'; }, r => { r[0].compensates = 'refund'; }]) {
+            const rows = structuredClone([original, refund]); mutate(rows);
+            const f = compensationFixture(mode, rows);
+            try { assert.throws(() => evaluateEconomicMetric(f.operands, mode), /access_set_predicate_threw/); }
+            finally { for (const c of f.controls) c.revoke(); }
+        }
     }
 });
 
@@ -503,7 +542,8 @@ test('N02G:METRIC-SELECTION-010 statement uses the historical open-close civil w
         const f = fixture({ rows, subject: { kind: 'card', ref_id: 'card' }, period: { kind: 'statement_due', value },
             time_basis: basis, instrument: { kind: 'card', id: 'card', closing_day, due_day } });
         const policy = createInstrumentedAccess({ emit: e => f.observations.push(e), bindings: [{ alias: 'policy', role: 'policy',
-            value: { calendar }, shape: { type: 'record', fields: { calendar: scalar } } }] });
+            identity: { kind: 'evaluation_policy', ref_id: 'policy-id', version },
+            value: { id: 'policy-id', calendar }, shape: { type: 'record', fields: { id: scalar, calendar: scalar } } }] });
         return evaluateEconomicMetric({ ...f.operands, policy: policy.handle('policy') }, 'statement');
     }
     assert.equal(run(), 5);

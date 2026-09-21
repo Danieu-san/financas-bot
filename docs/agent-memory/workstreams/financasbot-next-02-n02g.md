@@ -8,15 +8,15 @@ Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
 Estado vigente: correção e suporte de validação auditados em
 `8b66d1e6eac869cf7363beee3b2c1445840fb66e`, pai `be520f4f0cf64812c80f0f4b9b8eefb2a5445189`.
-HEAD publicado posterior (correção focal de versão no gerador candidato):
-`1e83baacfbb494e1f5cb3c1e70372e4acd50f349`, pai
-`ace83e80a1a2cf12ba2f9a7a8f6ace9ebdc5adbd`. Remoto confirmado.
+HEAD publicado posterior (recibo da correção focal de versão no gerador):
+`ad43ba41f0558e9329b8e494c824672d21de4b5d`, pai
+`1e83baacfbb494e1f5cb3c1e70372e4acd50f349`. Push confirmado.
 Desenhos refund, família e contagem APTO; código posterior ainda sem GO.
 Recibo: `../../audit-evidence/n02g-selection-phase/independent-review.md`.
 Revisão externa estática sem defeitos focais; execuções continuam locais.
 Ampla histórica preservada: 2.255 PASS, zero FAIL, dez SKIP esperados, referente
-ao candidato auditado. A composição posterior corrigida passou pela ampla (2.360 PASS,
-zero FAIL, dez SKIP esperados); auditoria de código permanece pendente.
+ao candidato auditado. A reconciliação posterior instrument/statement passou
+pela ampla (2.363 PASS, zero FAIL, dez SKIP esperados); auditoria focal pendente.
 `releaseEligible=false`; inventário local agora registra 30
 módulos pendentes (inclui metricReferences), sem alterar os 15 hashes aprovados.
 Diagnóstico inicial pós-GO focal (incrementos atualizados abaixo): as quatro famílias existentes exercitam 73/76
@@ -163,9 +163,44 @@ Não reenviar este hash. Resposta concluída: APTO focal sem achados, hash/pai
 confirmados. Ratificado somente o conserto ID + version; recibo em
 n02g-causal-authoring-profile/version-fix-independent-review.md. Limites de
 verificação estática explícitos; nenhuma aprovação normativa/runtime/global.
-Próxima fatia: reconciliação de consumption_by_instrument e statement_total
-contra obrigações congeladas antes da execução; começar por RED de cobertura
-dos seis perfis e preservar seleção/R. Não aplicar delta aos 76 grafos.
+Fatia atual local: reconciliação de consumption_by_instrument e statement_total
+contra obrigações congeladas antes da execução. AUTHOR-RECONCILE-001 reproduziu
+RED nos seis perfis: quatro dimensões discrepantes, com person_id extra,
+coverage ausente, id da policy ausente na fatura e has(compensates) ausente.
+Seleção/R permaneceram corretos no RED. Ajustes limitados a instrument/statement
+em metricSelection: cobertura complete, identidade da policy, dispensa de owner,
+presença/coerência/self/chain de compensação antes do filtro. Demais modos
+preservados. Após correção, seis composições de fase matched=true, sempre
+graph_accepted=false; remoção das guardas no trace (sequência válida) rejeitada.
+33 focais de seleção PASS, incluindo ownership irrelevante e guardas inválidas
+em candidatos excluídos. Seis grafos só usam expected candidato no teste;
+corpus normativo inteiro intacto. Bateria causal de seis arquivos preparada:
+.codex-temp/runProfileReconciliationAffected.cjs, evidência exclusiva
+n02g-profile-reconciliation-affected.json/.tap.log. Bateria concluída:
+135 PASS/0 FAIL/0 SKIP; cobertura 93,43% linhas, 83,59% branches, 95,02%
+funções. Diff/revisão confirmam escopo de três arquivos causais, demais modos
+preservados; Git confirma grafos/claims/perfis/gerador intactos. Syntax,
+diff --check e agent-workflow OK. Próximo passo: única ampla estável via
+.codex-temp/runWideProfileReconciliation20260921.cjs, saídas exclusivas
+wide-n02g-profile-reconciliation-20260921.json e -start.json. Base ad43ba41,
+manifesto antes/depois dos três arquivos. Após iniciar, suspender consultas
+por 20 minutos ou até Daniel chamar; não iniciar outra execução. Depois,
+conferir resultado/hashes, publicar candidato e auditar a reconciliação.
+Ampla de reconciliação iniciada em 2026-09-21T23:28:30.361Z, PID 8140,
+janela oculta, marcador e processo confirmados. Três arquivos causais fixados.
+Heartbeat existente reativado com este resultado (intervalo 20 minutos),
+desativar ao concluir. Acompanhamento suspenso agora; não confundir com as
+duas amplas anteriores já encerradas. Nenhum arquivo causal deve mudar.
+Resultado final consultado após a espera: concluído 2026-09-21T23:36:58.839Z,
+508.411 ms; valid=true, exit=0, 2.373 testes: 2.363 PASS/0 FAIL/10 SKIP
+esperados; candidate_unchanged=true, três hashes causais iguais antes/depois.
+Heartbeat pausado após conclusão. Não repetir a ampla verde. Evidência nova:
+n02g-causal-authoring-profile/reconciliation-validation.json; helper
+prepare-reconciliation-evidence.cjs --write-new/--check PASS, conferindo
+bytes LF, gerador/perfis/76 grafos/claims/relatórios intactos contra ad43ba41.
+Pedido focal: reconciliation-audit-request.md. Próxima ação: commit sanitizado,
+publicação e uma revisão independente do novo hash. Não aplicar normativa.
+O parecer do gerador não aprova esse runtime posterior nem sua normativa.
 Não reenviar ace83e8 nem considerar sua ampla como prova da correção posterior.
 GO global/runtime, autenticação de host e demais reconciliações continuam
 pendentes. Não apresentar a ampla verde como aceitação integral.

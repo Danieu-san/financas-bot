@@ -283,6 +283,56 @@ test('N02G:AUTHOR-INTEGRATION-001 candidate obligations are frozen before execut
     assert.equal(candidate.graph_accepted, false); assert.equal(candidate.normative_application_allowed, false);
 });
 
+test('N02G:AUTHOR-RECONCILE-001 six instrument profiles cover observed derivation without applying normative deltas', async () => {
+    const { buildCandidateReport } = require('../../../scripts/agent/reportNextCausalAuthoring.cjs');
+    const { freezeDeep } = require('../../../src/next/kernel/canonicalValue');
+    const report = freezeDeep(buildCandidateReport(file => fs.readFileSync(path.join(root, file), 'utf8').replaceAll('\r\n', '\n')));
+    const before = JSON.stringify(report);
+    const { evaluateEconomicMetric } = require('../../../src/next/provenance/metricSelection');
+    const { plan, claims, graphs } = await snapshotAccessFixture();
+    const oracle = JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/financasbot-next/golden-claim-oracles-v1.json'), 'utf8'));
+    const discrepancies = [];
+    assert.equal(report.records.length, 6);
+    for (const record of report.records) {
+        const claim = claims.find(c => c.fact_key === record.fact_key);
+        const graph = graphs.find(g => g.fact_key === record.fact_key);
+        const executionId = `profile-reconciliation-${record.fact_key}`;
+        const scope = selectionInput(claim, graph, executionId);
+        const expected = freezeDeep({ ...record.candidate.obligations, ...scope.expected });
+        const accessBindings = plan.observationMetadata({ fact_key: claim.fact_key, phase: 'derivation' });
+        const operandSets = Object.entries(claim.operand_bindings).filter(([, b]) => b.kind === 'node_set')
+            .map(([role, b]) => ({ role, aliases: b.aliases }));
+        const recorder = createCausalRecorder({ executionId, maxEvents: 10000 });
+        const phase = recorder.open({ invocationId: claim.fact_key, phase: 'derivation' });
+        const controls = []; const operands = {};
+        for (const [role_id, binding] of Object.entries(claim.operand_bindings)) {
+            const selector = { fact_key: claim.fact_key, role_id };
+            const access = binding.kind === 'claim_context' ? plan.openContext(selector, phase.observe)
+                : binding.kind === 'node_set' ? plan.openSet(selector, phase.observe)
+                    : plan.open({ ...selector, alias: binding.alias }, phase.observe);
+            controls.push(access); operands[role_id] = access.handle;
+        }
+        const value = evaluateEconomicMetric(Object.freeze(operands), claim.metric === 'statement_total' ? 'statement' : 'instrument');
+        for (const access of controls) { access.revoke(); access.assertHealthy(); }
+        phase.seal(); const trace = recorder.finish();
+        const coverage = comparePhaseCoverage({ ...scope, expected, trace, operandSets, accessBindings });
+        assert.equal(coverage.graph_accepted, false);
+        const split = claim.fact_key.lastIndexOf('#');
+        assert.equal(value, oracle.turns[claim.fact_key.slice(0, split)].facts[Number(claim.fact_key.slice(split + 1)) - 1].value);
+        assert.equal(coverage.components.selection.matched, true);
+        if (!coverage.matched) discrepancies.push({ fact_key: claim.fact_key,
+            reads: coverage.components.read_edges.mismatches,
+            invalid: coverage.event_coverage.filter(e => e.status !== 'covered') });
+        const altered = { ...trace, derivation_trace: trace.derivation_trace
+            .filter(e => !(e.operation === 'has' && e.path[0] === 'compensates')).map((entry, sequence) => ({ ...entry, sequence })) };
+        assert.equal(comparePhaseCoverage({ ...scope, expected, trace: altered, operandSets, accessBindings }).matched, false);
+    }
+    assert.equal(JSON.stringify(report), before);
+    assert.deepEqual(discrepancies.map(d => ({ fact_key: d.fact_key,
+        dimensions: d.reads.map(r => ({ dimension: r.dimension, missing: r.missing?.length, extra: r.extra?.length })),
+        unclassified_count: d.invalid.length })), []);
+});
+
 test('N02G:OBSERVED-METRIC-001 consumption roles select independently of graph expectations and oracle', async () => {
     const { evaluateEconomicMetric } = require('../../../src/next/provenance/metricSelection');
     const { createCausalRecorder } = require('../../../src/next/provenance/causalRecorder');

@@ -2,7 +2,7 @@
 
 const { parseDate, parseMonth, offsetDate, monthBounds, inclusiveDayCount } = require('./civilCalendar');
 const { validateLiteral } = require('./literalTypes');
-const { createUniqueNodeReader, readReference, readReferenceId, readReferenceIds } = require('./metricReferences');
+const { readNodeIdentity, createUniqueNodeReader, readReference, readReferenceId, readReferenceIds } = require('./metricReferences');
 const fail = code => { throw new Error(`metric_selection_${code}`); };
 const id = value => { validateLiteral({ type: 'id', value }); return value; };
 const money = value => {
@@ -40,7 +40,9 @@ function createCategoryReader(categories) {
 function selectEconomicEvents(operands, mode) {
     if (!['total', 'category', 'spent', 'income', 'instrument', 'budget_class', 'budget_remaining', 'statement', 'safe_pace'].includes(mode)) fail('mode');
     const pace = mode === 'safe_pace';
+    const instrumentMode = mode === 'instrument' || mode === 'statement';
     const context = operands.context;
+    if (instrumentMode && context.get('coverage') !== 'complete') fail('coverage');
     const basis = context.get('time_basis');
     if (!(pace ? basis === '15_full_days_after_as_of' : mode === 'statement' ? ['statement_due_date', 'statement_competence'].includes(basis)
         : mode === 'budget_remaining' ? basis === 'budget_cycle' : mode === 'spent' ? ['event_date', 'budget_cycle'].includes(basis) : basis === 'event_date')
@@ -60,6 +62,7 @@ function selectEconomicEvents(operands, mode) {
             || period.get('start_inclusive') !== true || period.get('end_inclusive') !== true) fail('pace');
         contains = value => value >= bounds.start && value <= cutoff;
     } else if (mode === 'statement') {
+        readNodeIdentity(operands.policy, 'evaluation_policy');
         if (period.get('kind') !== 'statement_due' || operands.policy.get('calendar') !== 'proleptic_gregorian') fail('statement');
         const due = period.get('value'); const date = parseDate(due);
         const closingDay = operands.card.get('closing_day'); const dueDay = operands.card.get('due_day');
@@ -74,7 +77,6 @@ function selectEconomicEvents(operands, mode) {
         contains = value => value.slice(0, 7) === month;
     }
     const subject = context.get('subject'); const kind = subject.get('kind');
-    const instrumentMode = mode === 'instrument' || mode === 'statement';
     const family = pace ? readReference(operands.budget, 'family_id', 'family').node : operands.family;
     const familyId = instrumentMode ? undefined : id(family.get('id'));
     const familyMembers = instrumentMode ? undefined : readReferenceIds(family, 'members');
@@ -120,19 +122,22 @@ function selectEconomicEvents(operands, mode) {
     const categoryOf = event => categoryReader.read(event);
     const candidates = createUniqueNodeReader('event');
     const selected = operands.events.select(event => {
-        candidates.read(event);
+        const candidateIdentity = candidates.read(event);
         const state = event.get('state');
         if (!['confirmed', 'projected'].includes(state)) fail('state');
         const date = event.get('date'); parseDate(date);
-        const owner = readReferenceId(event, 'person_id');
+        const owner = instrumentMode ? undefined : readReferenceId(event, 'person_id');
         const ownCategory = categoryOf(event);
         const economicMatch = mode === 'income' ? ownCategory.economicKind === 'income'
             : ['expense', 'compensation'].includes(ownCategory.economicKind);
         let effectiveCategory = ownCategory;
         // Resolving a compensation is part of its consumption semantics, not
         // an optional consequence of filtering by the original category.
-        if (economicMatch && ownCategory.economicKind === 'compensation') {
-            const { node: compensated } = readReference(event, 'compensates', 'event');
+        const hasCompensation = instrumentMode ? event.has('compensates') : economicMatch && ownCategory.economicKind === 'compensation';
+        if (instrumentMode && hasCompensation !== (ownCategory.economicKind === 'compensation')) fail('compensation');
+        if (hasCompensation) {
+            const { node: compensated, ref } = readReference(event, 'compensates', 'event');
+            if (instrumentMode && (ref === candidateIdentity.ref || compensated.has('compensates'))) fail('compensation');
             const originalCategory = categoryOf(compensated);
             if (originalCategory.economicKind !== 'expense') fail('compensation');
             effectiveCategory = originalCategory;
