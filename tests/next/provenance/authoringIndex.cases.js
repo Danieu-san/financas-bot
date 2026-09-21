@@ -10,7 +10,7 @@ const { admitPackage } = require('../../../src/next/provenance/packageContract')
 const { compileAuthoringIndex, compileAuthoringIR, compileSnapshotAccess } = require('../../../src/next/provenance/graphCompiler');
 const { lowerAuthoringIR } = require('../../../src/next/provenance/authoringIR');
 const { createCausalRecorder } = require('../../../src/next/provenance/causalRecorder');
-const { compareSelectionCoverage } = require('../../../src/next/provenance/proofAcceptance');
+const { compareSelectionCoverage, compareReadEdgeCoverage, comparePhaseCoverage } = require('../../../src/next/provenance/proofAcceptance');
 const root = path.resolve(__dirname, '../../..');
 const prefix = 'docs/contracts/next/provenance-v2/';
 const graphPath = prefix + 'graphs-v2.json';
@@ -57,6 +57,179 @@ function selectionInput(claim, graph, executionId) {
             selected_nodes: graph.trace_contract.derivation.selected_nodes } };
 }
 
+function referencePopulationExpectation(graph, kinds = ['family']) {
+    const derivation = graph.trace_contract.derivation;
+    return { edges: graph.edges.filter(e => kinds.includes(graph.nodes[e.source]?.kind) && e.field === 'members'
+        && derivation.required_edges.includes(e.id)).map(e => e.id),
+        structural: derivation.required_structural.filter(r => kinds.includes(graph.nodes[r.node]?.kind)
+            && r.segments.length === 1 && r.segments[0] === 'members') };
+}
+function transitiveFamilyRequirements(graph, claim) {
+    const budget = claim.operand_bindings.budget;
+    assert.equal(budget.kind, 'node'); assert.equal(graph.nodes[budget.alias].kind, 'budget');
+    const links = graph.edges.filter(e => e.source === budget.alias && e.field === 'family_id' && e.relation === 'material_ref');
+    assert.equal(links.length, 1); const family = links[0].target;
+    assert.equal(graph.nodes[family].kind, 'family');
+    const members = graph.edges.filter(e => e.source === family && e.field === 'members' && e.relation === 'material_ref');
+    for (const member of members) assert.equal(graph.nodes[member.target].kind, 'person');
+    return { required_nodes: [family], required_reads: ['id', 'members'].map(field => ({ node: family, segments: [field] })),
+        required_edges: members.map(e => e.id), required_structural: ['cardinality', 'iterator', 'order']
+            .map(operation => ({ node: family, operation, segments: ['members'] })) };
+}
+
+test('N02G:FAMILY-PHASE-001 transitive population authored delta preserves every other graph field', () => {
+    const document = JSON.parse(fs.readFileSync(path.join(root, graphPath), 'utf8'));
+    const source = JSON.parse(fs.readFileSync(path.join(root, 'docs/audit-evidence/n02g-transitive-family/graphs-extract.json'), 'utf8'));
+    for (const claim of source.claims) {
+        const graph = document.graphs.find(g => g.fact_key === claim.fact_key);
+        const before = source.graphs.find(g => g.fact_key === claim.fact_key);
+        const expected = structuredClone(before);
+        for (const [key, values] of Object.entries(transitiveFamilyRequirements(before, claim))) {
+            const list = expected.trace_contract.derivation[key];
+            for (const value of values) if (!list.some(v => JSON.stringify(v) === JSON.stringify(value))) list.push(value);
+        }
+        assert.deepEqual(graph, expected, claim.fact_key);
+    }
+});
+
+test('N02G:FAMILY-PHASE-002 transitive requirements are independent of fact keys, aliases and edge order', () => {
+    const source = JSON.parse(fs.readFileSync(path.join(root, 'docs/audit-evidence/n02g-transitive-family/graphs-extract.json'), 'utf8'));
+    for (const claim of source.claims) for (let seed = 0; seed < 6; seed++) {
+        const graph = source.graphs.find(g => g.fact_key === claim.fact_key);
+        const nodes = new Map(Object.keys(graph.nodes).map((name, i) => [name, `alias-${seed}-${i}`]));
+        const edgeId = id => `edge-${seed}-${id}`;
+        const renamed = { fact_key: `irrelevant-${seed}`, nodes: Object.fromEntries(Object.entries(graph.nodes).map(([key, value]) => [nodes.get(key), value])),
+            edges: graph.edges.map(e => ({ ...e, id: edgeId(e.id), source: nodes.get(e.source), target: nodes.get(e.target) })).reverse() };
+        const input = { operand_bindings: { budget: { kind: 'node', alias: nodes.get(claim.operand_bindings.budget.alias) } } };
+        const expected = transitiveFamilyRequirements(graph, claim);
+        expected.required_nodes = expected.required_nodes.map(n => nodes.get(n));
+        expected.required_reads = expected.required_reads.map(r => ({ ...r, node: nodes.get(r.node) }));
+        expected.required_edges = expected.required_edges.map(edgeId).reverse();
+        expected.required_structural = expected.required_structural.map(r => ({ ...r, node: nodes.get(r.node) }));
+        assert.deepEqual(transitiveFamilyRequirements(renamed, input), expected);
+    }
+});
+function countCompensationRequirements(graph, claim) {
+    assert.equal(claim.metric, 'eligible_event_count');
+    const candidates = claim.operand_bindings.events;
+    assert.equal(candidates.kind, 'node_set');
+    assert.equal(claim.operand_bindings.categories.kind, 'node_set');
+    // Category-filtered counting inherits the compensated purchase category.
+    // Author from roles and material relations, never a result or trace.
+    const edges = graph.edges.filter(e => candidates.aliases.includes(e.source)
+        && e.field === 'compensates' && e.relation === 'material_ref');
+    for (const edge of edges) {
+        assert.equal(graph.nodes[edge.source].kind, 'event');
+        assert.equal(graph.nodes[edge.target].kind, 'event');
+        assert.ok(graph.edges.some(e => e.source === edge.target && e.field === 'category_id'
+            && claim.operand_bindings.categories.aliases.includes(e.target)));
+    }
+    return { required_reads: edges.map(e => ({ node: e.source, segments: [e.field] })),
+        required_edges: edges.map(e => e.id) };
+}
+
+test('N02G:COUNT-PHASE-001 effective-category dependency changes only the approved derivation fields', () => {
+    const document = JSON.parse(fs.readFileSync(path.join(root, graphPath), 'utf8'));
+    const source = JSON.parse(fs.readFileSync(path.join(root, 'docs/audit-evidence/n02g-count-compensation/graphs-extract.json'), 'utf8'));
+    assert.equal(source.graphs.length, 3);
+    for (const claim of source.claims) {
+        const before = source.graphs.find(g => g.fact_key === claim.fact_key);
+        const expected = structuredClone(before);
+        for (const [key, values] of Object.entries(countCompensationRequirements(before, claim))) {
+            for (const value of values) {
+                assert.ok(!expected.trace_contract.derivation[key].some(v => JSON.stringify(v) === JSON.stringify(value)));
+                expected.trace_contract.derivation[key].push(value);
+            }
+        }
+        assert.deepEqual(document.graphs.find(g => g.fact_key === claim.fact_key), expected, claim.fact_key);
+    }
+});
+
+test('N02G:COUNT-PHASE-002 compensation authorship ignores aliases, fact keys and roster order', () => {
+    const source = JSON.parse(fs.readFileSync(path.join(root, 'docs/audit-evidence/n02g-count-compensation/graphs-extract.json'), 'utf8'));
+    for (const claim of source.claims) for (let seed = 0; seed < 6; seed++) {
+        const graph = source.graphs.find(g => g.fact_key === claim.fact_key);
+        const names = new Map(Object.keys(graph.nodes).map((name, i) => [name, `node-${seed}-${i}`]));
+        const edgeId = id => `edge-${seed}-${id}`;
+        const renamed = { fact_key: `unused-${seed}`, nodes: Object.fromEntries(Object.entries(graph.nodes).map(([k, v]) => [names.get(k), v])),
+            edges: graph.edges.map(e => ({ ...e, id: edgeId(e.id), source: names.get(e.source), target: names.get(e.target) })).reverse() };
+        const input = structuredClone(claim); input.fact_key = 'irrelevant';
+        for (const role of ['events', 'categories']) input.operand_bindings[role].aliases = input.operand_bindings[role].aliases.map(n => names.get(n)).reverse();
+        const expected = countCompensationRequirements(graph, claim);
+        expected.required_reads = expected.required_reads.map(r => ({ ...r, node: names.get(r.node) })).reverse();
+        expected.required_edges = expected.required_edges.map(edgeId).reverse();
+        assert.deepEqual(countCompensationRequirements(renamed, input), expected);
+    }
+});
+
+function assertReferencePopulationObserved(trace, expected, factKey) {
+    for (const edge of expected.edges) assert.ok(trace.some(e => e.operation === 'traverse' && e.outcome[1] === edge), `${factKey}: ${edge}`);
+    const operation = { cardinality: 'length', iterator: 'iterate', order: 'next' };
+    for (const required of expected.structural) {
+        assert.ok(Object.hasOwn(operation, required.operation));
+        assert.ok(trace.some(e => e.alias === required.node && e.operation === operation[required.operation]
+            && (required.operation !== 'order' || e.outcome[0] === 'done')
+            && JSON.stringify(required.operation === 'order' ? e.path.slice(0, -1) : e.path) === JSON.stringify(required.segments)),
+        `${factKey}: ${required.operation}`);
+    }
+}
+
+function composedSelection(input, graph, claim, accessBindings) {
+    const selection = compareSelectionCoverage(input);
+    const readKeys = ['required_nodes', 'required_reads', 'required_claim_reads', 'required_edges', 'required_structural'];
+    const readExpected = Object.fromEntries(readKeys.map(k => [k, graph.trace_contract.derivation[k]]));
+    const { sets, bindings, ...scope } = input;
+    const reads = compareReadEdgeCoverage({ ...scope, expected: readExpected });
+    const operandSets = Object.entries(claim.operand_bindings).filter(([, b]) => b.kind === 'node_set')
+        .map(([role, b]) => ({ role, aliases: b.aliases }));
+    const composed = comparePhaseCoverage({ ...input, operandSets, accessBindings, expected: { ...readExpected, ...input.expected } });
+    // Corpus integration must preserve every standalone discrepancy, not turn
+    // the existing selection/oracle test into a claim of graph acceptance.
+    assert.deepEqual(composed.components.selection, selection);
+    assert.deepEqual(composed.components.read_edges, reads);
+    assert.equal(composed.graph_accepted, false);
+    assert.deepEqual(composed.event_coverage.map(e => e.sequence), input.trace.derivation_trace.map(e => e.sequence));
+    assert.equal(composed.matched, reads.mismatches.length === 0 && selection.matched && composed.components.operand_sets.matched && composed.components.access_metadata.matched
+        && composed.components.civil_dates.matched
+        && composed.event_coverage.every(e => e.status === 'covered'));
+    for (const event of input.trace.derivation_trace.filter(e => e.measurement)) {
+        assert.equal(composed.event_coverage.find(e => e.sequence === event.sequence).status, 'unsupported');
+        assert.equal(composed.matched, false);
+    }
+    for (const event of input.trace.derivation_trace.filter(e => e.operation === 'civil_date')) {
+        const coverage = composed.event_coverage.find(e => e.sequence === event.sequence);
+        assert.equal(coverage.status, 'covered'); assert.equal(coverage.component, 'civil_dates');
+    }
+    return selection;
+}
+
+test('N02G:ACCESS-METADATA-COMPILER-001 metadata comes from admitted role reachability and schema shapes without payloads', async () => {
+    const { plan, graphs } = await snapshotAccessFixture();
+    const graph = graphs.find(g => g.fact_key === 'S-16#1#1');
+    const selector = { fact_key: graph.fact_key, phase: 'derivation' };
+    const metadata = plan.observationMetadata(selector);
+    const source = metadata.find(b => b.alias === 'source_complete_june' && b.role === 'source');
+    assert.deepEqual({ ...source.identity }, Object.fromEntries(['kind', 'ref_id', 'version'].map(k => [k, graph.nodes[source.alias][k]])));
+    const context = metadata.find(b => b.alias === 'claim/context');
+    assert.equal(context.identity, null); assert.equal(context.role, 'context');
+    assert.ok(context.records.some(p => JSON.stringify(p) === '["period"]'));
+    assert.ok(context.records.some(p => JSON.stringify(p) === '["subject"]'));
+    assert.equal(metadata.some(b => b.alias === 'source_partial_may'), false);
+    for (const binding of metadata) assert.deepEqual(Object.keys(binding).sort(), ['alias', 'identity', 'records', 'role']);
+    assert.throws(() => { source.identity.kind = 'other'; }, TypeError);
+    assert.throws(() => context.records.push(['forged']), TypeError);
+    assert.deepEqual(plan.observationMetadata(selector), metadata);
+    const proof = plan.observationMetadata({ fact_key: graph.fact_key, phase: 'proof' });
+    assert.ok(proof.some(b => b.alias === 'source_partial_may' && b.role === 'proof/snapshot'));
+    assert.ok(proof.some(b => b.alias === 'claim/context' && b.role === 'proof/context'));
+    for (const bad of [{ ...selector, phase: 'unknown' }, { ...selector, fact_key: 'absent' }, { ...selector, bindings: [] }]) {
+        assert.throws(() => plan.observationMetadata(bad), /snapshot_access_/);
+    }
+    let calls = 0;
+    assert.throws(() => plan.observationMetadata({ phase: 'derivation', get fact_key() { calls++; return graph.fact_key; } }), /snapshot_access_/);
+    assert.equal(calls, 0);
+});
+
 let accessFixture;
 function snapshotAccessFixture() {
     accessFixture ||= (async () => {
@@ -76,6 +249,40 @@ function snapshotAccessFixture() {
     return accessFixture;
 }
 
+test('N02G:AUTHOR-INTEGRATION-001 candidate obligations are frozen before execution and cannot be regenerated from a tampered trace', async () => {
+    const { buildCandidateReport } = require('../../../scripts/agent/reportNextCausalAuthoring.cjs');
+    const { freezeDeep } = require('../../../src/next/kernel/canonicalValue');
+    const report = buildCandidateReport(file => fs.readFileSync(path.join(root, file), 'utf8').replaceAll('\r\n', '\n'));
+    const record = report.records.find(r => r.metric === 'consumption_by_instrument');
+    const candidate = freezeDeep(record.candidate); const before = JSON.stringify(candidate);
+    // Generation is complete before the evaluator is even loaded here. No
+    // oracle or observed event is supplied to that earlier call.
+    const { evaluateEconomicMetric } = require('../../../src/next/provenance/metricSelection');
+    const { plan, claims } = await snapshotAccessFixture();
+    const claim = claims.find(c => c.fact_key === record.fact_key);
+    const executionId = 'causal-authorship-before-execution';
+    const recorder = createCausalRecorder({ executionId, maxEvents: 10000 });
+    const phase = recorder.open({ invocationId: claim.fact_key, phase: 'derivation' });
+    const controls = []; const operands = {};
+    for (const [role_id, binding] of Object.entries(claim.operand_bindings)) {
+        const selector = { fact_key: claim.fact_key, role_id };
+        const access = binding.kind === 'claim_context' ? plan.openContext(selector, phase.observe)
+            : binding.kind === 'node_set' ? plan.openSet(selector, phase.observe)
+                : plan.open({ ...selector, alias: binding.alias }, phase.observe);
+        controls.push(access); operands[role_id] = access.handle;
+    }
+    evaluateEconomicMetric(Object.freeze(operands), 'instrument');
+    for (const access of controls) { access.revoke(); access.assertHealthy(); }
+    phase.seal(); const trace = recorder.finish();
+    assert.ok(trace.derivation_trace.length > 0);
+    const args = { executionId, invocationId: claim.fact_key, phase: 'derivation', expected: candidate.obligations };
+    compareReadEdgeCoverage({ ...args, trace }); // A diagnostic, NOT approval of this proposed profile.
+    const tampered = compareReadEdgeCoverage({ ...args, trace: { ...trace, derivation_trace: [] } });
+    assert.equal(tampered.matched, false); assert.ok(tampered.mismatches.length > 0);
+    assert.equal(JSON.stringify(candidate), before);
+    assert.equal(candidate.graph_accepted, false); assert.equal(candidate.normative_application_allowed, false);
+});
+
 test('N02G:OBSERVED-METRIC-001 consumption roles select independently of graph expectations and oracle', async () => {
     const { evaluateEconomicMetric } = require('../../../src/next/provenance/metricSelection');
     const { createCausalRecorder } = require('../../../src/next/provenance/causalRecorder');
@@ -86,7 +293,13 @@ test('N02G:OBSERVED-METRIC-001 consumption roles select independently of graph e
         category_budget_remaining: 'budget_remaining', statement_total: 'statement', safe_daily_pace: 'safe_pace' };
     for (const claim of claims.filter(c => Object.hasOwn(modes, c.metric))) {
         const graph = graphs.find(g => g.fact_key === claim.fact_key);
+        const expectedCompensations = graph.edges.filter(e => e.field === 'compensates'
+            && graph.trace_contract.derivation.required_edges.includes(e.id)).map(e => e.id).sort();
+        const expectedFamily = referencePopulationExpectation(graph);
+        const expectedCategoryReads = graph.trace_contract.derivation.required_reads.filter(read =>
+            graph.nodes[read.node].kind === 'event' && read.segments.length === 1 && read.segments[0] === 'category_id');
         const coverageInput = selectionInput(claim, graph, `consumption-${checked}`);
+        const accessBindings = plan.observationMetadata({ fact_key: claim.fact_key, phase: 'derivation' });
         const recorder = createCausalRecorder({ executionId: `consumption-${checked}`, maxEvents: 10000 });
         const phase = recorder.open({ invocationId: claim.fact_key, phase: 'derivation' });
         const controls = []; const operands = {};
@@ -100,7 +313,7 @@ test('N02G:OBSERVED-METRIC-001 consumption roles select independently of graph e
         const result = evaluateEconomicMetric(Object.freeze(operands), modes[claim.metric]);
         for (const access of controls) { access.revoke(); access.assertHealthy(); }
         phase.seal(); const observed = recorder.finish(); const trace = observed.derivation_trace;
-        const coverage = compareSelectionCoverage({ ...coverageInput, trace: observed });
+        const coverage = composedSelection({ ...coverageInput, trace: observed }, graph, claim, accessBindings);
         assert.equal(coverage.matched, true, `${claim.fact_key}: ${JSON.stringify(coverage)}`);
         const split = claim.fact_key.lastIndexOf('#');
         const expected = oracle.turns[claim.fact_key.slice(0, split)].facts[Number(claim.fact_key.slice(split + 1)) - 1];
@@ -110,6 +323,12 @@ test('N02G:OBSERVED-METRIC-001 consumption roles select independently of graph e
         assert.equal(decisions.length, claim.operand_bindings.events.aliases.length);
         const selected = decisions.filter(e => e.outcome[2]).map(e => e.outcome[1]);
         assert.deepEqual(selected, graph.sets[graph.selections[0].selected_set], claim.fact_key);
+        const observedCompensations = [...new Set(trace.filter(e => e.operation === 'traverse'
+            && e.path[0] === 'compensates').map(e => e.outcome[1]))].sort();
+        assert.deepEqual(observedCompensations, expectedCompensations, `${claim.fact_key}: compensation edges`);
+        assertReferencePopulationObserved(trace, expectedFamily, claim.fact_key);
+        for (const read of expectedCategoryReads) assert.ok(trace.some(e => e.operation === 'get'
+            && e.alias === read.node && e.path.length === 1 && e.path[0] === 'category_id'), `${claim.fact_key}: ${read.node}/category_id`);
         assert.ok(trace.some(e => e.operation === 'traverse'));
         checked++;
     }
@@ -125,8 +344,15 @@ test('N02G:OBSERVED-METRIC-002 direct reads preserve values and identities throu
         'bills_open', 'due_bill_ids', 'due_bills_total', 'reminder_count', 'calendar_event_count', 'similar_event_ids',
         'account_balance', 'movement_ids'];
     for (const claim of claims.filter(c => supported.includes(c.metric))) {
+        const referenceCandidates = new Set(['bills', 'cards', 'rules'].flatMap(role => claim.operand_bindings[role]?.aliases || []));
+        const referenceFields = { bill: 'person_id', card: 'owner_id', merchant_rule: 'merchant_key' };
         const graph = graphs.find(g => g.fact_key === claim.fact_key);
         const coverageInput = selectionInput(claim, graph, `direct-${checked}`);
+        const expectedFamily = referencePopulationExpectation(graph);
+        const expectedReferenceReads = graph.trace_contract.derivation.required_reads.filter(read =>
+            referenceCandidates.has(read.node) && read.segments.length === 1
+            && referenceFields[graph.nodes[read.node].kind] === read.segments[0]);
+        const accessBindings = plan.observationMetadata({ fact_key: claim.fact_key, phase: 'derivation' });
         const recorder = createCausalRecorder({ executionId: coverageInput.executionId, maxEvents: 10000 });
         const phase = recorder.open({ invocationId: claim.fact_key, phase: 'derivation' });
         const controls = []; const operands = {}; const events = [];
@@ -140,12 +366,19 @@ test('N02G:OBSERVED-METRIC-002 direct reads preserve values and identities throu
         const result = evaluateDirectMetric(Object.freeze(operands), claim.metric);
         for (const access of controls) { access.revoke(); access.assertHealthy(); }
         phase.seal(); const trace = recorder.finish();
-        const coverage = compareSelectionCoverage({ ...coverageInput, trace });
+        const coverage = composedSelection({ ...coverageInput, trace }, graph, claim, accessBindings);
         assert.equal(coverage.matched, true, `${claim.fact_key}: ${JSON.stringify(coverage)}`);
+        assertReferencePopulationObserved(trace.derivation_trace, expectedFamily, claim.fact_key);
         if (!coverageInput.bindings.length) assert.equal(trace.derivation_trace.some(e => e.operation.startsWith('select_')), false);
         const split = claim.fact_key.lastIndexOf('#');
         const expected = oracle.turns[claim.fact_key.slice(0, split)].facts[Number(claim.fact_key.slice(split + 1)) - 1];
         assert.equal(expected.metric, claim.metric); assert.deepEqual(result, expected.value, claim.fact_key);
+        for (const read of expectedReferenceReads) {
+            assert.ok(events.some(e => e[1] === 'get' && e[2] === read.node && e[4][0] === read.segments[0]),
+                `${claim.fact_key}: reference read ${read.node}/${read.segments[0]}`);
+            assert.ok(events.some(e => e[1] === 'traverse' && e[2] === read.node && e[4][0] === read.segments[0]),
+                `${claim.fact_key}: reference traversal ${read.node}/${read.segments[0]}`);
+        }
         assert.ok(events.some(e => e[1] === 'get'));
         checked++;
     }
@@ -160,6 +393,8 @@ test('N02G:OBSERVED-METRIC-003 installment selection is independently observed f
     for (const claim of claims.filter(c => supported.includes(c.metric))) {
         const graph = graphs.find(g => g.fact_key === claim.fact_key);
         const coverageInput = selectionInput(claim, graph, `installments-${checked}`);
+        const expectedPopulation = referencePopulationExpectation(graph, ['family', 'installment_plan']);
+        const accessBindings = plan.observationMetadata({ fact_key: claim.fact_key, phase: 'derivation' });
         const recorder = createCausalRecorder({ executionId: coverageInput.executionId, maxEvents: 10000 });
         const phase = recorder.open({ invocationId: claim.fact_key, phase: 'derivation' });
         const controls = []; const operands = {}; const observations = [];
@@ -172,7 +407,9 @@ test('N02G:OBSERVED-METRIC-003 installment selection is independently observed f
         }
         const result = evaluateInstallments(Object.freeze(operands), claim.metric);
         for (const access of controls) { access.revoke(); access.assertHealthy(); }
-        phase.seal(); const coverage = compareSelectionCoverage({ ...coverageInput, trace: recorder.finish() });
+        phase.seal(); const trace = recorder.finish();
+        const coverage = composedSelection({ ...coverageInput, trace }, graph, claim, accessBindings);
+        assertReferencePopulationObserved(trace.derivation_trace, expectedPopulation, claim.fact_key);
         assert.equal(coverage.matched, true, `${claim.fact_key}: ${JSON.stringify(coverage)}`);
         const split = claim.fact_key.lastIndexOf('#');
         const expected = oracle.turns[claim.fact_key.slice(0, split)].facts[Number(claim.fact_key.slice(split + 1)) - 1];
@@ -193,6 +430,9 @@ test('N02G:OBSERVED-METRIC-004 economic effects use observed links, not signed a
     for (const claim of claims.filter(c => supported.includes(c.metric))) {
         const graph = graphs.find(g => g.fact_key === claim.fact_key);
         const coverageInput = selectionInput(claim, graph, `effects-${checked}`);
+        const expectedCategoryReads = graph.trace_contract.derivation.required_reads.filter(read =>
+            graph.nodes[read.node].kind === 'event' && read.segments.length === 1 && read.segments[0] === 'category_id');
+        const accessBindings = plan.observationMetadata({ fact_key: claim.fact_key, phase: 'derivation' });
         const recorder = createCausalRecorder({ executionId: coverageInput.executionId, maxEvents: 10000 });
         const phase = recorder.open({ invocationId: claim.fact_key, phase: 'derivation' });
         const controls = []; const operands = {}; const observations = [];
@@ -205,7 +445,7 @@ test('N02G:OBSERVED-METRIC-004 economic effects use observed links, not signed a
         }
         const result = evaluateEffects(Object.freeze(operands), claim.metric);
         for (const access of controls) { access.revoke(); access.assertHealthy(); }
-        phase.seal(); const coverage = compareSelectionCoverage({ ...coverageInput, trace: recorder.finish() });
+        phase.seal(); const coverage = composedSelection({ ...coverageInput, trace: recorder.finish() }, graph, claim, accessBindings);
         assert.equal(coverage.matched, true, `${claim.fact_key}: ${JSON.stringify(coverage)}`);
         const split = claim.fact_key.lastIndexOf('#');
         const expected = oracle.turns[claim.fact_key.slice(0, split)].facts[Number(claim.fact_key.slice(split + 1)) - 1];
@@ -213,9 +453,94 @@ test('N02G:OBSERVED-METRIC-004 economic effects use observed links, not signed a
         const decisions = observations.filter(e => e[1] === 'select_member');
         assert.equal(decisions.length, claim.operand_bindings.events.aliases.length);
         assert.deepEqual(decisions.filter(e => e[6][2]).map(e => e[6][1]), graph.sets[graph.selections[0].selected_set], claim.fact_key);
+        for (const read of expectedCategoryReads) assert.ok(observations.some(e => e[1] === 'get'
+            && e[2] === read.node && e[4].length === 1 && e[4][0] === 'category_id'), `${claim.fact_key}: ${read.node}/category_id`);
         checked++;
     }
     assert.equal(checked, 13);
+});
+
+// Closed semantic requirements from the reviewed proposal, resolved from
+// authored roles/relations before execution. No actual trace, oracle or fact
+// key participates in constructing the expected nodes/reads/edges.
+function refundRequirements(graph, claim) {
+    const nodes = new Set(); const reads = new Map(); const edges = new Set();
+    const read = (node, ...fields) => {
+        nodes.add(node);
+        for (const field of fields) { const item = { node, segments: [field] }; reads.set(JSON.stringify(item), item); }
+    };
+    const follow = (source, field, kind) => {
+        const links = graph.edges.filter(e => e.relation === 'material_ref' && e.source === source && e.field === field);
+        assert.equal(links.length, 1); const edge = links[0];
+        assert.equal(graph.nodes[edge.target].kind, kind);
+        edges.add(edge.id); read(source, field); read(edge.target, 'id'); return edge.target;
+    };
+    for (const event of claim.operand_bindings.events.aliases) {
+        assert.equal(graph.nodes[event].kind, 'event');
+        read(event, 'id', 'date', 'state', 'person_id', 'category_id');
+        follow(event, 'person_id', 'person');
+        read(follow(event, 'category_id', 'category'), 'kind');
+        const target = follow(event, 'compensates', 'event');
+        assert.notEqual(target, event); read(target, 'state', 'person_id');
+        read(follow(target, 'category_id', 'category'), 'kind');
+        if (graph.trace_contract.derivation.selected_nodes.includes(event)) read(event, 'amount_minor');
+    }
+    return { required_nodes: [...nodes].sort(), required_reads: [...reads.values()].sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b))),
+        required_edges: [...edges].sort() };
+}
+
+test('N02G:REFUND-PHASE-001 authored derivation matches the reviewed semantic closure and preserves proof', () => {
+    const document = JSON.parse(fs.readFileSync(path.join(root, graphPath), 'utf8'));
+    const claims = JSON.parse(fs.readFileSync(path.join(root, document.claim_contract.path), 'utf8')).claims;
+    const baseline = JSON.parse(fs.readFileSync(path.join(root, 'docs/audit-evidence/n02g-refund-phase/graphs-extract.json'), 'utf8'));
+    const selected = claims.filter(c => c.metric === 'refund_amount'); assert.equal(selected.length, 2);
+    for (const claim of selected) {
+        const graph = document.graphs.find(g => g.fact_key === claim.fact_key);
+        const expected = refundRequirements(graph, claim);
+        const before = baseline.graphs.find(g => g.fact_key === claim.fact_key);
+        for (const [key, value] of Object.entries(expected)) {
+            const actual = [...graph.trace_contract.derivation[key]].sort((a, b) => typeof a === 'string'
+                ? a.localeCompare(b) : JSON.stringify(a).localeCompare(JSON.stringify(b)));
+            assert.deepEqual(actual, value, `${claim.fact_key}/${key}`);
+        }
+        const { trace_contract, ...rest } = graph; const { trace_contract: oldTrace, ...oldRest } = before;
+        assert.deepEqual(rest, oldRest);
+        assert.deepEqual({ ...trace_contract, derivation: null }, { ...oldTrace, derivation: null });
+        const fixed = trace => Object.fromEntries(Object.entries(trace).filter(([key]) => !Object.hasOwn(expected, key)));
+        assert.deepEqual(fixed(trace_contract.derivation), fixed(oldTrace.derivation));
+    }
+});
+
+test('N02G:REFUND-PHASE-002 both refund contexts have exact partial derivation coverage, never graph acceptance', async () => {
+    const { evaluateEffects } = require('../../../src/next/provenance/metricEffects');
+    const { plan, claims, graphs } = await snapshotAccessFixture(); let checked = 0;
+    for (const claim of claims.filter(c => c.metric === 'refund_amount')) {
+        const graph = graphs.find(g => g.fact_key === claim.fact_key);
+        const input = selectionInput(claim, graph, `refund-phase-${checked}`);
+        const expected = { ...graph.trace_contract.derivation, ...refundRequirements(graph, claim) };
+        delete expected.evidence_set_mode;
+        const accessBindings = plan.observationMetadata({ fact_key: claim.fact_key, phase: 'derivation' });
+        const operandSets = Object.entries(claim.operand_bindings).filter(([, b]) => b.kind === 'node_set')
+            .map(([role, b]) => ({ role, aliases: b.aliases }));
+        const recorder = createCausalRecorder({ executionId: input.executionId, maxEvents: 10000 });
+        const phase = recorder.open({ invocationId: claim.fact_key, phase: 'derivation' });
+        const controls = []; const operands = {};
+        try {
+            for (const [role_id, binding] of Object.entries(claim.operand_bindings)) {
+                const selector = { fact_key: claim.fact_key, role_id };
+                const control = binding.kind === 'claim_context' ? plan.openContext(selector, phase.observe)
+                    : plan.openSet(selector, phase.observe);
+                controls.push(control); operands[role_id] = control.handle;
+            }
+            assert.equal(evaluateEffects(Object.freeze(operands), 'refund_amount'), 4500);
+            for (const control of controls) control.assertHealthy();
+            phase.seal();
+            const coverage = comparePhaseCoverage({ ...input, trace: recorder.finish(), expected, accessBindings, operandSets });
+            assert.equal(coverage.matched, true, `${claim.fact_key}: ${JSON.stringify(coverage.components.read_edges.mismatches)}`);
+            assert.equal(coverage.graph_accepted, false); checked++;
+        } finally { for (const control of controls) control.revoke(); }
+    }
+    assert.equal(checked, 2);
 });
 
 test('N02G:TRACE-COMPAT-001 required edge remains independent from derivation node and read coverage', async () => {
@@ -223,7 +548,13 @@ test('N02G:TRACE-COMPAT-001 required edge remains independent from derivation no
     const { plan, graphs } = await snapshotAccessFixture();
     const report = inspectTraversalCoverage(graphs);
     assert.equal(report.compatible, true); assert.equal(report.graphs_checked, 76);
-    assert.equal(report.edge_only_graphs, 66); assert.equal(report.edge_only_count, 1133);
+    // The reviewed refund closure supplies both endpoints and scalar reads
+    // for e0002/e0004 in each of the two refund graphs: four edge-only cases
+    // disappear. Their new e0005/e0008 edges already have complete coverage.
+    // The reviewed family closure supplies the target of budget.family_id,
+    // while its two member edges intentionally do not consume person payloads:
+    // two graphs each remove one edge-only case and introduce two.
+    assert.equal(report.edge_only_graphs, 66 - 2); assert.equal(report.edge_only_count, 1133 - 4 + 2 * (2 - 1));
     assert.ok(report.edge_only.every(g => g.phase === 'derivation'));
     const graph = graphs.find(g => g.fact_key === 'S-01#1#1');
     const contract = graph.trace_contract.derivation;
@@ -301,7 +632,7 @@ test('N02G:SNAPSHOT-ACCESS-001 handles resolve exact admitted fact/role/alias id
     assert.equal(plan.stage, 'snapshot_access_plan_only');
     assert.equal(plan.executable, false);
     assert.equal(plan.snapshot_count, 115);
-    assert.deepEqual(Object.keys(plan).sort(), ['executable', 'open', 'openContext', 'openProof', 'openSet', 'snapshot_count', 'stage']);
+    assert.deepEqual(Object.keys(plan).sort(), ['executable', 'observationMetadata', 'open', 'openContext', 'openProof', 'openSet', 'snapshot_count', 'stage']);
     let opened = 0;
     for (const claim of claims) {
         const graph = graphs.find(g => g.fact_key === claim.fact_key);

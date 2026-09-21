@@ -121,6 +121,31 @@ membership, cardinalidade/length, seleção, traversal e terminação antecipada
 O resultado de cada observação vem de I; a representação é do recorder.
 Não se presume que observar length equivale a ler os membros ou sua ordem.
 
+No perfil N02-G de relações materiais admitidas, follow(field) e
+traverse(edge_id) observam a travessia pelo evento I/traverse com source,
+field, edge_id e target. A obrigação canônica dessa observação é a aresta
+em required_edges da fase. Não há uma segunda observação estrutural criada
+implicitamente para a mesma travessia. A leitura do valor da referência é
+um get distinto e exige required_reads (ou required_claim_reads, quando
+aplicável); nem get nem traversal substitui a outra operação.
+
+required_structural cobre as operações estruturais efetivamente realizadas
+além da resolução de aresta, como cardinalidade, enumeração, ordem e
+membership de listas. Resolver membros não cobre essas operações. A presença
+de traversal no enum estrutural não cria uma segunda obrigação automática
+nem autoriza tratá-lo como alias de required_edges. Uma declaração explícita
+de required_structural/traversal não pode ser ignorada ou satisfeita por
+conveniência; enquanto não houver semântica/projeção própria suportada para
+tal declaração neste perfil, ela deve impedir aceitação.
+
+Aplicação candidata da regra revisada no hash
+122b9f7decdb83a925c657fe8f6d642b73cb7651: ao selecionar pela categoria efetiva
+de uma compensação, declarar o campo que identifica a compra compensada e
+sua aresta material, inclusive para candidatos excluídos. A referência deve
+concordar com o ID do alvo consumido. Autoria definida pela semântica e pelas
+relações antes da execução, nunca pelo actual/oracle. Parecer documental APTO
+para implementar; não constitui GO do código nem do N02-G.
+
 Toda leitura causal, escalar ou estrutural, deve estar coberta pela fase correta;
 leitura ausente/extra, campo non_material ou aresta ignorada impede aprovação.
 selected_nodes e required_nodes são conceitos distintos: um registro examinado
@@ -134,6 +159,24 @@ seleção. Em grafo derivado sem selections, selected_nodes é vazio;
 os pais consumidos diretamente permanecem em required_nodes/required_reads.
 Nenhum nó adicional pode ser admitido só para inflar a prova; seus papéis devem
 ser necessários aos operands ou às obrigações explicitamente justificadas.
+
+### Dependências transitivas consumidas pela fórmula
+
+O inventário da fase inclui dados materialmente consumidos por dependências
+transitivas da fórmula, não somente aqueles ligados como roles diretos.
+Resolver uma referência não dispensa declarar leituras/identidades do alvo
+que o cálculo realmente usa, nem exige automaticamente ler todo o alvo.
+Quando a fórmula usa a população familiar exata como filtro, declarar a
+leitura de members, cardinalidade e enumeração em ordem, além de cada relação
+material admitida de membro. Os campos/identidades dos membros não entram só
+por serem alvos dessas arestas. As expectativas são fixadas pela semântica e
+pelos bindings/relações autorados antes da execução, nunca pelo actual/oracle.
+Isso não copia a closure de proof para derivation nem altera seleção financeira.
+
+Aplicação local candidata: população familiar alcançada por budget.family_id
+em safe_daily_pace, conforme proposta documental revisada no hash
+f27c504086aad13a035c71021a34ff7f6ff2606b. Parecer APTO para implementar o
+desenho, não GO do código; auditoria do candidato executável ainda obrigatória.
 
 ### Seleção por fase — correção normativa N02G-SB-001
 

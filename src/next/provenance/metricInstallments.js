@@ -1,24 +1,17 @@
 'use strict';
 const { parseDate } = require('./civilCalendar');
 const { validateLiteral } = require('./literalTypes');
+const { readNodeIdentity: identity, createUniqueNodeReader, readReference, readReferenceId, readReferenceIds } = require('./metricReferences');
 const fail = code => { throw new Error(`installment_metric_${code}`); };
 const id = value => { validateLiteral({ type: 'id', value }); return value; };
 const integer = value => {
     if (!Number.isSafeInteger(value) || Object.is(value, -0)) fail('integer');
     return value;
 };
-function identity(node, kind) {
-    if (node.identity('kind') !== kind) fail('identity');
-    const ref = id(node.get('id')); const version = node.identity('version');
-    validateLiteral({ type: 'digest', value: version }); return { ref, version };
-}
 function readPlan(node) {
     const plan = identity(node, 'installment_plan');
     const total = integer(node.get('installment_total')); if (total < 1) fail('total');
-    const members = new Set();
-    for (const member of node.get('members')) {
-        const ref = id(member); if (members.has(ref)) fail('members'); members.add(ref);
-    }
+    const members = readReferenceIds(node, 'members');
     if (members.size > total) fail('total');
     return { ...plan, total, members, examined: new Set(), numbers: new Set(), ordered: [], dimensions: null };
 }
@@ -36,7 +29,7 @@ function evaluateInstallments(operands, metric) {
     if (familyMode) {
         const family = identity(operands.family, 'family');
         if (subject.get('kind') !== 'family' || id(subject.get('ref_id')) !== family.ref) fail('scope');
-        familyMembers = operands.family.get('members');
+        familyMembers = readReferenceIds(operands.family, 'members');
         for (const node of operands.plans) {
             const plan = readPlan(node); if (plans.has(plan.ref)) fail('duplicate_plan'); plans.set(plan.ref, plan);
         }
@@ -53,26 +46,27 @@ function evaluateInstallments(operands, metric) {
         const start = period.get('start'); const end = period.get('end'); parseDate(start); parseDate(end);
         if (start > end) fail('period'); contains = date => date >= start && date <= end;
     }
+    const candidates = createUniqueNodeReader('event');
     const selected = operands.events.select(event => {
-        const eventIdentity = identity(event, 'event');
+        const eventIdentity = candidates.read(event);
         if (!event.has('installment_plan')) return false;
-        const linked = identity(event.follow('installment_plan'), 'installment_plan');
+        const linked = readReference(event, 'installment_plan', 'installment_plan');
         const plan = plans.get(linked.ref);
         if (!plan) { if (familyMode) fail('unknown_plan'); return false; }
         const { total, members, examined, numbers, ordered } = plan;
-        if (linked.version !== plan.version || !members.has(eventIdentity.ref) || examined.has(eventIdentity.ref)) fail('members');
+        if (linked.version !== plan.version || !members.includes(eventIdentity.ref) || examined.has(eventIdentity.ref)) fail('members');
         examined.add(eventIdentity.ref);
         const number = integer(event.get('installment_number'));
         if (number < 1 || number > total || numbers.has(number) || integer(event.get('installment_total')) !== total) fail('number');
         numbers.add(number);
         const date = event.get('date'); parseDate(date); ordered.push({ number, date });
         const state = event.get('state'); if (!['confirmed', 'projected'].includes(state)) fail('state');
-        const current = [id(event.get('person_id')), id(event.get('category_id')),
+        const current = [readReferenceId(event, 'person_id'), readReferenceId(event, 'category_id'),
             event.has('card_id') ? id(event.get('card_id')) : null,
             event.has('account_id') ? id(event.get('account_id')) : null];
         if (plan.dimensions && plan.dimensions.some((value, i) => value !== current[i])) fail('dimensions');
         plan.dimensions = current;
-        const inScope = !familyMode || familyMembers.includes(identity(event.follow('person_id'), 'person').ref);
+        const inScope = !familyMode || familyMembers.includes(current[0]);
         return state === (realized ? 'confirmed' : 'projected') && contains(date) && inScope;
     });
     for (const { examined, members, ordered } of plans.values()) {

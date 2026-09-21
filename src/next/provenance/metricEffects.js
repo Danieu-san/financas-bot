@@ -2,13 +2,10 @@
 const { parseDate, parseMonth } = require('./civilCalendar');
 const { validateLiteral } = require('./literalTypes');
 const { createCategoryReader } = require('./metricSelection');
+const { readNodeIdentity, createUniqueNodeReader, readReference, readReferenceId } = require('./metricReferences');
 const fail = code => { throw new Error(`effect_metric_${code}`); };
 const id = value => { validateLiteral({ type: 'id', value }); return value; };
 const money = value => { if (!Number.isSafeInteger(value) || Object.is(value, -0)) fail('amount'); return value; };
-function identity(node, kind) {
-    if (node.identity('kind') !== kind) fail('identity');
-    const ref = id(node.get('id')); validateLiteral({ type: 'digest', value: node.identity('version') }); return ref;
-}
 function evaluateEffects(operands, metric) {
     if (!['consumption_effect', 'net_consumption', 'invoice_payment_consumption_effect', 'gross_consumption', 'refund_amount'].includes(metric)) fail('metric');
     const context = operands.context; if (context.get('time_basis') !== 'event_date') fail('basis');
@@ -23,26 +20,34 @@ function evaluateEffects(operands, metric) {
     const person = kind === 'person_category' ? id(subject.get('person_id')) : null;
     const category = kind === 'person_category' ? id(subject.get('category_id')) : null;
     const reader = metric === 'refund_amount' ? null : createCategoryReader(operands.categories);
-    const seen = new Set(); const linkedPurchases = new Set(); const economicKinds = new Map();
+    // Refund consumes the resolved person under its reviewed signature. Other
+    // effects use the admitted person ID only. Compensation consumes its target
+    // in every mode, so its full reference coherence has one implementation.
+    const readOwner = reader ? event => readReferenceId(event, 'person_id')
+        : event => readReference(event, 'person_id', 'person').ref;
+    const seen = createUniqueNodeReader('event'); const linkedPurchases = new Set(); const economicKinds = new Map();
     const selected = operands.events.select(event => {
-        const ref = identity(event, 'event'); if (seen.has(ref)) fail('duplicate'); seen.add(ref);
+        const { ref } = seen.read(event);
         const date = event.get('date'); parseDate(date);
         const state = event.get('state'); if (!['confirmed', 'projected'].includes(state)) fail('state');
-        const owner = id(event.get('person_id'));
+        const owner = readOwner(event);
         let own;
         if (reader) own = reader.read(event);
         else {
-            const cat = event.follow('category_id'); identity(cat, 'category');
-            own = { key: id(cat.get('id')), economicKind: cat.get('kind') };
+            const { node: cat, ref } = readReference(event, 'category_id', 'category');
+            own = { key: ref, economicKind: cat.get('kind') };
             if (own.economicKind !== 'compensation') fail('compensation');
         }
         economicKinds.set(ref, own.economicKind);
         let effective = own; let purchase;
         if (own.economicKind === 'compensation') {
-            const target = event.follow('compensates'); purchase = identity(target, 'event');
+            const { node: target, ref: targetId } = readReference(event, 'compensates', 'event'); purchase = targetId;
             if (purchase === ref || target.get('state') !== 'confirmed' || id(target.get('person_id')) !== owner) fail('compensation');
             if (reader) effective = reader.read(target);
-            else { const cat = target.follow('category_id'); identity(cat, 'category'); effective = { key: id(cat.get('id')), economicKind: cat.get('kind') }; }
+            else {
+                const { node: cat, ref } = readReference(target, 'category_id', 'category');
+                effective = { key: ref, economicKind: cat.get('kind') };
+            }
             if (effective.economicKind !== 'expense') fail('compensation');
             if (metric === 'net_consumption') linkedPurchases.add(purchase);
         }
@@ -53,7 +58,7 @@ function evaluateEffects(operands, metric) {
         if (metric === 'net_consumption' && purchase && !scope) fail('compensation');
         if (metric === 'invoice_payment_consumption_effect' || metric === 'consumption_effect' && kind === 'event') {
             if (own.key !== 'neutral.invoice_payment' || own.economicKind !== 'neutral') fail('payment');
-            identity(event.follow('settles_card_id'), 'card'); identity(event.follow('account_id'), 'account');
+            readNodeIdentity(event.follow('settles_card_id'), 'card'); readNodeIdentity(event.follow('account_id'), 'account');
         }
         return state === 'confirmed' && scope && (periodKind === 'month' ? date.slice(0, 7) === periodValue : date === periodValue);
     });

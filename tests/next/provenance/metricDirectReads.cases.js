@@ -17,6 +17,14 @@ function context(subject, period, time_basis) {
     return instrument([['ctx', null, { subject, period, time_basis }, { subject: { type: 'record', fields: { kind: scalar, ref_id: scalar } },
         period: { type: 'record', fields: { kind: scalar, value: scalar, start: scalar, end: scalar, start_inclusive: scalar, end_inclusive: scalar } }, time_basis: scalar }]]).access.handle('ctx');
 }
+function assertResolvedReferenceReads(observations) {
+    for (let i = 0; i < observations.length; i++) {
+        const event = observations[i];
+        if (event[1] !== 'traverse') continue;
+        assert.ok(observations.slice(0, i).some(e => e[1] === 'get' && e[2] === event[2]
+            && JSON.stringify(e[4]) === JSON.stringify(event[4])), `${event[2]}: ${event[4]} scalar before traverse`);
+    }
+}
 function payment() {
     const f = instrument([['event', 'event', { id: 'payment', date: '2042-06-13', state: 'confirmed', amount_minor: -300,
         category_id: 'neutral', account_id: 'account', settles_card_id: 'card' }],
@@ -33,6 +41,7 @@ test('N02G:DIRECT-METRIC-001 movement preserves sign and payment magnitude requi
     const balance = { ...f.operands, context: context({ kind: 'account', ref_id: 'account' }, { kind: 'date', value: '2042-06-13' }, 'event_date') };
     assert.equal(evaluateDirectMetric(balance, 'balance_delta'), -300);
     assert.equal(evaluateDirectMetric(f.operands, 'invoice_payment_target_card'), 'card');
+    assertResolvedReferenceReads(f.observations);
     assert.ok(f.observations.some(e => e[1] === 'traverse' && e[4][0] === 'settles_card_id'));
     assert.throws(() => evaluateDirectMetric({ ...balance, context: context({ kind: 'account', ref_id: 'foreign' },
         { kind: 'date', value: '2042-06-13' }, 'event_date') }, 'balance_delta'), /direct_metric_scope/);
@@ -73,6 +82,7 @@ test('N02G:DIRECT-METRIC-008 account opening balance bounds are inclusive and mo
     assert.deepEqual(evaluateDirectMetric(args({ kind: 'month', value: '2042-06' }), 'movement_ids'), ['before', 'first', 'last', 'after']);
     assert.throws(() => evaluateDirectMetric(args({ kind: 'as_of', value: '2042-06-09' }), 'account_balance'), /direct_metric_period/);
     assert.ok(f.observations.some(e => e[1] === 'has' && e[2] === 'card-only'));
+    assertResolvedReferenceReads(f.observations);
 });
 
 test('N02G:DIRECT-METRIC-004 ownership is computed from references, preserves order and excludes foreign owners', () => {
@@ -96,6 +106,7 @@ test('N02G:DIRECT-METRIC-005 effect count is tied to complete collection and act
         const result = evaluateDirectMetric({ entries: f.access.handle, collection, turn,
             context: context({ kind: 'turn', ref_id: 't1' }, { kind: 'as_of', value: '2042-06-15' }, 'request_execution') }, 'side_effect_count');
         assert.equal(f.observations.filter(e => e[1] === 'select_member').length, 2);
+        assertResolvedReferenceReads(f.observations);
         return result;
     }
     assert.equal(run(['e1', 'e2']), 1);
@@ -120,6 +131,111 @@ test('N02G:DIRECT-METRIC-006 due dates include both boundaries and exclude statu
     assert.throws(() => evaluateDirectMetric(operands({ ...juneRange, start: '2042-07-01' }), 'due_bill_ids'), /direct_metric_period/);
 });
 
+test('N02G:DIRECT-METRIC-012 family bills resolve every member even without a contributing bill', () => {
+    function fixture(members, missing, empty = false) {
+        const family = instrument([
+            ['family-alias', 'family', { id: 'family-id', members },
+                { id: scalar, members: { type: 'sequence', item: scalar } }],
+            ...['person-a', 'person-b', 'no-bills'].map((id, i) => [`member-${i}`, 'person', { id }])
+        ], members.filter(id => id !== missing).map(id => ({ id: `edge-${id}`, source: 'family-alias',
+            target: `member-${['person-a', 'person-b', 'no-bills'].indexOf(id)}`, field: 'members', type: 'ref_list' })));
+        const bills = empty ? { access: createNodeSetAccess({ role: 'bills', bindings: [], emit() {} }) } : instrument([
+            ...['person-a', 'person-b'].map((person_id, i) => [`bill-${i}`, 'bill', {
+                id: `bill-id-${i}`, due_date: '2042-06-20', status: 'open', person_id, amount_minor: [13, 29][i] }]),
+            ...['person-a', 'person-b'].map((id, i) => [`owner-${i}`, 'person', { id }])
+        ], [0, 1].map(i => ({ id: `owner-edge-${i}`, source: `bill-${i}`, target: `owner-${i}`,
+            field: 'person_id', type: 'ref' })), ['bill-0', 'bill-1']);
+        return { family, bills, run: () => evaluateDirectMetric({ family: family.access.handle('family-alias'),
+            bills: bills.access.handle, context: context({ kind: 'family', ref_id: 'family-id' },
+                { kind: 'month', value: '2042-06' }, 'due_date') }, 'bills_open') };
+    }
+    for (const [members, expected] of [[[], 0], [['person-a'], 13], [['person-b', 'person-a', 'no-bills'], 42]]) {
+        const f = fixture(members);
+        try {
+            assert.equal(f.run(), expected);
+            assert.equal(f.family.observations.filter(e => e[1] === 'traverse').length, members.length);
+            assert.ok(f.family.observations.some(e => e[1] === 'length'));
+            assert.ok(f.family.observations.some(e => e[1] === 'iterate'));
+            assert.equal(f.family.observations.some(e => e[2].startsWith('member-')), false);
+            assert.equal(f.bills.observations.some(e => e[2].startsWith('owner-')), false);
+        } finally { f.family.access.revoke(); f.bills.access.revoke(); }
+    }
+    for (const empty of [false, true]) {
+        const valid = fixture(['person-a', 'no-bills'], undefined, empty);
+        const invalid = fixture(['person-a', 'no-bills'], 'no-bills', empty);
+        try {
+            assert.equal(valid.run(), empty ? 0 : 13);
+            assert.throws(invalid.run, /access_/);
+        } finally {
+            for (const f of [valid, invalid]) { f.family.access.revoke(); f.bills.access.revoke(); }
+        }
+    }
+});
+
+function referenceSelectionFixture(metric, suffix, reverse = false) {
+    const bill = metric === 'due_bill_ids' || metric === 'due_bills_total';
+    const card = metric === 'owned_cards';
+    const kind = bill ? 'bill' : card ? 'card' : 'merchant_rule';
+    const targetKind = bill || card ? 'person' : 'merchant_identity';
+    const field = bill ? 'person_id' : card ? 'owner_id' : 'merchant_key';
+    const targetId = `target-${suffix}`; const foreignId = `foreign-${suffix}`;
+    const roster = reverse ? ['excluded-alias', 'included-alias'] : ['included-alias', 'excluded-alias'];
+    const f = instrument([
+        ...[['included-alias', targetId], ['excluded-alias', foreignId]].map(([alias, ref]) => [alias, kind,
+            { id: `${alias}-${suffix}`, [field]: ref, ...(bill ? { due_date: '2042-06-20', status: 'open', amount_minor: 100 } : {}) }]),
+        ['target-alias', targetKind, { id: targetId }], ['foreign-alias', targetKind, { id: foreignId }]
+    ], [['included-alias', 'target-alias'], ['excluded-alias', 'foreign-alias']].map(([source, target], i) => ({
+        id: `ref-${i}`, source, target, field, type: 'ref' })), roster);
+    const target = instrument([['query-alias', targetKind, { id: targetId }]]);
+    const role = bill ? 'bills' : card ? 'cards' : 'rules';
+    const operands = { [role]: f.access.handle, [bill || card ? 'person' : 'merchant']: target.access.handle('query-alias'),
+        context: context({ kind: bill || card ? 'person' : 'merchant', ref_id: targetId },
+            bill ? juneRange : { kind: 'as_of', value: '2042-06-15' }, bill ? 'due_date' : 'registry_current') };
+    return { ...f, target, operands, role, field, targetId, roster };
+}
+
+const referenceMetrics = ['due_bill_ids', 'due_bills_total', 'owned_cards', 'merchant_rule_ids'];
+test('N02G:DIRECT-METRIC-009 reference selection reads source IDs and follows targets independently of aliases and order', () => {
+    for (const metric of referenceMetrics) for (const suffix of ['a', 'b', 'c']) for (const reverse of [false, true]) {
+        const f = referenceSelectionFixture(metric, suffix, reverse);
+        try {
+            assert.deepEqual(evaluateDirectMetric(f.operands, metric), metric === 'due_bills_total' ? 100 : [`included-alias-${suffix}`]);
+            for (const alias of f.roster) {
+                const read = f.observations.findIndex(e => e[1] === 'get' && e[2] === alias && e[4][0] === f.field);
+                const traversal = f.observations.findIndex(e => e[1] === 'traverse' && e[2] === alias && e[4][0] === f.field);
+                assert.ok(read >= 0 && traversal > read, `${metric}: scalar read precedes its separate traversal`);
+            }
+        } finally {
+            for (const control of [f.access, f.target.access]) { control.revoke(); control.assertHealthy(); }
+        }
+    }
+});
+
+test('N02G:DIRECT-METRIC-010 evaluator rejects absent, malformed or divergent scalar references at its handle boundary', () => {
+    for (const metric of referenceMetrics) for (const mutant of [undefined, '', 7, 'different-target']) {
+        const f = referenceSelectionFixture(metric, 'causal');
+        // Admission forbids this inconsistent pair. This double tests the
+        // evaluator contract only: get must affect the result, not just the log.
+        const population = Object.freeze({ select: predicate => f.access.handle.select(node => predicate(Object.freeze({
+            ...node, get: key => key === f.field ? mutant : node.get(key)
+        }))) });
+        try {
+            assert.throws(() => evaluateDirectMetric({ ...f.operands, [f.role]: population }, metric), /^Error: access_set_predicate_threw$/);
+            assert.throws(() => f.access.assertHealthy(), /access_set_failed/);
+            assert.equal(f.observations.filter(e => e[1] === 'select_return').length, 0);
+        } finally { f.access.revoke(); f.target.access.revoke(); }
+    }
+});
+
+test('N02G:DIRECT-METRIC-011 real access admission rejects scalar and target disagreement before evaluation', () => {
+    for (const field of ['person_id', 'owner_id', 'merchant_key']) {
+        assert.throws(() => instrument([
+            ['source-alias', 'bill', { id: 'source', [field]: 'wrong' }],
+            ['target-alias', 'person', { id: 'actual' }]
+        ], [{ id: 'link', source: 'source-alias', target: 'target-alias', field, type: 'ref' }]), /access_shape_invalid/);
+    }
+});
+
 test('N02G:DIRECT-METRIC-007 calendar and reminder zeros require a complete population, including positive witnesses', () => {
     for (const [metric, kind, name] of [['reminder_count', 'reminder', 'reminders'], ['calendar_event_count', 'calendar_event', 'calendar_events']]) {
         const rows = [['start', '2042-06-15'], ['end', '2042-06-30'], ['after', '2042-07-01']];
@@ -131,6 +247,44 @@ test('N02G:DIRECT-METRIC-007 calendar and reminder zeros require a complete popu
             person: instrument([['person', 'person', { id: 'p1' }]]).access.handle('person'),
             context: context({ kind: 'person', ref_id: 'p1' }, juneRange, 'scheduled_at') };
         assert.equal(evaluateDirectMetric(operands, metric), 2);
+        assertResolvedReferenceReads(f.observations);
         assert.throws(() => evaluateDirectMetric({ ...operands, collection: collection([]) }, metric), /direct_metric_collection/);
+    }
+});
+
+test('N02G:DIRECT-REFERENCE-001 payment reference scalar mismatch cannot be hidden by a valid resolved target', () => {
+    for (const metric of ['balance_delta', 'invoice_payment_amount', 'invoice_payment_target_card', 'statement_payment_correspondence']) {
+        const fields = metric === 'balance_delta' ? ['account_id'] : ['category_id', 'account_id', 'settles_card_id'];
+        for (const field of fields) for (const mutant of [undefined, '', 7, 'different-valid-id']) {
+            const f = payment();
+            const event = Object.freeze({ ...f.operands.event,
+                get: key => key === field ? mutant : f.operands.event.get(key) });
+            const ctx = metric === 'balance_delta' ? context({ kind: 'account', ref_id: 'account' },
+                { kind: 'date', value: '2042-06-13' }, 'event_date') : f.operands.context;
+            try {
+                assert.throws(() => evaluateDirectMetric({ ...f.operands, event, context: ctx }, metric));
+            } finally { f.access.revoke(); }
+        }
+    }
+});
+
+test('N02G:DIRECT-REFERENCE-002 similar events bind merchant scalar and identity, including excluded rows', () => {
+    const rows = [['match', 'm1'], ['foreign', 'm2']];
+    for (const reverse of [false, true]) {
+        const f = instrument([...rows.map(([alias, merchant_key]) => [alias, 'event',
+            { id: `${alias}-id`, merchant_key, state: 'confirmed', date: '2042-06-13' }]),
+        ['merchant-a', 'merchant_identity', { id: 'm1' }], ['merchant-b', 'merchant_identity', { id: 'm2' }]],
+        rows.map(([source], i) => ({ id: `edge-${i}`, source, target: i ? 'merchant-b' : 'merchant-a', field: 'merchant_key', type: 'ref' })),
+        (reverse ? [...rows].reverse() : rows).map(row => row[0]));
+        const merchant = instrument([['query', 'merchant_identity', { id: 'm1' }]]);
+        const operands = { events: f.access.handle, merchant: merchant.access.handle('query'),
+            context: context({ kind: 'merchant', ref_id: 'm1' }, { kind: 'month', value: '2042-06' }, 'event_date') };
+        try {
+            assert.deepEqual(evaluateDirectMetric(operands, 'similar_event_ids'), ['match-id']);
+            assertResolvedReferenceReads(f.observations);
+            const events = { select: predicate => f.access.handle.select(node => predicate(Object.freeze({ ...node,
+                get: key => key === 'merchant_key' ? 'different-id' : node.get(key) }))) };
+            assert.throws(() => evaluateDirectMetric({ ...operands, events }, 'similar_event_ids'), /access_set_predicate_threw/);
+        } finally { f.access.revoke(); merchant.access.revoke(); }
     }
 });

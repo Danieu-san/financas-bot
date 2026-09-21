@@ -40,12 +40,36 @@ test('N02G:GUEST-BUNDLE-002 external, dynamic, ambiguous and unaccounted source 
     }
 });
 
-test('N02G:GUEST-BUNDLE-003 consumption bundle closes over civil and literal helpers without a Node dependency', async () => {
+test('N02G:GUEST-BUNDLE-003 consumption bundle closes over civil, literal and reference helpers without a Node dependency', async () => {
     const { buildCommonJsGuestBundle } = await builder();
-    const sources = ['metricSelection', 'civilCalendar', 'literalTypes'].map(name => ({ path: `${name}.js`,
+    const sources = ['metricSelection', 'civilCalendar', 'literalTypes', 'metricReferences'].map(name => ({ path: `${name}.js`,
         source: fs.readFileSync(path.resolve(__dirname, `../../../src/next/provenance/${name}.js`), 'utf8') }));
     const result = buildCommonJsGuestBundle({ sources, entry: 'metricSelection.js', exportName: 'evaluateConsumption', constants: ['total'] });
     assert.equal(validateGuestBundle(result.source).executable, false);
-    assert.equal(result.imports.length, 3);
-    assert.equal(result.sourceHashes.length, 3);
+    // Five import edges close over four files (literalTypes is shared).
+    assert.equal(result.imports.length, 5);
+    assert.equal(result.sourceHashes.length, 4);
+    assert.throws(() => buildCommonJsGuestBundle({ sources: sources.filter(s => s.path !== 'metricReferences.js'),
+        entry: 'metricSelection.js', exportName: 'evaluateConsumption', constants: ['total'] }), /guest_bundle_/);
+});
+
+test('N02G:GUEST-BUNDLE-004 evaluator bundles include the shared reference dependency transitively', async () => {
+    const { buildCommonJsGuestBundle } = await builder();
+    for (const [entry, exportName, metric, composed] of [
+        ['metricDirectReads', 'evaluateDirectMetric', 'due_bills_total', ['metricSelection']],
+        ['metricEffects', 'evaluateEffects', 'net_consumption', ['metricSelection']],
+        ['metricInstallments', 'evaluateInstallments', 'installments_projected', []]
+    ]) {
+        const names = [entry, ...composed, 'civilCalendar', 'literalTypes', 'metricReferences'];
+        const sources = names.map(name => ({ path: `${name}.js`,
+            source: fs.readFileSync(path.resolve(__dirname, `../../../src/next/provenance/${name}.js`), 'utf8') }));
+        const input = { sources, entry: `${entry}.js`, exportName, constants: [metric] };
+        const bundle = buildCommonJsGuestBundle(input);
+        assert.equal(validateGuestBundle(bundle.source).executable, false);
+        assert.deepEqual(bundle.sourceHashes.map(s => s.path).sort(), names.map(n => `${n}.js`).sort());
+        assert.ok(bundle.imports.some(i => i.source === `${entry}.js` && i.target === 'metricReferences.js'));
+        for (const dependency of composed) assert.ok(bundle.imports.some(i => i.source === `${dependency}.js` && i.target === 'metricReferences.js'));
+        assert.throws(() => buildCommonJsGuestBundle({ ...input,
+            sources: sources.filter(s => s.path !== 'metricReferences.js') }), /guest_bundle_/);
+    }
 });

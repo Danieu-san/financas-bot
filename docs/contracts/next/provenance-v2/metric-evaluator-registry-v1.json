@@ -1186,7 +1186,7 @@
       "metric": "refund_amount",
       "unit": "BRL_minor",
       "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/refund_amount.json",
-      "evaluator_contract_hash": "sha256:bdb7549ef37f6b63a0641ccdb5472c26d00a5e84c2d9d09e9525eb92ba6a1751",
+      "evaluator_contract_hash": "sha256:2dafc200e53dfa069e3b7e12d42c0ead14db1f2b020768ec5fd2a6fcda4c515c",
       "artifact_status": "not_built",
       "roles": [
         {

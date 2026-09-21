@@ -167,6 +167,18 @@ function createInstrumentedAccess(options) {
                 // existing primitive before any target handle is returned.
                 return handle(value, shape, b, [], 'data').traverse(matches[0].id);
             },
+            followMember: (...args) => {
+                check();
+                if (path.length || projection !== 'data' || args.length !== 2 || !field(args[0])
+                    || typeof args[1] !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._:/#@-]{0,159}$/.test(args[1])) fail('traversal_forbidden');
+                const matches = [...relations.values()].filter(link => link.source === b.alias && link.field === args[0]
+                    && link.type === 'ref_list' && roots.get(link.target).value.id === args[1]);
+                if (matches.length !== 1) fail('traversal_ambiguous');
+                // Resolve only an admitted list edge. The caller separately
+                // observes the list and its order/cardinality; this address
+                // lookup must not manufacture payload or identity reads.
+                return handle(value, shape, b, [], 'data').traverse(matches[0].id);
+            },
             traverse: edgeId => {
                 check();
                 const link = typeof edgeId === 'string' ? relations.get(edgeId) : undefined;

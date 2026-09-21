@@ -5,6 +5,7 @@ require('./next/provenance/packageContract.cases');
 require('./next/provenance/graphCompiler.cases');
 require('./next/provenance/schemaBuild.cases');
 require('./next/provenance/authoringIndex.cases');
+require('./next/provenance/causalAuthoring.cases');
 require('./next/provenance/graphStructure.cases');
 require('./next/provenance/operatorTypes.cases');
 require('./next/provenance/templateReferences.cases');

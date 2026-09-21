@@ -278,6 +278,46 @@ function compileSnapshotAccess(admitted, validators) {
     }
     return Object.freeze({ stage: 'snapshot_access_plan_only', executable: false,
         snapshot_count: snapshots.size,
+        observationMetadata(selector) {
+            let input;
+            try { input = copyData(selector); } catch { reject('metadata_selector'); }
+            if (!input || Object.keys(input).sort().join(',') !== 'fact_key,phase' || !identifier(input.fact_key)
+                || !['derivation', 'proof'].includes(input.phase)) reject('metadata_selector');
+            const graph = graphs.get(input.fact_key);
+            if (!graph) reject('metadata_graph');
+            if (Object.values(graph.nodes).some(node => node.binding !== 'snapshot')) reject('metadata_parent_pending');
+            const sources = [];
+            if (input.phase === 'derivation') {
+                for (const [role, binding] of bindings.get(input.fact_key)) {
+                    if (binding.kind === 'claim_context') sources.push({ alias: 'claim/context', role, ...contexts.get(input.fact_key) });
+                    else if (['node', 'node_set'].includes(binding.kind)) sources.push(...reachable(input.fact_key, role,
+                        binding.kind === 'node' ? [binding.alias] : binding.aliases).bindings);
+                    else reject('metadata_parent_pending');
+                }
+            } else {
+                const nodes = reachable(input.fact_key, 'proof/snapshot', Object.keys(graph.nodes)).bindings;
+                sources.push(...nodes, { alias: 'claim/context', role: 'proof/context', ...contexts.get(input.fact_key) });
+                const selected = new Set(graph.selections.map(selection => selection.selected_set));
+                for (const name of Object.keys(graph.sets).filter(name => !selected.has(name))) {
+                    sources.push(...nodes.map(binding => ({ ...binding, role: `proof/set/${name}` })));
+                }
+            }
+            // Metadata follows the SAME admitted shapes, presence and reachability
+            // used by the access factories. Never infer it from a trace or expose
+            // payload values. Record elements inside sequences remain unsupported.
+            return copyData(sources.map(binding => {
+                const records = [];
+                function visit(shape, value, path) {
+                    if (shape.type !== 'record' || value === undefined) return;
+                    records.push(path);
+                    for (const [name, child] of Object.entries(shape.fields)) {
+                        if (Object.hasOwn(value, name)) visit(child, value[name], [...path, name]);
+                    }
+                }
+                visit(binding.shape, binding.value, []);
+                return { alias: binding.alias, role: binding.role, identity: binding.identity || null, records };
+            }));
+        },
         openProof(selector, emit) {
             let input;
             try { input = copyData(selector); } catch { reject('proof_selector'); }

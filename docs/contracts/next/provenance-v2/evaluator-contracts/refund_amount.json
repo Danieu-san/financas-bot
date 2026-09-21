@@ -12,7 +12,9 @@
     }
   },
   "semantics": [
-    "Somar max(0, amount_minor) dos eventos de compensação consultados, exigindo vínculo ao evento compensado."
+    "Somar max(0, amount_minor) dos eventos de compensação consultados, exigindo vínculo ao evento compensado.",
+    "Um vínculo elegível resolve um evento diferente, da mesma pessoa, em estado confirmed e de categoria expense; o evento consultado tem categoria compensation. O período filtra o estorno, não a data do alvo.",
+    "A derivation lê e valida os IDs escalares de person_id, category_id e compensates do candidato contra as referências resolvidas. A pessoa resolvida tem kind person; a igualdade com person_id do alvo não simula segunda travessia. Lê e resolve também category_id do alvo para verificar expense. Essas validações não substituem proof, seus predicados ou a aceitação integral."
   ],
   "algebraic_properties": [
     "Uma contribuição elegível adicional altera o total pela contribuição definida; evento fora do escopo não altera resultado."

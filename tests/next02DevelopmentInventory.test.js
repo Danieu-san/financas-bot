@@ -21,7 +21,9 @@ test('development inventory preserves reviewed hashes and reports pending source
     assert.equal(result.reviewedSourceMatches, 15);
     assert.equal(result.releaseEligible, false);
     assert.equal(result.scope, 'development-regression');
-    assert.equal(result.pendingReviewPaths.length, 29);
+    assert.equal(result.pendingReviewPaths.length, 30);
+    assert.ok(result.pendingReviewPaths.includes('provenance/metricReferences.js'));
+    assert.equal(Object.hasOwn(prior.REVIEWED_SOURCE_SHA256, 'provenance/metricReferences.js'), false);
     assert.deepEqual(Object.keys(prior.REVIEWED_SOURCE_SHA256).sort(),
         [...policy.sliceContract('N02-E').paths].sort());
     assert.deepEqual(policy.inspectSources(sourceRoot, 'N02-E').errors,

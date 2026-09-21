@@ -2,14 +2,9 @@
 const { parseDate, parseMonth } = require('./civilCalendar');
 const { validateLiteral } = require('./literalTypes');
 const { selectConsumption } = require('./metricSelection');
+const { readNodeIdentity: identity, readReference, readReferenceId, readReferenceIds } = require('./metricReferences');
 const fail = code => { throw new Error(`direct_metric_${code}`); };
 const id = value => { validateLiteral({ type: 'id', value }); return value; };
-function identity(node, kind) {
-    if (node.identity('kind') !== kind) fail('kind');
-    const ref = id(node.get('id')); const version = node.identity('version');
-    validateLiteral({ type: 'digest', value: version });
-    return { ref, version };
-}
 function same(a, b) { return a.ref === b.ref && a.version === b.version; }
 function period(context, kind, basis) {
     if (context.get('time_basis') !== basis) fail('basis');
@@ -77,7 +72,7 @@ function evaluateDirectMetric(operands, metric) {
             const state = event.get('state');
             if (!['confirmed', 'projected'].includes(state)) fail('state');
             const ownerMatches = event.has('account_id')
-                && same(identity(event.follow('account_id'), 'account'), account);
+                && same(readReference(event, 'account_id', 'account'), account);
             return state === 'confirmed' && contains(date) && ownerMatches;
         });
         if (metric === 'movement_ids') return selectedIds(selected);
@@ -93,7 +88,7 @@ function evaluateDirectMetric(operands, metric) {
             const family = identity(operands.family, 'family');
             if (kind === 'family') {
                 if (id(s.get('ref_id')) !== family.ref) fail('scope');
-                const members = operands.family.get('members');
+                const members = readReferenceIds(operands.family, 'members');
                 ownerMatches = owner => members.includes(owner.ref);
             } else if (kind === 'person') {
                 const person = id(s.get('ref_id')); ownerMatches = owner => owner.ref === person;
@@ -108,7 +103,8 @@ function evaluateDirectMetric(operands, metric) {
             identity(bill, 'bill'); const status = bill.get('status');
             if (!['open', 'paid', 'cancelled'].includes(status)) fail('status');
             const timely = contains(bill.get('due_date'));
-            const owner = identity(bill.follow('person_id'), 'person');
+            const owner = metric === 'bills_open' ? { ref: readReferenceId(bill, 'person_id') }
+                : readReference(bill, 'person_id', 'person');
             return status === 'open' && timely && ownerMatches(owner);
         });
         if (metric === 'due_bill_ids') return selectedIds(selected);
@@ -123,7 +119,7 @@ function evaluateDirectMetric(operands, metric) {
         collectionMatches(operands.collection, operands.entries, reminder ? 'reminders' : 'calendar_events', kind);
         const selected = operands.entries.select(entry => {
             identity(entry, kind); const timely = contains(entry.get('scheduled_at'));
-            const owner = identity(entry.follow('person_id'), 'person');
+            const owner = readReference(entry, 'person_id', 'person');
             return timely && same(owner, person);
         });
         return selected.length();
@@ -135,7 +131,7 @@ function evaluateDirectMetric(operands, metric) {
         const selected = operands.events.select(event => {
             identity(event, 'event'); const date = event.get('date'); parseDate(date);
             const state = event.get('state'); if (!['confirmed', 'projected'].includes(state)) fail('state');
-            const matches = event.has('merchant_key') && same(identity(event.follow('merchant_key'), 'merchant_identity'), merchant);
+            const matches = event.has('merchant_key') && same(readReference(event, 'merchant_key', 'merchant_identity'), merchant);
             return state === 'confirmed' && date.slice(0, 7) === month && matches;
         });
         return selectedIds(selected);
@@ -147,15 +143,15 @@ function evaluateDirectMetric(operands, metric) {
         if (actualDay !== day) fail('period');
         if (event.get('state') !== 'confirmed') fail('state');
         if (metric === 'balance_delta') {
-            const account = identity(event.follow('account_id'), 'account');
+            const account = readReference(event, 'account_id', 'account');
             if (account.ref !== subject(context, 'account')) fail('scope');
             return checkedMoney(event.get('amount_minor'));
         }
         if (subject(context, 'event') !== eventId.ref) fail('scope');
-        const category = event.follow('category_id'); identity(category, 'category');
+        const { node: category } = readReference(event, 'category_id', 'category');
         if (category.get('kind') !== 'neutral') fail('payment_category');
-        identity(event.follow('account_id'), 'account');
-        const target = identity(event.follow('settles_card_id'), 'card');
+        readReference(event, 'account_id', 'account');
+        const target = readReference(event, 'settles_card_id', 'card');
         if (metric === 'invoice_payment_amount') return Math.abs(checkedMoney(event.get('amount_minor')));
         if (!same(target, identity(operands.card, 'card'))) fail('target');
         if (metric === 'invoice_payment_target_card') return target.ref;
@@ -172,7 +168,7 @@ function evaluateDirectMetric(operands, metric) {
         if (source.get('coverage') !== 'complete') fail('coverage');
         const s = context.get('subject'); const kind = s.get('kind');
         const category = id(s.get(kind === 'category' ? 'ref_id' : 'category_id'));
-        if (id(source.get('category_id')) !== category) fail('scope');
+        if (readReferenceId(source, 'category_id') !== category) fail('scope');
         if (source.has('entity_id')) {
             const owner = kind === 'person_category' ? id(s.get('person_id'))
                 : kind === 'family_category' ? id(s.get('family_id')) : id(operands.family.get('id'));
@@ -190,7 +186,7 @@ function evaluateDirectMetric(operands, metric) {
         if (turn.ref !== subject(context, 'turn')) fail('scope');
         period(context, 'as_of', 'request_execution');
         collectionMatches(operands.collection, operands.entries, 'side_effects', 'side_effect');
-        const selected = operands.entries.select(entry => same(identity(entry.follow('turn_id'), 'turn'), turn));
+        const selected = operands.entries.select(entry => same(readReference(entry, 'turn_id', 'turn'), turn));
         return selected.length();
     }
     if (metric === 'source_coverage') {
@@ -212,7 +208,7 @@ function evaluateDirectMetric(operands, metric) {
         const population = ownership ? operands.cards : operands.rules;
         const selected = population.select(node => {
             identity(node, ownership ? 'card' : 'merchant_rule');
-            return same(identity(node.follow(ownership ? 'owner_id' : 'merchant_key'), scopeKind), target);
+            return same(readReference(node, ownership ? 'owner_id' : 'merchant_key', scopeKind), target);
         });
         return selectedIds(selected);
     }

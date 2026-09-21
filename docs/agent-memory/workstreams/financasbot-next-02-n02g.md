@@ -1,6 +1,6 @@
 # N02-G — checkpoint
 
-Atualização: 2026-09-19. Estado: N02G-SB-001 COM GO FOCAL INDEPENDENTE RATIFICADO; SEM GO GLOBAL/EXECUTÁVEL N02-G.
+Atualização: 2026-09-21. Estado: N02G-SB-001 COM GO FOCAL INDEPENDENTE RATIFICADO; SEM GO GLOBAL/EXECUTÁVEL N02-G.
 Base: `aea4ac31e358ed8d8907e78f6002c8bb80233bc8`.
 Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
@@ -8,12 +8,427 @@ Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
 Estado vigente: correção e suporte de validação auditados em
 `8b66d1e6eac869cf7363beee3b2c1445840fb66e`, pai `be520f4f0cf64812c80f0f4b9b8eefb2a5445189`.
+HEAD publicado posterior (documentação e ferramenta mecânica de extração):
+`8b9c4fca93186c9f747ba1a868bf1616ba15d92a`, pai 122b9f7. Desenhos refund, família e contagem APTO;
+incrementos de runtime/testes descritos abaixo continuam locais, não publicados.
 Recibo: `../../audit-evidence/n02g-selection-phase/independent-review.md`.
 Revisão externa estática sem defeitos focais; execuções continuam locais.
-Ampla verde preservada: 2.255 PASS, zero FAIL, dez SKIP esperados. Sem mudança
-causal posterior. `releaseEligible=false` e 29 módulos pendentes permanecem.
-Próxima ação: confrontar charter/código quanto à aceitação integral/DAG e
-recibos de parents da mesma execução para delimitar o primeiro incremento.
+Ampla histórica preservada: 2.255 PASS, zero FAIL, dez SKIP esperados, referente
+ao candidato auditado. A composição local posterior ainda não passou pela
+ampla/auditoria. `releaseEligible=false`; inventário local agora registra 30
+módulos pendentes (inclui metricReferences), sem alterar os 15 hashes aprovados.
+Diagnóstico inicial pós-GO focal (incrementos atualizados abaixo): as quatro famílias existentes exercitam 73/76
+derivações; seleção coincide em 73/73. Cobertura integral não está concluída:
+72 invocações divergem em ao menos uma das cinco dimensões de reads/edges;
+as 73 contêm eventos ainda não classificados pelo comparador parcial.
+Os três grafos derivados não foram executados. Isso não reabre o GO de seleção.
+Próxima ação: reconciliar o contrato de observação e os acessos dos avaliadores,
+antes de implementar aceitação integral ou recibos de parents. Não preencher
+expectativas a partir do actual nem adicionar exceções por fact_key.
+
+Retomada autônoma atual (Daniel longe do computador).
+Atualização vigente: revisão 130c74d NÃO APTO por ambiguidade normativa;
+revisão material 122b9f7 APTO documental focal, recibo em
+`../../audit-evidence/n02g-count-compensation/revised-independent-review.md`.
+Aplicados localmente o texto de traversal e apenas 1 read/1 edge por derivation
+dos três grafos eligible_event_count; demais 73 grafos e proof preservados
+por comparação mecânica. RED de autoria observado; 8 focais PASS e bateria
+causal de 8 arquivos: 192 PASS/0 FAIL/0 SKIP (115,7 s). Não é suíte ampla.
+Sonda count-authorship: 73 seleções/11 matches parciais, 15.571 covered,
+76 invalid, 0 unsupported. Remove 3 reads extras/3 edges extras autorizados
+e 3 edges ausentes pela correção independente source.category_id, sem novos
+deltas. graph_accepted=false. Ampla e auditoria de código continuam pendentes.
+Referências diretas unificadas: 14 focais + 5 integração/bundles PASS após
+6 REDs. Sonda direct-refs remove 33 faltas e expõe 3 reads extras account_id
+em M-05#1#2/#3/#4; não alterar normativa sem revisão do contrato de pagamento.
+Instrumentos: 2 REDs, 31 focais + 5 integração/bundles PASS. Remove 48 reads
+ausentes, mas versão agora lida também em alvos estrangeiros torna explícitos
+18 identity_node_not_required adicionais (76 → 94 invalid); 73 seleções,
+11 matches parciais, 15.655 covered/94 invalid/0 unsupported. Não é regressão
+financeira observada; é cobertura normativa ainda incompleta, sem GO.
+Orçamento: REDs e 31 focais + 8 integração/autoria/bundles PASS. Parcela não
+consome alvo de conta/cartão ao comparar apenas IDs de dimensões: travessia
+adicional experimentada e retirada após confronto semântico, sem mudar grafos;
+teste de distinção preservado, 6 focais PASS. Sonda reference-consolidated:
+mais 10 arestas ausentes resolvidas por orçamento, nenhum delta novo nesse
+passo; 73 seleções/11 matches parciais, 15.669 covered/94 invalid/0 unsupported.
+Método candidato revisado documentalmente em
+`../../plans/workstreams/financasbot-next-02-n02g-causal-authoring-profile-v1.md`.
+Proposta de gerador offline independente do runtime, inicialmente instrumento
+e statement_total, saída candidata separada. Não autoriza aplicar delta nem
+reconstruir os 76 grafos. Consolidar regra sem remendos isolados por grafo.
+Proposta e recibo anterior publicados (2 documentos apenas), remoto confirmado.
+Uma tentativa automática enviada ao Chat em conversa limpa no projeto
+FinançasBot; resposta concluída: APTO somente para gerador candidato, com
+condições vinculantes no recibo
+`../../audit-evidence/n02g-causal-authoring-profile/independent-review.md`.
+Não reenviar o mesmo hash. Consolidação
+local posterior: syntax de 17 arquivos PASS e 60 testes dos quatro avaliadores
+PASS. Não repetir ampla histórica; nenhuma suíte ampla em andamento.
+A falha temporária do revisor automático por limite de uso foi
+superada após novo continue; não houve contorno de aprovação.
+
+Fatia vigente: `scripts/agent/nextCausalAuthoring.cjs` e teste
+`tests/next/provenance/causalAuthoring.cases.js` (incluído no wrapper oficial).
+Fronteira serializada exclui expected antigo/proof/seleção/resultados; pinagem
+de schemas, registries, contrato, perfil, manifesto e fontes; validação Ajv,
+roles, relações fornecidas e fingerprint semântico dos snapshots. Gerador
+offline e dois perfis implementados como candidatos; relatório separado em
+`scripts/agent/reportNextCausalAuthoring.cjs`. Fontes/perfis/limites em
+`../../contracts/next/provenance-v2/causal-authoring-candidates/README.md`.
+23 focais PASS + dois controles posteriores de referência PASS; integração
+AUTHOR-INTEGRATION-001 PASS: candidato congelado antes de evaluator, trace
+adulterado não o regenera. Não há cálculo R; regra adicional de sinal foi
+retirada após RED de invariância das obrigações frente ao valor financeiro.
+Sem autenticação de raiz/host ou replay completo de autoria das fontes.
+Relatório vigente `.codex-temp/n02g-causal-authoring-candidate-v2.json`:
+6 candidatos; 76 grafos/claims intactos, 70 fora do perfil. Delta proposto:
++8 nós, +11/-155 reads, +12 claim reads, -148 arestas, +192 estruturas.
+Remoções exigem revisão; nenhum resultado aplicado à normativa. O relatório
+v1 é anterior à retirada da regra de sinal e não é o candidato vigente.
+Inventário: RED para helper ausente, correção declarativa apenas na lista de
+pendentes, quatro controles PASS. Bateria causal hermética do gerador e dos
+slices afetados: 93 PASS/0 FAIL/0 SKIP, Node 22.17.0, evidência local em
+`.codex-temp/n02g-author-affected.json` e `.tap.log`. Syntax/workflow OK.
+Próxima execução ampla preparada em
+`.codex-temp/runWideCausalAuthoring20260921.cjs`. Mesmo runner hermético
+versionado, proteção adicional de SQLite/dashboard já usada no candidato
+anterior; não inicia se o marcador/resultado existirem. Registra HEAD e hashes
+dos arquivos causais modificados/novos antes/depois. Saídas exclusivas:
+`wide-n02g-causal-authoring-20260921-start.json` e
+`wide-n02g-causal-authoring-20260921.json` em `.codex-temp/`.
+Ao iniciar, parar acompanhamento por 20 minutos (ou até Daniel chamar).
+Consultar resultado existente, nunca iniciar segunda ampla por ausência de
+resposta. Se verde e candidato intacto, preparar commit sanitizado auditável;
+não aceitar automaticamente o delta do perfil nem declarar GO N02-G.
+Execução iniciada em 2026-09-21T11:11:03.8008639Z, PID 102276, janela
+oculta; stdout/stderr próprios com prefixo wide-n02g-causal-authoring-20260921.
+Acompanhamento suspenso após lançamento. Heartbeat desta mesma tarefa criado:
+`retomar-n02-g-ap-s-su-te-ampla`, intervalo 20 minutos, silencioso sem mudança;
+desativar ao concluir a consulta final e seguir no trabalho autorizado.
+Ampla consultada após a espera: concluída 2026-09-21T11:21:55.032Z,
+650.473 ms, valid=true, exit=0, 2.369 testes: 2.359 PASS/0 FAIL/10 SKIP
+esperados. candidate_unchanged=true; cobertura linhas 92,38%, branches
+78,61%, funções 92,84%. Heartbeat pausado após conclusão. Não repetir a ampla
+verde sem mudança causal posterior. Evidência sanitizada reproduzível em
+`../../audit-evidence/n02g-causal-authoring-profile/local-validation.json`.
+Gerados candidate-report/source-extract na mesma pasta; helper
+prepare-evidence.cjs confere hashes testados, igualdade da extração e 76
+proofs/seleções preservadas. Sete deltas anteriores refund/família/contagem
+identificados separadamente; nenhum delta dos seis perfis foi aplicado.
+Próximo passo: commit sanitizado da composição candidata, publicar e pedir
+uma revisão focal por hash do gerador/perfis/delta, conforme audit-request.md.
+GO global/runtime, autenticação de host e demais reconciliações continuam
+pendentes. Não apresentar a ampla verde como aceitação integral.
+
+Histórico de incrementos anteriores: primitivas compartilhadas
+distinguem ID de relação resolvida, consumo completo do alvo e unicidade de
+eventos por ID material, não por alias. Reutilizadas nos quatro avaliadores,
+incluindo populações familiares e de planos de parcelas. Nenhum novo delta
+normativo neste incremento. 50 focais PASS; controles de unicidade exercitam
+excluídos e aliases distintos; integração/bundle reforçados em validação.
+Sondas sucessivas sem faltas/extras novos: owner-refs remove 561 faltas de
+edges; candidate-identity remove 544 reads; installment-refs remove 71 edges,
+24 reads, 3 estruturas e extras de pessoa/membership. Estado diagnóstico atual:
+73 seleções, 6 matched parciais, 14.926 covered/76 invalid/0 unsupported.
+Não confundir esses 6 com grafos aceitos: graph_accepted=false; faltam proof,
+medições/host e 3 derivados. Telemetria configurada mas parada: NAO_DISPONIVEL.
+Próxima ação local: conferir integração de parcelas e resolver compensates
+com o mesmo leitor completo, preservando os guardas e a assinatura revisada
+de refund. Não executar ampla enquanto o candidato estiver em reconciliação.
+Atualização posterior: compensates implementado com 35 focais PASS; encontrou
+três reads extras em eligible_event_count, cuja aresta já era extra antes.
+Inspeção do predicado confirmou uso da categoria herdada, não categoria própria;
+proposta restrita a 1 read/1 edge por grafo, sem alteração da seleção/proof.
+Categorias: 49 focais e 9 integrações/bundles PASS após validar a classe no
+índice ligado. Sonda category-population: 73 seleções/11 matched parciais,
+15.568 covered/76 invalid/0 unsupported; sem GO de grafo. 152 reads resolvidos.
+Proposta de contagem publicada em 130c74d, quatro arquivos sanitizados, remoto
+confirmado; extrato de 609.909 bytes, 3 grafos/claims completos da base f27c504,
+igualdade e rejeição de sobrescrita/caminho inválido verificadas localmente.
+Uma solicitação automática enviada no Chat, conversa limpa
+6ab06d92-f750-83e9-9cc6-1d4bcfd57313 do projeto FinançasBot; resposta em andamento.
+Não reenviar esse hash. Próxima ação: confrontar o parecer; enquanto aguarda,
+resolver a referência de categoria da fonte usando a primitiva existente,
+sem alterar a normativa e sem ampliar a proposta documental.
+
+Incremento diagnóstico registrado antes de criar seus arquivos:
+- `scripts/agent/diagnoseNextProvenanceCoverage.cjs`: ferramenta local sintética,
+  sem oracle, sem aceitação, sem recibos e sem acesso a produção;
+- `docs/plans/workstreams/financasbot-next-02-n02g-coverage-reconciliation-v1.md`:
+  evidência compacta, limites e ordem causal da reconciliação.
+Esses arquivos não alteram contratos normativos, runtime ou a correção auditada.
+Detalhamento: `../../plans/workstreams/financasbot-next-02-n02g-coverage-reconciliation-v1.md`.
+Validação local do diagnóstico: syntax OK; reprodução exata dos 73 registros
+e deltas; rejeição de saída fora do temporário, argumento desconhecido e
+sobrescrita de evidência; agent-workflow e diff --check OK. Ampla não repetida.
+Estado deste incremento: arquivos locais, ainda sem commit/publicação ou nova
+auditoria; ferramenta diagnóstica não concede aceitação de grafo.
+Incremento local de composição implementado em proofAcceptance e nos testes
+proofAcceptance/authoringIndex já autorizados: comparePhaseCoverage recompõe
+reads/edges e lifecycle de seleção a partir do MESMO trace. Cada evento tem
+sequência e componente responsável; nenhum veredito externo é aceito.
+Matched local nunca muda graph_accepted=false. Medições ainda não validadas
+continuam bloqueando; civil_date, identidade/records têm validação local abaixo.
+RED: nove testes novos falharam antes da implementação. Focal: 30/30 PASS;
+integração das quatro famílias: 4/4 PASS, abrangendo 73 derivações. Sonda:
+8.013 eventos cobertos, zero inválidos sinalizados pela seleção e 4.629 não
+suportados; zero fases completas, mantendo as mesmas divergências dimensionais.
+Bateria causal tests/nextProvenance.test.js: 274/274 PASS, zero FAIL/SKIP/TODO
+em Node 22.17.0 (82,9 s). Conferência dos 73 registros preservou exatamente
+todos os deltas anteriores. Syntax, agent-workflow e diff --check OK.
+Ampla não iniciada: reconciliação ainda em desenvolvimento. Sem commit novo,
+publicação, auditoria deste delta, GO adicional ou alteração de produção.
+Incremento seguinte de consumo, também local: comparePhaseCoverage exige
+operandSets declarados a partir dos bindings admitidos, não do trace. Valida
+comprimento, índice/ausência, membership, ordem, cursor, encerramento e reuso.
+Views só são disponíveis após seleção validada na mesma fase e role.
+Sem identificadores de iterator no protocolo, dois iteradores simultâneos da
+mesma view são rejeitados como ambíguos; views distintas têm cursores separados.
+Set consumption não substitui required_reads/required_structural de snapshots.
+Sete grupos novos: quatro REDs iniciais e três rejeições já conservadoras;
+focal final 37/37 PASS e integração 4/4 PASS sobre 73 grafos. Inclui mutação de
+cada resultado de operação, listas vazias, retorno antecipado, cursor falso,
+view prematura/desconhecida e autoridade de roster ausente/trocada/duplicada.
+Sonda atual: 8.900 eventos cobertos, zero inválidos detectados, 3.742 pendentes.
+Os 887 eventos adicionais têm conteúdo/lifecycle validado. As 73 seleções e
+todos os deltas de reads/edges/estrutura anteriores foram preservados exatamente.
+Bateria causal após consumo: 281/281 PASS, zero FAIL/SKIP/TODO, Node 22.17.0,
+103,4 s. Syntax, workflow e diff --check OK. Ampla não executada; alterações
+seguem locais e não auditadas, sem commit/push ou GO novo.
+Incremento de metadados local: graphCompiler.observationMetadata resolve
+identidades e caminhos de records presentes pelas mesmas formas/reachability
+admitidas das fábricas, antes da execução, sem payloads ou dados do trace.
+comparePhaseCoverage exige accessBindings e confere alias/role/identidade,
+ancestralidade observada de get/has/keys e necessidade da navegação no contrato.
+Identidade não substitui leitura de payload ou autoriza nó extra. Metadados
+não autenticam host/TCB; records dentro de sequences permanecem fora do suporte.
+Oito grupos focais novos (sete REDs, uma rejeição já conservadora) e um RED
+de integração da fábrica. Focal final: 45/45 PASS; integração dirigida: 5/5 PASS.
+Sonda: 12.542 eventos cobertos, 98 identity_node_not_required em 24 grafos,
+dois civil_date não suportados. Todos os 73 deltas anteriores foram preservados.
+S-16#1#1 agora tem matched da derivation PARCIAL; graph_accepted continua false.
+Isso não valida proof, obrigações, R, raízes medidas, host ou recibos de parents.
+Bateria causal após metadados: 290/290 PASS, zero FAIL/SKIP/TODO, Node 22.17.0,
+103,2 s. Syntax, agent-workflow e diff --check OK. Sem ampla, commit/push,
+auditoria nova ou GO; alterações permanecem locais e em desenvolvimento.
+Incremento civil local: comparação recalcula a data com civilDateInPinnedTimezone
+e exige get imediatamente anterior na sequência global, na mesma fase,
+alias/role/path e com o mesmo instante literal. Leitura antiga, conversão
+duplicada sem novo get, interposição de evento e empréstimo entre fases falham.
+Runtime/configuração/override incompatível e resultado civil adulterado falham;
+a verificação de labels/configuração não autentica o binário nem roots M.
+Seis REDs novos observados; 54/54 testes focais PASS (51 cobertura, três timezone).
+Sonda: 12.544 covered, 98 invalid, zero unsupported; uma derivation parcial
+matched (S-16#1#1), nunca graph_accepted. Todos os vereditos, deltas e erros de
+metadados dos 73 registros anteriores foram preservados, exceto a cobertura
+adicional dos dois eventos civil_date. Não houve medições M nessa sonda.
+Bateria causal dirigida: 80/80 PASS em authoringIndex, instrumentedAccess e
+causalRecorder (66,9 s, Node 22.17.0); somada aos 54 focais já verdes, sem
+repeti-los. Zero FAIL/SKIP/TODO. Syntax, workflow e diff --check OK. Não foi
+reexecutado o corpus completo nem a ampla; sem commit/push, auditoria ou GO.
+Triagem causal por família concluída localmente: econômica 31/31 divergentes,
+direta 20/21, efeitos 13/13 e parcelas 8/8; dimensões não são defeitos somáveis.
+Detalhes e matriz no plano de reconciliação, seção Triagem causal por família.
+Contraexemplo instrumentado: consumption_total retorna 75 para compra -100
+e compensação +25 tanto com quanto sem vínculo, com zero traversals de
+compensates. O contrato exige evento compensado; há defeito comportamental
+demonstrado, ainda sem correção/RED versionado. A sonda não promove GO.
+Separados: reads/follow e enumeração não equivalentes; curto-circuito de
+candidatos; autoria causal pendente em valores de contas que retornam IDs,
+saldo inicial de métricas de movimento/consumo, nome de coleção e contexto.
+Nenhum grafo, contrato ou código foi editado nesta triagem. Não repetir ampla.
+Telemetria consultada: configurada, porém coletor parado/não saudável;
+uso deste objetivo NAO_DISPONIVEL. Sem nova coleta ou alteração de configuração.
+Reparo seguinte de compensação implementado LOCALMENTE em metricSelection.js:
+regra baseada em contribuição econômica, sem lista de modos ou exceção por fato.
+Toda compensation consumida resolve alvo event de categoria expense admitida;
+income preserva seu trace, sem impor ao alvo o mês/instrumento da consulta.
+Quatro grupos novos em metricSelection.cases (três REDs antes da correção);
+focal final 15/15 PASS, consumidores diretos/efeitos 10/10 PASS. Integração
+4/4 PASS sobre 73 derivações; somente o teste econômico foi reexecutado após
+ganhar asserção explícita de compensates, 1/1 PASS sobre 31 derivações.
+Sonda pós-reparo n02g-coverage-compensation.json: 12.635 covered, 98 invalid,
+zero unsupported. Delta exato: falta da aresta e0058 resolvida em 13 grafos;
+nenhum delta novo e 60 registros idênticos. Erros de metadados preservados,
+com sequences deslocadas. 72 grafos continuam divergentes por outras causas;
+um matched parcial, graph_accepted=false. Reads escalares não foram sintetizados.
+Sem alteração normativa, ampla, commit/push, auditoria ou GO novo.
+Reparo local de referências: metricDirectReads.referencedIdentity lê/valida o
+escalar e confere seu ID com a identidade resolvida. Aplicado a contas a pagar
+e ao ramo de cartões/regras, mantendo kind/versão e seleção. A admissão já
+rejeitava relações incoerentes; agora a derivation também observa e usa o ID.
+Três grupos novos em metricDirectReads.cases, dois REDs e um controle já verde;
+11/11 focais PASS. Integração direta com asserções separadas de get/traversal:
+1/1 PASS sobre 21 derivações/oracles. Outros focais verdes não foram repetidos.
+Sonda n02g-coverage-references.json: sete faltas de leitura resolvidas em cinco
+grafos, nenhum delta novo e 68 registros idênticos. 12.642 covered, 98 invalid,
+zero unsupported; 73 seleções corretas e 70 grafos ainda divergentes em reads.
+Matched parcial em S-16#1#1, M-15#1#2 e M-16#1#1; graph_accepted=false.
+Fixture e erros de metadados preservados, descontando mudança de sequences.
+Sem alterações normativas, ampla, commit/push, auditoria ou GO novo.
+Incremento category_id registrado antes da criação:
+src/next/provenance/metricReferences.js, helper interno readReference que retorna
+node/ref/version após leitura escalar, resolução e igualdade de ID/kind/versão
+bem formada. Extrair o contrato atual de metricDirectReads para esse módulo.
+Consumidores existentes: metricDirectReads, metricSelection.createCategoryReader
+e os dois acessos de categoria sem population reader em metricEffects/refund.
+Testes existentes metricSelection/metricEffects/metricDirectReads, authoringIndex
+e guestBundle; nenhum teste novo em arquivo separado. O inventário explícito
+do bundle deve incluir a nova dependência e continuar bloqueado sem ela.
+Validar membership/versão de categoria no reader, IDs que não são aliases,
+get separado de traversal e alterações causais no escalar do handle.
+Não generalizar automaticamente para referências de outras famílias.
+Revisão normativa permanece separada. Medições/host/recibos aguardam autoridade
+independente. Codex → Astra → Alto.
+Incremento category_id implementado localmente: metricReferences.readReference
+é compartilhado pelas três famílias; membership/versão esperada continuam no
+category reader. 33 testes de métricas e quatro de bundle PASS, além de 3/3
+integrações sobre 65 derivações/oracles. Quatro novos REDs observados antes da
+correção; controle de população/versão preservado. O último teste de bundle,
+bloqueado antes por falha da revisão automática causada por limite de uso,
+foi retomado e passou em 2026-09-20. Sem repetição da ampla.
+Sonda n02g-coverage-categories.json: 563 faltas event/category_id resolvidas em
+47 grafos, 26 registros idênticos; 13.239 covered, 98 invalid, zero unsupported.
+Três matched parciais preservados e graph_accepted=false. Há DUAS NOVAS leituras
+extras: evt_restaurant_b/category_id em M-06#1#2 e F-06#2#1 (refund_amount).
+A inspeção da compra já existia com nodes/reads/edges extras; o grafo declara
+essa compra na fase proof, enquanto o evaluator a valida em derivation.
+Contrato exige vínculo compensado, mas a aresta compensates também já era
+extra em derivation. Conflito de fase registrado no plano, sem afrouxamento.
+Proposta documental registrada antes da criação:
+docs/plans/workstreams/financasbot-next-02-n02g-refund-phase-decision-v1.md.
+Escopo: decidir a responsabilidade do vínculo de compensação em refund_amount,
+sem alterar contratos/grafos/runtime e sem publicar os incrementos locais.
+Preparar commit documental isolado para revisão estática independente; não é
+candidato executável nem substitui ampla/auditoria futura do código.
+Proposta publicada: 614abbe9d5088ed756794f276a863fb34360948e, pai
+22e7616b7ed7cb984a26193d53f4fd736ae1c3f6; HEAD remoto confirmado. Somente o
+documento novo entrou no commit. Workflow e diff --check OK; código local
+preservado e sem ampla. A decisão proposta mantém validação de compensação em
+derivation e pede autoria causal explícita; não foi aplicada às normativas.
+Revisão externa preparada no projeto finançasBot indicado por Daniel, conversa
+limpa, Chat GPT-5.6 Sol/Alta (seleção existente confirmada na interface).
+Reservada uma única tentativa automática por esse hash; verificar resultado
+antes de qualquer reenvio. Nenhum parecer recebido até este registro.
+Envio efetuado uma vez. Conversa: projeto finançasBot, id
+6aafba01-dab4-83e9-bdda-3d5e9d0152cb. O Chat informou leitura da proposta e
+quatro fontes; está tentando extrair os dois grafos do blob grande. Ainda não
+há veredito aceito. Não reenviar o mesmo pedido.
+Enquanto aguarda, caracterização local EFFECT-METRIC-005 acrescentada no
+arquivo de testes existente: 12 positivos e 72 mutações de vínculo/estado/
+pessoa/categoria, IDs distintos dos aliases, valores e ordem variados, alvo
+fora do mês e fora do roster financeiro. Os cinco testes de efeitos passaram
+(incluindo controles da fixture alterada), syntax OK, Node 22.17.0. São guards
+preexistentes caracterizados, não REDs de cobertura nem aceitação de grafo.
+Nenhum runtime ou contrato mudou durante essa caracterização; ampla não usada.
+Parecer do hash 614abbe: NÃO APTO / limitado por acesso ao graphs-v2.json
+(limite de conteúdo >4 MiB, não intersticial de segurança). Direção conceitual
+não rejeitada. Achados: falta do grafo acessível; fundamento individual dos
+guards; pessoa condicional; matriz explícita refund_amount e proof inalterada.
+Próxima revisão somente com NOVA evidência material e NOVO hash, conversa limpa.
+Registrados antes da criação: docs/audit-evidence/n02g-refund-phase/
+graphs-extract.json e independent-review.md. Extrato mecânico de dois objetos
+integrais do blob Git imutável, com digests de origem e verificação local de
+igualdade; não substituir a autoridade normativa nem alegar leitura externa
+do blob integral. Proposta revisada deve separar regra existente de emenda
+semântica ainda pendente e fechar a aresta de pessoa antes de implementação.
+Sonda em memória do EFFECT-METRIC-005: controle PASS; quatro retiradas isoladas
+de guards (estado alvo, pessoa, expense alvo, compensation própria) detectadas
+pelo teste novo. Arquivo runtime permaneceu byte a byte inalterado.
+Nova evidência publicada: 8a95579e8959196ea184d0ed322bd3b464cc35f6,
+pai 614abbe9d5088ed756794f276a863fb34360948e, remoto confirmado; somente três
+documentos. Extrato tem 83.517 bytes, dois objetos completos, igualdade local
+com blob 85e57c5916a17ebd88a0327e4cdcd59c33f0c213 confirmada. Proposta fecha
+inventários derivacionais e distingue emenda confirmed/expense de regra
+preexistente. Ainda não aprovada. Uma tentativa de revisão reservada para
+esse novo hash, em conversa limpa; não reutilizar a tentativa anterior.
+Caracterização estendida para contextos month/date, explicitamente
+refund_amount: 24 controles positivos e 144 mutações; cinco testes focais
+PASS após a mudança da fixture. Nenhuma ampla, runtime ou normativa alterada.
+Segunda solicitação enviada uma vez, conversa limpa id
+6aafbc9d-46ac-83e9-ae23-b4b52a75779f. Aguardar e confrontar o parecer do hash
+8a95579 antes de mudar contratos. Não repetir envio desse hash.
+Parecer recebido: APTO para implementar desenho/emenda, estático/focal, sem GO
+de código. Condição: formalizar confirmed/expense no evaluator contract.
+Recibo atualizado em docs/audit-evidence/n02g-refund-phase/independent-review.md.
+Escopo da implementação agora autorizado pelo desenho: refund_amount.json,
+seu digest no metric-evaluator-registry-v1.json, digest do registry e somente
+trace_contract.derivation dos dois grafos refund em graphs-v2.json; uso de
+readReference em metricEffects e testes focais/integrados existentes. Prova,
+selections, predicates, obligations e demais grafos devem ficar iguais à base.
+Registrar RED antes da edição funcional/normativa. Não usar fact_key na regra.
+Refund implementado LOCALMENTE após quatro REDs: contrato de admissibilidade,
+hashes e derivation dos dois grafos ajustados conforme desenho aprovado;
+referências pessoa/compensates causais. 130 testes distintos focais/afetados
+PASS (7 efeitos, 41 authoringIndex, 78 admissão/contratos, 4 bundles).
+Proof e os demais 74 grafos preservados. Sonda atual refund-phase: 73 seleções,
+cinco matched parciais, 13.261 covered/86 invalid/zero unsupported; 71 registros
+idênticos e somente os dois refund corrigidos. graph_accepted=false.
+Sem ampla, publicação do código/normativas ou auditoria de código; commits
+8a95579/614abbe continuam exclusivamente documentais.
+Próximo desenho registrado no plano de reconciliação: primitiva followMember
+para ref_list admitida + leitor de população em metricReferences, consumidor
+familiar de metricSelection. Sem regras por fact_key, identidade gratuita,
+campos de alvos sem obrigação, novos opcodes ou mudança normativa planejada.
+População familiar implementada localmente, cinco REDs prévios e 71 testes
+focais/afetados PASS (57 acesso/seleção, 4 bundles, 2 integrações, 8 recorder).
+Sonda family-population: 52 faltas de arestas e 78 estruturais removidas, além
+de 19 extras estruturais; 45 registros idênticos, 28 alterados. Sem nova falta,
+seleção/metadata preservadas; cinco matched parciais e graph_accepted=false.
+NOVOS EXTRAS em dois safe_daily_pace: quatro arestas e seis observações
+estruturais no total. A família transitiva já era lida mas não atribuída à
+derivation nesses grafos. Trava anti-remendo: não adicionar exceção para pace.
+Registrados antes de criar: docs/plans/workstreams/
+financasbot-next-02-n02g-transitive-family-decision-v1.md e
+docs/audit-evidence/n02g-transitive-family/graphs-extract.json. Proposta de
+autoria causal geral, sem novos campos/DSL/arquitetura de runtime; somente
+dependências já declaradas e usadas pelo cálculo. Submeter antes de normativa.
+Proposta geral publicada em f27c504086aad13a035c71021a34ff7f6ff2606b, pai
+8a95579e8959196ea184d0ed322bd3b464cc35f6; remoto confirmado. Quatro documentos,
+incluindo recibo refund; nenhum runtime/normativa local entrou. Extrato familiar
+de 435.893 bytes contém dois grafos e claims completos do blob Git 8a95579,
+igualdade local confirmada. Uma tentativa automática reservada para o novo
+hash, em conversa limpa; ainda sem parecer recebido neste registro.
+Daniel trouxe o parecer focal do hash f27c504: APTO para implementar regra
+transitiva/delta familiar; não é GO de código. Nenhum achado impeditivo;
+analogia com outros contratos não foi usada como fundamento. Aplicar somente
+1 nó/2 reads/3 estruturas/2 arestas em cada safe_daily_pace, preservando prova.
+Recibo registrado: docs/audit-evidence/n02g-transitive-family/independent-review.md.
+Escopo normativo: seção 4 do graph-binding-contract-v1.md e derivation de dois
+grafos; sem alteração da semântica financeira. RED de autoria antes da mudança.
+Integração adicional expôs consumidor de população em metricDirectReads/
+bills_open familiar (M-14#1#2), que ainda usa includes sem enumeração. A mesma
+primitiva readReferenceIds deve ser reutilizada nesse ramo, sem exceção de
+teste/fact_key e sem alteração de contratos; validar consumidores diretos.
+A última inspeção havia sido bloqueada por limite da revisão automática;
+retomada após nova mensagem, sem contornar a aprovação. Consulta agora OK.
+Delta familiar aplicado após RED de autoria: seção 4 do binding e derivation
+dos dois safe_daily_pace; 1 nó/2 reads/3 estruturas/2 arestas em cada um.
+Comparação antes/depois preservou os outros 74 grafos e todas as provas
+(a base local já continha a alteração refund). Teste de autoria compara o
+grafo inteiro com o extrato publicado mais o delta derivado de roles/relações;
+12 variações de aliases/edges/ordem/fact_key demonstram independência do actual.
+O consumidor bills_open agora reutiliza readReferenceIds. Regressão cobre
+família vazia, reordenação, contribuições 13/29, membro sem contas e relação
+ausente inclusive com população de contas vazia; não lê payloads dos membros.
+Validação: 15 focais iniciais PASS; depois 2 controles PASS (compatibilidade e
+bills); bateria afetada de 8 arquivos com 93/93 PASS, zero FAIL/SKIP, 65,9 s.
+São 105 testes distintos neste incremento, contando os 12 de direct reads;
+não somar novamente as integrações/controles que a bateria repetiu.
+Sonda family-closure: 70 registros idênticos; apenas dois safe_daily_pace e
+bills_open mudaram. Conferência estrutural não encontrou novas faltas/extras.
+Cada pace remove precisamente os extras familiares aprovados e um erro de
+metadata. Bills remove 2 faltas de edges, 3 estruturais e 1 extra membership;
+seus extras anteriores de pessoa permanecem. Totais: 73 seleções, 5 matched
+parciais, 13.176 covered/84 invalid/zero unsupported; graph_accepted=false.
+Evidência temporária: .codex-temp/n02g-coverage-family-closure.json. Nenhuma
+ampla nova, publicação de código/normativa ou auditoria de código neste passo.
+Próxima ação exata: reconciliar a identidade/referência dos candidatos dos
+avaliadores, começando pela distinção entre payload id, identidade e traversal
+de person_id; fundamentar uso causal antes de novos REDs. Não acrescentar gets
+sem uso apenas para satisfazer o trace, nem promover alvos a nós consumidos
+indiscriminadamente. Código local; não há GO novo. Codex → Astra → Alto.
 Os registros abaixo são históricos; pendências anteriores de auditoria desta
 correção estão superadas pelo recibo. Capacidade: Codex → Astra → Alto.
 

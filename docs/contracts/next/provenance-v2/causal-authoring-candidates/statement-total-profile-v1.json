@@ -1,0 +1,16 @@
+{
+  "profile_version": 1,
+  "evaluator_id": "statement_total",
+  "evaluator_version": 1,
+  "metric": "statement_total",
+  "contract_hash": "sha256:cca2c51e9d89ef572d069eb019d30924fc41409724c1d07abc7d2a215ce1d002",
+  "foreign_reference_policy": "identity_for_every_resolved_target",
+  "program": [
+    { "op": "claim_context", "required": { "coverage": ["complete"], "evidence_state": ["confirmed"], "time_basis": ["statement_due_date", "statement_competence"] } },
+    { "op": "instrument", "role": "card", "kinds": ["card"] },
+    { "op": "civil_window", "rule": "previous_close_exclusive_current_close_inclusive", "policy_role": "policy", "calendar_field": "calendar", "calendar": "proleptic_gregorian", "closing_field": "closing_day", "due_field": "due_day" },
+    { "op": "classification_population", "role": "categories", "kind": "category", "field": "kind", "values": ["expense", "income", "neutral", "compensation"] },
+    { "op": "economic_candidates", "role": "events", "kind": "event", "date_field": "date", "state_field": "state", "required_state": "confirmed", "reference_by_kind": { "card": "card_id" }, "category_field": "category_id", "compensation_field": "compensates", "eligible_class": "expense", "compensation_class": "compensation", "guards": "observe_all_before_filtering" },
+    { "op": "contribution", "field": "amount_minor" }
+  ]
+}

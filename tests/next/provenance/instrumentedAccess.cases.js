@@ -53,6 +53,59 @@ function traversalFixture(emit = () => {}) {
     ] };
 }
 
+test('N02G:ACCESS-MEMBER-001 ref-list resolution uses material IDs and emits only its admitted edge', () => {
+    const events = []; const f = traversalFixture(e => events.push(e));
+    f.bindings[0].value.members.unshift('c-id');
+    f.bindings.push({ ...f.bindings[1], alias: 'c', value: { id: 'c-id', amount: 31 } });
+    f.links.unshift({ id: 'other_member', source: 'a', field: 'members', target: 'c', type: 'ref_list' });
+    const access = createInstrumentedAccess(f); const source = access.handle('a');
+    assert.equal(source.followMember.constructor, undefined);
+    const b = source.followMember('members', 'b-id'); const c = source.followMember('members', 'c-id');
+    assert.deepEqual(events.map(e => [e[1], e[2], e[4], e[6]]), [
+        ['traverse', 'a', ['members'], ['edge', 'members_link', 'b']],
+        ['traverse', 'a', ['members'], ['edge', 'other_member', 'c']]
+    ]);
+    assert.equal(b.get('amount'), 14); assert.equal(c.get('amount'), 31);
+    access.assertHealthy(); access.revoke();
+    assert.throws(() => b.get('amount'), /access_revoked/);
+});
+
+test('N02G:ACCESS-MEMBER-002 list resolution rejects invalid scope, aliases, ambiguity and relation kinds', () => {
+    for (const args of [['members'], ['members', 'b-id', 'extra'], ['owner', 'b-id'], ['unknown', 'b-id'],
+        ['members', 'b'], ['members', 'members_link'], ['members', null], ['members', {}], ['members', '']]) {
+        const access = createInstrumentedAccess(traversalFixture());
+        assert.throws(() => access.handle('a').followMember(...args), /access_traversal/);
+        assert.throws(() => access.assertHealthy(), /access_failed/);
+    }
+    for (const mutate of [f => { f.links = f.links.filter(l => l.type !== 'ref_list'); },
+        f => { f.links.push({ ...f.links[1], id: 'ambiguous' }); },
+        f => {
+            f.bindings[0].value.members = [{ parent_ref: 'b-id' }];
+            f.bindings[0].shape.fields.members.item = { type: 'record', fields: { parent_ref: { type: 'scalar' } } };
+            f.links[1].type = 'role_ref_list';
+        }]) {
+        const f = traversalFixture(); mutate(f); const access = createInstrumentedAccess(f);
+        assert.throws(() => access.handle('a').followMember('members', 'b-id'), /access_traversal/);
+        assert.throws(() => access.assertHealthy(), /access_failed/);
+    }
+    for (const nested of [source => source.get('members'), source => source.keys()]) {
+        const access = createInstrumentedAccess(traversalFixture());
+        assert.throws(() => nested(access.handle('a')).followMember('members', 'b-id'), /access_traversal/);
+    }
+});
+
+test('N02G:ACCESS-MEMBER-003 list resolution preserves revocation and failed-transport poisoning', () => {
+    const revoked = createInstrumentedAccess(traversalFixture()); const source = revoked.handle('a'); revoked.revoke();
+    assert.throws(() => source.followMember('members', 'b-id'), /access_revoked/);
+    const broken = createInstrumentedAccess(traversalFixture(() => { throw new Error('transport'); }));
+    assert.throws(() => broken.handle('a').followMember('members', 'b-id'), /access_sink_failed/);
+    assert.throws(() => broken.assertHealthy(), /access_failed/);
+    let coerced = 0;
+    const access = createInstrumentedAccess(traversalFixture());
+    assert.throws(() => access.handle('a').followMember('members', { toString() { coerced++; return 'b-id'; } }), /access_traversal/);
+    assert.equal(coerced, 0);
+});
+
 test('N02G:ACCESS-031 following a singular material field emits only the admitted edge before target reads', () => {
     const events = []; const access = createInstrumentedAccess(traversalFixture(e => events.push(e)));
     const source = access.handle('a');

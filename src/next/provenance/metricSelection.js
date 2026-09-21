@@ -2,6 +2,7 @@
 
 const { parseDate, parseMonth, offsetDate, monthBounds, inclusiveDayCount } = require('./civilCalendar');
 const { validateLiteral } = require('./literalTypes');
+const { createUniqueNodeReader, readReference, readReferenceId, readReferenceIds } = require('./metricReferences');
 const fail = code => { throw new Error(`metric_selection_${code}`); };
 const id = value => { validateLiteral({ type: 'id', value }); return value; };
 const money = value => {
@@ -16,17 +17,19 @@ function createCategoryReader(categories) {
     for (const node of categories) {
         const key = id(node.get('id'));
         if (node.identity('kind') !== 'category' || index.has(key)) fail('category');
-        index.set(key, node.identity('version'));
+        const economicKind = node.get('kind');
+        if (!['expense', 'compensation', 'income', 'neutral'].includes(economicKind)) fail('category');
+        index.set(key, { version: node.identity('version'), economicKind });
     }
     return {
         has: key => index.has(key),
         read(event) {
-            const node = event.follow('category_id'); const key = id(node.get('id'));
-            if (node.identity('kind') !== 'category' || !index.has(key)
-                || index.get(key) !== node.identity('version')) fail('category');
+            const { node, ref: key, version } = readReference(event, 'category_id', 'category');
+            const bound = index.get(key);
+            if (!bound || bound.version !== version) fail('category');
             const economicKind = node.get('kind');
-            if (!['expense', 'compensation', 'income', 'neutral'].includes(economicKind)) fail('category');
-            return { key, economicKind, node };
+            if (economicKind !== bound.economicKind) fail('category');
+            return { key, economicKind: bound.economicKind, node };
         }
     };
 }
@@ -72,10 +75,9 @@ function selectEconomicEvents(operands, mode) {
     }
     const subject = context.get('subject'); const kind = subject.get('kind');
     const instrumentMode = mode === 'instrument' || mode === 'statement';
-    const family = pace ? operands.budget.follow('family_id') : operands.family;
-    if (pace && family.identity('kind') !== 'family') fail('scope');
+    const family = pace ? readReference(operands.budget, 'family_id', 'family').node : operands.family;
     const familyId = instrumentMode ? undefined : id(family.get('id'));
-    const familyMembers = instrumentMode ? undefined : family.get('members');
+    const familyMembers = instrumentMode ? undefined : readReferenceIds(family, 'members');
     let person; let category; let expectedFamily; let instrument; let instrumentVersion; let budgetClass;
     if (mode === 'budget_remaining' || pace) {
         if (operands.budget.identity('kind') !== 'budget') fail('budget');
@@ -85,7 +87,8 @@ function selectEconomicEvents(operands, mode) {
             if (id(subject.get('budget_id')) !== budgetId) fail('scope');
             person = id(subject.get('person_id')); if (!familyMembers.includes(person)) fail('scope');
         } else fail('scope');
-        expectedFamily = id(operands.budget.get('family_id')); category = id(operands.budget.get('category_id'));
+        expectedFamily = pace ? familyId : readReferenceId(operands.budget, 'family_id');
+        category = readReferenceId(operands.budget, 'category_id');
         if (operands.budget.get('period') !== month || operands.budget.get('evidence_state') !== 'confirmed') fail('budget');
     } else if (instrumentMode) {
         const target = mode === 'statement' ? operands.card : operands.instrument;
@@ -115,17 +118,21 @@ function selectEconomicEvents(operands, mode) {
     const categoryReader = createCategoryReader(operands.categories);
     if (category !== undefined && !categoryReader.has(category)) fail('category');
     const categoryOf = event => categoryReader.read(event);
+    const candidates = createUniqueNodeReader('event');
     const selected = operands.events.select(event => {
-        if (event.identity('kind') !== 'event') fail('event');
+        candidates.read(event);
         const state = event.get('state');
         if (!['confirmed', 'projected'].includes(state)) fail('state');
         const date = event.get('date'); parseDate(date);
-        const owner = id(event.get('person_id'));
+        const owner = readReferenceId(event, 'person_id');
         const ownCategory = categoryOf(event);
+        const economicMatch = mode === 'income' ? ownCategory.economicKind === 'income'
+            : ['expense', 'compensation'].includes(ownCategory.economicKind);
         let effectiveCategory = ownCategory;
-        if (['category', 'spent', 'budget_class', 'budget_remaining', 'safe_pace'].includes(mode) && ownCategory.economicKind === 'compensation') {
-            const compensated = event.follow('compensates');
-            if (compensated.identity('kind') !== 'event') fail('compensation');
+        // Resolving a compensation is part of its consumption semantics, not
+        // an optional consequence of filtering by the original category.
+        if (economicMatch && ownCategory.economicKind === 'compensation') {
+            const { node: compensated } = readReference(event, 'compensates', 'event');
             const originalCategory = categoryOf(compensated);
             if (originalCategory.economicKind !== 'expense') fail('compensation');
             effectiveCategory = originalCategory;
@@ -135,13 +142,10 @@ function selectEconomicEvents(operands, mode) {
             const field = `${kind}_id`;
             inScope = false;
             if (event.has(field)) {
-                const target = event.follow(field);
-                if (target.identity('kind') !== kind) fail('scope');
-                inScope = id(target.get('id')) === instrument && target.identity('version') === instrumentVersion;
+                const target = readReference(event, field, kind);
+                inScope = target.ref === instrument && target.version === instrumentVersion;
             }
         } else inScope = person === undefined ? familyMembers.includes(owner) : owner === person;
-        const economicMatch = mode === 'income' ? ownCategory.economicKind === 'income'
-            : ['expense', 'compensation'].includes(ownCategory.economicKind);
         let filterMatch = category === undefined || effectiveCategory.key === category;
         if (mode === 'budget_class' && economicMatch) {
             const actual = effectiveCategory.node.get('budget_class');

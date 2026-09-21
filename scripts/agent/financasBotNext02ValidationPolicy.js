@@ -32,7 +32,7 @@ const PENDING_PROVENANCE_PATHS = Object.freeze([
     'claimContext.js', 'claimRequirements.js', 'collectionRequirements.js',
     'executionProfile.js', 'graphCompiler.js', 'graphStructure.js',
     'instrumentedAccess.js', 'literalTypes.js', 'metricDirectReads.js',
-    'metricEffects.js', 'metricInstallments.js', 'metricSelection.js',
+    'metricEffects.js', 'metricInstallments.js', 'metricReferences.js', 'metricSelection.js',
     'obligationBindings.js', 'observationContract.js', 'operandBindings.js',
     'operatorTypes.js', 'packageContract.js', 'pinnedCivilTimezone.js',
     'predicateTypes.js', 'proofAcceptance.js', 'proofOperators.js',

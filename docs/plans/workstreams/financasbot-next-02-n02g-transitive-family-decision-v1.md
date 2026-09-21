@@ -1,7 +1,10 @@
 # N02-G — autoria das dependências transitivas de família
 
-2026-09-20. PROPOSTA DOCUMENTAL, não aplicada. Base publicada:
+2026-09-20. APTO documental recebido; delta aplicado localmente após RED.
+Ainda sem auditoria/GO de código. Base publicada da proposta:
 `8a95579e8959196ea184d0ed322bd3b464cc35f6`.
+Parecer sobre `f27c504086aad13a035c71021a34ff7f6ff2606b` registrado em
+`../../audit-evidence/n02g-transitive-family/independent-review.md`.
 Objetivo: fechar a autoria da população familiar de safe_daily_pace sem
 exceção no avaliador e sem transformar um trace observado em contrato.
 

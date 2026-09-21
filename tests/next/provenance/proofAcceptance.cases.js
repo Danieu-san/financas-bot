@@ -3,7 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createCausalRecorder } = require('../../../src/next/provenance/causalRecorder');
 const { createInstrumentedAccess, createNodeSetAccess } = require('../../../src/next/provenance/instrumentedAccess');
-const { compareReadEdgeCoverage, compareSelectionCoverage } = require('../../../src/next/provenance/proofAcceptance');
+const { compareReadEdgeCoverage, compareSelectionCoverage, comparePhaseCoverage } = require('../../../src/next/provenance/proofAcceptance');
 const { digest } = require('../../../src/next/kernel/canonicalValue');
 const scalar = { type: 'scalar' };
 const expectation = () => ({ required_nodes: ['a'], required_reads: [{ node: 'a', segments: ['amount'] }],
@@ -56,6 +56,20 @@ test('N02G:TRACE-COVERAGE-003 edge-only traversal does not discharge reads or in
     assert.deepEqual(check(trace).mismatches.map(x => x.dimension), ['nodes', 'reads', 'edges']);
     const read = recorded(a => a.handle('a').traverse('owner').get('amount'));
     assert.deepEqual(check(read, expected).mismatches.map(x => x.dimension), ['nodes', 'reads']);
+});
+
+test('N02G:TRAVERSAL-PROFILE-001 explicit structural traversal is not silently absorbed by material-edge coverage', () => {
+    const trace = recorded(a => a.handle('a').follow('owner'));
+    assert.equal(trace.derivation_trace.length, 1);
+    assert.equal(trace.derivation_trace[0].operation, 'traverse');
+    const expected = { required_nodes: [], required_reads: [], required_claim_reads: [],
+        required_edges: ['owner'], required_structural: [] };
+    assert.equal(check(trace, expected).matched, true);
+    const structural = { node: 'a', operation: 'traversal', segments: ['owner'] };
+    const result = check(trace, { ...expected, required_structural: [structural] });
+    assert.equal(result.matched, false);
+    assert.deepEqual(result.mismatches.map(x => ({ ...x })), [{ dimension: 'structural', missing: [['a', 'traversal', ['owner']]], extra: [] }]);
+    assert.equal(check(trace, { ...expected, required_edges: [] }).matched, false);
 });
 
 test('N02G:TRACE-COVERAGE-004 context reads are compared separately from snapshot reads', () => {
@@ -300,4 +314,457 @@ test('N02G:TRACE-COVERAGE-007 malformed observations and duplicate expectations 
     let calls = 0; const hostile = { ...trace };
     Object.defineProperty(hostile, 'execution_id', { enumerable: true, get() { calls++; return 'execution-1'; } });
     assert.throws(() => check(hostile), /trace_coverage_/); assert.equal(calls, 0);
+});
+
+function phaseInput(trace, selecting = false) {
+    return { trace, executionId: 'execution-1', invocationId: 'invocation-1', phase: 'derivation',
+        accessBindings: selecting ? ['a', 'b'].map(alias => ({ alias, role: 'events', identity: null, records: [[]] }))
+            : [['a', 'source'], ['b', 'source'], ['claim/context', 'context']].map(([alias, role]) => ({ alias, role, identity: null, records: [[]] })),
+        operandSets: selecting ? [{ role: 'events', aliases: ['a', 'b'] }] : [],
+        sets: selecting ? { candidates: ['a', 'b'], selected: ['b'] } : {},
+        bindings: selecting ? [{ role: 'events', candidate_set: 'candidates', selected_set: 'selected' }] : [],
+        expected: { ...expectation(),
+            ...(selecting ? { required_nodes: ['a', 'b'], required_reads: ['a', 'b'].map(node => ({ node, segments: ['amount'] })) } : {}),
+            required_selections: selecting ? [{ candidate_set: 'candidates', selected_set: 'selected' }] : [],
+            selected_nodes: selecting ? ['b'] : [] } };
+}
+const selectedTrace = () => selectionTrace(set => set.select(node => node.get('amount') === 1));
+
+test('N02G:TRACE-COMPOSITION-001 composition accounts for every event without accepting a graph or rewriting its trace', () => {
+    const input = phaseInput(selectedTrace(), true); const before = JSON.stringify(input);
+    const result = comparePhaseCoverage(input);
+    assert.equal(result.stage, 'phase_coverage_only'); assert.equal(result.graph_accepted, false);
+    assert.equal(result.matched, true);
+    assert.equal(result.components.read_edges.matched, false); // Its standalone unclassified selection events remain visible.
+    assert.equal(result.components.selection.matched, true);
+    assert.deepEqual(result.event_coverage.map(e => e.sequence), input.trace.derivation_trace.map(e => e.sequence));
+    assert.ok(result.event_coverage.every(e => e.status === 'covered'));
+    assert.deepEqual([...new Set(result.event_coverage.map(e => e.component))].sort(), ['read_edges', 'selection']);
+    assert.equal(JSON.stringify(input), before);
+});
+
+test('N02G:TRACE-COMPOSITION-002 deleting any causal event, even after renumbering, cannot preserve a phase match', () => {
+    const trace = selectedTrace();
+    for (let removed = 0; removed < trace.derivation_trace.length; removed++) {
+        const wrong = structuredClone(trace); wrong.derivation_trace.splice(removed, 1);
+        wrong.derivation_trace.forEach((e, i) => { e.sequence = i; });
+        assert.equal(comparePhaseCoverage(phaseInput(wrong, true)).matched, false, `removed ${removed}`);
+    }
+});
+
+test('N02G:TRACE-COMPOSITION-003 correct selection never hides missing or extra scalar reads', () => {
+    for (const segments of [['unused'], ['amount', 'nested']]) {
+        const input = phaseInput(selectedTrace(), true); input.expected.required_reads[0].segments = segments;
+        const result = comparePhaseCoverage(input);
+        assert.equal(result.components.selection.matched, true); assert.equal(result.matched, false);
+        assert.ok(result.components.read_edges.mismatches.some(e => e.dimension === 'reads' && e.missing.length && e.extra.length));
+    }
+});
+
+test('N02G:TRACE-COMPOSITION-004 rostered set and view consumption is explicitly validated beyond selection', () => {
+    for (const run of [set => { set.length(); set.select(n => n.get('amount') === 1); },
+        set => { set.select(n => n.get('amount') === 1).length(); },
+        set => { for (const n of set.select(n => n.get('amount') === 1)) n.get('amount'); },
+        set => { set.select(n => n.get('amount') === 1); set.at(0); }]) {
+        const result = comparePhaseCoverage(phaseInput(selectionTrace(run), true));
+        assert.equal(result.components.selection.matched, true); assert.equal(result.matched, true);
+        assert.ok(result.event_coverage.some(e => e.status === 'covered' && e.component === 'operand_sets'));
+    }
+});
+
+test('N02G:TRACE-COMPOSITION-005 unadmitted metadata, unbound civil dates and unverified measurements remain blocking', () => {
+    const observations = [
+        ['I', 'identity', 'a', 'source', ['kind'], 'node_identity', ['scalar', 'event']],
+        ['I', 'get', 'a', 'source', ['record'], 'data', ['container', 'record']],
+        ['I', 'civil_date', 'a', 'source', ['created_at'], 'data', ['civil', '2026-09-01T12:00:00Z', 'America/Sao_Paulo', 'proleptic_gregorian', '2026-09-01']],
+        ['M', 'validation_tcb_root', 'sha256:' + 'a'.repeat(64)]
+    ];
+    for (const raw of observations) {
+        const trace = recorded((a, scope) => { a.handle('a').get('amount');
+            if (raw[0] === 'M') scope.measure(raw); else scope.observe(raw); });
+        const result = comparePhaseCoverage(phaseInput(trace));
+        assert.equal(result.matched, false); assert.equal(result.graph_accepted, false);
+        assert.deepEqual(result.components.read_edges.mismatches, []);
+        assert.equal(result.event_coverage.at(-1).status, raw[0] === 'M' ? 'unsupported' : 'invalid');
+    }
+});
+
+test('N02G:TRACE-COMPOSITION-006 record navigation, traversal and membership do not substitute for leaf reads or enumeration', () => {
+    const record = recorded((a, scope) => scope.observe(['I', 'get', 'a', 'source', ['amount'], 'data', ['container', 'record']]));
+    const traversal = recorded(a => a.handle('a').traverse('owner'));
+    for (const trace of [record, traversal]) {
+        const result = comparePhaseCoverage(phaseInput(trace));
+        assert.equal(result.matched, false);
+        assert.ok(result.components.read_edges.mismatches.some(e => e.dimension === 'reads' && e.missing.length));
+    }
+    const input = phaseInput(recorded(a => a.handle('a').get('members').includes('one')));
+    Object.assign(input.expected, membersExpected(['iterator', 'order', 'cardinality']));
+    const result = comparePhaseCoverage(input); assert.equal(result.matched, false);
+    assert.ok(result.components.read_edges.mismatches.some(e => e.dimension === 'structural'));
+});
+
+test('N02G:TRACE-COMPOSITION-007 selection lifecycle errors are invalid, not borrowed from the read projection', () => {
+    const trace = structuredClone(selectedTrace());
+    trace.derivation_trace.find(e => e.operation === 'select_member').outcome[1] = 'unknown';
+    const result = comparePhaseCoverage(phaseInput(trace, true));
+    assert.equal(result.matched, false);
+    assert.ok(result.event_coverage.some(e => e.status === 'invalid' && e.component === 'selection'));
+    assert.ok(result.components.selection.errors.some(e => e.code === 'candidate_decision'));
+});
+
+test('N02G:TRACE-COMPOSITION-008 phase, execution, invocation and malformed event identities cannot cross the boundary', () => {
+    const proof = selectionTrace(set => set.select(n => n.get('amount') === 1), 'proof');
+    assert.equal(comparePhaseCoverage(phaseInput(proof, true)).matched, false);
+    const input = phaseInput(proof, true); input.phase = 'proof';
+    assert.equal(comparePhaseCoverage(input).matched, true);
+    for (const change of [t => { t.execution_id = 'other'; }, t => { t.derivation_trace[0].invocation_id = 'other'; },
+        t => { t.derivation_trace[0].phase = 'proof'; }, t => { t.derivation_trace[0].operation = 'invented'; },
+        t => { t.derivation_trace[0].sequence = 99; }]) {
+        const wrong = structuredClone(selectedTrace()); change(wrong);
+        assert.throws(() => comparePhaseCoverage(phaseInput(wrong, true)), /trace_coverage_/);
+    }
+});
+
+test('N02G:TRACE-COMPOSITION-009 caller-supplied verdicts and hostile accessors cannot discharge an event', () => {
+    const input = phaseInput(selectedTrace(), true);
+    for (const key of ['components', 'covered_sequences', 'event_coverage']) {
+        assert.throws(() => comparePhaseCoverage({ ...input, [key]: [] }), /trace_coverage_/);
+    }
+    let calls = 0; const hostile = { ...input };
+    Object.defineProperty(hostile, 'expected', { enumerable: true, get() { calls++; return input.expected; } });
+    assert.throws(() => comparePhaseCoverage(hostile), /trace_coverage_/); assert.equal(calls, 0);
+});
+
+function consumeRoster(view) {
+    view.length(); view.includes('a'); view.includes('b'); view.includes('absent');
+    view.at(0); view.at(99);
+    const iterator = view[Symbol.iterator](); iterator[Symbol.iterator](); iterator.next();
+    iterator.return(); iterator.return(); iterator.next(); iterator[Symbol.iterator]();
+    const full = view[Symbol.iterator](); while (!full.next().done) {}
+    full.next(); full.return(); full[Symbol.iterator]();
+}
+function consumptionInput(aliases = ['a', 'b']) {
+    const trace = selectionTrace(set => { consumeRoster(set); consumeRoster(set.select(n => n.get('amount') === 1)); }, 'derivation', aliases);
+    const input = phaseInput(trace, true);
+    input.operandSets[0].aliases = [...aliases]; input.sets.candidates = [...aliases]; input.sets.selected = aliases.slice(1, 2);
+    input.accessBindings = aliases.map(alias => ({ alias, role: 'events', identity: null, records: [[]] }));
+    input.expected.required_nodes = aliases;
+    input.expected.required_reads = aliases.map(node => ({ node, segments: ['amount'] }));
+    input.expected.selected_nodes = aliases.slice(1, 2);
+    return input;
+}
+function rejectedPhase(input) {
+    try { assert.equal(comparePhaseCoverage(input).matched, false); }
+    catch (error) { assert.match(error.message, /^trace_coverage_/); }
+}
+
+test('N02G:OPERAND-CONSUMPTION-001 roster operations validate actual members, cursor and closure for empty and nonempty views', () => {
+    for (const aliases of [[], ['a'], ['a', 'b'], ['a', 'b', 'c']]) {
+        const input = consumptionInput(aliases); const before = JSON.stringify(input);
+        const result = comparePhaseCoverage(input);
+        assert.equal(result.matched, true); assert.equal(result.graph_accepted, false);
+        assert.equal(result.components.operand_sets.matched, true);
+        assert.ok(result.event_coverage.every(e => e.status === 'covered'));
+        assert.equal(JSON.stringify(input), before);
+    }
+});
+
+test('N02G:OPERAND-CONSUMPTION-002 each observed roster outcome must match independent admitted members and cursor state', () => {
+    const original = consumptionInput(); const good = comparePhaseCoverage(original);
+    const owned = new Set(good.components.operand_sets.covered_sequences); let checked = 0;
+    for (const event of original.trace.derivation_trace.filter(e => owned.has(e.sequence) && e.operation !== 'iterate')) {
+        const wrong = structuredClone(original); const target = wrong.trace.derivation_trace[event.sequence];
+        const tag = target.outcome[0];
+        if (tag === 'count' || tag === 'closed' || tag === 'cursor') target.outcome[1]++;
+        else if (tag === 'membership') target.outcome[2] = !target.outcome[2];
+        else if (tag === 'node') target.outcome[1] = 'unbound';
+        else if (tag === 'done' || tag === 'absent') target.outcome = ['node', 'a'];
+        else assert.fail(`unhandled outcome ${tag}`);
+        rejectedPhase(wrong); checked++;
+    }
+    assert.ok(checked >= 30);
+});
+
+test('N02G:OPERAND-CONSUMPTION-003 missing, premature, reordered and repeated iterator observations fail closed', () => {
+    const original = consumptionInput();
+    const modifications = [
+        rows => rows.filter(e => e.operation !== 'iterate'),
+        rows => { rows.find(e => e.operation === 'next' && e.outcome[0] === 'node').outcome = ['done']; return rows; },
+        rows => { const i = rows.findIndex(e => e.operation === 'next'); rows.splice(i, 1); return rows; },
+        rows => { const i = rows.findIndex(e => e.operation === 'next'); rows.splice(i, 0, structuredClone(rows[i])); return rows; },
+        rows => { rows.find(e => e.operation === 'next').path = [99]; return rows; },
+        rows => { const e = rows.find(e => e.operation === 'reuse_iterator'); e.outcome[2] = true; return rows; }
+    ];
+    for (const modify of modifications) {
+        const wrong = structuredClone(original); wrong.trace.derivation_trace = modify(wrong.trace.derivation_trace);
+        wrong.trace.derivation_trace.forEach((e, i) => { e.sequence = i; }); rejectedPhase(wrong);
+    }
+});
+
+test('N02G:OPERAND-CONSUMPTION-004 roster authority cannot be omitted, duplicated or derived from the observed selection', () => {
+    for (const mutate of [input => { input.operandSets = []; },
+        input => { input.operandSets[0].aliases.reverse(); },
+        input => { input.operandSets[0].aliases.push('a'); },
+        input => { input.operandSets.push(structuredClone(input.operandSets[0])); },
+        input => { input.operandSets[0].aliases = ['b']; },
+        input => { input.operandSets[0].role = 'other'; }]) {
+        const input = structuredClone(consumptionInput()); mutate(input);
+        assert.throws(() => comparePhaseCoverage(input), /trace_coverage_/);
+    }
+});
+
+test('N02G:OPERAND-CONSUMPTION-005 a view must be constructed before use in the same phase and role', () => {
+    const original = consumptionInput();
+    for (const mutate of [rows => { const i = rows.findIndex(e => e.projection === 'operand_selection'); rows.unshift(rows.splice(i, 1)[0]); },
+        rows => { rows.find(e => e.projection === 'operand_selection').path[0] = 'view_' + '0'.repeat(64); },
+        rows => { const e = rows.find(e => e.projection === 'operand_selection'); e.role = 'other'; e.alias = 'operand/other'; }]) {
+        const input = structuredClone(original); mutate(input.trace.derivation_trace);
+        input.trace.derivation_trace.forEach((e, i) => { e.sequence = i; }); rejectedPhase(input);
+    }
+});
+
+test('N02G:OPERAND-CONSUMPTION-006 consumption without selection still needs a declared roster and cannot invent a selection', () => {
+    const trace = selectionTrace(set => { consumeRoster(set); for (const node of set) node.get('amount'); });
+    const input = phaseInput(trace);
+    input.operandSets = [{ role: 'events', aliases: ['a', 'b'] }];
+    input.accessBindings = ['a', 'b'].map(alias => ({ alias, role: 'events', identity: null, records: [[]] }));
+    input.expected.required_nodes = ['a', 'b'];
+    input.expected.required_reads = ['a', 'b'].map(node => ({ node, segments: ['amount'] }));
+    const result = comparePhaseCoverage(input); assert.equal(result.matched, true);
+    assert.deepEqual(result.components.selection.selected_nodes, []);
+    input.operandSets = []; assert.equal(comparePhaseCoverage(input).matched, false);
+});
+
+test('N02G:OPERAND-CONSUMPTION-007 ambiguous simultaneous iterators are rejected but distinct views have independent cursors', () => {
+    const ambiguous = selectionTrace(set => {
+        const first = set[Symbol.iterator](); const second = set[Symbol.iterator]();
+        first.next(); second.next(); set.select(n => n.get('amount') === 1);
+    });
+    const rejected = comparePhaseCoverage(phaseInput(ambiguous, true));
+    assert.equal(rejected.matched, false);
+    assert.ok(rejected.components.operand_sets.errors.some(e => e.code === 'ambiguous_iterator'));
+    const distinct = selectionTrace(set => {
+        const view = set.select(n => n.get('amount') === 1);
+        const first = set[Symbol.iterator](); const second = view[Symbol.iterator]();
+        first.next(); second.next(); first.next(); second.next(); first.next();
+    });
+    assert.equal(comparePhaseCoverage(phaseInput(distinct, true)).matched, true);
+});
+
+function metadataInput(run = node => {
+    for (const key of ['kind', 'ref_id', 'version']) node.identity(key);
+    node.get('details').get('child').get('amount');
+}) {
+    const identity = { kind: 'event', ref_id: 'a-id', version: 'sha256:' + 'a'.repeat(64) };
+    const recorder = createCausalRecorder({ executionId: 'execution-1', maxEvents: 100 });
+    const scope = recorder.open({ invocationId: 'invocation-1', phase: 'derivation' });
+    const access = createInstrumentedAccess({ emit: scope.observe, bindings: [{ alias: 'a', role: 'source', identity,
+        value: { id: 'a-id', amount: 7, details: { child: { amount: 9 } }, unused: { amount: 8 } },
+        shape: { type: 'record', fields: { id: scalar, amount: scalar,
+            details: { type: 'record', fields: { child: { type: 'record', fields: { amount: scalar } } } },
+            unused: { type: 'record', fields: { amount: scalar } } } } }] });
+    run(access.handle('a')); access.revoke(); access.assertHealthy(); scope.seal();
+    const input = phaseInput(recorder.finish());
+    input.accessBindings = [{ alias: 'a', role: 'source', identity, records: [[], ['details'], ['details', 'child'], ['unused']] }];
+    input.expected.required_reads = [{ node: 'a', segments: ['details', 'child', 'amount'] }];
+    return input;
+}
+
+test('N02G:ACCESS-METADATA-001 admitted identity and ordered record navigation compose without inventing leaf reads', () => {
+    const input = metadataInput(); const before = JSON.stringify(input);
+    const result = comparePhaseCoverage(input);
+    assert.equal(result.matched, true); assert.equal(result.graph_accepted, false);
+    assert.equal(result.components.access_metadata.matched, true);
+    assert.equal(result.event_coverage.filter(e => e.component === 'access_metadata').length, 5);
+    assert.equal(result.event_coverage.filter(e => e.component === 'read_edges').length, 1);
+    assert.equal(JSON.stringify(input), before);
+});
+
+test('N02G:ACCESS-METADATA-002 shape-valid identity substitutions cannot authenticate a different snapshot or role', () => {
+    for (const [key, value] of [['kind', 'person'], ['ref_id', 'b-id'], ['version', 'sha256:' + 'b'.repeat(64)]]) {
+        const input = structuredClone(metadataInput());
+        input.trace.derivation_trace.find(e => e.operation === 'identity' && e.path[0] === key).outcome[1] = value;
+        const result = comparePhaseCoverage(input); assert.equal(result.matched, false);
+        assert.ok(result.components.access_metadata.errors.some(e => e.code === 'identity_mismatch'));
+    }
+    for (const key of ['alias', 'role']) {
+        const input = structuredClone(metadataInput()); input.trace.derivation_trace[0][key] = 'other';
+        rejectedPhase(input);
+    }
+});
+
+test('N02G:ACCESS-METADATA-003 removing any ancestor navigation cannot be repaired by a matching leaf read', () => {
+    for (const path of [['details'], ['details', 'child']]) {
+        const input = structuredClone(metadataInput());
+        input.trace.derivation_trace = input.trace.derivation_trace.filter(e => JSON.stringify(e.path) !== JSON.stringify(path));
+        input.trace.derivation_trace.forEach((e, i) => { e.sequence = i; });
+        const result = comparePhaseCoverage(input); assert.equal(result.matched, false);
+        assert.deepEqual(result.components.read_edges.mismatches, []);
+        assert.ok(result.components.access_metadata.errors.some(e => e.code === 'record_parent_missing'));
+    }
+    const reordered = structuredClone(metadataInput()); reordered.trace.derivation_trace.unshift(reordered.trace.derivation_trace.pop());
+    reordered.trace.derivation_trace.forEach((e, i) => { e.sequence = i; }); rejectedPhase(reordered);
+});
+
+test('N02G:ACCESS-METADATA-004 admitted but undeclared navigation and scalar-to-record confusion fail closed', () => {
+    for (const path of [['unused'], ['amount'], ['missing']]) {
+        const input = structuredClone(metadataInput());
+        input.trace.derivation_trace.find(e => e.outcome[0] === 'container').path = path;
+        rejectedPhase(input);
+    }
+    const input = metadataInput(node => { node.get('unused'); node.get('details').get('child').get('amount'); });
+    const result = comparePhaseCoverage(input); assert.equal(result.matched, false);
+    assert.ok(result.components.access_metadata.errors.some(e => e.code === 'record_not_required'));
+});
+
+test('N02G:ACCESS-METADATA-005 identity and containers never satisfy payload reads or unneeded node admission', () => {
+    const input = metadataInput(node => { node.identity('kind'); node.get('details').get('child'); });
+    const result = comparePhaseCoverage(input); assert.equal(result.matched, false);
+    assert.ok(result.components.read_edges.mismatches.some(e => e.dimension === 'reads' && e.missing.length));
+    const extra = metadataInput(node => node.identity('kind'));
+    extra.expected.required_nodes = []; extra.expected.required_reads = [];
+    const invalid = comparePhaseCoverage(extra); assert.equal(invalid.matched, false);
+    assert.ok(invalid.components.access_metadata.errors.some(e => e.code === 'identity_node_not_required'));
+});
+
+test('N02G:ACCESS-METADATA-006 authority rejects duplicate bindings, impossible record paths and malformed identities', () => {
+    for (const mutate of [b => b.push(structuredClone(b[0])), b => { b[0].records.push(['details']); },
+        b => { b[0].records = [[], ['details', 'child']]; }, b => { b[0].records = [['details']]; },
+        b => { b[0].records.push([0]); }, b => { b[0].identity.version = 'invented'; },
+        b => { b[0].identity.extra = true; }, b => { b[0].payload = {}; }]) {
+        const input = structuredClone(metadataInput()); mutate(input.accessBindings);
+        assert.throws(() => comparePhaseCoverage(input), /trace_coverage_/);
+    }
+    const missing = metadataInput(); missing.accessBindings = []; rejectedPhase(missing);
+});
+
+test('N02G:ACCESS-METADATA-007 reading a record as scalar or crossing its role is not hidden by another projection', () => {
+    for (const outcome of [['scalar', 'forged'], ['absent'], ['container', 'sequence']]) {
+        const input = structuredClone(metadataInput());
+        input.trace.derivation_trace.find(e => e.outcome[0] === 'container').outcome = outcome;
+        rejectedPhase(input);
+    }
+    const input = structuredClone(metadataInput()); input.trace.derivation_trace.at(-1).role = 'other';
+    const result = comparePhaseCoverage(input); assert.equal(result.matched, false);
+    assert.deepEqual(result.components.read_edges.mismatches, []);
+});
+
+test('N02G:ACCESS-METADATA-008 structural child access needs the same observed ancestors as scalar access', () => {
+    for (const operation of ['has', 'keys']) {
+        const input = metadataInput(node => {
+            const child = node.get('details').get('child');
+            if (operation === 'has') child.has('amount'); else child.keys();
+        });
+        input.expected.required_reads = [];
+        input.expected.required_structural = [{ node: 'a', operation,
+            segments: operation === 'has' ? ['details', 'child', 'amount'] : ['details', 'child'] }];
+        assert.equal(comparePhaseCoverage(input).matched, true);
+        for (const depth of [1, 2]) {
+            const wrong = structuredClone(input);
+            wrong.trace.derivation_trace = wrong.trace.derivation_trace.filter(e => !(e.operation === 'get' && e.path.length === depth));
+            wrong.trace.derivation_trace.forEach((e, i) => { e.sequence = i; });
+            const result = comparePhaseCoverage(wrong); assert.equal(result.matched, false);
+            assert.deepEqual(result.components.read_edges.mismatches, []);
+            assert.ok(result.components.access_metadata.errors.some(e => e.code === 'record_parent_missing'));
+        }
+    }
+});
+
+function civilInput(instant = '2042-06-15T02:59:59.999999999Z', phase = 'derivation', repeats = 1) {
+    const recorder = createCausalRecorder({ executionId: 'execution-1', maxEvents: 100 });
+    const scope = recorder.open({ invocationId: 'invocation-1', phase });
+    const access = createInstrumentedAccess({ emit: scope.observe, bindings: [{ alias: 'a', role: 'source',
+        value: { timestamp: instant }, shape: { type: 'record', fields: { timestamp: scalar } } }] });
+    let date;
+    for (let i = 0; i < repeats; i++) date = access.handle('a').civilDate('timestamp', 'America/Sao_Paulo', 'proleptic_gregorian');
+    access.revoke(); access.assertHealthy(); scope.seal();
+    const input = phaseInput(recorder.finish()); input.phase = phase;
+    input.expected.required_reads = [{ node: 'a', segments: ['timestamp'] }];
+    return { input, date };
+}
+
+test('N02G:CIVIL-COVERAGE-001 civil dates are recomputed at midnight, explicit offsets and historical DST boundaries', () => {
+    for (const [instant, expected] of [
+        ['2042-06-15T02:59:59.999999999Z', '2042-06-14'], ['2042-06-15T03:00:00Z', '2042-06-15'],
+        ['2042-06-15T00:00:00-03:00', '2042-06-15'], ['2018-11-04T02:59:59Z', '2018-11-03'],
+        ['2018-11-04T03:00:00Z', '2018-11-04'], ['2019-02-17T02:00:00Z', '2019-02-16'],
+        ['2019-02-17T03:00:00Z', '2019-02-17']]) {
+        const { input, date } = civilInput(instant); const before = JSON.stringify(input);
+        assert.equal(date, expected);
+        const result = comparePhaseCoverage(input); assert.equal(result.matched, true);
+        assert.equal(result.graph_accepted, false); assert.equal(result.components.civil_dates.matched, true);
+        assert.deepEqual(result.components.civil_dates.covered_sequences, [1]);
+        assert.equal(result.event_coverage[0].component, 'read_edges');
+        assert.equal(result.event_coverage[1].component, 'civil_dates');
+        assert.equal(JSON.stringify(input), before);
+    }
+});
+
+test('N02G:CIVIL-COVERAGE-002 conversion requires its fresh adjacent get, not a missing, stale, duplicated or substituted read', () => {
+    for (const mutate of [
+        rows => { rows.shift(); }, rows => { rows.reverse(); },
+        rows => { rows.push(structuredClone(rows.at(-1))); },
+        rows => { rows[0].outcome[1] = '2042-06-15T02:00:00Z'; },
+        rows => { rows[0].outcome = ['absent']; },
+        rows => { rows[0].alias = 'b'; }, rows => { rows[1].role = 'other'; },
+        rows => { rows[1].path = ['other_timestamp']; },
+        rows => { const extra = structuredClone(rows[0]); extra.path = ['other_timestamp']; rows.splice(1, 0, extra); }
+    ]) {
+        const input = structuredClone(civilInput().input); mutate(input.trace.derivation_trace);
+        input.trace.derivation_trace.forEach((e, i) => { e.sequence = i; });
+        const result = comparePhaseCoverage(input); assert.equal(result.matched, false);
+        assert.ok(result.components.civil_dates.errors.some(e => e.code === 'civil_source'));
+    }
+});
+
+test('N02G:CIVIL-COVERAGE-003 source and conversion cannot be borrowed from another phase or span a global sequence gap', () => {
+    const { input } = civilInput();
+    const mixed = structuredClone(input); const get = mixed.trace.derivation_trace.shift(); get.phase = 'proof'; mixed.trace.proof_trace.push(get);
+    const result = comparePhaseCoverage(mixed); assert.equal(result.matched, false);
+    assert.ok(result.components.civil_dates.errors.some(e => e.code === 'civil_source'));
+    const gap = structuredClone(input); gap.trace.derivation_trace[1].sequence = 2;
+    gap.trace.proof_trace.push({ ...structuredClone(gap.trace.derivation_trace[0]), sequence: 1, phase: 'proof' });
+    assert.equal(comparePhaseCoverage(gap).components.civil_dates.matched, false);
+    const proof = civilInput(undefined, 'proof').input;
+    assert.equal(comparePhaseCoverage(proof).matched, true);
+    proof.phase = 'derivation'; assert.equal(comparePhaseCoverage(proof).matched, false);
+});
+
+test('N02G:CIVIL-COVERAGE-004 date, instant, timezone and calendar adulteration cannot hide behind valid tuple shapes', () => {
+    for (const date of ['2042-06-15', '2042-02-30']) {
+        const input = structuredClone(civilInput().input); input.trace.derivation_trace[1].outcome[4] = date;
+        const result = comparePhaseCoverage(input); assert.equal(result.matched, false);
+        assert.ok(result.components.civil_dates.errors.some(e => e.code === 'civil_result'));
+    }
+    for (const instant of ['invalid', '2042-02-30T00:00:00Z', '2042-06-15T00:00:00']) {
+        const input = structuredClone(civilInput().input);
+        input.trace.derivation_trace[0].outcome[1] = instant; input.trace.derivation_trace[1].outcome[1] = instant;
+        const result = comparePhaseCoverage(input); assert.equal(result.matched, false);
+        assert.ok(result.components.civil_dates.errors.some(e => e.code === 'civil_conversion'));
+    }
+    for (const [index, value] of [[2, 'UTC'], [3, 'implicit']]) {
+        const input = structuredClone(civilInput().input); input.trace.derivation_trace[1].outcome[index] = value;
+        assert.throws(() => comparePhaseCoverage(input), /trace_coverage_entry/);
+    }
+});
+
+test('N02G:CIVIL-COVERAGE-005 repeated legitimate conversions retain fresh reads and cannot discharge other requirements', () => {
+    const { input } = civilInput(undefined, 'derivation', 2);
+    const result = comparePhaseCoverage(input); assert.equal(result.matched, true);
+    assert.deepEqual(result.components.civil_dates.covered_sequences, [1, 3]);
+    assert.equal(input.trace.derivation_trace.length, 4);
+    input.expected.required_reads.push({ node: 'a', segments: ['missing'] });
+    const missing = comparePhaseCoverage(input); assert.equal(missing.matched, false);
+    assert.equal(missing.components.civil_dates.matched, true);
+});
+
+test('N02G:CIVIL-COVERAGE-006 an untrusted timezone runtime prevents a civil component match', () => {
+    const { input } = civilInput(); const previous = process.env.NODE_ICU_DATA;
+    try {
+        process.env.NODE_ICU_DATA = 'invalid-test-override';
+        const result = comparePhaseCoverage(input); assert.equal(result.matched, false);
+        assert.ok(result.components.civil_dates.errors.some(e => e.code === 'civil_conversion'));
+    } finally {
+        if (previous === undefined) delete process.env.NODE_ICU_DATA; else process.env.NODE_ICU_DATA = previous;
+    }
 });

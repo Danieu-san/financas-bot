@@ -1,0 +1,16 @@
+{
+  "profile_version": 1,
+  "evaluator_id": "consumption_by_instrument",
+  "evaluator_version": 1,
+  "metric": "consumption_by_instrument",
+  "contract_hash": "sha256:e32bc36ae9642c1db0d0eb6dce05c3861a80d967b974613eafc8fc6a341dbd37",
+  "foreign_reference_policy": "identity_for_every_resolved_target",
+  "program": [
+    { "op": "claim_context", "required": { "coverage": ["complete"], "evidence_state": ["confirmed"], "time_basis": ["event_date"] } },
+    { "op": "instrument", "role": "instrument", "kinds": ["account", "card"] },
+    { "op": "civil_window", "rule": "claim_month" },
+    { "op": "classification_population", "role": "categories", "kind": "category", "field": "kind", "values": ["expense", "income", "neutral", "compensation"] },
+    { "op": "economic_candidates", "role": "events", "kind": "event", "date_field": "date", "state_field": "state", "required_state": "confirmed", "reference_by_kind": { "account": "account_id", "card": "card_id" }, "category_field": "category_id", "compensation_field": "compensates", "eligible_class": "expense", "compensation_class": "compensation", "guards": "observe_all_before_filtering" },
+    { "op": "contribution", "field": "amount_minor" }
+  ]
+}
