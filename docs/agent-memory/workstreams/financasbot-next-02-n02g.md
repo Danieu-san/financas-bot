@@ -6,7 +6,17 @@ Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação exata — evidence_state revisado (2026-09-22)
+## Próxima ação exata — após evidence_state ratificado (2026-09-22)
+
+Correção focal encerrada em `a129ce3e3180b061360b28cdafa1b0f034df8ab4` após
+APTO FOCAL independente confrontado, sem achados bloqueantes/altos/médios.
+Recibo: `../../audit-evidence/n02g-causal-authoring-profile/evidence-state-code-independent-review.md`.
+Limites externos preservados: revisão estática, sem reexecução de testes/hashes
+ou recuperação integral de graphs-v2. Confronto integral é evidência local.
+Próximo objetivo delimitado: diagnosticar a população causal de categorias em
+budget_class_consumption (duas leituras health_general/budget_class ausentes),
+confrontando contrato, autoria e código; não aplicar delta nem remendo por grafo.
+Sem suíte em execução; heartbeat pausado; não repetir a ampla verde.
 
 Base publicada `6889d2941736a2ee0b88c94873a2055795b16d97`. APTO DOCUMENTAL
 recebido e confrontado; recibo local
@@ -56,9 +66,25 @@ Heartbeat pausado na retomada. Não repetir suíte verde sem mudança causal.
 Helper --write-new/--check PASS; evidência sanitizada reproduzível em
 `../../audit-evidence/n02g-causal-authoring-profile/evidence-state-validation.json`.
 Hashes dos quatro arquivos testados conferidos; escopo causal exato e delta
-integral confrontados com os blobs Git da base. Próxima ação: commit/publicação
-sanitizados e uma única auditoria independente focal do código, conforme
-evidence-state-code-audit-request.md. Nenhum GO global/grafo/host/produção.
+integral confrontados com os blobs Git da base. Candidato publicado/remoto
+confirmado: `a129ce3e3180b061360b28cdafa1b0f034df8ab4`, pai 6889d29, nove arquivos.
+Uma única tentativa de envio em conversa limpa; navegador typeText multiline
+submeteu prefixos intermediários na mesma conversa, sem resposta final entre
+eles. Rascunho residual limpo; não reenviar nem criar outra auditoria deste hash.
+O auditor abriu o pedido e confirmou o escopo correto; revisão concluída APTO FOCAL:
+https://chatgpt.com/g/g-p-6aae7fa3ad5c8191a8ace5a6d799fab4-financasbot/c/6ab27900-f038-83e9-b505-568298e39b15
+Parecer confrontado e recibo registrado; correção focal encerrada. Próxima fatia
+reconciliada no início deste checkpoint. Nenhum GO global/grafo/host/produção.
+Sonda única pós-candidato `.codex-temp/coverage-evidence-state-20260922.json`,
+executada em a129ce3 com árvore tracked limpa: 73/76 exercitados, 73 seleções,
+40 composições/dimensões exatas (antes 17), 15.598 covered/58 invalid/0 unsupported.
+Confronto com a sonda anterior: 23 composições resolvidas, nenhuma regrediu,
+28 registros com mudança de mismatches. Restam 33 divergências e três derivados
+não exercitados; graph_accepted=false, sem oracle/validação funcional nessa sonda.
+Próximo diagnóstico focal possível após ratificação: dois budget_class_consumption
+com read health_general/budget_class ausente; alternativamente três contagens com
+observação estrutural extra source_empty_health/has/entity_id. Ambos são resíduos
+anteriores, não autorização para ajustar normative pelo actual.
 
 Telemetria consultada: configurada, coletor parado/não saudável. Uso desta
 fatia NAO_DISPONIVEL; não alterar configuração nem bloquear o produto.
