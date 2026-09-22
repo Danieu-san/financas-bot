@@ -29,9 +29,23 @@ n02g-causal-authoring-profile: 11 fontes pinadas/iguais aos blobs 1710b57;
 regra consome roles/nós/relações/snapshots, não expected/seleção/actual/oracle.
 Helper --write-new/--check e syntax PASS; não valida fingerprints integrais
 nem executa evaluator. Proposta NÃO APLICADA, sem runtime/grafos/testes alterados.
-Próxima ação: publicar somente documentação e obter um parecer documental
-limpo antes de qualquer implementação; propriedades/RED/afetados/ampla e
-auditoria de implementação serão gates posteriores. Sem remendo por alias.
+Proposta publicada/remoto confirmado em
+`d40c44dc4ee929bc607436c259a33746bfd4618d`, pai 1710b57, quatro arquivos
+documentais/evidenciais. Uma única mensagem via paste (sem typeText multiline)
+recebida em conversa limpa; revisor confirmou hash/pai/escopo não aplicado:
+https://chatgpt.com/g/g-p-6aae7fa3ad5c8191a8ace5a6d799fab4-financasbot/c/6ab2e157-b274-83e9-9a6d-3c07247a5615
+Parecer concluído: APTO DOCUMENTAL para a regra geral e somente as duas remoções,
+sem achados bloqueantes/altos/médios. Recibo/confronto local:
+`../../audit-evidence/n02g-causal-authoring-profile/budget-class-population-independent-review.md`.
+Revisor leu contratos/código/claims/manifest/inventário/helper, não recuperou
+graphs-v2 completo nem executou testes/hashes/fingerprints. Ratificação somente
+documental; runtime/grafos/testes continuam intactos. Não reenviar d40c44d.
+Próxima ação exata: implementar testes de autoria com propriedades de renomeação/
+permutação, categorias não usadas e categorias efetivas de candidatos/compensações;
+observar RED contra as duas leituras extras; só então aplicar exatamente duas
+remoções, compondo controles históricos de corpus. Expected antes do evaluator,
+R/seleção preservados e trace incompleto recusado. Focais, afetados, uma ampla
+final e auditoria independente da aplicação ainda obrigatórios. Sem remendo por alias.
 Sem suíte em execução; heartbeat pausado; não repetir a ampla verde.
 
 Base publicada `6889d2941736a2ee0b88c94873a2055795b16d97`. APTO DOCUMENTAL
