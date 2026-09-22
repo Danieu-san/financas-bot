@@ -13,9 +13,25 @@ APTO FOCAL independente confrontado, sem achados bloqueantes/altos/médios.
 Recibo: `../../audit-evidence/n02g-causal-authoring-profile/evidence-state-code-independent-review.md`.
 Limites externos preservados: revisão estática, sem reexecução de testes/hashes
 ou recuperação integral de graphs-v2. Confronto integral é evidência local.
-Próximo objetivo delimitado: diagnosticar a população causal de categorias em
-budget_class_consumption (duas leituras health_general/budget_class ausentes),
-confrontando contrato, autoria e código; não aplicar delta nem remendo por grafo.
+Próximo objetivo delimitado: autoria da população causal de categorias em
+budget_class_consumption. Diagnóstico: health_general pertence ao catálogo,
+mas não é alvo de nenhuma relação nos dois grafos; sua classificação não é
+usada por evento candidato ou fonte de compensação. Contrato e referência de
+comportamento filtram pela categoria efetiva do evento, não classificam todo
+o catálogo. Não adicionar leitura artificial para satisfazer expected.
+Proposta documental preparada em
+`../../plans/workstreams/financasbot-next-02-n02g-budget-class-population-decision-v1.md`:
+autorar a união de categorias efetivas de TODOS os candidatos econômicos,
+inclusive excluídos; propor somente duas remoções de required_reads em
+M-03#1#1/#2, preservando nós, demais reads, proof/seleção e outros 74 grafos.
+Inventário e helper prepare-budget-class-population-proposal.cjs na pasta
+n02g-causal-authoring-profile: 11 fontes pinadas/iguais aos blobs 1710b57;
+regra consome roles/nós/relações/snapshots, não expected/seleção/actual/oracle.
+Helper --write-new/--check e syntax PASS; não valida fingerprints integrais
+nem executa evaluator. Proposta NÃO APLICADA, sem runtime/grafos/testes alterados.
+Próxima ação: publicar somente documentação e obter um parecer documental
+limpo antes de qualquer implementação; propriedades/RED/afetados/ampla e
+auditoria de implementação serão gates posteriores. Sem remendo por alias.
 Sem suíte em execução; heartbeat pausado; não repetir a ampla verde.
 
 Base publicada `6889d2941736a2ee0b88c94873a2055795b16d97`. APTO DOCUMENTAL

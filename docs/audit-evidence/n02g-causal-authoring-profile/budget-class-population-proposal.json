@@ -1,0 +1,935 @@
+{
+  "schema": "n02g-budget-class-population-proposal-v1",
+  "base": "1710b570007dde9ca94ed4f79d7afddfc9c3f81b",
+  "status": "documentary_proposal_not_applied",
+  "evaluator_contract_hash": "sha256:e336d72e581c06401fd6ef3cc5b041b6c2b7ad56745fe25ff5980ca763ed8561",
+  "graph_accepted": false,
+  "normative_application_allowed": false,
+  "source_corpus_sha256": "sha256:0de341406a91d0b9d7dad428682f8a9c356aba90273f5ee1f6e4c4c7743e17eb",
+  "documents": [
+    {
+      "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+      "lf_sha256": "sha256:ca52f6477beb9c0da2582fe2a51ee857b4b1ab63775cf6a9e0ad66327d366b44",
+      "bytes": 4962631
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claims-v2.json",
+      "lf_sha256": "sha256:4810612761ea7f232e4445c0d192ae53ebf0761f0ba8752da758efb826b30494",
+      "bytes": 64240
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/metric-evaluator-registry-v1.json",
+      "lf_sha256": "sha256:577fe16b3d5a1dc2e24505de150001afd889408f5294a6834486de338d40a3a0",
+      "bytes": 45195
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/budget_class_consumption.json",
+      "lf_sha256": "sha256:e336d72e581c06401fd6ef3cc5b041b6c2b7ad56745fe25ff5980ca763ed8561",
+      "bytes": 1274
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/snapshot-manifest-v1.json",
+      "lf_sha256": "sha256:2547229db3c07f2dd0941601ab5164bf89981ce966e4e23a2e3058124edba8c4",
+      "bytes": 52403
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claim-contract.schema.json",
+      "lf_sha256": "sha256:b69ef61b562061f057a9bf08f47623ae432c723f565e8775f3dbe6eb942ea998",
+      "bytes": 6124
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evidence-snapshot.schema.json",
+      "lf_sha256": "sha256:054a48930a5f25760f201e8b401f0f34f5a83672366acad6c9c09bdc0ce0b5ef",
+      "bytes": 17718
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/graph-binding-contract-v1.md",
+      "lf_sha256": "sha256:da90befb1f526048cfe14122cd8522690292508bebf42d60ea4ecd5838513a40",
+      "bytes": 19080
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/material-field-registry-v1.json",
+      "lf_sha256": "sha256:ee7ef3eff146bc2e9cea2cc986c398371acbff3cf35d858ced8386a9758a4d62",
+      "bytes": 10998
+    },
+    {
+      "path": "src/next/provenance/metricSelection.js",
+      "lf_sha256": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "bytes": 11711
+    },
+    {
+      "path": "scripts/agent/validateFinancasBotNextFacts.mjs",
+      "lf_sha256": "sha256:25d838c008ce6b5420e1e52f00aa791ad36758624794d94c22cf1c5d3edfb4f6",
+      "bytes": 18436
+    }
+  ],
+  "records": [
+    {
+      "fact_key": "M-03#1#1",
+      "evaluator_ref": {
+        "evaluator_id": "budget_class_consumption",
+        "evaluator_version": 1
+      },
+      "source_graph_sha256": "sha256:5333dab4a6cd59ab5e8091aada95af1accec650be70d85deb4d39ec4d86f8e95",
+      "operand_bindings": {
+        "context": {
+          "kind": "claim_context"
+        },
+        "events": {
+          "kind": "node_set",
+          "aliases": [
+            "evt_salary_a",
+            "evt_market_a",
+            "evt_snack_a",
+            "evt_fuel_a",
+            "evt_restaurant_b",
+            "evt_refund_b",
+            "evt_cinema_b",
+            "evt_gift_b",
+            "evt_transfer_out",
+            "evt_transfer_in",
+            "evt_invoice_payment",
+            "evt_rent_a",
+            "evt_installment_1",
+            "evt_installment_2",
+            "evt_installment_3",
+            "evt_bill_projected"
+          ]
+        },
+        "categories": {
+          "kind": "node_set",
+          "aliases": [
+            "food_snack",
+            "food_market",
+            "food_restaurant",
+            "transport_fuel",
+            "housing_rent",
+            "leisure_cinema",
+            "gifts",
+            "income_salary",
+            "neutral_transfer",
+            "neutral_invoice_payment",
+            "neutral_refund",
+            "health_general"
+          ]
+        },
+        "family": {
+          "kind": "node",
+          "alias": "family_example"
+        }
+      },
+      "category_nodes": {
+        "food_snack": {
+          "binding": "snapshot",
+          "ref_id": "food.snack",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:082758a835d3f03a5aaa9c5aa3a40a64797332dd7290eb25fe8b4bdbef0f967f",
+          "roles": [
+            "value_input"
+          ]
+        },
+        "food_market": {
+          "binding": "snapshot",
+          "ref_id": "food.market",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:236191d7b139be3f8aea9bb687db80f52b3076662ac6a6443eab316db9871188",
+          "roles": [
+            "value_input"
+          ]
+        },
+        "food_restaurant": {
+          "binding": "snapshot",
+          "ref_id": "food.restaurant",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:f510e2b44dff81c555e6ea65173b0c8e6e6fa884ed0dacd1e48c8aff1f79593f",
+          "roles": [
+            "value_input"
+          ]
+        },
+        "transport_fuel": {
+          "binding": "snapshot",
+          "ref_id": "transport.fuel",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:0baea145300bfe15f42af0b3e9c21b347dc9c5a7444d19b7198990f6e179cdf2",
+          "roles": [
+            "value_input"
+          ]
+        },
+        "housing_rent": {
+          "binding": "snapshot",
+          "ref_id": "housing.rent",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:e0eda6332dfcfe425084363f2a2518ab4da3f776e4d0bdfd6d25032efd41be64",
+          "roles": [
+            "value_input"
+          ]
+        },
+        "leisure_cinema": {
+          "binding": "snapshot",
+          "ref_id": "leisure.cinema",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:5a62ecd7378de7579fcd8bdedf2b23f9e5f842604d07e98db2554a1dfbfd7656",
+          "roles": [
+            "value_input"
+          ]
+        },
+        "gifts": {
+          "binding": "snapshot",
+          "ref_id": "gifts",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:8d6eadba5f2a18cf7bad63b45b8912819cf3c694e7e3758c6569fe008fdf1388",
+          "roles": [
+            "value_input"
+          ]
+        },
+        "income_salary": {
+          "binding": "snapshot",
+          "ref_id": "income.salary",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:00e1754656fa898458e8e5a94c98f1ba13eb3c43ca8084c1f1be1507f8dad50a",
+          "roles": [
+            "value_input"
+          ]
+        },
+        "neutral_transfer": {
+          "binding": "snapshot",
+          "ref_id": "neutral.transfer",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:6eb0a80402c0657d78116c7af91419a8c01aefb6cceb46fdd9d6d8797ec1f1c6",
+          "roles": [
+            "value_input"
+          ]
+        },
+        "neutral_invoice_payment": {
+          "binding": "snapshot",
+          "ref_id": "neutral.invoice_payment",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:f01b43f2389abc00a013f33f4222aa0c8b4c59739b9dee666ed9377f3f77d05b",
+          "roles": [
+            "value_input"
+          ]
+        },
+        "neutral_refund": {
+          "binding": "snapshot",
+          "ref_id": "neutral.refund",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:372397028e01b2da4309d900affe636c3625e6776154b52330a06fac1255ad25",
+          "roles": [
+            "value_input"
+          ]
+        },
+        "health_general": {
+          "binding": "snapshot",
+          "ref_id": "health.general",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:58af6bb0b3f80693af1994e737e992d0aba0bd42e74aca055f820a9a958b9529",
+          "roles": [
+            "value_input"
+          ]
+        }
+      },
+      "population": [
+        {
+          "event": "evt_salary_a",
+          "own_category": "income_salary",
+          "economic_kind": "income",
+          "compensation_source": null,
+          "effective_category": null
+        },
+        {
+          "event": "evt_market_a",
+          "own_category": "food_market",
+          "economic_kind": "expense",
+          "compensation_source": null,
+          "effective_category": "food_market"
+        },
+        {
+          "event": "evt_snack_a",
+          "own_category": "food_snack",
+          "economic_kind": "expense",
+          "compensation_source": null,
+          "effective_category": "food_snack"
+        },
+        {
+          "event": "evt_fuel_a",
+          "own_category": "transport_fuel",
+          "economic_kind": "expense",
+          "compensation_source": null,
+          "effective_category": "transport_fuel"
+        },
+        {
+          "event": "evt_restaurant_b",
+          "own_category": "food_restaurant",
+          "economic_kind": "expense",
+          "compensation_source": null,
+          "effective_category": "food_restaurant"
+        },
+        {
+          "event": "evt_refund_b",
+          "own_category": "neutral_refund",
+          "economic_kind": "compensation",
+          "compensation_source": "evt_restaurant_b",
+          "effective_category": "food_restaurant"
+        },
+        {
+          "event": "evt_cinema_b",
+          "own_category": "leisure_cinema",
+          "economic_kind": "expense",
+          "compensation_source": null,
+          "effective_category": "leisure_cinema"
+        },
+        {
+          "event": "evt_gift_b",
+          "own_category": "gifts",
+          "economic_kind": "expense",
+          "compensation_source": null,
+          "effective_category": "gifts"
+        },
+        {
+          "event": "evt_transfer_out",
+          "own_category": "neutral_transfer",
+          "economic_kind": "neutral",
+          "compensation_source": null,
+          "effective_category": null
+        },
+        {
+          "event": "evt_transfer_in",
+          "own_category": "neutral_transfer",
+          "economic_kind": "neutral",
+          "compensation_source": null,
+          "effective_category": null
+        },
+        {
+          "event": "evt_invoice_payment",
+          "own_category": "neutral_invoice_payment",
+          "economic_kind": "neutral",
+          "compensation_source": null,
+          "effective_category": null
+        },
+        {
+          "event": "evt_rent_a",
+          "own_category": "housing_rent",
+          "economic_kind": "expense",
+          "compensation_source": null,
+          "effective_category": "housing_rent"
+        },
+        {
+          "event": "evt_installment_1",
+          "own_category": "gifts",
+          "economic_kind": "expense",
+          "compensation_source": null,
+          "effective_category": "gifts"
+        },
+        {
+          "event": "evt_installment_2",
+          "own_category": "gifts",
+          "economic_kind": "expense",
+          "compensation_source": null,
+          "effective_category": "gifts"
+        },
+        {
+          "event": "evt_installment_3",
+          "own_category": "gifts",
+          "economic_kind": "expense",
+          "compensation_source": null,
+          "effective_category": "gifts"
+        },
+        {
+          "event": "evt_bill_projected",
+          "own_category": "housing_rent",
+          "economic_kind": "expense",
+          "compensation_source": null,
+          "effective_category": "housing_rent"
+        }
+      ],
+      "current_class_reads": [
+        {
+          "node": "food_market",
+          "segments": [
+            "budget_class"
+          ]
+        },
+        {
+          "node": "food_restaurant",
+          "segments": [
+            "budget_class"
+          ]
+        },
+        {
+          "node": "food_snack",
+          "segments": [
+            "budget_class"
+          ]
+        },
+        {
+          "node": "gifts",
+          "segments": [
+            "budget_class"
+          ]
+        },
+        {
+          "node": "health_general",
+          "segments": [
+            "budget_class"
+          ]
+        },
+        {
+          "node": "housing_rent",
+          "segments": [
+            "budget_class"
+          ]
+        },
+        {
+          "node": "leisure_cinema",
+          "segments": [
+            "budget_class"
+          ]
+        },
+        {
+          "node": "transport_fuel",
+          "segments": [
+            "budget_class"
+          ]
+        }
+      ],
+      "proposed_class_reads": [
+        {
+          "node": "food_market",
+          "segments": [
+            "budget_class"
+          ]
+        },
+        {
+          "node": "food_restaurant",
+          "segments": [
+            "budget_class"
+          ]
+        },
+        {
+          "node": "food_snack",
+          "segments": [
+            "budget_class"
+          ]
+        },
+        {
+          "node": "gifts",
+          "segments": [
+            "budget_class"
+          ]
+        },
+        {
+          "node": "housing_rent",
+          "segments": [
+            "budget_class"
+          ]
+        },
+        {
+          "node": "leisure_cinema",
+          "segments": [
+            "budget_class"
+          ]
+        },
+        {
+          "node": "transport_fuel",
+          "segments": [
+            "budget_class"
+          ]
+        }
+      ],
+      "proposed_delta": {
+        "added": [],
+        "removed": [
+          {
+            "node": "health_general",
+            "segments": [
+              "budget_class"
+            ]
+          }
+        ]
+      },
+      "preserved_removed_node_reads": [
+        {
+          "node": "health_general",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "health_general",
+          "segments": [
+            "kind"
+          ]
+        }
+      ],
+      "unchanged_proof_reads": [
+        {
+          "node": "health_general",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "health_general",
+          "segments": [
+            "kind"
+          ]
+        },
+        {
+          "node": "health_general",
+          "segments": [
+            "budget_class"
+          ]
+        }
+      ]
+    },
+    {
+      "fact_key": "M-03#1#2",
+      "evaluator_ref": {
+        "evaluator_id": "budget_class_consumption",
+        "evaluator_version": 1
+      },
+      "source_graph_sha256": "sha256:30cb4d158a2d4f87269c449a2f3300f4951c173c8c5be76aff9819e4d8f807e2",
+      "operand_bindings": {
+        "context": {
+          "kind": "claim_context"
+        },
+        "events": {
+          "kind": "node_set",
+          "aliases": [
+            "evt_salary_a",
+            "evt_market_a",
+            "evt_snack_a",
+            "evt_fuel_a",
+            "evt_restaurant_b",
+            "evt_refund_b",
+            "evt_cinema_b",
+            "evt_gift_b",
+            "evt_transfer_out",
+            "evt_transfer_in",
+            "evt_invoice_payment",
+            "evt_rent_a",
+            "evt_installment_1",
+            "evt_installment_2",
+            "evt_installment_3",
+            "evt_bill_projected"
+          ]
+        },
+        "categories": {
+          "kind": "node_set",
+          "aliases": [
+            "food_snack",
+            "food_market",
+            "food_restaurant",
+            "transport_fuel",
+            "housing_rent",
+            "leisure_cinema",
+            "gifts",
+            "income_salary",
+            "neutral_transfer",
+            "neutral_invoice_payment",
+            "neutral_refund",
+            "health_general"
+          ]
+        },
+        "family": {
+          "kind": "node",
+          "alias": "family_example"
+        }
+      },
+      "category_nodes": {
+        "food_snack": {
+          "binding": "snapshot",
+          "ref_id": "food.snack",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:082758a835d3f03a5aaa9c5aa3a40a64797332dd7290eb25fe8b4bdbef0f967f",
+          "roles": [
+            "value_input"
+          ]
+        },
+        "food_market": {
+          "binding": "snapshot",
+          "ref_id": "food.market",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:236191d7b139be3f8aea9bb687db80f52b3076662ac6a6443eab316db9871188",
+          "roles": [
+            "value_input"
+          ]
+        },
+        "food_restaurant": {
+          "binding": "snapshot",
+          "ref_id": "food.restaurant",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:f510e2b44dff81c555e6ea65173b0c8e6e6fa884ed0dacd1e48c8aff1f79593f",
+          "roles": [
+            "value_input"
+          ]
+        },
+        "transport_fuel": {
+          "binding": "snapshot",
+          "ref_id": "transport.fuel",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:0baea145300bfe15f42af0b3e9c21b347dc9c5a7444d19b7198990f6e179cdf2",
+          "roles": [
+            "value_input"
+          ]
+        },
+        "housing_rent": {
+          "binding": "snapshot",
+          "ref_id": "housing.rent",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:e0eda6332dfcfe425084363f2a2518ab4da3f776e4d0bdfd6d25032efd41be64",
+          "roles": [
+            "value_input"
+          ]
+        },
+        "leisure_cinema": {
+          "binding": "snapshot",
+          "ref_id": "leisure.cinema",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:5a62ecd7378de7579fcd8bdedf2b23f9e5f842604d07e98db2554a1dfbfd7656",
+          "roles": [
+            "value_input"
+          ]
+        },
+        "gifts": {
+          "binding": "snapshot",
+          "ref_id": "gifts",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:8d6eadba5f2a18cf7bad63b45b8912819cf3c694e7e3758c6569fe008fdf1388",
+          "roles": [
+            "value_input"
+          ]
+        },
+        "income_salary": {
+          "binding": "snapshot",
+          "ref_id": "income.salary",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:00e1754656fa898458e8e5a94c98f1ba13eb3c43ca8084c1f1be1507f8dad50a",
+          "roles": [
+            "value_input"
+          ]
+        },
+        "neutral_transfer": {
+          "binding": "snapshot",
+          "ref_id": "neutral.transfer",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:6eb0a80402c0657d78116c7af91419a8c01aefb6cceb46fdd9d6d8797ec1f1c6",
+          "roles": [
+            "value_input"
+          ]
+        },
+        "neutral_invoice_payment": {
+          "binding": "snapshot",
+          "ref_id": "neutral.invoice_payment",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:f01b43f2389abc00a013f33f4222aa0c8b4c59739b9dee666ed9377f3f77d05b",
+          "roles": [
+            "value_input"
+          ]
+        },
+        "neutral_refund": {
+          "binding": "snapshot",
+          "ref_id": "neutral.refund",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:372397028e01b2da4309d900affe636c3625e6776154b52330a06fac1255ad25",
+          "roles": [
+            "value_input"
+          ]
+        },
+        "health_general": {
+          "binding": "snapshot",
+          "ref_id": "health.general",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:58af6bb0b3f80693af1994e737e992d0aba0bd42e74aca055f820a9a958b9529",
+          "roles": [
+            "value_input"
+          ]
+        }
+      },
+      "population": [
+        {
+          "event": "evt_salary_a",
+          "own_category": "income_salary",
+          "economic_kind": "income",
+          "compensation_source": null,
+          "effective_category": null
+        },
+        {
+          "event": "evt_market_a",
+          "own_category": "food_market",
+          "economic_kind": "expense",
+          "compensation_source": null,
+          "effective_category": "food_market"
+        },
+        {
+          "event": "evt_snack_a",
+          "own_category": "food_snack",
+          "economic_kind": "expense",
+          "compensation_source": null,
+          "effective_category": "food_snack"
+        },
+        {
+          "event": "evt_fuel_a",
+          "own_category": "transport_fuel",
+          "economic_kind": "expense",
+          "compensation_source": null,
+          "effective_category": "transport_fuel"
+        },
+        {
+          "event": "evt_restaurant_b",
+          "own_category": "food_restaurant",
+          "economic_kind": "expense",
+          "compensation_source": null,
+          "effective_category": "food_restaurant"
+        },
+        {
+          "event": "evt_refund_b",
+          "own_category": "neutral_refund",
+          "economic_kind": "compensation",
+          "compensation_source": "evt_restaurant_b",
+          "effective_category": "food_restaurant"
+        },
+        {
+          "event": "evt_cinema_b",
+          "own_category": "leisure_cinema",
+          "economic_kind": "expense",
+          "compensation_source": null,
+          "effective_category": "leisure_cinema"
+        },
+        {
+          "event": "evt_gift_b",
+          "own_category": "gifts",
+          "economic_kind": "expense",
+          "compensation_source": null,
+          "effective_category": "gifts"
+        },
+        {
+          "event": "evt_transfer_out",
+          "own_category": "neutral_transfer",
+          "economic_kind": "neutral",
+          "compensation_source": null,
+          "effective_category": null
+        },
+        {
+          "event": "evt_transfer_in",
+          "own_category": "neutral_transfer",
+          "economic_kind": "neutral",
+          "compensation_source": null,
+          "effective_category": null
+        },
+        {
+          "event": "evt_invoice_payment",
+          "own_category": "neutral_invoice_payment",
+          "economic_kind": "neutral",
+          "compensation_source": null,
+          "effective_category": null
+        },
+        {
+          "event": "evt_rent_a",
+          "own_category": "housing_rent",
+          "economic_kind": "expense",
+          "compensation_source": null,
+          "effective_category": "housing_rent"
+        },
+        {
+          "event": "evt_installment_1",
+          "own_category": "gifts",
+          "economic_kind": "expense",
+          "compensation_source": null,
+          "effective_category": "gifts"
+        },
+        {
+          "event": "evt_installment_2",
+          "own_category": "gifts",
+          "economic_kind": "expense",
+          "compensation_source": null,
+          "effective_category": "gifts"
+        },
+        {
+          "event": "evt_installment_3",
+          "own_category": "gifts",
+          "economic_kind": "expense",
+          "compensation_source": null,
+          "effective_category": "gifts"
+        },
+        {
+          "event": "evt_bill_projected",
+          "own_category": "housing_rent",
+          "economic_kind": "expense",
+          "compensation_source": null,
+          "effective_category": "housing_rent"
+        }
+      ],
+      "current_class_reads": [
+        {
+          "node": "food_market",
+          "segments": [
+            "budget_class"
+          ]
+        },
+        {
+          "node": "food_restaurant",
+          "segments": [
+            "budget_class"
+          ]
+        },
+        {
+          "node": "food_snack",
+          "segments": [
+            "budget_class"
+          ]
+        },
+        {
+          "node": "gifts",
+          "segments": [
+            "budget_class"
+          ]
+        },
+        {
+          "node": "health_general",
+          "segments": [
+            "budget_class"
+          ]
+        },
+        {
+          "node": "housing_rent",
+          "segments": [
+            "budget_class"
+          ]
+        },
+        {
+          "node": "leisure_cinema",
+          "segments": [
+            "budget_class"
+          ]
+        },
+        {
+          "node": "transport_fuel",
+          "segments": [
+            "budget_class"
+          ]
+        }
+      ],
+      "proposed_class_reads": [
+        {
+          "node": "food_market",
+          "segments": [
+            "budget_class"
+          ]
+        },
+        {
+          "node": "food_restaurant",
+          "segments": [
+            "budget_class"
+          ]
+        },
+        {
+          "node": "food_snack",
+          "segments": [
+            "budget_class"
+          ]
+        },
+        {
+          "node": "gifts",
+          "segments": [
+            "budget_class"
+          ]
+        },
+        {
+          "node": "housing_rent",
+          "segments": [
+            "budget_class"
+          ]
+        },
+        {
+          "node": "leisure_cinema",
+          "segments": [
+            "budget_class"
+          ]
+        },
+        {
+          "node": "transport_fuel",
+          "segments": [
+            "budget_class"
+          ]
+        }
+      ],
+      "proposed_delta": {
+        "added": [],
+        "removed": [
+          {
+            "node": "health_general",
+            "segments": [
+              "budget_class"
+            ]
+          }
+        ]
+      },
+      "preserved_removed_node_reads": [
+        {
+          "node": "health_general",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "health_general",
+          "segments": [
+            "kind"
+          ]
+        }
+      ],
+      "unchanged_proof_reads": [
+        {
+          "node": "health_general",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "health_general",
+          "segments": [
+            "kind"
+          ]
+        },
+        {
+          "node": "health_general",
+          "segments": [
+            "budget_class"
+          ]
+        }
+      ]
+    }
+  ],
+  "proposed_totals": {
+    "changed_graphs": 2,
+    "unchanged_graphs": 74,
+    "removed_reads": 2,
+    "added_reads": 0
+  },
+  "limits": "Local inventory and source-byte equality only. Does not validate full semantic fingerprints, execute runtime, apply a delta or grant graph/host/global acceptance."
+}
