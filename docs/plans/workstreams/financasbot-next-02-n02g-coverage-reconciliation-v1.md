@@ -943,6 +943,11 @@ fechados em financasbot-next-02-n02g-evidence-state-decision-v1.md. Inventário
 pinado extraído por contrato/role/predicados sem actual; nenhuma aplicação.
 Obter decisão documental sobre a necessidade das guardas, inclusive orçamento
 cujo schema só admite confirmed. Demais deltas permanecem fora desta fatia.
+Parecer 0cbc80d: NÃO APTO à proposta de 34 adições; recibo
+evidence-state-independent-review.md. Não aplicadas. Versão revisada propõe
+remover as guardas não fundamentadas do runtime e adicionar somente duas
+claim reads de safe_daily_pace, mantendo admissão/proof/guardas instrumentais.
+Exige nova decisão documental do recorte; ver evidence-state-revised-decision-v1.
 
 Depois: reconciliar as demais leituras e estruturas das famílias
 de avaliadores, por regra causal geral, com REDs independentes da execução.

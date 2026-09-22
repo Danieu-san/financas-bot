@@ -8,9 +8,9 @@ Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
 Estado vigente: correção e suporte de validação auditados em
 `8b66d1e6eac869cf7363beee3b2c1445840fb66e`, pai `be520f4f0cf64812c80f0f4b9b8eefb2a5445189`.
-HEAD publicado posterior (aplicação normativa fechada dos seis perfis):
-`50ad614c0289eefa0557b725f63b8b9e157258c6`, pai
-`6f66556a256577c1bcdbc9678090b91dc43536ec`. Push/remoto confirmados.
+HEAD publicado posterior (proposta documental de evidence_state):
+`0cbc80d65ae0761a99e8980d070068f13f28c244`, pai
+`69a385832876329afb4da73ffb5cc79d1ef94254`. Push/remoto confirmados.
 Desenhos refund, família e contagem APTO; código posterior ainda sem GO.
 Recibo: `../../audit-evidence/n02g-selection-phase/independent-review.md`.
 Revisão externa estática sem defeitos focais; execuções continuam locais.
@@ -360,6 +360,29 @@ projected admitido. Auditor deve decidir legitimidade causal das guardas, não
 aprová-las só porque o runtime lê. Nenhum grafo/runtime/perfil alterado.
 Próxima ação: publicar proposta e obter uma única revisão documental limpa;
 sem APTO, não aplicar as 34 adições. Nenhuma ampla nova para documentação.
+Proposta publicada em 0cbc80d65ae0761a99e8980d070068f13f28c244: cinco arquivos
+documentais/inventário/helper, sem alteração src/scripts/tests/docs/contracts.
+Helper --check, syntax, diff-check e workflow PASS. Uma solicitação única
+recebida em conversa limpa; revisão documental em andamento:
+https://chatgpt.com/g/g-p-6aae7fa3ad5c8191a8ace5a6d799fab4-financasbot/c/6ab265e9-aed8-83e9-b46f-25647cf88a69
+Não reenviar esse hash. Aguardar decisão para ambas as classes; orçamento com
+schema singleton e separação de estados são perguntas explícitas. A futura
+implementação também precisa preservar os controles históricos de família,
+contagem e autoria instrumental, compondo deltas revisados sem relaxar igualdade.
+Parecer concluído: NÃO APTO às 34 adições. ALTO para 26 claim guards sem regra
+normativa de estado de saída; ALTO para seis budget reads redundantes ao schema
+singleton. MÉDIO como limite externo: graphs-v2 não lido integralmente/hash
+não recomputado. Recibo evidence-state-independent-review.md. Somente os dois
+safe_daily_pace têm leitura de claim estimated explicitamente fundamentada;
+não converter essa observação em autorização da proposta rejeitada.
+Nenhuma das 34 adições foi aplicada. Revisão documental preparada em
+financasbot-next-02-n02g-evidence-state-revised-decision-v1.md: retirar guardas
+confirmed do claim nos sete contratos e evidence_state do budget no runtime,
+preservar guardas instrument/statement já ratificadas e safe_pace estimated;
+propor apenas duas claim reads de safe_daily_pace. Admissão schema e proof
+permanecem; calcular fórmula com estado alternativo não aceita o claim/grafo.
+Fronteira local conferida: packageContract admite bytes; graphCompiler valida
+snapshot schema antes de fornecer acesso. Submeter novo hash antes de implementar.
 O parecer do gerador não aprova esse runtime posterior nem sua normativa.
 Não reenviar ace83e8 nem considerar sua ampla como prova da correção posterior.
 GO global/runtime, autenticação de host e demais reconciliações continuam
