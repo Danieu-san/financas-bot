@@ -425,7 +425,9 @@ test('N02G:METRIC-SELECTION-005 basis and scope are explicit even for empty popu
     assert.equal(evaluateConsumption(fixture(options).operands, 'spent'), 0);
     assert.throws(() => evaluateConsumption(fixture(options).operands, 'category'), /metric_selection_context/);
     assert.throws(() => evaluateConsumption(fixture({ rows: [], subject: { kind: 'category', ref_id: 'missing' } }).operands, 'category'), /metric_selection_category/);
-    assert.throws(() => evaluateConsumption(fixture({ rows: [], evidence_state: 'estimated' }).operands, 'total'), /metric_selection_context/);
+    const alternate = fixture({ rows: [], evidence_state: 'estimated' });
+    assert.equal(evaluateConsumption(alternate.operands, 'total'), 0);
+    assert.equal(alternate.observations.some(e => e[1] === 'get' && e[2] === 'context' && e[4].join('.') === 'evidence_state'), false);
     assert.throws(() => evaluateConsumption(fixture({ rows: [], period: { kind: 'month', value: '2042-13' } }).operands, 'total'), /civil_month/);
 });
 

@@ -1,0 +1,266 @@
+{
+  "schema": "n02g-evidence-state-validation-v1",
+  "base": "6889d2941736a2ee0b88c94873a2055795b16d97",
+  "status": "candidate_awaiting_independent_code_audit",
+  "evidence_kind": "locally_executed_not_external_verdict",
+  "graph_accepted": false,
+  "releaseEligible": false,
+  "scope": {
+    "changed_graphs": 2,
+    "unchanged_graphs": 74,
+    "records": [
+      {
+        "fact_key": "M-13#1#3",
+        "requirement": {
+          "segments": [
+            "evidence_state"
+          ]
+        },
+        "before_graph_sha256": "sha256:ed152b563e66ad144b4cdfc7d891507718f69b9275821f3bedff44198db322cd",
+        "after_graph_sha256": "sha256:7a0aa295718f48a0ca4912d8d9d86cb42b6d3e5ec4a4812a1aa23a6e9f23e667"
+      },
+      {
+        "fact_key": "M-13#1#6",
+        "requirement": {
+          "segments": [
+            "evidence_state"
+          ]
+        },
+        "before_graph_sha256": "sha256:05ba9bad65128ccc70fad828e09464e916f7c7f73da3578ee3555c16c6d053ac",
+        "after_graph_sha256": "sha256:eed95431b937d44bbf0f8ce7cde0c93d357356c0dc410ff7d69ea1c472768182"
+      }
+    ],
+    "all_other_graph_fields_preserved": true,
+    "before_lf_sha256": "sha256:3354494ac13c6210e07a62f1e1472a33701fa6e2f0688b63112e7d5c1cd63ad2",
+    "after_lf_sha256": "sha256:ca52f6477beb9c0da2582fe2a51ee857b4b1ab63775cf6a9e0ad66327d366b44"
+  },
+  "unchanged": [
+    {
+      "path": "docs/contracts/next/provenance-v2/claims-v2.json",
+      "lf_sha256": "sha256:4810612761ea7f232e4445c0d192ae53ebf0761f0ba8752da758efb826b30494"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/metric-evaluator-registry-v1.json",
+      "lf_sha256": "sha256:577fe16b3d5a1dc2e24505de150001afd889408f5294a6834486de338d40a3a0"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/safe_daily_pace.json",
+      "lf_sha256": "sha256:195e3968cc2f7f7dd2e46fdcb2619c19892b5c56a27d0e3c62f76fe08ba9a14d"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claim-contract.schema.json",
+      "lf_sha256": "sha256:b69ef61b562061f057a9bf08f47623ae432c723f565e8775f3dbe6eb942ea998"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evidence-snapshot.schema.json",
+      "lf_sha256": "sha256:054a48930a5f25760f201e8b401f0f34f5a83672366acad6c9c09bdc0ce0b5ef"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/material-field-registry-v1.json",
+      "lf_sha256": "sha256:ee7ef3eff146bc2e9cea2cc986c398371acbff3cf35d858ced8386a9758a4d62"
+    },
+    {
+      "path": "src/next/provenance/graphCompiler.js",
+      "lf_sha256": "sha256:bb150709a7c3fd1ed93ea0f6700efb5b81065cd4586b4ccbf85922ab12b861be"
+    },
+    {
+      "path": "src/next/provenance/packageContract.js",
+      "lf_sha256": "sha256:8cb5878c7d0fb77f35a25c34e8f7febb92cdddc18b0f061772a332e9ce9a7c8e"
+    }
+  ],
+  "red": {
+    "recorded_at": "2026-09-22T12:03:25.185Z",
+    "node": "22.17.0",
+    "phase": "red",
+    "files": [
+      "tests/next/provenance/authoringIndex.cases.js"
+    ],
+    "exit_status": 1,
+    "tap": {
+      "tests": 3,
+      "suites": 0,
+      "pass": 1,
+      "fail": 2,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "coverage": {
+      "line_percent": 54.47,
+      "branch_percent": 69.86,
+      "function_percent": 70.62,
+      "uncovered_lines": ""
+    },
+    "failures": [
+      "not ok 1 - N02G:EVIDENCE-STATE-001 only two reviewed claim reads extend the immutable corpus",
+      "not ok 2 - N02G:EVIDENCE-STATE-002 kernel state guards follow contracts, not the claim label or budget singleton"
+    ]
+  },
+  "initial_green": {
+    "recorded_at": "2026-09-22T12:11:27.579Z",
+    "node": "22.17.0",
+    "phase": "green",
+    "files": [
+      "tests/next/provenance/authoringIndex.cases.js"
+    ],
+    "exit_status": 1,
+    "tap": {
+      "tests": 4,
+      "suites": 0,
+      "pass": 3,
+      "fail": 1,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "coverage": {
+      "line_percent": 60.63,
+      "branch_percent": 71.03,
+      "function_percent": 73.68,
+      "uncovered_lines": ""
+    },
+    "failures": [
+      "not ok 4 - N02G:EVIDENCE-STATE-004 safe pace requires its authored state observation with frozen expectations"
+    ]
+  },
+  "green": {
+    "recorded_at": "2026-09-22T12:13:30.310Z",
+    "node": "22.17.0",
+    "phase": "green-v2",
+    "files": [
+      "tests/next/provenance/authoringIndex.cases.js"
+    ],
+    "exit_status": 0,
+    "tap": {
+      "tests": 4,
+      "suites": 0,
+      "pass": 4,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "coverage": {
+      "line_percent": 67.14,
+      "branch_percent": 70.47,
+      "function_percent": 76.41,
+      "uncovered_lines": ""
+    },
+    "failures": []
+  },
+  "affected": {
+    "recorded_at": "2026-09-22T12:16:48.856Z",
+    "node": "22.17.0",
+    "phase": "affected",
+    "files": [
+      "tests/next/provenance/authoringIndex.cases.js",
+      "tests/next/provenance/metricSelection.cases.js",
+      "tests/next/provenance/metricDirectReads.cases.js",
+      "tests/next/provenance/causalAuthoring.cases.js",
+      "tests/next/provenance/packageContract.cases.js",
+      "tests/next/provenance/graphCompiler.cases.js",
+      "tests/next/provenance/graphStructure.cases.js",
+      "tests/next/provenance/proofAcceptance.cases.js"
+    ],
+    "exit_status": 0,
+    "tap": {
+      "tests": 201,
+      "suites": 0,
+      "pass": 201,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "coverage": {
+      "line_percent": 94.61,
+      "branch_percent": 86.88,
+      "function_percent": 96.12,
+      "uncovered_lines": ""
+    },
+    "failures": []
+  },
+  "wide": {
+    "recorded_at": "2026-09-22T12:28:43.240Z",
+    "started_at": "2026-09-22T12:19:43.043Z",
+    "node": "22.17.0",
+    "source_head": "6889d2941736a2ee0b88c94873a2055795b16d97",
+    "candidate_files": [
+      {
+        "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+        "raw_sha256": "sha256:ca52f6477beb9c0da2582fe2a51ee857b4b1ab63775cf6a9e0ad66327d366b44",
+        "lf_sha256": "sha256:ca52f6477beb9c0da2582fe2a51ee857b4b1ab63775cf6a9e0ad66327d366b44"
+      },
+      {
+        "path": "src/next/provenance/metricSelection.js",
+        "raw_sha256": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+        "lf_sha256": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f"
+      },
+      {
+        "path": "tests/next/provenance/authoringIndex.cases.js",
+        "raw_sha256": "sha256:70f3e9c1e03ed264f6e28aaa18d2b92c90653bf1f5d85f5473670b06178fd304",
+        "lf_sha256": "sha256:70f3e9c1e03ed264f6e28aaa18d2b92c90653bf1f5d85f5473670b06178fd304"
+      },
+      {
+        "path": "tests/next/provenance/metricSelection.cases.js",
+        "raw_sha256": "sha256:5bca0838096f8b98b94c108ea798289eb1d7f0513cd833a1b959a3cd72cd1b4b",
+        "lf_sha256": "sha256:5bca0838096f8b98b94c108ea798289eb1d7f0513cd833a1b959a3cd72cd1b4b"
+      }
+    ],
+    "candidate_unchanged": true,
+    "duration_ms": 540122,
+    "local_only": true,
+    "network_guard_scope": [
+      "fetch",
+      "http",
+      "https",
+      "net",
+      "node_descendants",
+      "non_node_subprocesses_except_audited_local_git_and_tar"
+    ],
+    "test_files": 165,
+    "discovered_test_files": 183,
+    "exit_status": 0,
+    "signal": null,
+    "valid": true,
+    "validation_reasons": [],
+    "tap": {
+      "tests": 2380,
+      "suites": 0,
+      "pass": 2370,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 10,
+      "todo": 0
+    },
+    "coverage": {
+      "line_percent": 92.4,
+      "branch_percent": 78.69,
+      "function_percent": 92.87,
+      "uncovered_lines": ""
+    },
+    "failures": [],
+    "skipped_tests": [
+      "instalador executa install e uninstall restaurando bytes preexistentes",
+      "install adota bloco existente e preserva integralmente os bytes atuais",
+      "install recusa adocao quando backup diverge apenas por BOM sem mutar config",
+      "uninstall recusa configuracao alterada e preserva o arquivo atual",
+      "uninstall recusa divergencia somente de BOM e preserva bytes atuais",
+      "functional: consent, onboarding, settings and dashboard",
+      "functional: expenses, income and credit card installments",
+      "functional: goals, debts, payments and reminders",
+      "functional: analytics, deletion, admin and fallback",
+      "functional: complex analytics handles typos, counts, duplicates and min/max"
+    ]
+  },
+  "integration": {
+    "schema_valid_kernel_context_cases": 102,
+    "admitted_safe_pace_cases": 2,
+    "invalid_budget_states": 3,
+    "selection_and_R_preserved": true,
+    "removed_required_state_observation_rejected": true,
+    "expected_frozen_before_execution": true,
+    "alternate_claim_not_accepted": true
+  },
+  "note": "Initial integration failure was trace_coverage_expected: corrected the harness input to the seven required fields. Historical family/instrument corpus checks explicitly compose the two reviewed reads. Saved local records are not external execution or a global gate verdict."
+}

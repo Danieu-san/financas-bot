@@ -6,11 +6,72 @@ Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-Estado vigente: correção e suporte de validação auditados em
+## Próxima ação exata — evidence_state revisado (2026-09-22)
+
+Base publicada `6889d2941736a2ee0b88c94873a2055795b16d97`. APTO DOCUMENTAL
+recebido e confrontado; recibo local
+`../../audit-evidence/n02g-causal-authoring-profile/evidence-state-revised-independent-review.md`.
+Não reenviar esse hash. A aprovação cobre o desenho, não o código posterior.
+
+Implementação local delimitada: metricSelection observa claim.evidence_state
+somente em instrument/statement/safe_pace; não relê evidence_state do budget.
+Schema/admissão de snapshot, estado dos eventos, proof e demais guardas intactos.
+Aplicadas exatamente duas required_claim_reads em M-13#1#3/#6; outros 74
+grafos e demais campos preservados por igualdade integral contra Git 6889d29.
+Grafos LF antes sha256:3354494ac13c6210e07a62f1e1472a33701fa6e2f0688b63112e7d5c1cd63ad2;
+depois sha256:ca52f6477beb9c0da2582fe2a51ee857b4b1ab63775cf6a9e0ad66327d366b44.
+Testes históricos de família/instrumento compõem explicitamente as duas adições;
+nenhuma igualdade foi removida. Os seis perfis candidatos não foram alterados.
+
+RED preservado: EVIDENCE-STATE-001/002 FAIL, 003 PASS. Primeira integração
+posterior: 3 PASS/1 FAIL por formato extra do expected no harness; corrigido
+para os sete campos exigidos pelo comparador, sem alterar produto/normativa.
+Focal final `n02g-evidence-state-green-v2.json`: 4 PASS/0 FAIL/0 SKIP.
+Inclui 102 variações de estado em 34 claims (teste de kernel, não aceitação de
+claim), cálculo/seleção preservados, orçamento inválido recusado antes dos
+handles e duas integrações safe_pace: cobertura passa, retirada da leitura
+de estado falha, expected congelado antes do evaluator, graph_accepted=false.
+
+Bateria hermética de oito arquivos concluída: 201 PASS/0 FAIL/0 SKIP,
+Node 22.17.0; `.codex-temp/n02g-evidence-state-affected.json` e `.tap.log`.
+Revisão local: duas mudanças de expressão no runtime; estado dos eventos e
+guardas de instrumento preservados; testes de corpus integral/família/contagem/
+seis perfis verdes; sem dispatch por fact_key/alias ou expected obtido do actual.
+Syntax e workflow PASS. Helper documental de conferência pós-ampla preparado:
+`../../audit-evidence/n02g-causal-authoring-profile/prepare-evidence-state-validation.cjs`.
+Ele verifica evidência local/hashes/delta, não executa auditoria independente.
+Wrapper da única ampla preparado em `.codex-temp/runWideEvidenceState20260922.cjs`;
+Iniciado em 2026-09-22T12:19:43.043Z, PID 22616, janela oculta; marcador e
+processo confirmados uma vez. Resultado exclusivo
+`.codex-temp/wide-n02g-evidence-state-20260922.json`; marcador `-start.json`
+e logs stdout/stderr no mesmo prefixo. Heartbeat
+`retomar-n02-g-ap-s-su-te-ampla` reativado com instrução atual, intervalo 20 min,
+silencioso sem novidade. Acompanhamento suspenso até a retomada agendada ou
+pedido de Daniel; nenhuma segunda ampla. Quatro arquivos causais: graphs-v2.json,
+metricSelection.js, authoringIndex.cases.js e metricSelection.cases.js.
+Ampla concluída em 2026-09-22T12:28:43.240Z, 540.122 ms: 2.380 testes,
+2.370 PASS/0 FAIL/10 SKIP esperados, valid=true, exit_status=0,
+candidate_unchanged=true. Cobertura 92,40% linhas/78,69% branches/92,87% funções.
+Heartbeat pausado na retomada. Não repetir suíte verde sem mudança causal.
+Helper --write-new/--check PASS; evidência sanitizada reproduzível em
+`../../audit-evidence/n02g-causal-authoring-profile/evidence-state-validation.json`.
+Hashes dos quatro arquivos testados conferidos; escopo causal exato e delta
+integral confrontados com os blobs Git da base. Próxima ação: commit/publicação
+sanitizados e uma única auditoria independente focal do código, conforme
+evidence-state-code-audit-request.md. Nenhum GO global/grafo/host/produção.
+
+Telemetria consultada: configurada, coletor parado/não saudável. Uso desta
+fatia NAO_DISPONIVEL; não alterar configuração nem bloquear o produto.
+
+Codex → Astra → Alto → validar a correção causal de evidence_state e seu delta normativo fechado.
+
+## Histórico e evidências anteriores
+
+Estado vigente anterior: correção e suporte de validação auditados em
 `8b66d1e6eac869cf7363beee3b2c1445840fb66e`, pai `be520f4f0cf64812c80f0f4b9b8eefb2a5445189`.
-HEAD publicado posterior (proposta documental de evidence_state):
-`0cbc80d65ae0761a99e8980d070068f13f28c244`, pai
-`69a385832876329afb4da73ffb5cc79d1ef94254`. Push/remoto confirmados.
+HEAD publicado posterior (proposta revisada de evidence_state):
+`6889d2941736a2ee0b88c94873a2055795b16d97`, pai
+`0cbc80d65ae0761a99e8980d070068f13f28c244`. Push/remoto confirmados.
 Desenhos refund, família e contagem APTO; código posterior ainda sem GO.
 Recibo: `../../audit-evidence/n02g-selection-phase/independent-review.md`.
 Revisão externa estática sem defeitos focais; execuções continuam locais.
@@ -383,6 +444,13 @@ propor apenas duas claim reads de safe_daily_pace. Admissão schema e proof
 permanecem; calcular fórmula com estado alternativo não aceita o claim/grafo.
 Fronteira local conferida: packageContract admite bytes; graphCompiler valida
 snapshot schema antes de fornecer acesso. Submeter novo hash antes de implementar.
+Revisão publicada em 6889d2941736a2ee0b88c94873a2055795b16d97, quatro
+documentos, sem src/scripts/tests/grafos alterados. Uma solicitação única
+recebida em conversa limpa, concluída com APTO DOCUMENTAL focal:
+https://chatgpt.com/g/g-p-6aae7fa3ad5c8191a8ace5a6d799fab4-financasbot/c/6ab268bd-640c-83e9-b49d-378f4ddb33c7
+Não reenviar o mesmo hash. Decisão revisada confrontada e implementação local
+iniciada; estado atualizado na seção inicial deste checkpoint. Heartbeat pausado
+até o lançamento de uma nova ampla.
 O parecer do gerador não aprova esse runtime posterior nem sua normativa.
 Não reenviar ace83e8 nem considerar sua ampla como prova da correção posterior.
 GO global/runtime, autenticação de host e demais reconciliações continuam

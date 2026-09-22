@@ -46,7 +46,7 @@ function selectEconomicEvents(operands, mode) {
     const basis = context.get('time_basis');
     if (!(pace ? basis === '15_full_days_after_as_of' : mode === 'statement' ? ['statement_due_date', 'statement_competence'].includes(basis)
         : mode === 'budget_remaining' ? basis === 'budget_cycle' : mode === 'spent' ? ['event_date', 'budget_cycle'].includes(basis) : basis === 'event_date')
-        || context.get('evidence_state') !== (pace ? 'estimated' : 'confirmed')) fail('context');
+        || ((pace || instrumentMode) && context.get('evidence_state') !== (pace ? 'estimated' : 'confirmed'))) fail('context');
     const period = context.get('period');
     let month; let contains; let divisor;
     if (pace) {
@@ -91,7 +91,7 @@ function selectEconomicEvents(operands, mode) {
         } else fail('scope');
         expectedFamily = pace ? familyId : readReferenceId(operands.budget, 'family_id');
         category = readReferenceId(operands.budget, 'category_id');
-        if (operands.budget.get('period') !== month || operands.budget.get('evidence_state') !== 'confirmed') fail('budget');
+        if (operands.budget.get('period') !== month) fail('budget');
     } else if (instrumentMode) {
         const target = mode === 'statement' ? operands.card : operands.instrument;
         if (!['account', 'card'].includes(kind) || mode === 'statement' && kind !== 'card' || target.identity('kind') !== kind) fail('scope');

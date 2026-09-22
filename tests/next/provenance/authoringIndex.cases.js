@@ -77,6 +77,154 @@ function transitiveFamilyRequirements(graph, claim) {
             .map(operation => ({ node: family, operation, segments: ['members'] })) };
 }
 
+function safePaceStateRequirements(claim) {
+    if (claim.evaluator_ref.evaluator_id !== 'safe_daily_pace' || claim.evaluator_ref.evaluator_version !== 1) return [];
+    assert.equal(claim.metric, 'safe_daily_pace');
+    assert.deepEqual(claim.operand_bindings.context, { kind: 'claim_context' });
+    return [{ segments: ['evidence_state'] }];
+}
+
+test('N02G:EVIDENCE-STATE-001 only two reviewed claim reads extend the immutable corpus', () => {
+    const { digest } = require('../../../src/next/kernel/canonicalValue');
+    const corpus = JSON.parse(fs.readFileSync(path.join(root, graphPath), 'utf8'));
+    const claims = JSON.parse(fs.readFileSync(path.join(root, prefix + 'claims-v2.json'), 'utf8'));
+    const registry = JSON.parse(fs.readFileSync(path.join(root, prefix + 'metric-evaluator-registry-v1.json'), 'utf8'));
+    assert.equal(digest(claims), 'f6c148b2cdbd9a4c875e8641264979c4797f25a93cac382c290044ad49ee80d4');
+    const entry = registry.entries.find(e => e.evaluator_id === 'safe_daily_pace' && e.evaluator_version === 1);
+    assert.equal(entry.evaluator_contract_hash, 'sha256:195e3968cc2f7f7dd2e46fdcb2619c19892b5c56a27d0e3c62f76fe08ba9a14d');
+    assert.equal(hash(fs.readFileSync(path.join(root, entry.contract_path), 'utf8').replaceAll('\r\n', '\n')), entry.evaluator_contract_hash);
+    let checked = 0;
+    for (const claim of claims.claims) for (const requirement of safePaceStateRequirements(claim)) {
+        const graph = corpus.graphs.find(g => g.fact_key === claim.fact_key);
+        const reads = graph.trace_contract.derivation.required_claim_reads;
+        assert.equal(reads.filter(r => JSON.stringify(r) === JSON.stringify(requirement)).length, 1, claim.fact_key);
+        graph.trace_contract.derivation.required_claim_reads = reads.filter(r => JSON.stringify(r) !== JSON.stringify(requirement));
+        checked++;
+    }
+    assert.equal(checked, 2); assert.equal(corpus.graphs.length, 76);
+    // Remove only the two reviewed additions: every byte-independent graph field
+    // and all other 74 graphs must recover the pinned pre-change corpus.
+    assert.equal(digest(corpus), '8745fad432413bbc9d435528e313271c81ebc403de4dca58f0d42b07556904f9');
+});
+
+test('N02G:EVIDENCE-STATE-002 kernel state guards follow contracts, not the claim label or budget singleton', async () => {
+    const { evaluateEconomicMetric } = require('../../../src/next/provenance/metricSelection');
+    const { evaluateDirectMetric } = require('../../../src/next/provenance/metricDirectReads');
+    const { createInstrumentedAccess } = require('../../../src/next/provenance/instrumentedAccess');
+    const { projectClaimContext } = require('../../../src/next/provenance/claimContext');
+    const { plan, claims, graphs } = await snapshotAccessFixture(); const validation = await validators();
+    const schema = JSON.parse(fs.readFileSync(path.join(root, prefix + 'claim-contract.schema.json'), 'utf8'));
+    const claimDocument = JSON.parse(fs.readFileSync(path.join(root, prefix + 'claims-v2.json'), 'utf8'));
+    const oracle = JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/financasbot-next/golden-claim-oracles-v1.json'), 'utf8'));
+    const modes = { consumption_total: 'total', category_consumption: 'category', category_spent: 'spent', income_realized: 'income',
+        budget_class_consumption: 'budget_class', category_budget_remaining: 'budget_remaining', safe_daily_pace: 'safe_pace',
+        consumption_by_instrument: 'instrument', statement_total: 'statement', eligible_event_count: 'count' };
+    let checked = 0;
+    for (const claim of claims.filter(c => Object.hasOwn(modes, c.metric))) for (const state of ['confirmed', 'estimated', 'projected']) {
+        const mode = modes[claim.metric]; const observed = []; const controls = []; const operands = {};
+        const graph = graphs.find(g => g.fact_key === claim.fact_key);
+        const expectedSelection = structuredClone(graph.trace_contract.derivation.required_selections
+            .map(s => graph.sets[s.selected_set]));
+        const alteredClaim = { ...claim, evidence_state: state };
+        assert.equal(validation.claims({ ...claimDocument, claims: claimDocument.claims.map(c => c.fact_key === claim.fact_key ? alteredClaim : c) }), true);
+        // Kernel-only alternate context, schema-checked and instrumented. NOT an
+        // admitted whole graph: its unchanged proof may reject the new label.
+        const projected = projectClaimContext(alteredClaim, schema);
+        const context = createInstrumentedAccess({ emit: e => observed.push(e), bindings: [{ alias: 'context', role: 'context',
+            value: projected.value, shape: projected.shape }] });
+        controls.push(context); operands.context = context.handle('context');
+        for (const [role_id, binding] of Object.entries(claim.operand_bindings).filter(([role]) => role !== 'context')) {
+            const selector = { fact_key: claim.fact_key, role_id };
+            const access = binding.kind === 'node_set' ? plan.openSet(selector, e => observed.push(e))
+                : plan.open({ ...selector, alias: binding.alias }, e => observed.push(e));
+            controls.push(access); operands[role_id] = access.handle;
+        }
+        const guarded = ['safe_pace', 'instrument', 'statement'].includes(mode);
+        const requiredState = mode === 'safe_pace' ? 'estimated' : 'confirmed';
+        try {
+            const execute = () => mode === 'count' ? evaluateDirectMetric(operands, 'eligible_event_count') : evaluateEconomicMetric(operands, mode);
+            if (guarded && state !== requiredState) assert.throws(execute, /^Error: metric_selection_context$/);
+            else {
+                const value = execute(); const split = claim.fact_key.lastIndexOf('#');
+                assert.deepEqual(observed.filter(e => e[1] === 'select_return').map(e => e[6].slice(2)), expectedSelection);
+                assert.equal(value, oracle.turns[claim.fact_key.slice(0, split)].facts[Number(claim.fact_key.slice(split + 1)) - 1].value);
+                if (claim.operand_bindings.budget) {
+                    const alias = claim.operand_bindings.budget.alias;
+                    assert.equal(observed.some(e => e[1] === 'get' && e[2] === alias && e[4].join('.') === 'evidence_state'), false);
+                    assert.ok(observed.some(e => e[1] === 'get' && e[2] === alias && e[4].join('.') === 'limit_minor'));
+                }
+            }
+            assert.equal(observed.some(e => e[1] === 'get' && e[2] === 'context' && e[4].join('.') === 'evidence_state'), guarded);
+            for (const access of controls) access.assertHealthy();
+        } finally { for (const access of controls) access.revoke(); }
+        checked++;
+    }
+    assert.equal(checked, 34 * 3);
+});
+
+test('N02G:EVIDENCE-STATE-003 invalid budget state is refused before snapshot handles exist', async () => {
+    const validation = await validators();
+    for (const state of ['projected', 'estimated', undefined]) {
+        const f = fixture(); const graphEntry = f.entries.find(e => e.path === graphPath);
+        const graphs = JSON.parse(graphEntry.bytes); const manifestEntry = f.entries.find(e => e.path === graphs.snapshot_manifest.path);
+        const manifest = JSON.parse(manifestEntry.bytes); const budget = manifest.snapshots.find(s => s.kind === 'budget');
+        if (state === undefined) delete budget.payload.evidence_state; else budget.payload.evidence_state = state;
+        assert.equal(validation.snapshot({ ref_id: budget.ref_id, kind: budget.kind, version: budget.version, payload: budget.payload }), false);
+        manifestEntry.bytes = Buffer.from(JSON.stringify(manifest));
+        graphs.snapshot_manifest.hash = hash(manifestEntry.bytes); graphEntry.bytes = Buffer.from(JSON.stringify(graphs));
+        for (const entry of [manifestEntry, graphEntry]) f.authority.find(a => a.path === entry.path).sha256 = hash(entry.bytes);
+        const admitted = admitPackage(f); // Byte admission is not payload admission.
+        assert.throws(() => compileSnapshotAccess(admitted, validation), /^Error: graph_index_schema_snapshot$/);
+    }
+});
+
+test('N02G:EVIDENCE-STATE-004 safe pace requires its authored state observation with frozen expectations', async () => {
+    const { evaluateEconomicMetric } = require('../../../src/next/provenance/metricSelection');
+    const { freezeDeep } = require('../../../src/next/kernel/canonicalValue');
+    const { plan, claims, graphs } = await snapshotAccessFixture(); let checked = 0;
+    for (const claim of claims.filter(c => safePaceStateRequirements(c).length)) {
+        const graph = graphs.find(g => g.fact_key === claim.fact_key);
+        const scope = selectionInput(claim, graph, `evidence-state-${checked}`);
+        const expected = freezeDeep(structuredClone(Object.fromEntries(['required_nodes', 'required_reads', 'required_claim_reads',
+            'required_edges', 'required_structural', 'required_selections', 'selected_nodes']
+            .map(key => [key, graph.trace_contract.derivation[key]]))));
+        const expectedBefore = JSON.stringify(expected);
+        const accessBindings = plan.observationMetadata({ fact_key: claim.fact_key, phase: 'derivation' });
+        const operandSets = Object.entries(claim.operand_bindings).filter(([, b]) => b.kind === 'node_set')
+            .map(([role, b]) => ({ role, aliases: b.aliases }));
+        const recorder = createCausalRecorder({ executionId: scope.executionId, maxEvents: 10000 });
+        const phase = recorder.open({ invocationId: claim.fact_key, phase: 'derivation' });
+        const controls = []; const operands = {};
+        try {
+            for (const [role_id, binding] of Object.entries(claim.operand_bindings)) {
+                const selector = { fact_key: claim.fact_key, role_id };
+                const access = binding.kind === 'claim_context' ? plan.openContext(selector, phase.observe)
+                    : binding.kind === 'node_set' ? plan.openSet(selector, phase.observe)
+                        : plan.open({ ...selector, alias: binding.alias }, phase.observe);
+                controls.push(access); operands[role_id] = access.handle;
+            }
+            evaluateEconomicMetric(Object.freeze(operands), 'safe_pace');
+            for (const access of controls) access.assertHealthy();
+        } finally { for (const access of controls) access.revoke(); }
+        phase.seal(); const trace = recorder.finish();
+        const input = { ...scope, expected, trace, operandSets, accessBindings };
+        const coverage = comparePhaseCoverage(input);
+        assert.equal(coverage.components.selection.matched, true);
+        assert.equal(coverage.matched, true, claim.fact_key);
+        assert.equal(coverage.graph_accepted, false);
+        const stateReads = trace.derivation_trace.filter(e => e.operation === 'get' && e.path.join('.') === 'evidence_state');
+        assert.equal(stateReads.length, 1);
+        const altered = { ...trace, derivation_trace: trace.derivation_trace.filter(e => e !== stateReads[0])
+            .map((entry, sequence) => ({ ...entry, sequence })) };
+        const rejected = comparePhaseCoverage({ ...input, trace: altered });
+        assert.equal(rejected.matched, false);
+        assert.equal(rejected.graph_accepted, false);
+        assert.equal(JSON.stringify(expected), expectedBefore);
+        checked++;
+    }
+    assert.equal(checked, 2);
+});
+
 test('N02G:FAMILY-PHASE-001 transitive population authored delta preserves every other graph field', () => {
     const document = JSON.parse(fs.readFileSync(path.join(root, graphPath), 'utf8'));
     const source = JSON.parse(fs.readFileSync(path.join(root, 'docs/audit-evidence/n02g-transitive-family/graphs-extract.json'), 'utf8'));
@@ -88,6 +236,8 @@ test('N02G:FAMILY-PHASE-001 transitive population authored delta preserves every
             const list = expected.trace_contract.derivation[key];
             for (const value of values) if (!list.some(v => JSON.stringify(v) === JSON.stringify(value))) list.push(value);
         }
+        // Compose the separately reviewed safe_daily_pace state requirement.
+        expected.trace_contract.derivation.required_claim_reads.push(...safePaceStateRequirements(claim));
         assert.deepEqual(graph, expected, claim.fact_key);
     }
 });
@@ -314,8 +464,18 @@ test('N02G:AUTHOR-NORMATIVE-001 reviewed six-graph delta equals independent auth
         reconstructed.graphs[reconstructed.graphs.findIndex(g => g.fact_key === record.fact_key)] = original.graph;
     }
     assert.equal(changed, 6);
-    // Restoring just those six originals must recover the whole reviewed corpus:
-    // this also fixes every protected graph field, top-level field and other 70 graphs.
+    // Undo the two separately reviewed safe_pace reads before comparing against
+    // this historical corpus. EVIDENCE-STATE-001 pins their exact current delta.
+    const claims = JSON.parse(read(prefix + 'claims-v2.json')).claims;
+    let stateReads = 0;
+    for (const claim of claims) for (const requirement of safePaceStateRequirements(claim)) {
+        const derivation = reconstructed.graphs.find(g => g.fact_key === claim.fact_key).trace_contract.derivation;
+        assert.equal(derivation.required_claim_reads.filter(r => JSON.stringify(r) === JSON.stringify(requirement)).length, 1);
+        derivation.required_claim_reads = derivation.required_claim_reads.filter(r => JSON.stringify(r) !== JSON.stringify(requirement));
+        stateReads++;
+    }
+    assert.equal(stateReads, 2);
+    // Restoring both reviewed deltas recovers every field of the historical corpus.
     assert.equal(digest(reconstructed), reviewed.source_corpus_sha256);
     assert.ok(Object.values(generated.totals).every(d => d.added === 0 && d.removed === 0));
     assert.equal(generated.graph_accepted, false); assert.equal(generated.normative_application_allowed, false);
