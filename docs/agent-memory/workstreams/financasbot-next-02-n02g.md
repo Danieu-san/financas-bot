@@ -8,9 +8,9 @@ Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
 Estado vigente: correção e suporte de validação auditados em
 `8b66d1e6eac869cf7363beee3b2c1445840fb66e`, pai `be520f4f0cf64812c80f0f4b9b8eefb2a5445189`.
-HEAD publicado posterior (proposta documental de autoria dos seis perfis):
-`6f66556a256577c1bcdbc9678090b91dc43536ec`, pai
-`0a8c5709a5234e95ddce212c0b571908dacf32bf`. Push confirmado.
+HEAD publicado posterior (aplicação normativa fechada dos seis perfis):
+`50ad614c0289eefa0557b725f63b8b9e157258c6`, pai
+`6f66556a256577c1bcdbc9678090b91dc43536ec`. Push/remoto confirmados.
 Desenhos refund, família e contagem APTO; código posterior ainda sem GO.
 Recibo: `../../audit-evidence/n02g-selection-phase/independent-review.md`.
 Revisão externa estática sem defeitos focais; execuções continuam locais.
@@ -20,7 +20,8 @@ pela ampla (2.363 PASS, zero FAIL, dez SKIP esperados) e foi ratificada
 focalmente em 3fc0f3d. Guarda do gerador ratificada em 0a8c570; proposta
 normativa 6f66556 recebeu APTO documental condicionado. Aplicação local dos
 cinco campos de seis derivações passou a ampla própria (2.366 PASS/0 FAIL/10
-SKIP esperados); commit e auditoria da aplicação em preparação, ainda sem GO.
+SKIP esperados); publicada em 50ad614 e APTO focal ratificado para aplicação.
+Sem aceitação de grafos nem GO global.
 `releaseEligible=false`; inventário local agora registra 30
 módulos pendentes (inclui metricReferences), sem alterar os 15 hashes aprovados.
 Diagnóstico inicial pós-GO focal (incrementos atualizados abaixo): as quatro famílias existentes exercitam 73/76
@@ -327,6 +328,22 @@ Não executa evaluator nem altera normativa; verifica registros, não reexecuta
 o passado. Arquivos de evidência adicionados depois da ampla não mudam código
 ou testes. Próximo passo: commit sanitizado/publicação e uma auditoria focal
 independente do novo hash, sem aceitação automática de grafos/N02-G.
+Candidato publicado: 50ad614c0289eefa0557b725f63b8b9e157258c6, pai 6f66556,
+oito arquivos explícitos. Blobs do índice conferem com hashes LF testados;
+nenhum arquivo .codex-temp ou dado operacional incluído. Checker novamente
+PASS após commit/push, remoto confirmado. Uma única solicitação automática
+recebida pelo Chat em conversa limpa, revisão em andamento:
+https://chatgpt.com/g/g-p-6aae7fa3ad5c8191a8ace5a6d799fab4-financasbot/c/6ab1e5dc-dc20-83e9-94f8-89d032349ed0
+Não reenviar o hash. Próxima ação: ler o parecer, confrontar fontes/limites e
+registrar recibo focal; não declarar GO global nem modificar o candidato.
+Parecer final: APTO FOCAL, nenhum achado; ratificado contra evidência local e
+escopo. Recibo instrument-normative-independent-review.md. Auditor examinou
+controles/testes/helper e fontes publicadas; não leu integralmente graphs-v2,
+não calculou hashes nem executou testes. Verificação integral do corpus é local,
+não atribuída ao Chat. A independência de expected já existia antes; a alteração
+passa a consultar os cinco campos normativos aplicados. Flags permanecem falsas.
+Próxima ação exata: executar uma única sonda de cobertura atualizada, registrar
+o residual e delimitar a próxima regra causal geral, sem actual como expected.
 O parecer do gerador não aprova esse runtime posterior nem sua normativa.
 Não reenviar ace83e8 nem considerar sua ampla como prova da correção posterior.
 GO global/runtime, autenticação de host e demais reconciliações continuam

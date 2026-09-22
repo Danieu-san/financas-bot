@@ -928,7 +928,11 @@ Ampla concluída: 2.366 PASS/0 FAIL/10 SKIP esperados, valid=true/exit=0,
 candidate_unchanged=true, 596.407 ms. Heartbeat pausado. Evidência
 instrument-normative-validation.json e checker próprio verificam corpus inteiro
 contra Git 6f66556 e delta congelado. Não repetir a ampla. Auditoria do novo
-hash da aplicação ainda pendente; preparar commit sanitizado. Não extrapolar GO.
+hash da aplicação concluída: 50ad614c0289eefa0557b725f63b8b9e157258c6 recebeu
+APTO FOCAL ratificado, sem achados, recibo instrument-normative-independent-review.md.
+Limite externo: graphs-v2 não lido integralmente, sem hashes/testes executados
+pelo auditor; lógica dos controles examinada independentemente e confronto
+integral executado localmente. Não extrapolar para aceitação de grafo ou GO.
 
 Depois: reconciliar as demais leituras e estruturas das famílias
 de avaliadores, por regra causal geral, com REDs independentes da execução.
