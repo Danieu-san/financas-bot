@@ -283,7 +283,45 @@ test('N02G:AUTHOR-INTEGRATION-001 candidate obligations are frozen before execut
     assert.equal(candidate.graph_accepted, false); assert.equal(candidate.normative_application_allowed, false);
 });
 
-test('N02G:AUTHOR-RECONCILE-001 six instrument profiles cover observed derivation without applying normative deltas', async () => {
+test('N02G:AUTHOR-NORMATIVE-001 reviewed six-graph delta equals independent authoring and preserves the remaining corpus', () => {
+    const { buildCandidateReport } = require('../../../scripts/agent/reportNextCausalAuthoring.cjs');
+    const { canonicalValue } = require('../../../src/next/kernel/canonicalValue');
+    const read = file => fs.readFileSync(path.join(root, file), 'utf8').replaceAll('\r\n', '\n');
+    const reportText = read('docs/audit-evidence/n02g-causal-authoring-profile/candidate-report.json');
+    const extractText = read('docs/audit-evidence/n02g-causal-authoring-profile/source-extract.json');
+    assert.equal(hash(reportText), 'sha256:0140b589491ea40a1f315b744f338b84d987656707e62cb798b420d991eec012');
+    assert.equal(hash(extractText), 'sha256:ab07fc9265c7412943fb814be96b71b3e6eb237f6b6e12f4ccf7b5c6e119363f');
+    const reviewed = JSON.parse(reportText); const source = JSON.parse(extractText);
+    const corpus = JSON.parse(read(graphPath)); const reconstructed = structuredClone(corpus);
+    const generated = buildCandidateReport(read); const digest = value => hash(canonicalValue(value));
+    assert.equal(corpus.graphs.length, 76); assert.equal(reviewed.records.length, 6);
+    assert.deepEqual(generated.records.map(r => r.candidate), reviewed.records.map(r => r.candidate));
+    for (const document of reviewed.documents.filter(d => d.path !== graphPath)) {
+        assert.equal(hash(read(document.path)), document.sha256, `protected authority changed: ${document.path}`);
+    }
+    let changed = 0;
+    for (const record of reviewed.records) {
+        const original = source.records.find(r => r.fact_key === record.fact_key);
+        assert.ok(original); assert.equal(digest(original.graph), record.source_graph_sha256);
+        const graph = corpus.graphs.find(g => g.fact_key === record.fact_key); assert.ok(graph);
+        const expected = structuredClone(original.graph);
+        const dimensions = Object.keys(record.candidate.obligations).sort();
+        assert.deepEqual(dimensions, ['required_claim_reads', 'required_edges', 'required_nodes', 'required_reads', 'required_structural']);
+        for (const dimension of dimensions) expected.trace_contract.derivation[dimension] = record.candidate.obligations[dimension];
+        assert.notEqual(digest(expected), digest(original.graph));
+        assert.equal(digest(graph), digest(expected), `normative delta missing or outside scope: ${record.fact_key}`);
+        changed++;
+        reconstructed.graphs[reconstructed.graphs.findIndex(g => g.fact_key === record.fact_key)] = original.graph;
+    }
+    assert.equal(changed, 6);
+    // Restoring just those six originals must recover the whole reviewed corpus:
+    // this also fixes every protected graph field, top-level field and other 70 graphs.
+    assert.equal(digest(reconstructed), reviewed.source_corpus_sha256);
+    assert.ok(Object.values(generated.totals).every(d => d.added === 0 && d.removed === 0));
+    assert.equal(generated.graph_accepted, false); assert.equal(generated.normative_application_allowed, false);
+});
+
+test('N02G:AUTHOR-RECONCILE-001 six independently authored normative derivations cover observations without accepting graphs', async () => {
     const { buildCandidateReport } = require('../../../scripts/agent/reportNextCausalAuthoring.cjs');
     const { freezeDeep } = require('../../../src/next/kernel/canonicalValue');
     const report = freezeDeep(buildCandidateReport(file => fs.readFileSync(path.join(root, file), 'utf8').replaceAll('\r\n', '\n')));
@@ -298,7 +336,9 @@ test('N02G:AUTHOR-RECONCILE-001 six instrument profiles cover observed derivatio
         const graph = graphs.find(g => g.fact_key === record.fact_key);
         const executionId = `profile-reconciliation-${record.fact_key}`;
         const scope = selectionInput(claim, graph, executionId);
-        const expected = freezeDeep({ ...record.candidate.obligations, ...scope.expected });
+        const normative = Object.fromEntries(Object.keys(record.candidate.obligations).map(key => [key, graph.trace_contract.derivation[key]]));
+        assert.equal(hash(JSON.stringify(normative)), hash(JSON.stringify(record.candidate.obligations)), `${claim.fact_key}: normative authoring mismatch`);
+        const expected = freezeDeep({ ...normative, ...scope.expected });
         const accessBindings = plan.observationMetadata({ fact_key: claim.fact_key, phase: 'derivation' });
         const operandSets = Object.entries(claim.operand_bindings).filter(([, b]) => b.kind === 'node_set')
             .map(([role, b]) => ({ role, aliases: b.aliases }));
@@ -604,7 +644,23 @@ test('N02G:TRACE-COMPAT-001 required edge remains independent from derivation no
     // The reviewed family closure supplies the target of budget.family_id,
     // while its two member edges intentionally do not consume person payloads:
     // two graphs each remove one edge-only case and introduce two.
-    assert.equal(report.edge_only_graphs, 66 - 2); assert.equal(report.edge_only_count, 1133 - 4 + 2 * (2 - 1));
+    const extractText = fs.readFileSync(path.join(root, 'docs/audit-evidence/n02g-causal-authoring-profile/source-extract.json'), 'utf8').replaceAll('\r\n', '\n');
+    assert.equal(hash(extractText), 'sha256:ab07fc9265c7412943fb814be96b71b3e6eb237f6b6e12f4ccf7b5c6e119363f');
+    const originals = new Map(JSON.parse(extractText).records.map(r => [r.fact_key, r.graph]));
+    const before = inspectTraversalCoverage(graphs.map(g => originals.get(g.fact_key) || g));
+    assert.equal(before.edge_only_graphs, 66 - 2);
+    assert.equal(before.edge_only_count, 1133 - 4 + 2 * (2 - 1));
+    // The closed instrument/statement delta removes 148 irrelevant edges and
+    // supplies endpoint/read coverage for 18 retained edges. No diagnostic
+    // obligation outside those six independently reviewed graphs may change.
+    const affected = before.edge_only.filter(g => originals.has(g.fact_key));
+    const retained = affected.filter(entry => graphs.find(g => g.fact_key === entry.fact_key)
+        .trace_contract[entry.phase].required_edges.includes(entry.edge_id));
+    assert.equal(originals.size, 6); assert.equal(affected.length, 166);
+    assert.equal(retained.length, 18); assert.equal(affected.length - retained.length, 148);
+    assert.deepEqual(report.edge_only, before.edge_only.filter(g => !originals.has(g.fact_key)));
+    assert.equal(report.edge_only_graphs, before.edge_only_graphs - originals.size);
+    assert.equal(report.edge_only_count, before.edge_only_count - affected.length);
     assert.ok(report.edge_only.every(g => g.phase === 'derivation'));
     const graph = graphs.find(g => g.fact_key === 'S-01#1#1');
     const contract = graph.trace_contract.derivation;

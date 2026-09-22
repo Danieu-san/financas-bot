@@ -1,0 +1,280 @@
+{
+  "schema": "n02g-instrument-normative-validation-v1",
+  "status": "candidate_awaiting_independent_audit",
+  "evidence_kind": "locally_executed_not_external_verdict",
+  "base": "6f66556a256577c1bcdbc9678090b91dc43536ec",
+  "graph_accepted": false,
+  "releaseEligible": false,
+  "normative_delta_applied": true,
+  "normative_application_automatic": false,
+  "scope": {
+    "changed_graphs": 6,
+    "unchanged_graphs": 70,
+    "dimensions": [
+      "required_claim_reads",
+      "required_edges",
+      "required_nodes",
+      "required_reads",
+      "required_structural"
+    ],
+    "records": [
+      {
+        "fact_key": "S-05#1#1",
+        "before_graph_sha256": "sha256:7657313ead257fd47c4cf847bb3402745afb0f05cb6d5b36856153b7b2e93789",
+        "after_graph_sha256": "sha256:046e97b8f8833a9239849275ebe1aa48cd1a0e132cfc3fa5f4d2785e6cbbdaa1"
+      },
+      {
+        "fact_key": "M-02#1#1",
+        "before_graph_sha256": "sha256:c9e351114fdee5fe40fde4e266898c4e36bf6990cdd0c9cf260ff77f97c47faf",
+        "after_graph_sha256": "sha256:d52657364c707276b697ee4e34b3ec6320547203b73a6bc539966d2fc045ec8b"
+      },
+      {
+        "fact_key": "M-02#1#2",
+        "before_graph_sha256": "sha256:44c33e67df786060bcdc59e7ab306282294f60dd5ceff2b8047d126aba0980d6",
+        "after_graph_sha256": "sha256:2a668bf1dc547434822bd4e0be69428bca92365f74998c65f7241a7200351dab"
+      },
+      {
+        "fact_key": "M-05#1#1",
+        "before_graph_sha256": "sha256:9126e107508a5ada374a6fe5641e317e5c8fa27d6c318e12da2cda67b2d2949a",
+        "after_graph_sha256": "sha256:f37f2cf52bd7cb70fea137706bc103ab3dc6086e9480ea9276323052afb9afa7"
+      },
+      {
+        "fact_key": "F-03#1#1",
+        "before_graph_sha256": "sha256:c1fd0b9627249d37b3fb34c5ecf884f7cb9146deb353039f68dac1ede15caa8d",
+        "after_graph_sha256": "sha256:3b3a754f7dd29c1553071ccbf4f670cea655080d3ae780b37a43b0f7c99f61ec"
+      },
+      {
+        "fact_key": "F-03#2#1",
+        "before_graph_sha256": "sha256:816b524e17a2b1efffdf71543d6e442e81a27a304dff0acf887a30c55c293fc7",
+        "after_graph_sha256": "sha256:2100d022cbe1ddc12e8f399a173fb033601a982750af9123699c2ad91731f55d"
+      }
+    ],
+    "all_other_graph_fields_preserved": true,
+    "before_lf_sha256": "sha256:9502527469cc0e5fbc224e0ebdc6e088f13b4666b61562f651feb506c8666c48",
+    "after_lf_sha256": "sha256:3354494ac13c6210e07a62f1e1472a33701fa6e2f0688b63112e7d5c1cd63ad2",
+    "reviewed_delta": {
+      "required_claim_reads": {
+        "added": 12,
+        "removed": 0
+      },
+      "required_edges": {
+        "added": 0,
+        "removed": 148
+      },
+      "required_nodes": {
+        "added": 8,
+        "removed": 0
+      },
+      "required_reads": {
+        "added": 11,
+        "removed": 155
+      },
+      "required_structural": {
+        "added": 192,
+        "removed": 0
+      }
+    }
+  },
+  "red_observed": {
+    "test": "AUTHOR-NORMATIVE-001",
+    "fact_key": "S-05#1#1",
+    "failure": "old normative graph differs from reviewed independent authoring"
+  },
+  "initial_affected": {
+    "recorded_at": "2026-09-22T01:41:54.774Z",
+    "node": "22.17.0",
+    "scope": "affected_only_not_wide",
+    "files": [
+      "tests/next/provenance/authoringIndex.cases.js",
+      "tests/next/provenance/causalAuthoring.cases.js",
+      "tests/next/provenance/packageContract.cases.js",
+      "tests/next/provenance/graphStructure.cases.js",
+      "tests/next/provenance/graphCompiler.cases.js",
+      "tests/next/provenance/proofAcceptance.cases.js"
+    ],
+    "exit_status": 1,
+    "tap": {
+      "tests": 149,
+      "suites": 0,
+      "pass": 148,
+      "fail": 1,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "coverage": {
+      "line_percent": 93.85,
+      "branch_percent": 83.76,
+      "function_percent": 94.53,
+      "uncovered_lines": ""
+    },
+    "failures": [
+      "not ok 15 - N02G:TRACE-COMPAT-001 required edge remains independent from derivation node and read coverage"
+    ],
+    "six_generated_candidates_unchanged": true,
+    "normative_delta_to_current_zero": true
+  },
+  "diagnostic_correction": {
+    "removed_edges": 148,
+    "retained_edges_newly_covered": 18,
+    "unaffected_diagnostics_identical": true,
+    "scalar_read_independent_of_traversal_control_preserved": true
+  },
+  "affected": {
+    "recorded_at": "2026-09-22T01:51:20.620Z",
+    "node": "22.17.0",
+    "scope": "affected_only_not_wide",
+    "files": [
+      "tests/next/provenance/authoringIndex.cases.js",
+      "tests/next/provenance/causalAuthoring.cases.js",
+      "tests/next/provenance/packageContract.cases.js",
+      "tests/next/provenance/graphStructure.cases.js",
+      "tests/next/provenance/graphCompiler.cases.js",
+      "tests/next/provenance/proofAcceptance.cases.js"
+    ],
+    "exit_status": 0,
+    "tap": {
+      "tests": 149,
+      "suites": 0,
+      "pass": 149,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "coverage": {
+      "line_percent": 93.87,
+      "branch_percent": 83.74,
+      "function_percent": 95.03,
+      "uncovered_lines": ""
+    },
+    "failures": [],
+    "six_generated_candidates_unchanged": true,
+    "normative_delta_to_current_zero": true
+  },
+  "wide": {
+    "recorded_at": "2026-09-22T02:01:46.974Z",
+    "started_at": "2026-09-22T01:51:50.448Z",
+    "node": "22.17.0",
+    "source_head": "6f66556a256577c1bcdbc9678090b91dc43536ec",
+    "candidate_files": [
+      {
+        "path": "docs/contracts/next/provenance-v2/causal-authoring-candidates/README.md",
+        "raw_sha256": "sha256:1c018f2e87d96ea4bb504574751171e1ad192820aa60a1e32976d83964bd9b1b",
+        "lf_sha256": "sha256:1c018f2e87d96ea4bb504574751171e1ad192820aa60a1e32976d83964bd9b1b"
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+        "raw_sha256": "sha256:3354494ac13c6210e07a62f1e1472a33701fa6e2f0688b63112e7d5c1cd63ad2",
+        "lf_sha256": "sha256:3354494ac13c6210e07a62f1e1472a33701fa6e2f0688b63112e7d5c1cd63ad2"
+      },
+      {
+        "path": "tests/next/provenance/authoringIndex.cases.js",
+        "raw_sha256": "sha256:490cc338c568d075991e56aa770dc3f279fdcdf390f82cd58c7c6a75a148ec44",
+        "lf_sha256": "sha256:490cc338c568d075991e56aa770dc3f279fdcdf390f82cd58c7c6a75a148ec44"
+      }
+    ],
+    "candidate_unchanged": true,
+    "duration_ms": 596407,
+    "local_only": true,
+    "network_guard_scope": [
+      "fetch",
+      "http",
+      "https",
+      "net",
+      "node_descendants",
+      "non_node_subprocesses_except_audited_local_git_and_tar"
+    ],
+    "test_files": 165,
+    "discovered_test_files": 183,
+    "exit_status": 0,
+    "signal": null,
+    "valid": true,
+    "validation_reasons": [],
+    "tap": {
+      "tests": 2376,
+      "suites": 0,
+      "pass": 2366,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 10,
+      "todo": 0
+    },
+    "coverage": {
+      "line_percent": 92.37,
+      "branch_percent": 78.51,
+      "function_percent": 92.85,
+      "uncovered_lines": ""
+    },
+    "failures": [],
+    "skipped_tests": [
+      "instalador executa install e uninstall restaurando bytes preexistentes",
+      "install adota bloco existente e preserva integralmente os bytes atuais",
+      "install recusa adocao quando backup diverge apenas por BOM sem mutar config",
+      "uninstall recusa configuracao alterada e preserva o arquivo atual",
+      "uninstall recusa divergencia somente de BOM e preserva bytes atuais",
+      "functional: consent, onboarding, settings and dashboard",
+      "functional: expenses, income and credit card installments",
+      "functional: goals, debts, payments and reminders",
+      "functional: analytics, deletion, admin and fallback",
+      "functional: complex analytics handles typos, counts, duplicates and min/max"
+    ]
+  },
+  "unchanged": [
+    {
+      "path": "docs/contracts/next/provenance-v2/causal-authoring-candidates/consumption-by-instrument-profile-v1.json",
+      "sha256": "sha256:4c2be2d8f773b85e008d8f476d37196bdab9b0bac58848c616294f685fcda99a"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/causal-authoring-candidates/statement-total-profile-v1.json",
+      "sha256": "sha256:12cd0fa53fb62121068cdb85ededa91a0b5faec6976d2a9eb3a8045502485723"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claim-contract.schema.json",
+      "sha256": "sha256:b69ef61b562061f057a9bf08f47623ae432c723f565e8775f3dbe6eb942ea998"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claims-v2.json",
+      "sha256": "sha256:4810612761ea7f232e4445c0d192ae53ebf0761f0ba8752da758efb826b30494"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluation-policy-v1.json",
+      "sha256": "sha256:4b6ee6a6fb365aa97a22a087de032e998dbb31ffd929d3ea2b094544f28f40dd"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_by_instrument.json",
+      "sha256": "sha256:e32bc36ae9642c1db0d0eb6dce05c3861a80d967b974613eafc8fc6a341dbd37"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/statement_total.json",
+      "sha256": "sha256:cca2c51e9d89ef572d069eb019d30924fc41409724c1d07abc7d2a215ce1d002"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evidence-snapshot.schema.json",
+      "sha256": "sha256:054a48930a5f25760f201e8b401f0f34f5a83672366acad6c9c09bdc0ce0b5ef"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/material-field-registry-v1.json",
+      "sha256": "sha256:ee7ef3eff146bc2e9cea2cc986c398371acbff3cf35d858ced8386a9758a4d62"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/metric-evaluator-registry-v1.json",
+      "sha256": "sha256:577fe16b3d5a1dc2e24505de150001afd889408f5294a6834486de338d40a3a0"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/snapshot-manifest-v1.json",
+      "sha256": "sha256:2547229db3c07f2dd0941601ab5164bf89981ce966e4e23a2e3058124edba8c4"
+    },
+    {
+      "path": "tests/fixtures/financasbot-next/golden-fact-contracts-v1.json",
+      "sha256": "sha256:377373a33f9042a3ea0cfb0a368b4bf2b32a1529d873de7525edb38f92d8e8c2"
+    },
+    {
+      "path": "tests/fixtures/financasbot-next/golden-financial-fixture-v1.json",
+      "sha256": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b"
+    }
+  ],
+  "original_six_candidates_unchanged": true,
+  "current_candidate_delta_zero": true,
+  "note": "Helper added after final wide run; checks saved records and current bytes, not past execution. Full corpus checked against Git base and frozen report. No runtime change, graph acceptance, host authenticity, global gate GO or deployment."
+}

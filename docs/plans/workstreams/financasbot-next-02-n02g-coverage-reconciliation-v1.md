@@ -911,6 +911,24 @@ focal ratificado; recibo compensation-source-independent-review.md. Liberada
 a submissão documental de instrument-authoring-decision-v1, não aplicação.
 Proposta fecha cinco campos de seis derivações e preserva todo o restante;
 submeter em hash exclusivamente documental antes de alterar qualquer grafo.
+Proposta 6f66556 APTO DOCUMENTAL condicionado, recibo
+instrument-authoring-independent-review.md. Após RED e confronto de fontes,
+aplicados somente os cinco campos dos seis grafos. AUTHOR-NORMATIVE-001 GREEN
+prova igualdade com candidato independente congelado e preservação do corpus
+ao recompor os seis originais; integração agora consulta a normativa diretamente.
+Gerador/runtime/perfis sem mudança; relatório atual tem delta zero nos seis,
+mas graph_accepted=false. Bateria inicial 148 PASS/1 FAIL: contagem histórica
+TRACE-COMPAT-001. Ajuste fundamentado nos seis originais: 148 arestas removidas,
+18 retidas agora cobertas; diagnóstico dos demais 70 grafos idêntico. Bateria
+final de seis arquivos: 149 PASS/0 FAIL/0 SKIP. Única ampla iniciada em
+2026-09-22T01:51:50.448Z, PID 20028, base 6f66556; resultado esperado em
+.codex-temp/wide-n02g-instrument-normative-20260922.json. Não fazer polling nem
+repetir; após espera, conferir hashes e preparar auditoria da aplicação se verde.
+Ampla concluída: 2.366 PASS/0 FAIL/10 SKIP esperados, valid=true/exit=0,
+candidate_unchanged=true, 596.407 ms. Heartbeat pausado. Evidência
+instrument-normative-validation.json e checker próprio verificam corpus inteiro
+contra Git 6f66556 e delta congelado. Não repetir a ampla. Auditoria do novo
+hash da aplicação ainda pendente; preparar commit sanitizado. Não extrapolar GO.
 
 Depois: reconciliar as demais leituras e estruturas das famílias
 de avaliadores, por regra causal geral, com REDs independentes da execução.

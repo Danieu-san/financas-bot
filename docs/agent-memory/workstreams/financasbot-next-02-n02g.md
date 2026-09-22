@@ -8,17 +8,19 @@ Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
 Estado vigente: correção e suporte de validação auditados em
 `8b66d1e6eac869cf7363beee3b2c1445840fb66e`, pai `be520f4f0cf64812c80f0f4b9b8eefb2a5445189`.
-HEAD publicado posterior (candidato da guarda de fonte de compensação):
-`0a8c5709a5234e95ddce212c0b571908dacf32bf`, pai
-`3fc0f3d83ac5e418a802ca93f097b0c7459fface`. Push confirmado.
+HEAD publicado posterior (proposta documental de autoria dos seis perfis):
+`6f66556a256577c1bcdbc9678090b91dc43536ec`, pai
+`0a8c5709a5234e95ddce212c0b571908dacf32bf`. Push confirmado.
 Desenhos refund, família e contagem APTO; código posterior ainda sem GO.
 Recibo: `../../audit-evidence/n02g-selection-phase/independent-review.md`.
 Revisão externa estática sem defeitos focais; execuções continuam locais.
 Ampla histórica preservada: 2.255 PASS, zero FAIL, dez SKIP esperados, referente
 ao candidato auditado. A reconciliação posterior instrument/statement passou
 pela ampla (2.363 PASS, zero FAIL, dez SKIP esperados) e foi ratificada
-focalmente em 3fc0f3d. Guarda do gerador ratificada em 0a8c570; próxima decisão
-é documental sobre o delta normativo, ainda não aplicado.
+focalmente em 3fc0f3d. Guarda do gerador ratificada em 0a8c570; proposta
+normativa 6f66556 recebeu APTO documental condicionado. Aplicação local dos
+cinco campos de seis derivações passou a ampla própria (2.366 PASS/0 FAIL/10
+SKIP esperados); commit e auditoria da aplicação em preparação, ainda sem GO.
 `releaseEligible=false`; inventário local agora registra 30
 módulos pendentes (inclui metricReferences), sem alterar os 15 hashes aprovados.
 Diagnóstico inicial pós-GO focal (incrementos atualizados abaixo): as quatro famílias existentes exercitam 73/76
@@ -264,6 +266,67 @@ Pré-requisito concluído: liberar proposta instrument-authoring-decision-v1
 apenas para revisão documental própria. Preparar commit exclusivamente
 documental, pai 0a8c570, e uma auditoria independente da regra/delta fechado.
 Os 76 grafos continuam intactos; não repetir a ampla para esse commit de docs.
+Proposta publicada em 6f66556a256577c1bcdbc9678090b91dc43536ec: quatro arquivos
+documentais, nenhum runtime/teste/grafo. Uma solicitação documental recebida
+pelo Chat em conversa limpa, revisão em andamento:
+https://chatgpt.com/g/g-p-6aae7fa3ad5c8191a8ace5a6d799fab4-financasbot/c/6ab1d24c-8d78-83e9-8a9b-577204cdb56d
+Não reenviar esse hash. Próxima ação: confrontar a decisão de autoria/delta
+com fontes locais; só implementar se APTO explícito para o recorte proposto.
+Parecer concluído: APTO DOCUMENTAL condicionado, sem achados; recibo local
+instrument-authoring-independent-review.md. O Chat fundamentou todas as classes
+do delta nos contratos/binding/claims/registries, mas não leu graphs-v2 integral
+nem recompôs hashes. Limite suprido nas verificações locais vinculantes, não
+atribuído ao auditor. Daniel reiterou continue antes da aplicação.
+AUTHOR-NORMATIVE-001 reproduziu RED no corpus antigo (S-05#1#1). Conferidos
+todos os documentos/fontes pinados contra 6f66556 e relatório histórico;
+recomputação independente igual antes da aplicação. Aplicação mecânica local
+via .codex-temp/applyInstrumentNormativeDelta.cjs: somente cinco campos de seis
+derivações; 70 outros grafos, proof/seleção e inventário material preservados.
+Manifesto .codex-temp/n02g-instrument-normative-application.json. Digest LF do
+corpus posterior: sha256:3354494ac13c6210e07a62f1e1472a33701fa6e2f0688b63112e7d5c1cd63ad2.
+Teste de autoria GREEN após aplicação, reconstrói o corpus original e seu
+digest ao repor apenas os seis registros congelados. AUTHOR-RECONCILE-001
+agora lê expected diretamente da normativa e o confronta com autoria
+independente antes de executar; seleção/R e trace adulterado continuam controles.
+Gerador/runtime/perfis JSON intactos, relatórios históricos não sobrescritos.
+README distingue aplicação externa revisada de autorização automática do gerador.
+Bateria hermética inicial de seis arquivos: 148 PASS/1 FAIL/0 SKIP, resultado
+preservado em .codex-temp/n02g-instrument-normative-affected.json. Única falha:
+TRACE-COMPAT-001 ainda fixava a contagem diagnóstica anterior ao delta aprovado.
+Confronto com os seis originais congelados identifica exatamente 166 casos
+edge-only removidos: 148 arestas deixam de ser exigidas e 18 mantidas passam
+a ter cobertura dos endpoints/reads. Demais 70 diagnósticos idênticos.
+Teste agora reconstrói a contagem anterior, confere essa composição e igualdade
+integral dos diagnósticos restantes; controle runtime S-01 e caso fail-closed
+preservados. Nova bateria concluída: 149 PASS/0 FAIL/0 SKIP, Node 22.17.0,
+em 2026-09-22T01:51:20.620Z; saídas exclusivas
+.codex-temp/n02g-instrument-normative-affected-v2.json e log. Seis candidatos
+gerados idênticos aos históricos; delta corrente zero. Syntax, diff-check e
+agent-workflow OK. Revisão adversarial do diff confirma limites e controles.
+Única ampla deste candidato iniciada em 2026-09-22T01:51:50.448Z, PID 20028,
+base 6f66556a256577c1bcdbc9678090b91dc43536ec, janela oculta. Wrapper
+.codex-temp/runWideInstrumentNormative20260922.cjs; prefixo de resultado,
+marcador -start.json e logs: .codex-temp/wide-n02g-instrument-normative-20260922.
+Marcador e processo confirmados uma vez. Três arquivos causais congelados:
+graphs-v2.json, authoringIndex.cases.js e README dos perfis. Sem runtime novo.
+Não acompanhar durante a espera de 20 minutos nem iniciar segunda suíte.
+Retomar pelo resultado existente, comparar hashes/Git; se verde, preparar
+evidência sanitizada e commit/publicação para auditoria independente da aplicação.
+Se falhar, preservar evidência e investigar somente a causa focal. Não declarar
+seis grafos aceitos. Heartbeat existente deve apontar esta execução, não a
+ampla anterior compensation-source já auditada; pausá-lo quando concluir.
+Consulta após a espera: ampla concluída em 2026-09-22T02:01:46.974Z,
+596.407 ms, valid=true/exit=0, 2.376 testes: 2.366 PASS/0 FAIL/10 SKIP
+esperados. candidate_unchanged=true e hashes atuais novamente conferidos.
+Heartbeat pausado; não repetir a ampla verde. Evidência sanitizada:
+../../audit-evidence/n02g-causal-authoring-profile/instrument-normative-validation.json.
+prepare-instrument-normative-evidence.cjs --check PASS: confronta corpus
+integral contra Git 6f66556 mais os cinco campos do relatório congelado;
+prova seis alterados/70 intactos e todas as demais partes preservadas.
+Não executa evaluator nem altera normativa; verifica registros, não reexecuta
+o passado. Arquivos de evidência adicionados depois da ampla não mudam código
+ou testes. Próximo passo: commit sanitizado/publicação e uma auditoria focal
+independente do novo hash, sem aceitação automática de grafos/N02-G.
 O parecer do gerador não aprova esse runtime posterior nem sua normativa.
 Não reenviar ace83e8 nem considerar sua ampla como prova da correção posterior.
 GO global/runtime, autenticação de host e demais reconciliações continuam

@@ -3,7 +3,16 @@
 2026-09-21. Implementação local do método documental revisado em
 `8b9c4fca93186c9f747ba1a868bf1616ba15d92a`. O APTO do método permite construir
 estes candidatos, não ratifica suas decisões semânticas ou seu delta. Nenhum
-perfil aqui é carregado pelo runtime nem aplicado a graphs-v2.json.
+perfil aqui é carregado pelo runtime; o gerador não aplica sua saída.
+
+Atualização 2026-09-21 (UTC 2026-09-22): a regra/delta fechado dos seis perfis
+recebeu APTO documental condicionado em 6f66556a256577c1bcdbc9678090b91dc43536ec.
+Aplicação externa local somente dos cinco campos derivacionais, preservando
+proof/seleção/inventário e os 70 outros grafos, está em validação; não é GO.
+Relatórios históricos abaixo permanecem congelados. Reexecutar o relatório
+sobre a nova autoria mantém os seis candidatos, mas produz delta zero;
+isso não torna normative_application_allowed verdadeiro nem aprova grafos.
+Decisão e condições: docs/plans/workstreams/financasbot-next-02-n02g-instrument-authoring-decision-v1.md.
 
 ## Escopo e decisões explícitas
 
