@@ -8,17 +8,17 @@ Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
 Estado vigente: correção e suporte de validação auditados em
 `8b66d1e6eac869cf7363beee3b2c1445840fb66e`, pai `be520f4f0cf64812c80f0f4b9b8eefb2a5445189`.
-HEAD publicado posterior (candidato da reconciliação instrument/statement):
-`3fc0f3d83ac5e418a802ca93f097b0c7459fface`, pai
-`ad43ba41f0558e9329b8e494c824672d21de4b5d`. Push confirmado.
+HEAD publicado posterior (candidato da guarda de fonte de compensação):
+`0a8c5709a5234e95ddce212c0b571908dacf32bf`, pai
+`3fc0f3d83ac5e418a802ca93f097b0c7459fface`. Push confirmado.
 Desenhos refund, família e contagem APTO; código posterior ainda sem GO.
 Recibo: `../../audit-evidence/n02g-selection-phase/independent-review.md`.
 Revisão externa estática sem defeitos focais; execuções continuam locais.
 Ampla histórica preservada: 2.255 PASS, zero FAIL, dez SKIP esperados, referente
 ao candidato auditado. A reconciliação posterior instrument/statement passou
 pela ampla (2.363 PASS, zero FAIL, dez SKIP esperados) e foi ratificada
-focalmente em 3fc0f3d. Nova guarda do gerador em validação local; não confundir
-com o runtime ratificado nem com aplicação normativa, ainda suspensa.
+focalmente em 3fc0f3d. Guarda do gerador ratificada em 0a8c570; próxima decisão
+é documental sobre o delta normativo, ainda não aplicado.
 `releaseEligible=false`; inventário local agora registra 30
 módulos pendentes (inclui metricReferences), sem alterar os 15 hashes aprovados.
 Diagnóstico inicial pós-GO focal (incrementos atualizados abaixo): as quatro famílias existentes exercitam 73/76
@@ -251,6 +251,19 @@ prepare-compensation-source-evidence.cjs --write-new/--check PASS na pasta
 n02g-causal-authoring-profile. Próxima ação: commit/publicação sanitizados e
 auditoria focal conforme compensation-source-audit-request.md. Não repetir
 a ampla nem submeter/aplicar a proposta normativa antes dessa ratificação.
+Candidato publicado em 0a8c5709a5234e95ddce212c0b571908dacf32bf (dez arquivos),
+quatro hashes causais do índice iguais aos testados; remoto confirmado. Uma
+solicitação automática recebida pelo Chat em conversa limpa, sem reenvio:
+https://chatgpt.com/g/g-p-6aae7fa3ad5c8191a8ace5a6d799fab4-financasbot/c/6ab1d067-5174-83e9-98da-64f841868f4c
+Próxima ação: confrontar parecer concluído com evidência local. Proposta
+normativa permanece arquivo local não publicado e não submetido neste hash.
+Parecer concluído APTO focal sem achados, hash/pai e fontes confirmados;
+ratificado contra RED/focais/108 afetados/ampla/hashes. Recibo
+compensation-source-independent-review.md. Nenhuma ratificação normativa.
+Pré-requisito concluído: liberar proposta instrument-authoring-decision-v1
+apenas para revisão documental própria. Preparar commit exclusivamente
+documental, pai 0a8c570, e uma auditoria independente da regra/delta fechado.
+Os 76 grafos continuam intactos; não repetir a ampla para esse commit de docs.
 O parecer do gerador não aprova esse runtime posterior nem sua normativa.
 Não reenviar ace83e8 nem considerar sua ampla como prova da correção posterior.
 GO global/runtime, autenticação de host e demais reconciliações continuam

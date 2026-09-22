@@ -906,6 +906,11 @@ SKIP esperados, quatro hashes causais intactos. Acompanhamento pausado.
 Pacote compensation-source-validation/compensation-source-audit-request na
 pasta n02g-causal-authoring-profile; próximo passo é publicação e revisão
 focal do novo hash. Proposta normativa ainda suspensa, sem aplicação.
+Guarda de fonte publicada em 0a8c5709a5234e95ddce212c0b571908dacf32bf e APTO
+focal ratificado; recibo compensation-source-independent-review.md. Liberada
+a submissão documental de instrument-authoring-decision-v1, não aplicação.
+Proposta fecha cinco campos de seis derivações e preserva todo o restante;
+submeter em hash exclusivamente documental antes de alterar qualquer grafo.
 
 Depois: reconciliar as demais leituras e estruturas das famílias
 de avaliadores, por regra causal geral, com REDs independentes da execução.
