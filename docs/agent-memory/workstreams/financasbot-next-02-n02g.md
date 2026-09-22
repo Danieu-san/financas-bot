@@ -1,6 +1,6 @@
 # N02-G — checkpoint
 
-Atualização: 2026-09-21. Estado: N02G-SB-001 COM GO FOCAL INDEPENDENTE RATIFICADO; SEM GO GLOBAL/EXECUTÁVEL N02-G.
+Atualização: 2026-09-22. Estado: N02G-SB-001 COM GO FOCAL INDEPENDENTE RATIFICADO; SEM GO GLOBAL/EXECUTÁVEL N02-G.
 Base: `aea4ac31e358ed8d8907e78f6002c8bb80233bc8`.
 Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
@@ -344,6 +344,22 @@ não atribuída ao Chat. A independência de expected já existia antes; a alter
 passa a consultar os cinco campos normativos aplicados. Flags permanecem falsas.
 Próxima ação exata: executar uma única sonda de cobertura atualizada, registrar
 o residual e delimitar a próxima regra causal geral, sem actual como expected.
+Recibo publicado em 69a385832876329afb4da73ffb5cc79d1ef94254 (docs apenas).
+Sonda única pós-aplicação: .codex-temp/coverage-instrument-normative-20260922.json,
+base limpa 69a3858, 73/76 exercitados, 73 seleções, 17 composições exatas,
+15.630 covered/58 invalid/0 unsupported. Restam 56 derivações divergentes e os
+três derivados não executados; não converter a contagem em percentual de GO.
+Próxima fatia delimitada: guardas de evidence_state em oito contratos v1.
+Proposta documental ../../plans/workstreams/financasbot-next-02-n02g-evidence-state-decision-v1.md;
+inventário evidence-state-proposal.json e helper prepare-evidence-state-proposal.cjs
+na pasta n02g-causal-authoring-profile. Somente adições propostas: 28 claim reads
+e seis budget reads. Predicados/reads de proof já existem, valores e roles
+conferidos sem evaluator/actual/oracle. Oito contratos e fontes pinados na base.
+O schema singleton de budget é limitação explícita: não fabricar witness
+projected admitido. Auditor deve decidir legitimidade causal das guardas, não
+aprová-las só porque o runtime lê. Nenhum grafo/runtime/perfil alterado.
+Próxima ação: publicar proposta e obter uma única revisão documental limpa;
+sem APTO, não aplicar as 34 adições. Nenhuma ampla nova para documentação.
 O parecer do gerador não aprova esse runtime posterior nem sua normativa.
 Não reenviar ace83e8 nem considerar sua ampla como prova da correção posterior.
 GO global/runtime, autenticação de host e demais reconciliações continuam

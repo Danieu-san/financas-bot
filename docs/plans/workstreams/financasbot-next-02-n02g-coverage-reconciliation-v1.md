@@ -934,6 +934,16 @@ Limite externo: graphs-v2 não lido integralmente, sem hashes/testes executados
 pelo auditor; lógica dos controles examinada independentemente e confronto
 integral executado localmente. Não extrapolar para aceitação de grafo ou GO.
 
+Sonda pós-aplicação, base limpa 69a385832876329afb4da73ffb5cc79d1ef94254:
+73/76 exercitados, 73 seleções coincidentes, 17 composições exatas,
+15.630 covered/58 invalid/0 unsupported. Registro temporário
+coverage-instrument-normative-20260922.json. Próxima regra proposta: leituras
+causais de evidence_state, 28 claims e seis budgets nos oito contratos v1
+fechados em financasbot-next-02-n02g-evidence-state-decision-v1.md. Inventário
+pinado extraído por contrato/role/predicados sem actual; nenhuma aplicação.
+Obter decisão documental sobre a necessidade das guardas, inclusive orçamento
+cujo schema só admite confirmed. Demais deltas permanecem fora desta fatia.
+
 Depois: reconciliar as demais leituras e estruturas das famílias
 de avaliadores, por regra causal geral, com REDs independentes da execução.
 Não derivar expected do actual, preencher reads sem uso causal, apagar extras,

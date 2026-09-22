@@ -1,0 +1,1600 @@
+{
+  "schema": "n02g-evidence-state-proposal-v1",
+  "base": "69a385832876329afb4da73ffb5cc79d1ef94254",
+  "stage": "documentary_proposal_not_applied",
+  "graph_accepted": false,
+  "normative_application_allowed": false,
+  "oracle_used": false,
+  "evaluator_executed": false,
+  "sources": [
+    {
+      "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+      "lf_sha256": "sha256:3354494ac13c6210e07a62f1e1472a33701fa6e2f0688b63112e7d5c1cd63ad2"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claims-v2.json",
+      "lf_sha256": "sha256:4810612761ea7f232e4445c0d192ae53ebf0761f0ba8752da758efb826b30494"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/metric-evaluator-registry-v1.json",
+      "lf_sha256": "sha256:577fe16b3d5a1dc2e24505de150001afd889408f5294a6834486de338d40a3a0"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claim-contract.schema.json",
+      "lf_sha256": "sha256:b69ef61b562061f057a9bf08f47623ae432c723f565e8775f3dbe6eb942ea998"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evidence-snapshot.schema.json",
+      "lf_sha256": "sha256:054a48930a5f25760f201e8b401f0f34f5a83672366acad6c9c09bdc0ce0b5ef"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/material-field-registry-v1.json",
+      "lf_sha256": "sha256:ee7ef3eff146bc2e9cea2cc986c398371acbff3cf35d858ced8386a9758a4d62"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/graph-binding-contract-v1.md",
+      "lf_sha256": "sha256:da90befb1f526048cfe14122cd8522690292508bebf42d60ea4ecd5838513a40"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/authoring-contract-v1.md",
+      "lf_sha256": "sha256:7040d3cee24341a15af3fb3ca6acf84df6a207b10af13828739f545f87ae1328"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-authoring-semantics-v1.md",
+      "lf_sha256": "sha256:720e31b2a8a7c0490adf620a8ccaedbe54e06d0502e518e61c8c69252a006a7f"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/temporal-relations-decision-v1.md",
+      "lf_sha256": "sha256:a6581b9533f25d6a8864091ffacda0119e2d93df323c37918bddb0c56e297f1e"
+    },
+    {
+      "path": "src/next/provenance/metricSelection.js",
+      "lf_sha256": "sha256:6df7519462d4aea07d936d370f68f9ea6a311ff545d97f683a5eec81bc3863b7"
+    },
+    {
+      "path": "src/next/provenance/metricDirectReads.js",
+      "lf_sha256": "sha256:2526b6eb373fc5265bf61798c85bf976011d3d77430858df75776306067ae3e8"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_total.json",
+      "lf_sha256": "sha256:4e07fd44f09a99168cd92d6a9caa664ef5c847146aae64905b859c4cf313be3a"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/category_consumption.json",
+      "lf_sha256": "sha256:b6e8edf05cb8acc7155bea56d84c4827c4fa9c97b54cacdc13805602468564a3"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/category_spent.json",
+      "lf_sha256": "sha256:f168ac80d9ac17abf516e76729105c03a6efcf1743bdd4459e94f0c75f851baa"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/income_realized.json",
+      "lf_sha256": "sha256:3098c37340e1c22e6137691c498c1e1b3756a8319f2187eb17fa0c16e8abedea"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/budget_class_consumption.json",
+      "lf_sha256": "sha256:e336d72e581c06401fd6ef3cc5b041b6c2b7ad56745fe25ff5980ca763ed8561"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/category_budget_remaining.json",
+      "lf_sha256": "sha256:4e4f9e38d7495397799578d1f73366d067ef5a5a7ca47879071dacd3669436c5"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/safe_daily_pace.json",
+      "lf_sha256": "sha256:195e3968cc2f7f7dd2e46fdcb2619c19892b5c56a27d0e3c62f76fe08ba9a14d"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/eligible_event_count.json",
+      "lf_sha256": "sha256:bf2a5e70c7cf661c8b983a2598ae4142567ce9e1b97e34985851b77dcf0e7937"
+    }
+  ],
+  "contracts": [
+    {
+      "evaluator_id": "consumption_total",
+      "evaluator_version": 1,
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_total.json",
+      "contract_sha256": "sha256:4e07fd44f09a99168cd92d6a9caa664ef5c847146aae64905b859c4cf313be3a",
+      "claim_state": "confirmed",
+      "budget_state": null,
+      "claims": 7
+    },
+    {
+      "evaluator_id": "category_consumption",
+      "evaluator_version": 1,
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/category_consumption.json",
+      "contract_sha256": "sha256:b6e8edf05cb8acc7155bea56d84c4827c4fa9c97b54cacdc13805602468564a3",
+      "claim_state": "confirmed",
+      "budget_state": null,
+      "claims": 6
+    },
+    {
+      "evaluator_id": "category_spent",
+      "evaluator_version": 1,
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/category_spent.json",
+      "contract_sha256": "sha256:f168ac80d9ac17abf516e76729105c03a6efcf1743bdd4459e94f0c75f851baa",
+      "claim_state": "confirmed",
+      "budget_state": null,
+      "claims": 3
+    },
+    {
+      "evaluator_id": "income_realized",
+      "evaluator_version": 1,
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/income_realized.json",
+      "contract_sha256": "sha256:3098c37340e1c22e6137691c498c1e1b3756a8319f2187eb17fa0c16e8abedea",
+      "claim_state": "confirmed",
+      "budget_state": null,
+      "claims": 1
+    },
+    {
+      "evaluator_id": "budget_class_consumption",
+      "evaluator_version": 1,
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/budget_class_consumption.json",
+      "contract_sha256": "sha256:e336d72e581c06401fd6ef3cc5b041b6c2b7ad56745fe25ff5980ca763ed8561",
+      "claim_state": "confirmed",
+      "budget_state": null,
+      "claims": 2
+    },
+    {
+      "evaluator_id": "category_budget_remaining",
+      "evaluator_version": 1,
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/category_budget_remaining.json",
+      "contract_sha256": "sha256:4e4f9e38d7495397799578d1f73366d067ef5a5a7ca47879071dacd3669436c5",
+      "claim_state": "confirmed",
+      "budget_state": "confirmed",
+      "claims": 4
+    },
+    {
+      "evaluator_id": "safe_daily_pace",
+      "evaluator_version": 1,
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/safe_daily_pace.json",
+      "contract_sha256": "sha256:195e3968cc2f7f7dd2e46fdcb2619c19892b5c56a27d0e3c62f76fe08ba9a14d",
+      "claim_state": "estimated",
+      "budget_state": "confirmed",
+      "claims": 2
+    },
+    {
+      "evaluator_id": "eligible_event_count",
+      "evaluator_version": 1,
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/eligible_event_count.json",
+      "contract_sha256": "sha256:bf2a5e70c7cf661c8b983a2598ae4142567ce9e1b97e34985851b77dcf0e7937",
+      "claim_state": "confirmed",
+      "budget_state": null,
+      "claims": 3
+    }
+  ],
+  "totals": {
+    "graphs": 76,
+    "proposed_graphs": 28,
+    "outside_scope": 48,
+    "added_claim_reads": 28,
+    "added_snapshot_reads": 6,
+    "removals": 0,
+    "node_edge_structural_selection_changes": 0
+  },
+  "records": [
+    {
+      "fact_key": "S-01#1#1",
+      "metric": "consumption_total",
+      "evaluator_ref": {
+        "evaluator_id": "consumption_total",
+        "evaluator_version": 1
+      },
+      "claim_evidence_state": "confirmed",
+      "context_binding": {
+        "kind": "claim_context"
+      },
+      "budget_binding": null,
+      "existing_state_predicates": [
+        {
+          "id": "binding_4",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        }
+      ],
+      "add_required_claim_reads": [
+        {
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ],
+      "add_required_reads": []
+    },
+    {
+      "fact_key": "S-02#1#1",
+      "metric": "consumption_total",
+      "evaluator_ref": {
+        "evaluator_id": "consumption_total",
+        "evaluator_version": 1
+      },
+      "claim_evidence_state": "confirmed",
+      "context_binding": {
+        "kind": "claim_context"
+      },
+      "budget_binding": null,
+      "existing_state_predicates": [
+        {
+          "id": "binding_4",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        }
+      ],
+      "add_required_claim_reads": [
+        {
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ],
+      "add_required_reads": []
+    },
+    {
+      "fact_key": "M-01#1#1",
+      "metric": "consumption_total",
+      "evaluator_ref": {
+        "evaluator_id": "consumption_total",
+        "evaluator_version": 1
+      },
+      "claim_evidence_state": "confirmed",
+      "context_binding": {
+        "kind": "claim_context"
+      },
+      "budget_binding": null,
+      "existing_state_predicates": [
+        {
+          "id": "binding_4",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        }
+      ],
+      "add_required_claim_reads": [
+        {
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ],
+      "add_required_reads": []
+    },
+    {
+      "fact_key": "M-01#1#2",
+      "metric": "consumption_total",
+      "evaluator_ref": {
+        "evaluator_id": "consumption_total",
+        "evaluator_version": 1
+      },
+      "claim_evidence_state": "confirmed",
+      "context_binding": {
+        "kind": "claim_context"
+      },
+      "budget_binding": null,
+      "existing_state_predicates": [
+        {
+          "id": "binding_4",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        }
+      ],
+      "add_required_claim_reads": [
+        {
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ],
+      "add_required_reads": []
+    },
+    {
+      "fact_key": "M-07#1#1",
+      "metric": "consumption_total",
+      "evaluator_ref": {
+        "evaluator_id": "consumption_total",
+        "evaluator_version": 1
+      },
+      "claim_evidence_state": "confirmed",
+      "context_binding": {
+        "kind": "claim_context"
+      },
+      "budget_binding": null,
+      "existing_state_predicates": [
+        {
+          "id": "binding_4",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        }
+      ],
+      "add_required_claim_reads": [
+        {
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ],
+      "add_required_reads": []
+    },
+    {
+      "fact_key": "M-12#1#1",
+      "metric": "consumption_total",
+      "evaluator_ref": {
+        "evaluator_id": "consumption_total",
+        "evaluator_version": 1
+      },
+      "claim_evidence_state": "confirmed",
+      "context_binding": {
+        "kind": "claim_context"
+      },
+      "budget_binding": null,
+      "existing_state_predicates": [
+        {
+          "id": "binding_4",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        }
+      ],
+      "add_required_claim_reads": [
+        {
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ],
+      "add_required_reads": []
+    },
+    {
+      "fact_key": "F-02#1#1",
+      "metric": "consumption_total",
+      "evaluator_ref": {
+        "evaluator_id": "consumption_total",
+        "evaluator_version": 1
+      },
+      "claim_evidence_state": "confirmed",
+      "context_binding": {
+        "kind": "claim_context"
+      },
+      "budget_binding": null,
+      "existing_state_predicates": [
+        {
+          "id": "binding_4",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        }
+      ],
+      "add_required_claim_reads": [
+        {
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ],
+      "add_required_reads": []
+    },
+    {
+      "fact_key": "S-03#1#1",
+      "metric": "category_consumption",
+      "evaluator_ref": {
+        "evaluator_id": "category_consumption",
+        "evaluator_version": 1
+      },
+      "claim_evidence_state": "confirmed",
+      "context_binding": {
+        "kind": "claim_context"
+      },
+      "budget_binding": null,
+      "existing_state_predicates": [
+        {
+          "id": "binding_4",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        }
+      ],
+      "add_required_claim_reads": [
+        {
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ],
+      "add_required_reads": []
+    },
+    {
+      "fact_key": "F-01#1#1",
+      "metric": "category_consumption",
+      "evaluator_ref": {
+        "evaluator_id": "category_consumption",
+        "evaluator_version": 1
+      },
+      "claim_evidence_state": "confirmed",
+      "context_binding": {
+        "kind": "claim_context"
+      },
+      "budget_binding": null,
+      "existing_state_predicates": [
+        {
+          "id": "binding_4",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        }
+      ],
+      "add_required_claim_reads": [
+        {
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ],
+      "add_required_reads": []
+    },
+    {
+      "fact_key": "F-01#2#1",
+      "metric": "category_consumption",
+      "evaluator_ref": {
+        "evaluator_id": "category_consumption",
+        "evaluator_version": 1
+      },
+      "claim_evidence_state": "confirmed",
+      "context_binding": {
+        "kind": "claim_context"
+      },
+      "budget_binding": null,
+      "existing_state_predicates": [
+        {
+          "id": "binding_4",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        }
+      ],
+      "add_required_claim_reads": [
+        {
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ],
+      "add_required_reads": []
+    },
+    {
+      "fact_key": "F-04#1#1",
+      "metric": "category_consumption",
+      "evaluator_ref": {
+        "evaluator_id": "category_consumption",
+        "evaluator_version": 1
+      },
+      "claim_evidence_state": "confirmed",
+      "context_binding": {
+        "kind": "claim_context"
+      },
+      "budget_binding": null,
+      "existing_state_predicates": [
+        {
+          "id": "binding_4",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        }
+      ],
+      "add_required_claim_reads": [
+        {
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ],
+      "add_required_reads": []
+    },
+    {
+      "fact_key": "F-05#1#1",
+      "metric": "category_consumption",
+      "evaluator_ref": {
+        "evaluator_id": "category_consumption",
+        "evaluator_version": 1
+      },
+      "claim_evidence_state": "confirmed",
+      "context_binding": {
+        "kind": "claim_context"
+      },
+      "budget_binding": null,
+      "existing_state_predicates": [
+        {
+          "id": "binding_4",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        }
+      ],
+      "add_required_claim_reads": [
+        {
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ],
+      "add_required_reads": []
+    },
+    {
+      "fact_key": "F-05#2#1",
+      "metric": "category_consumption",
+      "evaluator_ref": {
+        "evaluator_id": "category_consumption",
+        "evaluator_version": 1
+      },
+      "claim_evidence_state": "confirmed",
+      "context_binding": {
+        "kind": "claim_context"
+      },
+      "budget_binding": null,
+      "existing_state_predicates": [
+        {
+          "id": "binding_4",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        }
+      ],
+      "add_required_claim_reads": [
+        {
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ],
+      "add_required_reads": []
+    },
+    {
+      "fact_key": "M-08#1#1",
+      "metric": "category_spent",
+      "evaluator_ref": {
+        "evaluator_id": "category_spent",
+        "evaluator_version": 1
+      },
+      "claim_evidence_state": "confirmed",
+      "context_binding": {
+        "kind": "claim_context"
+      },
+      "budget_binding": null,
+      "existing_state_predicates": [
+        {
+          "id": "binding_4",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        }
+      ],
+      "add_required_claim_reads": [
+        {
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ],
+      "add_required_reads": []
+    },
+    {
+      "fact_key": "M-13#1#1",
+      "metric": "category_spent",
+      "evaluator_ref": {
+        "evaluator_id": "category_spent",
+        "evaluator_version": 1
+      },
+      "claim_evidence_state": "confirmed",
+      "context_binding": {
+        "kind": "claim_context"
+      },
+      "budget_binding": null,
+      "existing_state_predicates": [
+        {
+          "id": "binding_4",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        }
+      ],
+      "add_required_claim_reads": [
+        {
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ],
+      "add_required_reads": []
+    },
+    {
+      "fact_key": "M-13#1#4",
+      "metric": "category_spent",
+      "evaluator_ref": {
+        "evaluator_id": "category_spent",
+        "evaluator_version": 1
+      },
+      "claim_evidence_state": "confirmed",
+      "context_binding": {
+        "kind": "claim_context"
+      },
+      "budget_binding": null,
+      "existing_state_predicates": [
+        {
+          "id": "binding_4",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        }
+      ],
+      "add_required_claim_reads": [
+        {
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ],
+      "add_required_reads": []
+    },
+    {
+      "fact_key": "M-14#1#1",
+      "metric": "income_realized",
+      "evaluator_ref": {
+        "evaluator_id": "income_realized",
+        "evaluator_version": 1
+      },
+      "claim_evidence_state": "confirmed",
+      "context_binding": {
+        "kind": "claim_context"
+      },
+      "budget_binding": null,
+      "existing_state_predicates": [
+        {
+          "id": "binding_4",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        }
+      ],
+      "add_required_claim_reads": [
+        {
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ],
+      "add_required_reads": []
+    },
+    {
+      "fact_key": "M-03#1#1",
+      "metric": "budget_class_consumption",
+      "evaluator_ref": {
+        "evaluator_id": "budget_class_consumption",
+        "evaluator_version": 1
+      },
+      "claim_evidence_state": "confirmed",
+      "context_binding": {
+        "kind": "claim_context"
+      },
+      "budget_binding": null,
+      "existing_state_predicates": [
+        {
+          "id": "binding_4",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        }
+      ],
+      "add_required_claim_reads": [
+        {
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ],
+      "add_required_reads": []
+    },
+    {
+      "fact_key": "M-03#1#2",
+      "metric": "budget_class_consumption",
+      "evaluator_ref": {
+        "evaluator_id": "budget_class_consumption",
+        "evaluator_version": 1
+      },
+      "claim_evidence_state": "confirmed",
+      "context_binding": {
+        "kind": "claim_context"
+      },
+      "budget_binding": null,
+      "existing_state_predicates": [
+        {
+          "id": "binding_4",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        }
+      ],
+      "add_required_claim_reads": [
+        {
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ],
+      "add_required_reads": []
+    },
+    {
+      "fact_key": "M-08#1#2",
+      "metric": "category_budget_remaining",
+      "evaluator_ref": {
+        "evaluator_id": "category_budget_remaining",
+        "evaluator_version": 1
+      },
+      "claim_evidence_state": "confirmed",
+      "context_binding": {
+        "kind": "claim_context"
+      },
+      "budget_binding": {
+        "kind": "node",
+        "alias": "budget_snack"
+      },
+      "existing_state_predicates": [
+        {
+          "id": "binding_4",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        },
+        {
+          "id": "temporal_1",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "field": {
+                "node": "budget_snack",
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        }
+      ],
+      "add_required_claim_reads": [
+        {
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ],
+      "add_required_reads": [
+        {
+          "node": "budget_snack",
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ]
+    },
+    {
+      "fact_key": "M-13#1#2",
+      "metric": "category_budget_remaining",
+      "evaluator_ref": {
+        "evaluator_id": "category_budget_remaining",
+        "evaluator_version": 1
+      },
+      "claim_evidence_state": "confirmed",
+      "context_binding": {
+        "kind": "claim_context"
+      },
+      "budget_binding": {
+        "kind": "node",
+        "alias": "budget_snack"
+      },
+      "existing_state_predicates": [
+        {
+          "id": "binding_4",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        },
+        {
+          "id": "temporal_1",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "field": {
+                "node": "budget_snack",
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        }
+      ],
+      "add_required_claim_reads": [
+        {
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ],
+      "add_required_reads": [
+        {
+          "node": "budget_snack",
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ]
+    },
+    {
+      "fact_key": "M-13#1#5",
+      "metric": "category_budget_remaining",
+      "evaluator_ref": {
+        "evaluator_id": "category_budget_remaining",
+        "evaluator_version": 1
+      },
+      "claim_evidence_state": "confirmed",
+      "context_binding": {
+        "kind": "claim_context"
+      },
+      "budget_binding": {
+        "kind": "node",
+        "alias": "budget_leisure"
+      },
+      "existing_state_predicates": [
+        {
+          "id": "binding_4",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        },
+        {
+          "id": "temporal_1",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "field": {
+                "node": "budget_leisure",
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        }
+      ],
+      "add_required_claim_reads": [
+        {
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ],
+      "add_required_reads": [
+        {
+          "node": "budget_leisure",
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ]
+    },
+    {
+      "fact_key": "F-04#2#1",
+      "metric": "category_budget_remaining",
+      "evaluator_ref": {
+        "evaluator_id": "category_budget_remaining",
+        "evaluator_version": 1
+      },
+      "claim_evidence_state": "confirmed",
+      "context_binding": {
+        "kind": "claim_context"
+      },
+      "budget_binding": {
+        "kind": "node",
+        "alias": "budget_snack"
+      },
+      "existing_state_predicates": [
+        {
+          "id": "binding_4",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        },
+        {
+          "id": "temporal_1",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "field": {
+                "node": "budget_snack",
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        }
+      ],
+      "add_required_claim_reads": [
+        {
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ],
+      "add_required_reads": [
+        {
+          "node": "budget_snack",
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ]
+    },
+    {
+      "fact_key": "M-13#1#3",
+      "metric": "safe_daily_pace",
+      "evaluator_ref": {
+        "evaluator_id": "safe_daily_pace",
+        "evaluator_version": 1
+      },
+      "claim_evidence_state": "estimated",
+      "context_binding": {
+        "kind": "claim_context"
+      },
+      "budget_binding": {
+        "kind": "node",
+        "alias": "budget_snack"
+      },
+      "existing_state_predicates": [
+        {
+          "id": "binding_4",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "estimated"
+              }
+            }
+          ]
+        },
+        {
+          "id": "temporal_1",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "field": {
+                "node": "budget_snack",
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        }
+      ],
+      "add_required_claim_reads": [
+        {
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ],
+      "add_required_reads": [
+        {
+          "node": "budget_snack",
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ]
+    },
+    {
+      "fact_key": "M-13#1#6",
+      "metric": "safe_daily_pace",
+      "evaluator_ref": {
+        "evaluator_id": "safe_daily_pace",
+        "evaluator_version": 1
+      },
+      "claim_evidence_state": "estimated",
+      "context_binding": {
+        "kind": "claim_context"
+      },
+      "budget_binding": {
+        "kind": "node",
+        "alias": "budget_leisure"
+      },
+      "existing_state_predicates": [
+        {
+          "id": "binding_4",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "estimated"
+              }
+            }
+          ]
+        },
+        {
+          "id": "temporal_1",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "field": {
+                "node": "budget_leisure",
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        }
+      ],
+      "add_required_claim_reads": [
+        {
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ],
+      "add_required_reads": [
+        {
+          "node": "budget_leisure",
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ]
+    },
+    {
+      "fact_key": "S-13#1#1",
+      "metric": "eligible_event_count",
+      "evaluator_ref": {
+        "evaluator_id": "eligible_event_count",
+        "evaluator_version": 1
+      },
+      "claim_evidence_state": "confirmed",
+      "context_binding": {
+        "kind": "claim_context"
+      },
+      "budget_binding": null,
+      "existing_state_predicates": [
+        {
+          "id": "binding_4",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        }
+      ],
+      "add_required_claim_reads": [
+        {
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ],
+      "add_required_reads": []
+    },
+    {
+      "fact_key": "M-09#1#1",
+      "metric": "eligible_event_count",
+      "evaluator_ref": {
+        "evaluator_id": "eligible_event_count",
+        "evaluator_version": 1
+      },
+      "claim_evidence_state": "confirmed",
+      "context_binding": {
+        "kind": "claim_context"
+      },
+      "budget_binding": null,
+      "existing_state_predicates": [
+        {
+          "id": "binding_4",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        }
+      ],
+      "add_required_claim_reads": [
+        {
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ],
+      "add_required_reads": []
+    },
+    {
+      "fact_key": "N-04#1#1",
+      "metric": "eligible_event_count",
+      "evaluator_ref": {
+        "evaluator_id": "eligible_event_count",
+        "evaluator_version": 1
+      },
+      "claim_evidence_state": "confirmed",
+      "context_binding": {
+        "kind": "claim_context"
+      },
+      "budget_binding": null,
+      "existing_state_predicates": [
+        {
+          "id": "binding_4",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "evidence_state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        }
+      ],
+      "add_required_claim_reads": [
+        {
+          "segments": [
+            "evidence_state"
+          ]
+        }
+      ],
+      "add_required_reads": []
+    }
+  ]
+}
