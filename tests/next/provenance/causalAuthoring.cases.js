@@ -418,6 +418,34 @@ test('N02G:AUTHOR-GENERATE-010 same instrument ID at another admitted version ca
     }
 });
 
+test('N02G:AUTHOR-GENERATE-011 compensation source must be expense before financial exclusion', () => {
+    for (const metric of ['consumption_by_instrument', 'statement_total']) {
+        const original = corpusAuthorities(metric);
+        for (const originalClaim of original.claims) for (const sourceClass of ['income', 'neutral']) {
+            for (const state of ['confirmed', 'projected']) {
+                const f = corpusAuthorities(metric); const claim = structuredClone(originalClaim);
+                const graph = structuredClone(f.graphs.find(g => g.fact_key === claim.fact_key));
+                const link = graph.edges.find(e => e.field === 'compensates' && claim.operand_bindings.events.aliases.includes(e.source));
+                assert.ok(link);
+                const sourceCategory = graph.edges.find(e => e.source === link.target && e.field === 'category_id');
+                assert.ok(sourceCategory);
+                const manifest = JSON.parse(f.documents.find(d => d.path === f.paths.snapshot_manifest).content);
+                const categoryAlias = claim.operand_bindings.categories.aliases.find(alias => manifest.snapshots.some(s =>
+                    s.kind === 'category' && s.ref_id === graph.nodes[alias].ref_id && s.payload.kind === sourceClass));
+                assert.ok(categoryAlias);
+                sourceCategory.target = categoryAlias;
+                mutateSnapshot(f, 'event', graph.nodes[link.target].ref_id, p => { p.category_id = graph.nodes[categoryAlias].ref_id; });
+                mutateSnapshot(f, 'event', graph.nodes[link.source].ref_id, p => { p.state = state; });
+                const input = project({ graph, claim });
+                // Valid typed material inputs, not authenticated external sources.
+                assert.equal(validate(input, f).stage, 'causal_authoring_inputs_validated_only');
+                assert.throws(() => generate(input, f), /causal_authoring_program_compensation_source_class/,
+                    `${claim.fact_key}: ${sourceClass}/${state} source must fail before filtering`);
+            }
+        }
+    }
+});
+
 test('N02G:AUTHOR-GENERATE-009 an absent optional instrument reference still has an obligation but no invented read or traversal', () => {
     const f = corpusAuthorities(); const claim = f.claims.find(c => c.subject.kind === 'account');
     const graph = f.graphs.find(g => g.fact_key === claim.fact_key); const input = project({ graph, claim });

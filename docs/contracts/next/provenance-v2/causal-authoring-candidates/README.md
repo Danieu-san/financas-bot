@@ -23,6 +23,9 @@ aborta, inclusive quando um campo opcional não está presente nos dados.
    A categoria efetiva da compensação vem de sua fonte. Cadeia de compensações
    e categoria incoerente abortam. Todas essas guardas são observadas antes de
    filtrar financeiramente; esta é uma decisão explícita do perfil candidato.
+   A fonte de compensação deve ter a classe elegível expense; income/neutral
+   não podem apenas excluir a contribuição silenciosamente. Essa guarda vale
+   também quando a compensação tem estado projected ou está fora do escopo.
 6. Declarar a leitura de amount_minor apenas para contribuições elegíveis.
    Não somar, emitir R ou impor nova aceitação financeira por magnitude/sinal;
    essas responsabilidades continuam nos gates próprios. Valores materiais

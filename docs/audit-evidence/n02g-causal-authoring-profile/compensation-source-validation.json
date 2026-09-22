@@ -1,0 +1,163 @@
+{
+  "schema": "n02g-compensation-source-validation-v1",
+  "status": "candidate_awaiting_independent_audit",
+  "evidence_kind": "locally_executed_not_external_verdict",
+  "base": "3fc0f3d83ac5e418a802ca93f097b0c7459fface",
+  "graph_accepted": false,
+  "releaseEligible": false,
+  "normative_delta_applied": false,
+  "correction": "reject compensation source class other than eligible_class before financial filtering",
+  "red_observed": {
+    "test": "AUTHOR-GENERATE-011",
+    "fact_key": "M-02#1#1",
+    "source_class": "income",
+    "state": "confirmed",
+    "failure": "Missing expected exception: source must fail before filtering"
+  },
+  "focal": {
+    "tests": 2,
+    "pass": 2,
+    "fail": 0,
+    "skipped": 0,
+    "generator_cases": 24,
+    "runtime_cases": 8
+  },
+  "affected": {
+    "recorded_at": "2026-09-22T00:15:47.718Z",
+    "node": "22.17.0",
+    "scope": "affected_only_not_wide",
+    "files": [
+      "tests/next/provenance/metricSelection.cases.js",
+      "tests/next/provenance/authoringIndex.cases.js",
+      "tests/next/provenance/causalAuthoring.cases.js"
+    ],
+    "exit_status": 0,
+    "tap": {
+      "tests": 108,
+      "suites": 0,
+      "pass": 108,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "coverage": {
+      "line_percent": 92.92,
+      "branch_percent": 81.46,
+      "function_percent": 94.04,
+      "uncovered_lines": ""
+    },
+    "failures": [],
+    "original_six_candidate_reports_unchanged": true
+  },
+  "wide": {
+    "recorded_at": "2026-09-22T00:30:05.333Z",
+    "started_at": "2026-09-22T00:20:48.607Z",
+    "node": "22.17.0",
+    "source_head": "3fc0f3d83ac5e418a802ca93f097b0c7459fface",
+    "candidate_files": [
+      {
+        "path": "docs/contracts/next/provenance-v2/causal-authoring-candidates/README.md",
+        "raw_sha256": "sha256:c59980a4803cda7e6861354abdb494c76b9f930779e0ae85435343f8b9e4b5ac",
+        "lf_sha256": "sha256:c59980a4803cda7e6861354abdb494c76b9f930779e0ae85435343f8b9e4b5ac"
+      },
+      {
+        "path": "scripts/agent/nextCausalAuthoring.cjs",
+        "raw_sha256": "sha256:5ee96e8c4cb0920967d46faadfc8356b0cf70627e17cb15a026f073af37f0085",
+        "lf_sha256": "sha256:5ee96e8c4cb0920967d46faadfc8356b0cf70627e17cb15a026f073af37f0085"
+      },
+      {
+        "path": "tests/next/provenance/causalAuthoring.cases.js",
+        "raw_sha256": "sha256:e296c2d508a887372393d7e6eea7fd99e05e433b4d22efc18d4152cc84eca900",
+        "lf_sha256": "sha256:e296c2d508a887372393d7e6eea7fd99e05e433b4d22efc18d4152cc84eca900"
+      },
+      {
+        "path": "tests/next/provenance/metricSelection.cases.js",
+        "raw_sha256": "sha256:a3ae7b5bef496f31d441de6e786df1d90fee44de0d6c53d466c485463ee666d6",
+        "lf_sha256": "sha256:a3ae7b5bef496f31d441de6e786df1d90fee44de0d6c53d466c485463ee666d6"
+      }
+    ],
+    "candidate_unchanged": true,
+    "duration_ms": 556659,
+    "local_only": true,
+    "network_guard_scope": [
+      "fetch",
+      "http",
+      "https",
+      "net",
+      "node_descendants",
+      "non_node_subprocesses_except_audited_local_git_and_tar"
+    ],
+    "test_files": 165,
+    "discovered_test_files": 183,
+    "exit_status": 0,
+    "signal": null,
+    "valid": true,
+    "validation_reasons": [],
+    "tap": {
+      "tests": 2375,
+      "suites": 0,
+      "pass": 2365,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 10,
+      "todo": 0
+    },
+    "coverage": {
+      "line_percent": 92.39,
+      "branch_percent": 78.66,
+      "function_percent": 92.85,
+      "uncovered_lines": ""
+    },
+    "failures": [],
+    "skipped_tests": [
+      "instalador executa install e uninstall restaurando bytes preexistentes",
+      "install adota bloco existente e preserva integralmente os bytes atuais",
+      "install recusa adocao quando backup diverge apenas por BOM sem mutar config",
+      "uninstall recusa configuracao alterada e preserva o arquivo atual",
+      "uninstall recusa divergencia somente de BOM e preserva bytes atuais",
+      "functional: consent, onboarding, settings and dashboard",
+      "functional: expenses, income and credit card installments",
+      "functional: goals, debts, payments and reminders",
+      "functional: analytics, deletion, admin and fallback",
+      "functional: complex analytics handles typos, counts, duplicates and min/max"
+    ]
+  },
+  "unchanged": [
+    {
+      "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+      "lf_sha256": "sha256:9502527469cc0e5fbc224e0ebdc6e088f13b4666b61562f651feb506c8666c48"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claims-v2.json",
+      "lf_sha256": "sha256:4810612761ea7f232e4445c0d192ae53ebf0761f0ba8752da758efb826b30494"
+    },
+    {
+      "path": "src/next/provenance/metricSelection.js",
+      "lf_sha256": "sha256:6df7519462d4aea07d936d370f68f9ea6a311ff545d97f683a5eec81bc3863b7"
+    },
+    {
+      "path": "scripts/agent/reportNextCausalAuthoring.cjs",
+      "lf_sha256": "sha256:f7e4da37b2b49af3038511a6cbdb8969528aecdcdd85c1c31de0c4e7e9b98c97"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/candidate-report.json",
+      "lf_sha256": "sha256:0140b589491ea40a1f315b744f338b84d987656707e62cb798b420d991eec012"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/source-extract.json",
+      "lf_sha256": "sha256:ab07fc9265c7412943fb814be96b71b3e6eb237f6b6e12f4ccf7b5c6e119363f"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/causal-authoring-candidates/consumption-by-instrument-profile-v1.json",
+      "lf_sha256": "sha256:4c2be2d8f773b85e008d8f476d37196bdab9b0bac58848c616294f685fcda99a"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/causal-authoring-candidates/statement-total-profile-v1.json",
+      "lf_sha256": "sha256:12cd0fa53fb62121068cdb85ededa91a0b5faec6976d2a9eb3a8045502485723"
+    }
+  ],
+  "original_six_candidate_reports_unchanged": true,
+  "source_graph_count": 76,
+  "note": "Helper added after final wide run; no causal source/test changed afterwards. Check validates saved records/current bytes, not past execution. Synthetic mutants do not authenticate sources or host. No normative application."
+}

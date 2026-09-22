@@ -508,6 +508,7 @@ function interpretCandidate(input, profile) {
                     const source = resolve(alias, op.compensation_field, op.kind, op.role);
                     if (source.id === node.id || presence(source.alias, op.compensation_field, op.role)) fail('program_compensation_chain');
                     effectiveClass = category(source.alias);
+                    if (effectiveClass !== op.eligible_class) fail('program_compensation_source_class');
                 } else if (ownClass === op.compensation_class) fail('program_compensation_source');
                 // Observe ALL declared guards first; no implicit short circuit
                 // changes obligations for an excluded financial candidate.

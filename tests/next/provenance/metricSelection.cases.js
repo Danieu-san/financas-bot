@@ -167,6 +167,25 @@ test('N02G:INSTRUMENT-PROFILE-002 inconsistent compensation presence and chains 
     }
 });
 
+test('N02G:INSTRUMENT-PROFILE-003 non-expense compensation sources fail even for excluded refunds', () => {
+    for (const mode of ['instrument', 'statement']) for (const sourceClass of ['income', 'neutral']) {
+        for (const state of ['confirmed', 'projected']) {
+            const rows = [
+                { id: 'original', date: '2042-06-01', state: 'confirmed', person_id: 'p1', category_id: 'source-class', amount_minor: 100, card_id: 'instrument' },
+                { id: 'refund', date: '2042-06-03', state, person_id: 'p2', category_id: 'refund-kind', amount_minor: 25, card_id: 'instrument', compensates: 'original' }
+            ];
+            const f = compensationFixture(mode, rows, { categories: [
+                { id: 'source-class', kind: sourceClass }, { id: 'refund-kind', kind: 'compensation' }
+            ] });
+            try {
+                assert.throws(() => evaluateEconomicMetric(f.operands, mode), /access_set_predicate_threw/);
+                assert.ok(f.observations.some(e => e[1] === 'traverse' && e[2] === 'refund' && e[4][0] === 'compensates'));
+                assert.equal(f.observations.some(e => e[1] === 'get' && e[4][0] === 'amount_minor'), false);
+            } finally { for (const c of f.controls) c.revoke(); }
+        }
+    }
+});
+
 test('N02G:SCALAR-REFERENCE-002 unresolved ownership fails even for financially excluded candidates', () => {
     for (const omitOwnerLink of ['purchase', 'future', 'old', 'other-person']) {
         const f = fixture({ omitOwnerLink });

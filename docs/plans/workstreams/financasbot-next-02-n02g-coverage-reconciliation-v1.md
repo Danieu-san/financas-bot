@@ -891,6 +891,21 @@ sanitizada e checker próprios reconciliation-validation.json e
 prepare-reconciliation-evidence.cjs; pedido reconciliation-audit-request.md.
 Commit/publicação e auditoria focal são a próxima fronteira; nenhuma aplicação
 normativa e nenhuma aceitação integral de grafo decorrem desse verde.
+Reconciliação publicada e APTO focal ratificado em
+3fc0f3d83ac5e418a802ca93f097b0c7459fface; recibo
+reconciliation-independent-review.md. Proposta de aplicação normativa
+instrument-authoring-decision-v1 preparada, mas NÃO submetida: inspeção
+prévia encontrou gerador aceitando fonte income/neutral de compensação sem
+erro. AUTHOR-GENERATE-011 RED (Missing expected exception em M-02#1#1),
+guarda geral adicionada antes do filtro, dois focais PASS. Runtime já rejeita
+esses casos, comportamento reforçado em INSTRUMENT-PROFILE-003. Seis candidatos
+continuam idênticos. Validar/auditar essa correção antes da decisão normativa;
+nenhum APTO anterior a cobre. Bateria afetada e ampla próprias no checkpoint.
+Correção da fonte validada: 108 afetados PASS e ampla 2.365 PASS/0 FAIL/10
+SKIP esperados, quatro hashes causais intactos. Acompanhamento pausado.
+Pacote compensation-source-validation/compensation-source-audit-request na
+pasta n02g-causal-authoring-profile; próximo passo é publicação e revisão
+focal do novo hash. Proposta normativa ainda suspensa, sem aplicação.
 
 Depois: reconciliar as demais leituras e estruturas das famílias
 de avaliadores, por regra causal geral, com REDs independentes da execução.

@@ -8,15 +8,17 @@ Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
 Estado vigente: correção e suporte de validação auditados em
 `8b66d1e6eac869cf7363beee3b2c1445840fb66e`, pai `be520f4f0cf64812c80f0f4b9b8eefb2a5445189`.
-HEAD publicado posterior (recibo da correção focal de versão no gerador):
-`ad43ba41f0558e9329b8e494c824672d21de4b5d`, pai
-`1e83baacfbb494e1f5cb3c1e70372e4acd50f349`. Push confirmado.
+HEAD publicado posterior (candidato da reconciliação instrument/statement):
+`3fc0f3d83ac5e418a802ca93f097b0c7459fface`, pai
+`ad43ba41f0558e9329b8e494c824672d21de4b5d`. Push confirmado.
 Desenhos refund, família e contagem APTO; código posterior ainda sem GO.
 Recibo: `../../audit-evidence/n02g-selection-phase/independent-review.md`.
 Revisão externa estática sem defeitos focais; execuções continuam locais.
 Ampla histórica preservada: 2.255 PASS, zero FAIL, dez SKIP esperados, referente
 ao candidato auditado. A reconciliação posterior instrument/statement passou
-pela ampla (2.363 PASS, zero FAIL, dez SKIP esperados); auditoria focal pendente.
+pela ampla (2.363 PASS, zero FAIL, dez SKIP esperados) e foi ratificada
+focalmente em 3fc0f3d. Nova guarda do gerador em validação local; não confundir
+com o runtime ratificado nem com aplicação normativa, ainda suspensa.
 `releaseEligible=false`; inventário local agora registra 30
 módulos pendentes (inclui metricReferences), sem alterar os 15 hashes aprovados.
 Diagnóstico inicial pós-GO focal (incrementos atualizados abaixo): as quatro famílias existentes exercitam 73/76
@@ -200,6 +202,55 @@ prepare-reconciliation-evidence.cjs --write-new/--check PASS, conferindo
 bytes LF, gerador/perfis/76 grafos/claims/relatórios intactos contra ad43ba41.
 Pedido focal: reconciliation-audit-request.md. Próxima ação: commit sanitizado,
 publicação e uma revisão independente do novo hash. Não aplicar normativa.
+Candidato publicado em 3fc0f3d83ac5e418a802ca93f097b0c7459fface (oito arquivos),
+três blobs causais do stage iguais aos testados; remoto confirmado. Uma única
+solicitação automática recebida pelo Chat, que confirmou hash/pai e começou
+a inspeção estática. Conversa limpa:
+https://chatgpt.com/g/g-p-6aae7fa3ad5c8191a8ace5a6d799fab4-financasbot/c/6ab1c508-93e4-83e9-94bb-e30c96f10150
+Não reenviar esse hash. Próxima ação: ler parecer concluído e confrontá-lo
+localmente; estado máximo é candidato aguardando auditoria focal.
+Parecer concluído APTO focal, sem achados; ratificado no recorte após confronto
+local de código/testes/hashes. Recibo reconciliation-independent-review.md.
+Sem aprovação normativa. Proposta instrumental documental preparada em
+../../plans/workstreams/financasbot-next-02-n02g-instrument-authoring-decision-v1.md,
+mas sua submissão foi SUSPENSA por novo contraexemplo local no gerador.
+AUTHOR-GENERATE-011 reproduziu RED: fonte income de uma compensação admitida
+produzia candidato sem erro; deveria falhar, não apenas deixar de contribuir.
+O runtime já rejeita fonte não expense. Correção local de uma linha compara
+effectiveClass com op.eligible_class antes do filtro. Teste cobre os seis claims,
+income/neutral e confirmed/projected, com admissão de tipos/fingerprint válida;
+é autoridade sintética autoadmitida, não prova de origem/host. Controle separado
+INSTRUMENT-PROFILE-003 confirma o comportamento existente nos dois modos, sem
+leitura financeira após erro. Dois focais PASS, sem mudança de runtime.
+Seis relatórios candidatos continuam idênticos, grafos/claims/perfis intactos.
+Bateria afetada de três arquivos concluída via
+.codex-temp/runCompensationSourceAffected.cjs; resultado próprio
+n02g-compensation-source-affected.json: 108 PASS/0 FAIL/0 SKIP, seis relatórios
+candidatos idênticos. Syntax, diff-check e agent-workflow OK. Nova ampla em
+.codex-temp/runWideCompensationSource20260922.cjs, base 3fc0f3d, quatro hashes
+causais (gerador, dois testes, README). Só iniciar após afetados verdes;
+resultado wide-n02g-compensation-source-20260922.json e marcador -start.json.
+Depois de iniciar, suspender consultas por 20 minutos ou até Daniel chamar.
+Não confundir com a ampla de reconciliação já auditada. A nova correção exige
+hash próprio e auditoria; não enviar a proposta normativa antes de ratificá-la.
+Tentativa inicial de lançamento não executada por falha do revisor automático
+por limite de uso. Após novo continue de Daniel, retomada confirmou ausência
+de marcador/resultado e lançou uma única ampla em 2026-09-22T00:20:48.607Z,
+PID 18948, base 3fc0f3d. Marcador e processo confirmados, quatro hashes causais
+fixados. Nenhum código/teste deve mudar durante execução. Automação antiga
+retornou inexistente no aplicativo; nova retomada criada nesta tarefa com o
+mesmo ID retomar-n02-g-ap-s-su-te-ampla, ACTIVE, intervalo 20 minutos, silenciosa
+sem mudança. Ao concluir, pausá-la e seguir a auditoria focal. Acompanhamento
+suspenso após lançamento, conforme solicitado; não fazer polling da ampla.
+Resultado consultado no heartbeat: concluído 2026-09-22T00:30:05.333Z,
+556.659 ms, valid=true, exit=0, 2.375 testes: 2.365 PASS/0 FAIL/10 SKIP
+esperados, candidate_unchanged=true. Acompanhamento PAUSED após conclusão.
+Quatro arquivos causais iguais aos testados; runtime/corpus/perfis/relatórios
+intactos contra 3fc0f3d. Evidência compensation-source-validation.json e helper
+prepare-compensation-source-evidence.cjs --write-new/--check PASS na pasta
+n02g-causal-authoring-profile. Próxima ação: commit/publicação sanitizados e
+auditoria focal conforme compensation-source-audit-request.md. Não repetir
+a ampla nem submeter/aplicar a proposta normativa antes dessa ratificação.
 O parecer do gerador não aprova esse runtime posterior nem sua normativa.
 Não reenviar ace83e8 nem considerar sua ampla como prova da correção posterior.
 GO global/runtime, autenticação de host e demais reconciliações continuam
