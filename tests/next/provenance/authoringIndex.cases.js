@@ -77,6 +77,167 @@ function transitiveFamilyRequirements(graph, claim) {
             .map(operation => ({ node: family, operation, segments: ['members'] })) };
 }
 
+// Closed documentary rule: only roles/material nodes/relations/snapshots are
+// inputs. No existing reads, selection, oracle, trace or financial result.
+function budgetClassRequirements({ roles, nodes, edges, snapshots }) {
+    assert.equal(roles.events.kind, 'node_set'); assert.equal(roles.categories.kind, 'node_set');
+    const snapshot = (alias, kind) => {
+        const node = nodes[alias]; assert.equal(node.kind, kind);
+        const found = snapshots.filter(s => s.kind === node.kind && s.ref_id === node.ref_id && s.version === node.version);
+        assert.equal(found.length, 1); return found[0].payload;
+    };
+    const follow = (alias, field, kind) => {
+        const found = edges.filter(e => e.source === alias && e.field === field && e.relation === 'material_ref');
+        assert.equal(found.length, 1); const target = found[0].target;
+        snapshot(target, kind); assert.equal(snapshot(alias, nodes[alias].kind)[field], nodes[target].ref_id);
+        return target;
+    };
+    const category = event => {
+        const alias = follow(event, 'category_id', 'category'); assert.ok(roles.categories.aliases.includes(alias));
+        return { alias, kind: snapshot(alias, 'category').kind };
+    };
+    const effective = new Set();
+    for (const event of roles.events.aliases) {
+        snapshot(event, 'event'); const own = category(event);
+        assert.ok(['expense', 'compensation', 'income', 'neutral'].includes(own.kind));
+        if (own.kind === 'expense') effective.add(own.alias);
+        if (own.kind === 'compensation') {
+            const original = category(follow(event, 'compensates', 'event'));
+            assert.equal(original.kind, 'expense'); effective.add(original.alias);
+        }
+    }
+    return [...effective].sort().map(node => ({ node, segments: ['budget_class'] }));
+}
+
+function reviewedBudgetClassProposal() {
+    const text = fs.readFileSync(path.join(root, 'docs/audit-evidence/n02g-causal-authoring-profile/budget-class-population-proposal.json'), 'utf8').replaceAll('\r\n', '\n');
+    assert.equal(hash(text), 'sha256:3a7fe567cb35866d230ffe6b7706c5e53a552fbaa4303ed1902ccbdd63bd1583');
+    return JSON.parse(text);
+}
+
+function restoreReviewedBudgetClassReads(corpus) {
+    // Historical comparison only. Restore exactly the reviewed removals at
+    // their original position after the last preserved read of that node.
+    const proposal = reviewedBudgetClassProposal(); let restored = 0;
+    for (const record of proposal.records) {
+        const reads = corpus.graphs.find(g => g.fact_key === record.fact_key).trace_contract.derivation.required_reads;
+        for (const removal of record.proposed_delta.removed) {
+            assert.equal(reads.filter(r => JSON.stringify(r) === JSON.stringify(removal)).length, 0);
+            const anchor = record.preserved_removed_node_reads.at(-1);
+            const index = reads.findIndex(r => JSON.stringify(r) === JSON.stringify(anchor)); assert.ok(index >= 0);
+            reads.splice(index + 1, 0, structuredClone(removal)); restored++;
+        }
+    }
+    assert.equal(restored, 2);
+}
+
+test('N02G:BUDGET-CLASS-001 exact effective-category reads preserve all other graph fields', () => {
+    const { canonicalValue } = require('../../../src/next/kernel/canonicalValue');
+    const corpus = JSON.parse(fs.readFileSync(path.join(root, graphPath), 'utf8'));
+    const claims = JSON.parse(fs.readFileSync(path.join(root, prefix + 'claims-v2.json'), 'utf8')).claims;
+    const snapshots = JSON.parse(fs.readFileSync(path.join(root, corpus.snapshot_manifest.path), 'utf8')).snapshots;
+    const proposal = reviewedBudgetClassProposal();
+    for (const document of proposal.documents.filter(d => d.path !== graphPath)) {
+        assert.equal(hash(fs.readFileSync(path.join(root, document.path), 'utf8').replaceAll('\r\n', '\n')), document.lf_sha256);
+    }
+    let checked = 0;
+    for (const claim of claims.filter(c => c.evaluator_ref.evaluator_id === 'budget_class_consumption' && c.evaluator_ref.evaluator_version === 1)) {
+        const graph = corpus.graphs.find(g => g.fact_key === claim.fact_key);
+        const expected = budgetClassRequirements({ roles: claim.operand_bindings, nodes: graph.nodes, edges: graph.edges, snapshots });
+        const reads = graph.trace_contract.derivation.required_reads.filter(r => r.segments.length === 1 && r.segments[0] === 'budget_class');
+        assert.deepEqual(reads, expected, claim.fact_key); checked++;
+    }
+    assert.equal(checked, 2); assert.equal(corpus.graphs.length, 76);
+    restoreReviewedBudgetClassReads(corpus);
+    assert.equal(hash(canonicalValue(corpus)), proposal.source_corpus_sha256);
+});
+
+test('N02G:BUDGET-CLASS-002 generated authoring populations ignore names, order and financial exclusion', () => {
+    // Synthetic authoring models, NOT admitted execution graphs. Each seed
+    // rebuilds material identities after changes; there is no evaluator here.
+    for (let seed = 0; seed < 12; seed++) for (const direct of [false, true]) for (const compensation of [false, true]) {
+        const names = Object.fromEntries(['a', 'b', 'unused', 'refund', 'income', 'neutral', 'event', 'reversal', 'source', 'salary', 'transfer']
+            .map((name, index) => [name, `alias_${seed}_${11 - index}`]));
+        const nodes = {}; const snapshots = []; const edges = [];
+        const ref = name => `ref_${seed}_${name}`;
+        const add = (name, kind, payload) => {
+            const value = { id: ref(name), ...payload }; const version = hash(JSON.stringify(value));
+            nodes[names[name]] = { kind, ref_id: ref(name), version };
+            snapshots.push({ kind, ref_id: ref(name), version, payload: value });
+        };
+        for (const name of ['a', 'b', 'unused', 'refund', 'income', 'neutral']) add(name, 'category',
+            { kind: name === 'refund' ? 'compensation' : ['income', 'neutral'].includes(name) ? name : 'expense',
+                budget_class: seed % 2 ? 'essential' : 'flexible' });
+        const event = (name, category, extra = {}) => {
+            add(name, 'event', { category_id: ref(category), state: seed % 2 ? 'projected' : 'confirmed',
+                date: `${2040 + seed}-01-01`, person_id: `outside_${seed}`, amount_minor: seed, ...extra });
+            edges.push({ source: names[name], field: 'category_id', target: names[category], relation: 'material_ref' });
+        };
+        event('event', direct ? 'unused' : 'a'); event('source', compensation ? 'unused' : 'b');
+        event('reversal', 'refund', { compensates: ref('source') }); event('salary', 'income'); event('transfer', 'neutral');
+        edges.push({ source: names.reversal, field: 'compensates', target: names.source, relation: 'material_ref' });
+        const roles = { events: { kind: 'node_set', aliases: ['event', 'reversal', 'salary', 'transfer'].map(n => names[n]) },
+            categories: { kind: 'node_set', aliases: ['a', 'b', 'unused', 'refund', 'income', 'neutral'].map(n => names[n]) } };
+        const input = { roles, nodes, edges, snapshots };
+        const expected = [...new Set([names[direct ? 'unused' : 'a'], names[compensation ? 'unused' : 'b']])]
+            .sort().map(node => ({ node, segments: ['budget_class'] }));
+        assert.deepEqual(budgetClassRequirements(input), expected);
+        roles.events.aliases.reverse(); roles.categories.aliases.reverse(); edges.reverse(); snapshots.reverse();
+        assert.deepEqual(budgetClassRequirements(input), expected);
+        const wrongVersion = structuredClone(input); wrongVersion.nodes[names.source].version = hash('different-version');
+        assert.throws(() => budgetClassRequirements(wrongVersion));
+        const wrongClass = structuredClone(input);
+        const sourceCategory = names[compensation ? 'unused' : 'b'];
+        const badSnapshot = wrongClass.snapshots.find(s => s.ref_id === wrongClass.nodes[sourceCategory].ref_id);
+        badSnapshot.payload.kind = 'income'; badSnapshot.version = hash(JSON.stringify(badSnapshot.payload));
+        wrongClass.nodes[sourceCategory].version = badSnapshot.version;
+        assert.throws(() => budgetClassRequirements(wrongClass));
+    }
+});
+
+test('N02G:BUDGET-CLASS-003 frozen normative coverage requires every effective classification read', async () => {
+    const { evaluateEconomicMetric } = require('../../../src/next/provenance/metricSelection');
+    const { freezeDeep } = require('../../../src/next/kernel/canonicalValue');
+    const { plan, claims, graphs } = await snapshotAccessFixture(); let checked = 0;
+    const oracle = JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/financasbot-next/golden-claim-oracles-v1.json'), 'utf8'));
+    for (const claim of claims.filter(c => c.evaluator_ref.evaluator_id === 'budget_class_consumption' && c.evaluator_ref.evaluator_version === 1)) {
+        const graph = graphs.find(g => g.fact_key === claim.fact_key);
+        const scope = selectionInput(claim, graph, `budget-class-${checked}`);
+        const expected = freezeDeep(structuredClone(Object.fromEntries(['required_nodes', 'required_reads', 'required_claim_reads',
+            'required_edges', 'required_structural', 'required_selections', 'selected_nodes'].map(k => [k, graph.trace_contract.derivation[k]]))));
+        const expectedBefore = JSON.stringify(expected);
+        const accessBindings = plan.observationMetadata({ fact_key: claim.fact_key, phase: 'derivation' });
+        const operandSets = Object.entries(claim.operand_bindings).filter(([, b]) => b.kind === 'node_set').map(([role, b]) => ({ role, aliases: b.aliases }));
+        const recorder = createCausalRecorder({ executionId: scope.executionId, maxEvents: 10000 });
+        const phase = recorder.open({ invocationId: claim.fact_key, phase: 'derivation' }); const controls = []; const operands = {};
+        let value;
+        try {
+            for (const [role_id, binding] of Object.entries(claim.operand_bindings)) {
+                const selector = { fact_key: claim.fact_key, role_id };
+                const access = binding.kind === 'claim_context' ? plan.openContext(selector, phase.observe)
+                    : binding.kind === 'node_set' ? plan.openSet(selector, phase.observe) : plan.open({ ...selector, alias: binding.alias }, phase.observe);
+                controls.push(access); operands[role_id] = access.handle;
+            }
+            value = evaluateEconomicMetric(Object.freeze(operands), 'budget_class');
+            for (const access of controls) access.assertHealthy();
+        } finally { for (const access of controls) access.revoke(); }
+        phase.seal(); const trace = recorder.finish();
+        const input = { ...scope, expected, trace, operandSets, accessBindings }; const coverage = comparePhaseCoverage(input);
+        assert.equal(coverage.components.selection.matched, true); assert.equal(coverage.matched, true, claim.fact_key);
+        assert.equal(coverage.graph_accepted, false);
+        const split = claim.fact_key.lastIndexOf('#');
+        assert.equal(value, oracle.turns[claim.fact_key.slice(0, split)].facts[Number(claim.fact_key.slice(split + 1)) - 1].value);
+        for (const read of expected.required_reads.filter(r => r.segments.length === 1 && r.segments[0] === 'budget_class')) {
+            const kept = trace.derivation_trace.filter(e => !(e.operation === 'get' && e.alias === read.node && e.path.join('.') === 'budget_class'));
+            assert.ok(kept.length < trace.derivation_trace.length);
+            const altered = { ...trace, derivation_trace: kept.map((entry, sequence) => ({ ...entry, sequence })) };
+            assert.equal(comparePhaseCoverage({ ...input, trace: altered }).matched, false);
+        }
+        assert.equal(JSON.stringify(expected), expectedBefore); checked++;
+    }
+    assert.equal(checked, 2);
+});
+
 function safePaceStateRequirements(claim) {
     if (claim.evaluator_ref.evaluator_id !== 'safe_daily_pace' || claim.evaluator_ref.evaluator_version !== 1) return [];
     assert.equal(claim.metric, 'safe_daily_pace');
@@ -102,8 +263,11 @@ test('N02G:EVIDENCE-STATE-001 only two reviewed claim reads extend the immutable
         checked++;
     }
     assert.equal(checked, 2); assert.equal(corpus.graphs.length, 76);
-    // Remove only the two reviewed additions: every byte-independent graph field
-    // and all other 74 graphs must recover the pinned pre-change corpus.
+    // Compose the later budget-class removals explicitly before restoring the
+    // historical evidence-state baseline; neither equality is relaxed.
+    restoreReviewedBudgetClassReads(corpus);
+    // Removing the two state additions and undoing the reviewed class delta
+    // must recover every field of the pinned pre-change corpus.
     assert.equal(digest(corpus), '8745fad432413bbc9d435528e313271c81ebc403de4dca58f0d42b07556904f9');
 });
 
@@ -475,7 +639,8 @@ test('N02G:AUTHOR-NORMATIVE-001 reviewed six-graph delta equals independent auth
         stateReads++;
     }
     assert.equal(stateReads, 2);
-    // Restoring both reviewed deltas recovers every field of the historical corpus.
+    restoreReviewedBudgetClassReads(reconstructed);
+    // Restoring the reviewed instrument/state/class deltas recovers every field.
     assert.equal(digest(reconstructed), reviewed.source_corpus_sha256);
     assert.ok(Object.values(generated.totals).every(d => d.added === 0 && d.removed === 0));
     assert.equal(generated.graph_accepted, false); assert.equal(generated.normative_application_allowed, false);

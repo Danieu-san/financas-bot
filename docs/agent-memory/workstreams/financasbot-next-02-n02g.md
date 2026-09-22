@@ -6,7 +6,57 @@ Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação exata — após evidence_state ratificado (2026-09-22)
+## Próxima ação exata — aplicação budget_class aguardando auditoria de código
+
+Direção confirmada por Daniel: concluir N02-G no escopo vigente e reavaliar
+o plano na saída, antes de assumir a próxima implementação. Exigência nova
+deve ser confrontada com o charter; não ampliar automaticamente este gate.
+Estimativa anterior de 35–50% restantes não é uma medição válida do gate.
+
+Ampla budget_class concluída em 2026-09-22T23:41:41.478Z: 2.383 testes,
+2.373 PASS/0 FAIL/10 SKIP históricos, valid=true, exit_status=0 e
+candidate_unchanged=true. Heartbeat pausado após confirmação. Não repetir.
+Helper prepare-budget-class-validation.cjs --write-new/--check PASS;
+budget-class-validation.json preserva evidência local sanitizada e confirma
+delta integral exato contra c432bd6, dez fontes protegidas intactas e hashes
+dos dois arquivos causais. Próxima ação: publicar candidato sanitizado e
+uma auditoria independente focal de código por hash imutável. Aprovação
+documental d40c44d não cobre esta implementação. Sem GO global/host/grafo.
+
+### Implementação e execução local da aplicação
+
+Base publicada `c432bd639d7da076d3a51ec3d638335219933599`; proposta d40c44d
+APTO DOCUMENTAL ratificado, não aprovação do código posterior. Implementação
+local fechada: removidas somente health_general/budget_class em derivation
+de M-03#1#1/#2; corpus integral preserva outros 74 grafos e todos os demais
+campos. Runtime, claims, snapshots, proof, seleção e inventário intactos.
+Regra de autoria nos testes usa roles/nós/relações/snapshots por ID+versão,
+todos os candidatos e categoria da compra compensada, sem expected/actual/oracle.
+48 modelos sintéticos, 96 verificações positivas de ordem/renomeação e 96
+negativas de identidade/classe; não são grafos mutantes admitidos em execução.
+Duas integrações admitidas congelam expected antes do evaluator, preservam
+R/seleção e recusam 14 traces sem leitura obrigatória. graph_accepted=false.
+RED preservado: BUDGET-CLASS-001/003 FAIL, 002 PASS; GREEN 3 PASS/0 FAIL.
+Afetados: 204 PASS/0 FAIL/0 SKIP, oito arquivos herméticos, Node 22.17.0,
+conclusão 2026-09-22T21:05:34.609Z. Registros n02g-budget-class-{red,green,affected}
+em .codex-temp. Igualdades históricas compõem explicitamente as duas remoções,
+sem relaxar pins de corpus. Hash LF graphs antes ca52f6477beb9c0da2582fe2a51ee857b4b1ab63775cf6a9e0ad66327d366b44,
+depois e2b6b3dbc1bbc6789c97c8698d0d7b9c9d3168bb4f552424bea72e57f3035076.
+Dois arquivos causais: graphs-v2.json e authoringIndex.cases.js. Helper documental
+prepare-budget-class-validation.cjs preparado para --write-new/--check após ampla
+verde; valida delta integral/blobs/hashes testados, não substitui auditoria externa.
+Ampla final iniciada pelo wrapper runWideBudgetClass20260922.cjs em
+2026-09-22T23:30:13.802Z, PID 25928; marcador/processo confirmados uma vez.
+Resultado exclusivo .codex-temp/wide-n02g-budget-class-20260922.json; marcador
+-start.json e logs stdout/stderr no mesmo prefixo. Não confundir com evidence-state
+já concluída. Dois arquivos causais congelados; acompanhamento suspenso por
+20 minutos. Heartbeat retomar-n02-g-ap-s-su-te-ampla reativado com instrução
+vigente; próxima ação é uma única consulta via heartbeat/pedido, sem outra ampla.
+Syntax dos helpers, revisão causal e validateAgentWorkflow PASS antes da ampla.
+Depois: confrontar hashes/Git, preparar evidência sanitizada, commit/publicação
+e auditoria independente focal por novo hash. Sem GO global/aceitação de grafo/host.
+
+### Histórico imediato — evidence_state ratificado e proposta budget_class
 
 Correção focal encerrada em `a129ce3e3180b061360b28cdafa1b0f034df8ab4` após
 APTO FOCAL independente confrontado, sem achados bloqueantes/altos/médios.
