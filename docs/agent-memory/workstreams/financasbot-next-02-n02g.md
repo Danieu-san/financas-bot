@@ -6,7 +6,23 @@ Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação exata — collection kind encerrado; diagnóstico residual
+## Próxima ação exata — implementar due_bill_ids documentalmente aprovado
+
+Proposta 2c287a5 recebeu APTO DOCUMENTAL, confrontado; recibo
+due-bill-ids-independent-review.md. Implementar somente a remoção revisada,
+com testes causais. Nenhuma ampla em andamento; heartbeat pausado.
+
+Proposta due_bill_ids publicada em 2c287a53cbbbe6588a470d3db0aa3728b1b4d37c,
+pai adc9cfcec1108c056fb2dd6f974c6f1ccd52d89c. Helper --write-new/--check PASS,
+11 fontes; nenhuma mudança normativa/runtime/teste. Primeira geração falhou
+por callback map(canonicalValue), corrigido para callback unário antes da geração.
+Auditoria documental enviada uma única vez, APTO DOCUMENTAL recebido:
+https://chatgpt.com/g/g-p-6aae7fa3ad5c8191a8ace5a6d799fab4-financasbot/c/6ab3b360-93ac-83e9-aa2f-45fbb794c6a9
+Não reenviar. Após APTO confrontado, arquivos causais previstos: graphs-v2.json,
+tests/next/provenance/authoringIndex.cases.js e metricDirectReads.cases.js.
+Evidência futura em n02g-causal-authoring-profile: prepare-due-bill-ids-validation.cjs
+e due-bill-ids-validation.json. Uma remoção amount_minor em derivation, proof e
+due_bills_total preservados. RED/focal/afetados, só então ampla única estável.
 
 APTO FOCAL de b13724a recuperado na mesma conversa e confrontado com Git e
 helper --check PASS. Recibo collection-kind-code-independent-review.md na
