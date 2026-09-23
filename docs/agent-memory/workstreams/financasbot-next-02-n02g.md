@@ -8,6 +8,20 @@ Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
 ## Próxima ação exata — aplicação budget_class aguardando auditoria de código
 
+Candidato publicado/remoto confirmado: `63e317c4235da621dbaaa527434824e3ebd3897c`,
+pai c432bd6, cinco arquivos. Helper --check PASS após publicação.
+Tentativa automática única interrompida por aviso de verificações adicionais
+do Chat antes do parecer final. Não reenviar nem contornar. Fallback manual
+obrigatório; pedido e recibo de bloqueio em
+`../../audit-evidence/n02g-causal-authoring-profile/budget-class-code-independent-review.md`.
+Conversa: https://chatgpt.com/g/g-p-6aae7fa3ad5c8191a8ace5a6d799fab4-financasbot/c/6ab31629-f47c-83e9-a4d6-52bd47dcc70b
+Próxima ação exata: aguardar parecer trazido por Daniel e confrontá-lo antes
+de fechar esta correção/iniciar outra implementação. Heartbeat permanece pausado.
+Sonda local única pós-candidato coverage-budget-class-20260922.json: 73/76
+exercitados, 73 seleções preservadas, correspondências exatas 40 → 42,
+M-03#1#1/#2 resolvidos, zero regressões. Restam 31 divergentes e três derivados
+não exercitados; a sonda não confere valor/oracle nem concede aceitação.
+
 Direção confirmada por Daniel: concluir N02-G no escopo vigente e reavaliar
 o plano na saída, antes de assumir a próxima implementação. Exigência nova
 deve ser confrontada com o charter; não ampliar automaticamente este gate.
