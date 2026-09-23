@@ -1,7 +1,38 @@
-# budget_class — candidato aguardando auditoria independente de código
+# budget_class — APTO FOCAL independente ratificado
 
 Candidato imutável `63e317c4235da621dbaaa527434824e3ebd3897c`, pai único
 `c432bd639d7da076d3a51ec3d638335219933599`. Publicação/remoto confirmados.
+
+## Parecer recebido e confronto
+
+Daniel trouxe o parecer completo: APTO FOCAL somente para as duas remoções
+derivacionais em M-03#1#1/#2. Nenhum bloqueante/alto/médio. Achado baixo:
+renomeação e inversão de ordem não enumeram todas as bijeções possíveis;
+o auditor não o considera impeditivo pois a regra não ramifica por alias.
+
+Fontes declaradas: commit/patch, authoringIndex.cases.js, validation JSON/helper,
+decisão/proposta de população, metricSelection.js, contrato de evaluator,
+graph-binding-contract e material de claims/snapshots referenciado.
+Limites: não recuperou os blobs integrais dos grafos, não recalculou SHA-256
+nem executou testes. Revisão independente estática, combinada com conferência
+local integral; não apresentar como execução externa do corpus.
+
+Confronto local após recebimento: pai completo confirmado pelo Git; helper
+--check PASS; HEAD 952aa4ce36e5c36258b5034dfcb31bd706f235cd contém somente
+documentação adicional ao candidato e árvore tracked limpa. Runtime intacto;
+regra usa roles/nós/relações/snapshots, versão exata e categoria efetiva;
+expected congelado antes do evaluator, 14 traces incompletos recusados e
+igualdades históricas preservadas por restauração explícita.
+
+Ressalva factual ao texto externo: os booleanos direct/compensation de
+BUDGET-CLASS-002 alternam a categoria referenciada (a/b versus unused), não
+a presença da despesa ou da compensação. Todos os 48 modelos contêm ambas.
+Ratificam-se 96 verificações positivas de renomeação/ordem e 96 negativas de
+versão/classe, sem reivindicar cobertura de ausência desses eventos ou de
+todas as bijeções. Não é uma lacuna bloqueante para o delta fechado revisado.
+
+Correção focal encerrada. Não repetir a ampla verde nem solicitar nova auditoria
+do mesmo hash. Sem GO global N02-G, aceitação geral de grafo/host ou produção.
 
 ## Tentativa automática e condição de parada
 
@@ -32,11 +63,10 @@ exatas 40 → 42. Resolvidos M-03#1#1/#2; nenhuma regressão. Permanecem
 31 divergentes e três derivados não exercitados. Esta sonda não confere
 resultados funcionais/oracle nem autentica host; graph_accepted=false.
 
-## Próxima ação
+## Fallback fornecido anteriormente — histórico
 
-Daniel envia manualmente o pedido curto abaixo no Chat e traz o parecer.
-Depois, confrontar hash/fontes/achados/limites com código e evidência local.
-Sem parecer auditável, não encerrar a correção nem declarar GO.
+Pedido manual disponibilizado após a interrupção automática. O parecer já foi
+recebido e confrontado acima; não reenviar este pedido.
 
 Capacidades: Chat → Sol → Alto → revisão focal do candidato;
 Codex → Astra → Alto → confronto e continuação.

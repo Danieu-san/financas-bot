@@ -6,7 +6,21 @@ Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação exata — aplicação budget_class aguardando auditoria de código
+## Próxima ação exata — após budget_class ratificado
+
+APTO FOCAL de código recebido de Daniel para 63e317c, sem bloqueante/alto/médio.
+Confrontado com Git, código e helper --check PASS; correção focal encerrada.
+Recibo budget-class-code-independent-review.md preserva fontes, limitações e
+ressalva: modelos sintéticos alternam categorias, não ausência de eventos.
+Nenhuma mudança causal posterior; não repetir ampla nem auditoria deste hash.
+Próximo objetivo delimitado: diagnosticar source.has('entity_id') extra em
+eligible_event_count de S-13#1#1, M-09#1#1 e N-04#1#1. Confrontar schema,
+contrato e autoria antes de escolher correção de runtime ou proposta normativa.
+Os três resíduos existiam antes da correção budget_class. Não copiar actual
+para expected. Manter 31 divergências/3 derivados pendentes como diagnóstico,
+sem convertê-los em porcentagem de conclusão do gate.
+
+### Histórico da publicação e espera pela revisão
 
 Candidato publicado/remoto confirmado: `63e317c4235da621dbaaa527434824e3ebd3897c`,
 pai c432bd6, cinco arquivos. Helper --check PASS após publicação.
