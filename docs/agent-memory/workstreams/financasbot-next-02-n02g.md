@@ -6,7 +6,23 @@ Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação exata — publicar e auditar aplicação due_bill_ids
+## Próxima ação exata — auditar candidato due_bill_ids publicado
+
+Candidato publicado/remoto confirmado 48e1cf68d0174ffa08d77485c54348981775e1e2,
+pai ea1b616322ee12806d42f9cdc650597fc2180957, seis arquivos sanitizados.
+Helper --check PASS após commit. Publicação anterior foi recusada por limite
+de uso na aprovação automática, sem execução; retomada solicitada por Daniel
+permitiu publicar. Chat agora exibiu apenas Tentar novamente, persistindo
+após uma recuperação. Nenhuma auditoria enviada para 48e1cf6, nenhum parecer.
+Não interpretar erro de página como reprovação ou bloqueio de segurança.
+Prompt pronto: due-bill-ids-code-audit-prompt.md na pasta n02g-causal-authoring-profile.
+Retomar uma única auditoria limpa quando o Chat estiver acessível; estado máximo
+candidato aguardando auditoria. Não repetir ampla verde. Heartbeat pausado.
+Sonda pós-commit tracked limpo: .codex-temp/coverage-due-bill-ids-20260923.json,
+73/76 exercitados, 73 seleções preservadas, correspondências 48 -> 49,
+24 divergências e três derivados fora da sonda. Sem aceitação/global GO.
+
+### Histórico imediato — evidência due_bill_ids
 
 Ampla concluída em 2026-09-23T11:33:11.779Z: 2.394 testes, 2.384 PASS,
 0 FAIL/10 SKIP, valid=true, exit_status=0, candidate_unchanged=true.
