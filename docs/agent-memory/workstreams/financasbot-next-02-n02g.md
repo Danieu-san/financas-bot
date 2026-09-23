@@ -8,6 +8,20 @@ Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
 ## Próxima ação exata — revisar proposta owned_cards antes de aplicar
 
+Parecer 5bd039c recebido: NÃO APTO exclusivamente por acesso insuficiente ao
+grafo original; nenhum defeito causal substantivo identificado. Não aplicar.
+Recibo e remediação: owned-cards-source-access-review.md na pasta de evidências.
+Nova evidência publicada na branch auxiliar codex/n02g-owned-cards-source-view-20260923:
+8f94d2bb453933d03c33dc4a33e1a18f19bbc4f1, pai exatamente 5bd039c, somente
+formatação do objeto S-07#1#1 em graphs-v2.json. Corpus integral deepEqual e
+bytes fora do objeto preservados. Não integrar essa branch à implementação.
+Diff nativo GitHub expõe a linha original completa (Load diff); leitura direta
+do Codex confirmou omissões em derivation e presença em proof/e0002.
+Próximo: auditoria da NOVA evidência, sem reenviar cegamente o pedido anterior.
+O candidato/proposta e runtime permanecem intactos; nenhuma ampla repetida.
+
+### Histórico — primeira solicitação documental
+
 Proposta publicada 5bd039cd6bc68338ecbd869659070cec044db01c, pai/base 76c8a2f.
 Após Daniel pedir envio direto, a verificação humana já estava liberada.
 Prompt enviado uma única vez em conversa limpa; Chat confirmou hash/pai e
