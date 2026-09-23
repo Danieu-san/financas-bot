@@ -6,7 +6,27 @@ Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação exata — aplicação source presence aguardando auditoria
+## Próxima ação exata — source presence encerrado, próximo diagnóstico
+
+APTO FOCAL de código recebido/confrontado para 449cd3c, sem crítico/alto/médio.
+Recibo source-presence-code-independent-review.md registra limite baixo do
+--check (não reexecuta suítes) e limites externos de acesso. Correção encerrada.
+Não repetir ampla verde nem auditoria deste hash. Heartbeat pausado.
+Próximo trabalho: agrupar os 28 resíduos por causa contratual, selecionar uma
+família delimitada e diagnosticar antes de alterar normativa/runtime. Três
+derivados continuam fora da sonda; nenhuma contagem equivale ao GO global.
+
+### Histórico imediato — publicação e revisão source presence
+
+Candidato publicado/remoto confirmado 449cd3c5e7ee1fb66bb7bfe1149681e4a2ee48ee,
+pai 95b7086, seis arquivos. Helper --check PASS após commit. Auditoria enviada
+uma vez em conversa limpa, aguardando parecer:
+https://chatgpt.com/g/g-p-6aae7fa3ad5c8191a8ace5a6d799fab4-financasbot/c/6ab33389-75b4-83e9-aa55-6ad3663569e3
+Não reenviar. Sonda pós-candidato em árvore tracked limpa:
+.codex-temp/coverage-source-presence-20260923.json, 73/76 exercitados,
+73 seleções preservadas, correspondências 42 → 45, exatamente S-13#1#1,
+M-09#1#1 e N-04#1#1 resolvidos, zero regressões. Restam 28 divergências e
+três derivados não exercitados; não é porcentagem de conclusão nem aceitação.
 
 Ampla concluída em 2026-09-23T01:49:05.713Z: 2.386 testes, 2.376 PASS,
 0 FAIL/10 SKIP históricos, valid=true, exit_status=0, candidate_unchanged=true.
