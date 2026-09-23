@@ -16,6 +16,14 @@ Não repetir ampla nem auditoria deste hash. Próximo objetivo: diagnosticar
 uma família dos 25 resíduos, antes de alterar normativa/runtime. Três derivados
 continuam fora da sonda. N02-G permanece sem GO global.
 
+Família selecionada: due_bill_ids@1, somente M-15#1#1. Contrato lista IDs por
+pessoa/status/vencimento; amount_minor pertence ao total, não à seleção/IDs.
+Preparar proposta documental de uma remoção em derivation.required_reads,
+preservando proof e due_bills_total. Arquivos previstos: plano
+financasbot-next-02-n02g-due-bill-ids-decision-v1.md e, em
+docs/audit-evidence/n02g-causal-authoring-profile/, prepare-due-bill-ids-proposal.cjs
+e due-bill-ids-proposal.json. Não aplicar antes do parecer documental.
+
 ### Histórico imediato — recuperação da auditoria collection kind
 
 Candidato publicado/remoto confirmado b13724a2ef91e7f0a43ea287c60e89abda9ea5fd,

@@ -1,0 +1,391 @@
+{
+  "schema": "n02g-due-bill-ids-proposal-v1",
+  "base": "adc9cfcec1108c056fb2dd6f974c6f1ccd52d89c",
+  "status": "documentary_proposal_not_applied",
+  "graph_accepted": false,
+  "normative_application_allowed": false,
+  "source_corpus_sha256": "sha256:35893d55fceed9556e3ef7ca843be97de4e31dafc41514e838eff33a9d9393ca",
+  "documents": [
+    {
+      "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+      "lf_sha256": "sha256:3cb14f7886b54b5541222f7b105c03edf166460c263ed5ac06d03a81371ab2c0",
+      "bytes": 4962943
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claims-v2.json",
+      "lf_sha256": "sha256:4810612761ea7f232e4445c0d192ae53ebf0761f0ba8752da758efb826b30494",
+      "bytes": 64240
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/metric-evaluator-registry-v1.json",
+      "lf_sha256": "sha256:577fe16b3d5a1dc2e24505de150001afd889408f5294a6834486de338d40a3a0",
+      "bytes": 45195
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evidence-snapshot.schema.json",
+      "lf_sha256": "sha256:054a48930a5f25760f201e8b401f0f34f5a83672366acad6c9c09bdc0ce0b5ef",
+      "bytes": 17718
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/material-field-registry-v1.json",
+      "lf_sha256": "sha256:ee7ef3eff146bc2e9cea2cc986c398371acbff3cf35d858ced8386a9758a4d62",
+      "bytes": 10998
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/graph-binding-contract-v1.md",
+      "lf_sha256": "sha256:da90befb1f526048cfe14122cd8522690292508bebf42d60ea4ecd5838513a40",
+      "bytes": 19080
+    },
+    {
+      "path": "src/next/provenance/metricDirectReads.js",
+      "lf_sha256": "sha256:2526b6eb373fc5265bf61798c85bf976011d3d77430858df75776306067ae3e8",
+      "bytes": 12407
+    },
+    {
+      "path": "scripts/agent/validateFinancasBotNextFacts.mjs",
+      "lf_sha256": "sha256:25d838c008ce6b5420e1e52f00aa791ad36758624794d94c22cf1c5d3edfb4f6",
+      "bytes": 18436
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/snapshot-manifest-v1.json",
+      "lf_sha256": "sha256:2547229db3c07f2dd0941601ab5164bf89981ce966e4e23a2e3058124edba8c4",
+      "bytes": 52403
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/due_bill_ids.json",
+      "lf_sha256": "sha256:a9ddce797a0f90184dad2e3fd50cb20d6534648485ed9f27592cbfe03782ebf4",
+      "bytes": 1162
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/due_bills_total.json",
+      "lf_sha256": "sha256:aaa1e469986731240f28f22ffe4559c4a663b13d2a01718f61e866c3e1f62e86",
+      "bytes": 1143
+    }
+  ],
+  "records": [
+    {
+      "fact_key": "M-15#1#1",
+      "evaluator_ref": {
+        "evaluator_id": "due_bill_ids",
+        "evaluator_version": 1
+      },
+      "bindings": {
+        "context": {
+          "kind": "claim_context"
+        },
+        "bills": {
+          "kind": "node_set",
+          "aliases": [
+            "bill_rent_b"
+          ]
+        },
+        "person": {
+          "kind": "node",
+          "alias": "person_b"
+        }
+      },
+      "source_graph_sha256": "sha256:5177f5466b47a40e4c2283b07e6f5d4b81675feb84930d6ff1cd1aebd060b4ec",
+      "current_derivation": {
+        "required_nodes": [
+          "bill_rent_b",
+          "person_b"
+        ],
+        "required_reads": [
+          {
+            "node": "bill_rent_b",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "bill_rent_b",
+            "segments": [
+              "person_id"
+            ]
+          },
+          {
+            "node": "bill_rent_b",
+            "segments": [
+              "due_date"
+            ]
+          },
+          {
+            "node": "bill_rent_b",
+            "segments": [
+              "amount_minor"
+            ]
+          },
+          {
+            "node": "bill_rent_b",
+            "segments": [
+              "status"
+            ]
+          },
+          {
+            "node": "person_b",
+            "segments": [
+              "id"
+            ]
+          }
+        ],
+        "required_claim_reads": [
+          {
+            "segments": [
+              "subject",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "ref_id"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "start"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "end"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "start_inclusive"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "end_inclusive"
+            ]
+          },
+          {
+            "segments": [
+              "time_basis"
+            ]
+          }
+        ],
+        "required_edges": [
+          "e0001"
+        ],
+        "required_structural": [],
+        "selected_nodes": [
+          "bill_rent_b"
+        ],
+        "evidence_set_mode": "exact",
+        "required_selections": [
+          {
+            "candidate_set": "candidates",
+            "selected_set": "selected"
+          }
+        ]
+      },
+      "bill_nodes": {
+        "bill_rent_b": {
+          "binding": "snapshot",
+          "ref_id": "bill-rent-b",
+          "kind": "bill",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:5396650d54f585faa289423b531348e3d7c773ccdb7bf081d88ab2a057469696",
+          "roles": [
+            "value_input"
+          ]
+        }
+      },
+      "proposed_delta": {
+        "added": [],
+        "removed": [
+          {
+            "node": "bill_rent_b",
+            "segments": [
+              "amount_minor"
+            ]
+          }
+        ]
+      },
+      "proof_reads_preserved": [
+        {
+          "node": "next_golden_financial_v1",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "next_golden_financial_v1",
+          "segments": [
+            "synthetic"
+          ]
+        },
+        {
+          "node": "next_golden_financial_v1",
+          "segments": [
+            "closed_world"
+          ]
+        },
+        {
+          "node": "next_golden_financial_v1",
+          "segments": [
+            "currency"
+          ]
+        },
+        {
+          "node": "next_golden_financial_v1",
+          "segments": [
+            "fixed_clock"
+          ]
+        },
+        {
+          "node": "bill_rent_b",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "bill_rent_b",
+          "segments": [
+            "person_id"
+          ]
+        },
+        {
+          "node": "bill_rent_b",
+          "segments": [
+            "due_date"
+          ]
+        },
+        {
+          "node": "bill_rent_b",
+          "segments": [
+            "amount_minor"
+          ]
+        },
+        {
+          "node": "bill_rent_b",
+          "segments": [
+            "status"
+          ]
+        },
+        {
+          "node": "bill_rent_b",
+          "segments": [
+            "evidence_state"
+          ]
+        },
+        {
+          "node": "bill_rent_b",
+          "segments": [
+            "source"
+          ]
+        },
+        {
+          "node": "collection_bills",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "collection_bills",
+          "segments": [
+            "fixture_id"
+          ]
+        },
+        {
+          "node": "collection_bills",
+          "segments": [
+            "collection_name"
+          ]
+        },
+        {
+          "node": "collection_bills",
+          "segments": [
+            "members"
+          ]
+        },
+        {
+          "node": "family_example",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "family_example",
+          "segments": [
+            "members"
+          ]
+        },
+        {
+          "node": "person_a",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "person_a",
+          "segments": [
+            "family_id"
+          ]
+        },
+        {
+          "node": "person_b",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "person_b",
+          "segments": [
+            "family_id"
+          ]
+        },
+        {
+          "node": "synthetic_ledger",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "synthetic_ledger",
+          "segments": [
+            "fixture_id"
+          ]
+        }
+      ]
+    }
+  ],
+  "controls": [
+    {
+      "fact_key": "M-15#1#2",
+      "evaluator_ref": {
+        "evaluator_id": "due_bills_total",
+        "evaluator_version": 1
+      },
+      "source_graph_sha256": "sha256:0d4161bef4737a417a9baeb16f53aa87be506d053388c93365908cb01510aebf",
+      "monetary_reads_preserved": [
+        {
+          "node": "bill_rent_b",
+          "segments": [
+            "amount_minor"
+          ]
+        }
+      ]
+    }
+  ],
+  "proposed_totals": {
+    "changed_graphs": 1,
+    "unchanged_graphs": 75,
+    "added_reads": 0,
+    "removed_reads": 1
+  },
+  "limits": "Source equality and declared snapshot identity only. No execution or full semantic fingerprint validation; no normative application or graph/host/global/production approval."
+}
