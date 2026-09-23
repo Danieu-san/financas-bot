@@ -1,5 +1,10 @@
 # Auditoria documental pendente — owned_cards
 
+Enviado uma única vez após pedido direto de Daniel e liberação da verificação
+humana. Revisão iniciada, ainda sem veredito no registro; não reenviar:
+https://chatgpt.com/g/g-p-6aae7fa3ad5c8191a8ace5a6d799fab4-financasbot/c/6ab439e1-eb04-83e9-a4d1-96b4371f33ac
+O impedimento descrito abaixo é histórico.
+
 Chat → Sol → Alto → revisar proposta documental imutável.
 Codex → Astra → Alto → confrontar o parecer recebido.
 
