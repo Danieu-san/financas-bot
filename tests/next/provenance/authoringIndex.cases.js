@@ -109,6 +109,119 @@ function budgetClassRequirements({ roles, nodes, edges, snapshots }) {
     return [...effective].sort().map(node => ({ node, segments: ['budget_class'] }));
 }
 
+const collectionCountMetrics = ['reminder_count', 'calendar_event_count', 'side_effect_count'];
+function collectionKindRequirement(evaluator, roles, nodes, snapshots) {
+    assert.ok(collectionCountMetrics.includes(evaluator.evaluator_id));
+    assert.equal(evaluator.evaluator_version, 1);
+    assert.equal(roles.collection.kind, 'node'); const alias = roles.collection.alias; const node = nodes[alias];
+    assert.equal(node.kind, 'collection');
+    const matches = snapshots.filter(s => s.kind === node.kind && s.ref_id === node.ref_id && s.version === node.version);
+    assert.equal(matches.length, 1); assert.equal(matches[0].payload.id, node.ref_id);
+    assert.equal(matches[0].semantic_fingerprint, node.semantic_fingerprint);
+    return { node: alias, segments: ['collection_name'] };
+}
+
+function reviewedCollectionKindProposal() {
+    const text = fs.readFileSync(path.join(root, 'docs/audit-evidence/n02g-causal-authoring-profile/collection-kind-proposal.json'), 'utf8').replaceAll('\r\n', '\n');
+    assert.equal(hash(text), 'sha256:455cbdb55deca684b5f19b2be7957d725980b7ad5e23441f8b0a7ceda3db02f4');
+    return JSON.parse(text);
+}
+
+function undoReviewedCollectionKind(corpus) {
+    let removed = 0;
+    for (const record of reviewedCollectionKindProposal().records) {
+        const graph = corpus.graphs.find(g => g.fact_key === record.fact_key);
+        for (const addition of record.proposed_delta.added) {
+            const list = graph.trace_contract.derivation.required_reads;
+            const indices = list.flatMap((r, i) => JSON.stringify(r) === JSON.stringify(addition) ? [i] : []);
+            assert.equal(indices.length, 1); list.splice(indices[0], 1); removed++;
+        }
+    }
+    assert.equal(removed, 3);
+}
+
+test('N02G:COLLECTION-KIND-001 three domain reads preserve all other graph fields', () => {
+    const { canonicalValue } = require('../../../src/next/kernel/canonicalValue');
+    const corpus = JSON.parse(fs.readFileSync(path.join(root, graphPath), 'utf8'));
+    const claims = JSON.parse(fs.readFileSync(path.join(root, prefix + 'claims-v2.json'), 'utf8')).claims;
+    const snapshots = JSON.parse(fs.readFileSync(path.join(root, corpus.snapshot_manifest.path), 'utf8')).snapshots;
+    const proposal = reviewedCollectionKindProposal(); let checked = 0;
+    for (const document of proposal.documents.filter(d => d.path !== graphPath)) {
+        assert.equal(hash(fs.readFileSync(path.join(root, document.path), 'utf8').replaceAll('\r\n', '\n')), document.lf_sha256);
+    }
+    for (const claim of claims.filter(c => collectionCountMetrics.includes(c.evaluator_ref.evaluator_id) && c.evaluator_ref.evaluator_version === 1)) {
+        const graph = corpus.graphs.find(g => g.fact_key === claim.fact_key);
+        const requirement = collectionKindRequirement(claim.evaluator_ref, claim.operand_bindings, graph.nodes, snapshots);
+        assert.equal(graph.trace_contract.derivation.required_reads.filter(r => JSON.stringify(r) === JSON.stringify(requirement)).length, 1);
+        checked++;
+    }
+    assert.equal(checked, 3); assert.equal(corpus.graphs.length, 76);
+    undoReviewedCollectionKind(corpus);
+    assert.equal(hash(canonicalValue(corpus)), proposal.source_corpus_sha256);
+});
+
+test('N02G:COLLECTION-KIND-002 authoring binds metric version and role independently of aliases and population', () => {
+    // Synthetic authoring inputs only; these are not admitted mutated graphs.
+    for (const evaluator_id of collectionCountMetrics) for (let seed = 0; seed < 12; seed++) for (const size of [0, 2]) {
+        const evaluator = { evaluator_id, evaluator_version: 1 };
+        const alias = `domain-alias-${seed}`; const ref = `collection-ref-${seed}`;
+        const payload = { id: ref, collection_name: `domain-${seed}`, members: Array.from({ length: size }, (_, i) => `entry-${seed}-${i}`) };
+        const version = hash(JSON.stringify(payload));
+        const identity = { kind: 'collection', ref_id: ref, version, semantic_fingerprint: hash(`semantic-${seed}-${size}`) };
+        const roles = { collection: { kind: 'node', alias } }; const nodes = { [alias]: identity };
+        const snapshots = [{ ...identity, version: hash('another-version'), payload: { ...payload, members: [] } }, { ...identity, payload }];
+        const expected = { node: alias, segments: ['collection_name'] };
+        assert.deepEqual(collectionKindRequirement(evaluator, roles, nodes, snapshots), expected);
+        assert.deepEqual(collectionKindRequirement(evaluator, roles, nodes, snapshots.reverse()), expected);
+        assert.throws(() => collectionKindRequirement(evaluator, roles, nodes, snapshots.filter(s => s.version !== version)));
+        assert.throws(() => collectionKindRequirement(evaluator, roles, nodes, [...snapshots, { ...identity, payload }]));
+        assert.throws(() => collectionKindRequirement({ ...evaluator, evaluator_version: 2 }, roles, nodes, snapshots));
+        assert.throws(() => collectionKindRequirement({ ...evaluator, evaluator_id: 'unreviewed_count' }, roles, nodes, snapshots));
+    }
+});
+
+test('N02G:COLLECTION-KIND-003 admitted count integrations reject trace without domain read', async () => {
+    const { evaluateDirectMetric } = require('../../../src/next/provenance/metricDirectReads');
+    const { freezeDeep } = require('../../../src/next/kernel/canonicalValue');
+    const { plan, claims, graphs } = await snapshotAccessFixture(); let checked = 0;
+    const oracle = JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/financasbot-next/golden-claim-oracles-v1.json'), 'utf8'));
+    for (const claim of claims.filter(c => collectionCountMetrics.includes(c.evaluator_ref.evaluator_id) && c.evaluator_ref.evaluator_version === 1)) {
+        const graph = graphs.find(g => g.fact_key === claim.fact_key);
+        const scope = selectionInput(claim, graph, `collection-kind-${checked}`);
+        const expected = freezeDeep(structuredClone(Object.fromEntries(['required_nodes', 'required_reads', 'required_claim_reads',
+            'required_edges', 'required_structural', 'required_selections', 'selected_nodes'].map(k => [k, graph.trace_contract.derivation[k]]))));
+        const expectedBefore = JSON.stringify(expected);
+        const accessBindings = plan.observationMetadata({ fact_key: claim.fact_key, phase: 'derivation' });
+        const operandSets = Object.entries(claim.operand_bindings).filter(([, b]) => b.kind === 'node_set').map(([role, b]) => ({ role, aliases: b.aliases }));
+        const recorder = createCausalRecorder({ executionId: scope.executionId, maxEvents: 10000 });
+        const phase = recorder.open({ invocationId: claim.fact_key, phase: 'derivation' }); const controls = []; const operands = {};
+        let value;
+        try {
+            for (const [role_id, binding] of Object.entries(claim.operand_bindings)) {
+                const selector = { fact_key: claim.fact_key, role_id };
+                const access = binding.kind === 'claim_context' ? plan.openContext(selector, phase.observe)
+                    : binding.kind === 'node_set' ? plan.openSet(selector, phase.observe) : plan.open({ ...selector, alias: binding.alias }, phase.observe);
+                controls.push(access); operands[role_id] = access.handle;
+            }
+            value = evaluateDirectMetric(Object.freeze(operands), claim.evaluator_ref.evaluator_id);
+            for (const access of controls) access.assertHealthy();
+        } finally { for (const access of controls) access.revoke(); }
+        phase.seal(); const trace = recorder.finish();
+        const input = { ...scope, expected, trace, operandSets, accessBindings }; const coverage = comparePhaseCoverage(input);
+        assert.equal(coverage.components.selection.matched, true); assert.equal(coverage.matched, true, claim.fact_key);
+        assert.equal(coverage.graph_accepted, false);
+        const split = claim.fact_key.lastIndexOf('#');
+        assert.equal(value, oracle.turns[claim.fact_key.slice(0, split)].facts[Number(claim.fact_key.slice(split + 1)) - 1].value);
+        const alias = claim.operand_bindings.collection.alias;
+        const kept = trace.derivation_trace.filter(e => !(e.operation === 'get' && e.alias === alias && e.path.join('.') === 'collection_name'));
+        assert.equal(trace.derivation_trace.length - kept.length, 1);
+        const altered = { ...trace, derivation_trace: kept.map((e, sequence) => ({ ...e, sequence })) };
+        assert.equal(comparePhaseCoverage({ ...input, trace: altered }).matched, false);
+        assert.equal(JSON.stringify(expected), expectedBefore); checked++;
+    }
+    assert.equal(checked, 3);
+});
+
 function sourcePresenceRequirement(roles, nodes, snapshots) {
     assert.equal(roles.source.kind, 'node'); const alias = roles.source.alias; const node = nodes[alias];
     assert.equal(node.kind, 'source_state');
@@ -124,6 +237,8 @@ function reviewedSourcePresenceProposal() {
 }
 
 function undoReviewedSourcePresence(corpus) {
+    // Compose the later independently reviewed collection read additions.
+    undoReviewedCollectionKind(corpus);
     let removed = 0;
     for (const record of reviewedSourcePresenceProposal().records) {
         const graph = corpus.graphs.find(g => g.fact_key === record.fact_key);

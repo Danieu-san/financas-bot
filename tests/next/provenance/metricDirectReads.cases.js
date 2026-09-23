@@ -115,6 +115,37 @@ test('N02G:DIRECT-METRIC-005 effect count is tied to complete collection and act
 });
 
 const juneRange = { kind: 'range', start: '2042-06-15', end: '2042-06-30', start_inclusive: true, end_inclusive: true };
+test('N02G:COLLECTION-KIND-004 kernel rejects wrong domain with empty or positive populations', () => {
+    // Kernel handle boundary, not acceptance of synthetic mutated graphs.
+    const domains = [['reminder_count', 'reminder', 'reminders'],
+        ['calendar_event_count', 'calendar_event', 'calendar_events'], ['side_effect_count', 'side_effect', 'side_effects']];
+    for (const [metric, kind, domain] of domains) for (const size of [0, 2]) for (const [, , name] of domains) {
+        const effects = metric === 'side_effect_count'; const scopeKind = effects ? 'turn' : 'person';
+        const field = effects ? 'turn_id' : 'person_id';
+        const rows = Array.from({ length: size }, (_, i) => [`entry-${i}`, kind,
+            { id: `entry-${i}`, [field]: 'scope-id', ...(effects ? {} : { scheduled_at: '2042-06-20' }) }]);
+        const population = instrument([...rows, ['scope', scopeKind, { id: 'scope-id' }]], rows.map(([source], i) =>
+            ({ id: `scope-link-${i}`, source, target: 'scope', field, type: 'ref' })), rows.map(([alias]) => alias));
+        const collection = instrument([['collection', 'collection', { id: 'col', collection_name: name, members: rows.map(([alias]) => alias) },
+            { id: scalar, collection_name: scalar, members: { type: 'sequence', item: scalar } }]]);
+        const target = instrument([['scope', scopeKind, { id: 'scope-id' }]]);
+        const ctx = context({ kind: scopeKind, ref_id: 'scope-id' }, effects ? { kind: 'as_of', value: '2042-06-20' } : juneRange,
+            effects ? 'request_execution' : 'scheduled_at');
+        try {
+            const operands = { context: ctx, entries: population.access.handle, collection: collection.access.handle('collection'),
+                [effects ? 'turn' : 'person']: target.access.handle('scope') };
+            if (name === domain) assert.equal(evaluateDirectMetric(operands, metric), size);
+            else assert.throws(() => evaluateDirectMetric(operands, metric), /^Error: direct_metric_collection$/);
+            assert.equal(collection.observations.filter(e => e[1] === 'get' && e[4].join('.') === 'collection_name').length, 1);
+            if (name !== domain) {
+                assert.equal(collection.observations.some(e => e[1] === 'get' && e[4].join('.') === 'members'), false);
+                assert.equal(population.observations.length, 0);
+            }
+            for (const control of [population.access, collection.access, target.access]) control.assertHealthy();
+        } finally { for (const control of [population.access, collection.access, target.access]) control.revoke(); }
+    }
+});
+
 test('N02G:DIRECT-METRIC-006 due dates include both boundaries and exclude status, owner and date mismatches', () => {
     const rows = [['start', '2042-06-15', 'open', 'p1'], ['end', '2042-06-30', 'open', 'p1'],
         ['after', '2042-07-01', 'open', 'p1'], ['paid', '2042-06-20', 'paid', 'p1'], ['foreign', '2042-06-20', 'open', 'p2']];

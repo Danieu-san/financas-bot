@@ -6,7 +6,53 @@ Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação exata — implementar collection kind documentalmente aprovado
+## Próxima ação exata — publicar e auditar aplicação collection kind
+
+Ampla concluída em 2026-09-23T10:41:41.539Z: 2.390 testes, 2.380 PASS,
+0 FAIL/10 SKIP, valid=true, exit_status=0, candidate_unchanged=true.
+Hashes atuais dos três arquivos conferem com os testados. Heartbeat pausado.
+prepare-collection-kind-validation.cjs --write-new/--check PASS; evidência
+sanitizada collection-kind-validation.json. Corpus integral igual à base mais
+as três adições revisadas; dez fontes protegidas intactas. Não repetir ampla.
+Próximo passo: commit sanitizado dos três arquivos causais, helper/evidência
+e checkpoint; publicar e solicitar auditoria independente focal de código.
+O APTO documental 524bb9a não aprova esta aplicação. Sem GO global.
+
+### Histórico imediato — ampla collection kind
+
+Ampla iniciada em 2026-09-23T10:32:07.266Z, PID 79804; marcador confirmado
+uma vez. Heartbeat retomar-n02-g-ap-s-su-te-ampla reativado para 20 minutos.
+Acompanhamento suspenso agora até heartbeat/pedido de Daniel. Não iniciar
+outra suíte nem alterar graphs-v2.json, authoringIndex.cases.js ou
+metricDirectReads.cases.js enquanto roda. Consultar somente o resultado vigente
+.codex-temp/wide-n02g-collection-kind-20260923.json; se ausente, marcador
+-start.json e processo/log final. Ao terminar, pausar heartbeat e confrontar hashes.
+
+Base de implementação publicada: 64b6ad7f25d8b77cf4759d44f4d1f3f887b806a9.
+Aplicadas exatamente três required_reads/collection_name em M-15#1#3,
+M-15#1#4 e M-16#1#3. Comparação integral: 73 outros grafos e todos os outros
+campos preservados; dez fontes protegidas intactas, inclusive runtime.
+RED 2 FAIL/2 PASS (COLLECTION-KIND-001/003); GREEN 4 PASS/0 FAIL/0 SKIP.
+72 modelos sintéticos de autoria, 144 variantes de ordem e 288 negativos de
+identidade/dispatch; não são grafos mutantes admitidos. Três integrações de
+snapshots admitidos congelam expected antes do evaluator, preservam seleção/R
+e recusam trace sem leitura de domínio. Kernel: seis casos de domínio correto
+e doze recusas de domínio errado, com populações vazias e positivas.
+Afetados em 2026-09-23T10:30:47.975Z: 211 PASS/0 FAIL/0 SKIP, oito arquivos,
+.codex-temp/n02g-collection-kind-affected.json. RED/GREEN no mesmo prefixo.
+Syntax checks, revisão adversarial local, diff-check e workflow PASS.
+Hash LF graphs antes 465a7674cd2f20eafc9bbb5f3999fdfe8d239c8c273ba4cca310734ce766fa36,
+depois 3cb14f7886b54b5541222f7b105c03edf166460c263ed5ac06d03a81371ab2c0.
+Helper prepare-collection-kind-validation.cjs preparado/syntax PASS, ainda não
+executado; --write-new/--check somente após ampla verde. Não reexecuta suítes.
+Wrapper .codex-temp/runWideCollectionKind20260923.cjs preparado: uma ampla,
+base fixa e fingerprints dos três arquivos causais; registro de partida/final
+wide-n02g-collection-kind-20260923[-start].json. Não repetir após verde sem
+mudança causal. Após ampla: confrontar hashes, evidência sanitizada, commit/
+publicação e auditoria independente de código, não coberta pelo APTO documental.
+Sem GO global/grafo/host/produção. Nenhum deploy.
+
+### Histórico imediato — proposta collection kind aprovada
 
 Candidato documental publicado/remoto confirmado:
 524bb9a19f808ec8b183b4a0dd8a9ef32018baa9, pai 6d85f096.
