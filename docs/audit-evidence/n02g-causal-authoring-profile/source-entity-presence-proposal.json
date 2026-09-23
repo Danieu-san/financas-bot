@@ -1,0 +1,364 @@
+{
+  "schema": "n02g-source-entity-presence-proposal-v1",
+  "base": "1257abafea4041a59d209e9bab80df7cda6a1433",
+  "status": "documentary_proposal_not_applied",
+  "graph_accepted": false,
+  "normative_application_allowed": false,
+  "evaluator_contract_hash": "sha256:bf2a5e70c7cf661c8b983a2598ae4142567ce9e1b97e34985851b77dcf0e7937",
+  "source_corpus_sha256": "sha256:bae517cb1e170efd29859d0ec1ac76c17fa0be3a600caf95b8fc47d848c9ccb7",
+  "documents": [
+    {
+      "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+      "lf_sha256": "sha256:e2b6b3dbc1bbc6789c97c8698d0d7b9c9d3168bb4f552424bea72e57f3035076",
+      "bytes": 4962523
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claims-v2.json",
+      "lf_sha256": "sha256:4810612761ea7f232e4445c0d192ae53ebf0761f0ba8752da758efb826b30494",
+      "bytes": 64240
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/metric-evaluator-registry-v1.json",
+      "lf_sha256": "sha256:577fe16b3d5a1dc2e24505de150001afd889408f5294a6834486de338d40a3a0",
+      "bytes": 45195
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evidence-snapshot.schema.json",
+      "lf_sha256": "sha256:054a48930a5f25760f201e8b401f0f34f5a83672366acad6c9c09bdc0ce0b5ef",
+      "bytes": 17718
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/material-field-registry-v1.json",
+      "lf_sha256": "sha256:ee7ef3eff146bc2e9cea2cc986c398371acbff3cf35d858ced8386a9758a4d62",
+      "bytes": 10998
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/eligible_event_count.json",
+      "lf_sha256": "sha256:bf2a5e70c7cf661c8b983a2598ae4142567ce9e1b97e34985851b77dcf0e7937",
+      "bytes": 1333
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/snapshot-manifest-v1.json",
+      "lf_sha256": "sha256:2547229db3c07f2dd0941601ab5164bf89981ce966e4e23a2e3058124edba8c4",
+      "bytes": 52403
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/graph-binding-contract-v1.md",
+      "lf_sha256": "sha256:da90befb1f526048cfe14122cd8522690292508bebf42d60ea4ecd5838513a40",
+      "bytes": 19080
+    },
+    {
+      "path": "src/next/provenance/metricDirectReads.js",
+      "lf_sha256": "sha256:2526b6eb373fc5265bf61798c85bf976011d3d77430858df75776306067ae3e8",
+      "bytes": 12407
+    },
+    {
+      "path": "src/next/provenance/metricSelection.js",
+      "lf_sha256": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "bytes": 11711
+    }
+  ],
+  "records": [
+    {
+      "fact_key": "S-13#1#1",
+      "evaluator_ref": {
+        "evaluator_id": "eligible_event_count",
+        "evaluator_version": 1
+      },
+      "subject": {
+        "kind": "family_category",
+        "family_id": "family-example",
+        "category_id": "health.general"
+      },
+      "source_role": {
+        "kind": "node",
+        "alias": "source_empty_health"
+      },
+      "source_node": {
+        "binding": "snapshot",
+        "ref_id": "source-empty-health",
+        "kind": "source_state",
+        "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+        "semantic_fingerprint": "sha256:beb9b796b67566d9ec87044769ee275462fb84b2f3dbec1e3b04a8b4dd2cda9e",
+        "roles": [
+          "value_input"
+        ]
+      },
+      "source_snapshot": {
+        "ref_id": "source-empty-health",
+        "kind": "source_state",
+        "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+        "payload": {
+          "id": "source-empty-health",
+          "source": "synthetic-ledger",
+          "period": "2042-06",
+          "category_id": "health.general",
+          "coverage": "complete",
+          "event_count": 0
+        },
+        "authorship": {
+          "source": "fixture",
+          "collection": "source_states",
+          "record_id": "source-empty-health",
+          "mapping": "identity_payload"
+        },
+        "semantic_fingerprint": "sha256:beb9b796b67566d9ec87044769ee275462fb84b2f3dbec1e3b04a8b4dd2cda9e"
+      },
+      "source_graph_sha256": "sha256:c3ebec8abb8847a3de89d76b30ea094ceb643b45ae0c61bc3ecf8aa972a2b8a1",
+      "proposed_delta": {
+        "added": [
+          {
+            "node": "source_empty_health",
+            "operation": "has",
+            "segments": [
+              "entity_id"
+            ]
+          }
+        ],
+        "removed": []
+      },
+      "source_derivation_reads": [
+        {
+          "node": "source_empty_health",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "source_empty_health",
+          "segments": [
+            "period"
+          ]
+        },
+        {
+          "node": "source_empty_health",
+          "segments": [
+            "category_id"
+          ]
+        },
+        {
+          "node": "source_empty_health",
+          "segments": [
+            "coverage"
+          ]
+        },
+        {
+          "node": "source_empty_health",
+          "segments": [
+            "event_count"
+          ]
+        }
+      ],
+      "source_proof_structural": [
+        {
+          "node": "source_empty_health",
+          "operation": "keys",
+          "segments": []
+        }
+      ]
+    },
+    {
+      "fact_key": "M-09#1#1",
+      "evaluator_ref": {
+        "evaluator_id": "eligible_event_count",
+        "evaluator_version": 1
+      },
+      "subject": {
+        "kind": "family_category",
+        "family_id": "family-example",
+        "category_id": "health.general"
+      },
+      "source_role": {
+        "kind": "node",
+        "alias": "source_empty_health"
+      },
+      "source_node": {
+        "binding": "snapshot",
+        "ref_id": "source-empty-health",
+        "kind": "source_state",
+        "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+        "semantic_fingerprint": "sha256:beb9b796b67566d9ec87044769ee275462fb84b2f3dbec1e3b04a8b4dd2cda9e",
+        "roles": [
+          "value_input"
+        ]
+      },
+      "source_snapshot": {
+        "ref_id": "source-empty-health",
+        "kind": "source_state",
+        "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+        "payload": {
+          "id": "source-empty-health",
+          "source": "synthetic-ledger",
+          "period": "2042-06",
+          "category_id": "health.general",
+          "coverage": "complete",
+          "event_count": 0
+        },
+        "authorship": {
+          "source": "fixture",
+          "collection": "source_states",
+          "record_id": "source-empty-health",
+          "mapping": "identity_payload"
+        },
+        "semantic_fingerprint": "sha256:beb9b796b67566d9ec87044769ee275462fb84b2f3dbec1e3b04a8b4dd2cda9e"
+      },
+      "source_graph_sha256": "sha256:21acd61e3ad1e8b49ec205183c210bc8ad6db91ee821a5642cfedf5605baaf6c",
+      "proposed_delta": {
+        "added": [
+          {
+            "node": "source_empty_health",
+            "operation": "has",
+            "segments": [
+              "entity_id"
+            ]
+          }
+        ],
+        "removed": []
+      },
+      "source_derivation_reads": [
+        {
+          "node": "source_empty_health",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "source_empty_health",
+          "segments": [
+            "period"
+          ]
+        },
+        {
+          "node": "source_empty_health",
+          "segments": [
+            "category_id"
+          ]
+        },
+        {
+          "node": "source_empty_health",
+          "segments": [
+            "coverage"
+          ]
+        },
+        {
+          "node": "source_empty_health",
+          "segments": [
+            "event_count"
+          ]
+        }
+      ],
+      "source_proof_structural": [
+        {
+          "node": "source_empty_health",
+          "operation": "keys",
+          "segments": []
+        }
+      ]
+    },
+    {
+      "fact_key": "N-04#1#1",
+      "evaluator_ref": {
+        "evaluator_id": "eligible_event_count",
+        "evaluator_version": 1
+      },
+      "subject": {
+        "kind": "family_category",
+        "family_id": "family-example",
+        "category_id": "health.general"
+      },
+      "source_role": {
+        "kind": "node",
+        "alias": "source_empty_health"
+      },
+      "source_node": {
+        "binding": "snapshot",
+        "ref_id": "source-empty-health",
+        "kind": "source_state",
+        "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+        "semantic_fingerprint": "sha256:beb9b796b67566d9ec87044769ee275462fb84b2f3dbec1e3b04a8b4dd2cda9e",
+        "roles": [
+          "value_input"
+        ]
+      },
+      "source_snapshot": {
+        "ref_id": "source-empty-health",
+        "kind": "source_state",
+        "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+        "payload": {
+          "id": "source-empty-health",
+          "source": "synthetic-ledger",
+          "period": "2042-06",
+          "category_id": "health.general",
+          "coverage": "complete",
+          "event_count": 0
+        },
+        "authorship": {
+          "source": "fixture",
+          "collection": "source_states",
+          "record_id": "source-empty-health",
+          "mapping": "identity_payload"
+        },
+        "semantic_fingerprint": "sha256:beb9b796b67566d9ec87044769ee275462fb84b2f3dbec1e3b04a8b4dd2cda9e"
+      },
+      "source_graph_sha256": "sha256:691edb1a7aa92143d686612658e864f4e5360c1dc553f06b3bdfa1268bba6a7a",
+      "proposed_delta": {
+        "added": [
+          {
+            "node": "source_empty_health",
+            "operation": "has",
+            "segments": [
+              "entity_id"
+            ]
+          }
+        ],
+        "removed": []
+      },
+      "source_derivation_reads": [
+        {
+          "node": "source_empty_health",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "source_empty_health",
+          "segments": [
+            "period"
+          ]
+        },
+        {
+          "node": "source_empty_health",
+          "segments": [
+            "category_id"
+          ]
+        },
+        {
+          "node": "source_empty_health",
+          "segments": [
+            "coverage"
+          ]
+        },
+        {
+          "node": "source_empty_health",
+          "segments": [
+            "event_count"
+          ]
+        }
+      ],
+      "source_proof_structural": [
+        {
+          "node": "source_empty_health",
+          "operation": "keys",
+          "segments": []
+        }
+      ]
+    }
+  ],
+  "proposed_totals": {
+    "changed_graphs": 3,
+    "unchanged_graphs": 73,
+    "added_structural": 3,
+    "removed_structural": 0
+  },
+  "limits": "Source equality and inventory only; no full semantic fingerprint validation, evaluator execution, actual/oracle, normative application or host/global acceptance. Present-field branch needs its own reads/edges and is not covered by the three absent-field deltas."
+}

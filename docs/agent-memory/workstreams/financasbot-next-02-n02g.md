@@ -16,6 +16,14 @@ Nenhuma mudança causal posterior; não repetir ampla nem auditoria deste hash.
 Próximo objetivo delimitado: diagnosticar source.has('entity_id') extra em
 eligible_event_count de S-13#1#1, M-09#1#1 e N-04#1#1. Confrontar schema,
 contrato e autoria antes de escolher correção de runtime ou proposta normativa.
+Diagnóstico: entity_id é campo edge opcional admitido de source_state; os três
+snapshots não o possuem. A guarda atual consulta presença antes de conferir
+o vínculo de pessoa/família; removê-la eliminaria uma proteção de escopo.
+Preparar somente proposta de +1 has/entity_id por grafo, sem aplicar. Arquivos
+documentais registrados: plano financasbot-next-02-n02g-source-entity-presence-decision-v1.md,
+helper prepare-source-entity-presence-proposal.cjs e inventário
+source-entity-presence-proposal.json na pasta n02g-causal-authoring-profile.
+Submeter desenho/delta por novo hash; aprovação budget_class não cobre este recorte.
 Os três resíduos existiam antes da correção budget_class. Não copiar actual
 para expected. Manter 31 divergências/3 derivados pendentes como diagnóstico,
 sem convertê-los em porcentagem de conclusão do gate.
