@@ -53,3 +53,33 @@ confrontando o objeto original do diff com a proposta e fontes do candidato.
 Sem nova leitura independente suficiente, continuar NÃO APTO; não contornar
 o requisito probatório nem converter os checks locais em execução externa.
 Sem GO global N02-G, aceitação de grafo/host, deploy ou produção.
+
+Solicitação da evidência nova enviada e início confirmado:
+https://chatgpt.com/g/g-p-6aae7fa3ad5c8191a8ace5a6d799fab4-financasbot/c/6ab443d5-f920-83e9-861b-5ef58ffe6a49
+O primeiro clique não executou por limite de uso na aprovação automática;
+Daniel pediu Continue e a retomada enviou uma única solicitação. Não repetir.
+
+## Nova revisão concluída e ratificada
+
+APTO DOCUMENTAL para o delta fechado person_b + person_b/id em derivation de
+S-07#1#1. Nenhum achado crítico/alto/médio/baixo. Auditor confirmou ambos os
+hashes e pais, leu o objeto ORIGINAL completo na linha removida do patch nativo
+e confrontou-o com a expansão formatada. Identificou diretamente e0002 e
+card_green/owner_id já exigidos, ausência derivacional de person_b/id e presença
+no proof. Sem mudança semântica observada na revisão auxiliar.
+
+Também examinou plano, proposta/helper, runtime metricDirectReads/metricReferences,
+contrato owned_cards, registry, binding contract, claim, manifest e material registry.
+Leitura original agora independente resolve o bloqueador da primeira revisão;
+o primeiro NÃO APTO permanece histórico, não é apagado nem convertido retroativamente.
+
+Limites externos: corpus raw integral inacessível; somente prefixos dos blobs
+073e6aac/0b497d0d visíveis no patch, não SHA-1 completo verificado externamente.
+Nenhum teste/helper/evaluator/compiler/recorder executado pelo auditor.
+Confronto local: igualdade integral preservada e proposta --check PASS; fonte
+original lida no GitHub concorda com a proposta. Evidência externa é estática.
+
+Ratificação: pode implementar somente as duas adições autoradas, sem copiar
+family_id/closure de proof nem alterar runtime/seleção. Exigir RED, focais,
+afetados, ampla única estável e nova auditoria de código antes do encerramento.
+Revisão auxiliar permanece isolada; não integrar/cherry-pick. Sem GO global.

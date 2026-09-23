@@ -6,7 +6,27 @@ Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação exata — revisar proposta owned_cards antes de aplicar
+## Próxima ação exata — implementar delta owned_cards documentalmente aprovado
+
+Nova auditoria de 8f94d2b/5bd039c terminou APTO DOCUMENTAL, sem achados,
+confrontado e ratificado em owned-cards-source-access-review.md. O auditor
+leu o objeto ORIGINAL completo pelo patch nativo, resolvendo o bloqueio
+anterior. Não executou testes nem leu corpus raw integral; limites preservados.
+Não incorporar branch auxiliar de formatação à implementação.
+Agora: RED causal, somente adicionar person_b e person_b/id em derivation
+de S-07#1#1, preservando todos os demais campos/proof/75 grafos/runtime.
+Testes previstos: authoringIndex.cases.js e metricDirectReads.cases.js;
+expected congelado antes da execução, negativos de inventário antigo/trace
+sem ID, autoria variável e identidade versionada. Focais/afetados e uma
+ampla estável antes de commit/auditoria de código; sem GO global.
+
+### Histórico — remediação documental concluída
+
+Nova evidência 8f94d2b enviada uma única vez em conversa limpa:
+https://chatgpt.com/g/g-p-6aae7fa3ad5c8191a8ace5a6d799fab4-financasbot/c/6ab443d5-f920-83e9-861b-5ef58ffe6a49
+Primeiro clique foi recusado por limite de uso na aprovação automática, não
+executado. Após Continue de Daniel, estado conferido e envio confirmado.
+Auditor iniciou confronto de pai/diff; recuperar resposta, não reenviar.
 
 Parecer 5bd039c recebido: NÃO APTO exclusivamente por acesso insuficiente ao
 grafo original; nenhum defeito causal substantivo identificado. Não aplicar.
