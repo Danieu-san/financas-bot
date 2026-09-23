@@ -1,12 +1,33 @@
 # N02-G — checkpoint
 
-Atualização: 2026-09-22. Estado: N02G-SB-001 COM GO FOCAL INDEPENDENTE RATIFICADO; SEM GO GLOBAL/EXECUTÁVEL N02-G.
+Atualização: 2026-09-23. Estado: due_bill_ids COM APTO FOCAL INDEPENDENTE RATIFICADO; SEM GO GLOBAL/EXECUTÁVEL N02-G.
 Base: `aea4ac31e358ed8d8907e78f6002c8bb80233bc8`.
 Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação exata — auditar candidato due_bill_ids publicado
+## Próxima ação exata — diagnosticar uma família residual do N02-G
+
+Parecer de 48e1cf68d0174ffa08d77485c54348981775e1e2 fornecido por Daniel:
+APTO FOCAL, sem defeitos críticos/altos/médios/baixos identificados. Confrontado
+com Git/pai único ea1b616322ee12806d42f9cdc650597fc2180957 e helper --check PASS.
+Recibo: docs/audit-evidence/n02g-causal-authoring-profile/due-bill-ids-code-independent-review.md.
+Corpus integral = pai menos uma leitura; outros 75 grafos/todos os demais
+campos e dez fontes protegidas preservados. HEAD anterior à ratificação
+350b7f1c75e15daeba1e486a25ca2ed554ffe2b5 só acrescentava documentação ao candidato.
+Correção due_bill_ids encerrada no recorte focal. Auditoria estática externa:
+não executou testes/helper nem leu o corpus integral; essas evidências são locais.
+Não repetir ampla verde nem auditoria deste hash. Heartbeat permanece pausado.
+
+Próximo objetivo delimitado: diagnosticar a divergência de owned_cards@1 em
+S-07#1#1 (person_b/id adicional), confrontando contrato, bindings, runtime e
+sonda existente antes de propor qualquer alteração normativa ou de runtime.
+Sonda pós-due_bill_ids: 49 correspondências, 24 divergências e três derivados
+não exercitados; 73 seleções preservadas. Não é percentual nem aceitação.
+Sem GO global/grafo/host/produção. Concluir escopo vigente N02-G e reavaliar
+o plano na saída, sem ampliar automaticamente.
+
+### Histórico imediato — candidato due_bill_ids aguardava auditoria
 
 Candidato publicado/remoto confirmado 48e1cf68d0174ffa08d77485c54348981775e1e2,
 pai ea1b616322ee12806d42f9cdc650597fc2180957, seis arquivos sanitizados.

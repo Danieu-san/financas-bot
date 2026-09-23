@@ -1,4 +1,8 @@
-# Auditoria focal pendente — due_bill_ids
+# Prompt histórico de auditoria — due_bill_ids
+
+Superado em 2026-09-23: Daniel forneceu APTO FOCAL, confrontado e ratificado
+em due-bill-ids-code-independent-review.md. Não reenviar este hash.
+O estado pendente descrito abaixo é histórico.
 
 Chat → Sol → Alto → revisar candidato imutável.
 Codex → Astra → Alto → confrontar o parecer recebido.
