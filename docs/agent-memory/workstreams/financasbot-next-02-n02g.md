@@ -15,6 +15,13 @@ Não repetir ampla verde nem auditoria deste hash. Heartbeat pausado.
 Próximo trabalho: agrupar os 28 resíduos por causa contratual, selecionar uma
 família delimitada e diagnosticar antes de alterar normativa/runtime. Três
 derivados continuam fora da sonda; nenhuma contagem equivale ao GO global.
+Família selecionada: collection_name em reminder_count/calendar_event_count/
+side_effect_count, M-15#1#3/#4 e M-16#1#3. collectionMatches exige a coleção
+correta antes de membership/count; ausência na autoria é comum aos três.
+Próxima proposta documental, sem aplicar: plano
+financasbot-next-02-n02g-collection-kind-decision-v1.md, inventário
+collection-kind-proposal.json e helper prepare-collection-kind-proposal.cjs
+na pasta n02g-causal-authoring-profile. Somente +1 required_read por grafo.
 
 ### Histórico imediato — publicação e revisão source presence
 

@@ -1,0 +1,362 @@
+{
+  "schema": "n02g-collection-kind-proposal-v1",
+  "base": "6d85f096f0b88f4ecef77d62c2d9929a17547eb5",
+  "status": "documentary_proposal_not_applied",
+  "graph_accepted": false,
+  "normative_application_allowed": false,
+  "source_corpus_sha256": "sha256:63d98b7681376f988fe466a36cc49076c09c6dc90243bf0ada218a58744077ad",
+  "documents": [
+    {
+      "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+      "lf_sha256": "sha256:465a7674cd2f20eafc9bbb5f3999fdfe8d239c8c273ba4cca310734ce766fa36",
+      "bytes": 4962745
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claims-v2.json",
+      "lf_sha256": "sha256:4810612761ea7f232e4445c0d192ae53ebf0761f0ba8752da758efb826b30494",
+      "bytes": 64240
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/metric-evaluator-registry-v1.json",
+      "lf_sha256": "sha256:577fe16b3d5a1dc2e24505de150001afd889408f5294a6834486de338d40a3a0",
+      "bytes": 45195
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evidence-snapshot.schema.json",
+      "lf_sha256": "sha256:054a48930a5f25760f201e8b401f0f34f5a83672366acad6c9c09bdc0ce0b5ef",
+      "bytes": 17718
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/material-field-registry-v1.json",
+      "lf_sha256": "sha256:ee7ef3eff146bc2e9cea2cc986c398371acbff3cf35d858ced8386a9758a4d62",
+      "bytes": 10998
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/graph-binding-contract-v1.md",
+      "lf_sha256": "sha256:da90befb1f526048cfe14122cd8522690292508bebf42d60ea4ecd5838513a40",
+      "bytes": 19080
+    },
+    {
+      "path": "src/next/provenance/metricDirectReads.js",
+      "lf_sha256": "sha256:2526b6eb373fc5265bf61798c85bf976011d3d77430858df75776306067ae3e8",
+      "bytes": 12407
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/snapshot-manifest-v1.json",
+      "lf_sha256": "sha256:2547229db3c07f2dd0941601ab5164bf89981ce966e4e23a2e3058124edba8c4",
+      "bytes": 52403
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/reminder_count.json",
+      "lf_sha256": "sha256:16b84262decf1b92536ed697b09844e0c76f5153f4570e8ec49bc550010f8514",
+      "bytes": 1183
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/calendar_event_count.json",
+      "lf_sha256": "sha256:fa3f00c0a019ab0702f94b2c97f2e575509c308343d2208c992ac677e98097b8",
+      "bytes": 1156
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/side_effect_count.json",
+      "lf_sha256": "sha256:7813782950888e8af5c51403d313fc9b950c463e7109681e9cf30d4cd97345a2",
+      "bytes": 1227
+    }
+  ],
+  "records": [
+    {
+      "fact_key": "M-15#1#3",
+      "evaluator_ref": {
+        "evaluator_id": "reminder_count",
+        "evaluator_version": 1
+      },
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/reminder_count.json",
+      "evaluator_contract_hash": "sha256:16b84262decf1b92536ed697b09844e0c76f5153f4570e8ec49bc550010f8514",
+      "collection_role": {
+        "kind": "node",
+        "alias": "collection_reminders"
+      },
+      "entries_role": {
+        "kind": "node_set",
+        "aliases": []
+      },
+      "collection_node": {
+        "binding": "snapshot",
+        "ref_id": "collection-reminders",
+        "kind": "collection",
+        "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+        "semantic_fingerprint": "sha256:652a65230654d8d3ec59a388260762bcfbb67a26dbbd340890b3a702422ed59e",
+        "roles": [
+          "value_input"
+        ]
+      },
+      "collection_snapshot": {
+        "ref_id": "collection-reminders",
+        "kind": "collection",
+        "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+        "payload": {
+          "id": "collection-reminders",
+          "fixture_id": "NEXT-GOLDEN-FINANCIAL-V1",
+          "collection_name": "reminders",
+          "members": []
+        },
+        "authorship": {
+          "source": "fixture",
+          "collection": "reminders",
+          "mapping": "ordered_complete_membership"
+        },
+        "semantic_fingerprint": "sha256:652a65230654d8d3ec59a388260762bcfbb67a26dbbd340890b3a702422ed59e"
+      },
+      "source_graph_sha256": "sha256:132653f8a04b13776d104f9d49477138c58441bdab32aa83a1aae9e940e77287",
+      "proposed_delta": {
+        "added": [
+          {
+            "node": "collection_reminders",
+            "segments": [
+              "collection_name"
+            ]
+          }
+        ],
+        "removed": []
+      },
+      "current_collection_reads": [
+        {
+          "node": "collection_reminders",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "collection_reminders",
+          "segments": [
+            "members"
+          ]
+        }
+      ],
+      "proof_collection_reads": [
+        {
+          "node": "collection_reminders",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "collection_reminders",
+          "segments": [
+            "fixture_id"
+          ]
+        },
+        {
+          "node": "collection_reminders",
+          "segments": [
+            "collection_name"
+          ]
+        },
+        {
+          "node": "collection_reminders",
+          "segments": [
+            "members"
+          ]
+        }
+      ]
+    },
+    {
+      "fact_key": "M-15#1#4",
+      "evaluator_ref": {
+        "evaluator_id": "calendar_event_count",
+        "evaluator_version": 1
+      },
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/calendar_event_count.json",
+      "evaluator_contract_hash": "sha256:fa3f00c0a019ab0702f94b2c97f2e575509c308343d2208c992ac677e98097b8",
+      "collection_role": {
+        "kind": "node",
+        "alias": "collection_calendar_events"
+      },
+      "entries_role": {
+        "kind": "node_set",
+        "aliases": []
+      },
+      "collection_node": {
+        "binding": "snapshot",
+        "ref_id": "collection-calendar_events",
+        "kind": "collection",
+        "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+        "semantic_fingerprint": "sha256:d269e6e4685fce5ea2e4f1b70e420dac9f3ac2e414ecaaa956c3798d4ea740fd",
+        "roles": [
+          "value_input"
+        ]
+      },
+      "collection_snapshot": {
+        "ref_id": "collection-calendar_events",
+        "kind": "collection",
+        "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+        "payload": {
+          "id": "collection-calendar_events",
+          "fixture_id": "NEXT-GOLDEN-FINANCIAL-V1",
+          "collection_name": "calendar_events",
+          "members": []
+        },
+        "authorship": {
+          "source": "fixture",
+          "collection": "calendar_events",
+          "mapping": "ordered_complete_membership"
+        },
+        "semantic_fingerprint": "sha256:d269e6e4685fce5ea2e4f1b70e420dac9f3ac2e414ecaaa956c3798d4ea740fd"
+      },
+      "source_graph_sha256": "sha256:1f25c57bd327bc54724939d0a4e28f3097536ef5c1ae4e77f1faf5909fd13123",
+      "proposed_delta": {
+        "added": [
+          {
+            "node": "collection_calendar_events",
+            "segments": [
+              "collection_name"
+            ]
+          }
+        ],
+        "removed": []
+      },
+      "current_collection_reads": [
+        {
+          "node": "collection_calendar_events",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "collection_calendar_events",
+          "segments": [
+            "members"
+          ]
+        }
+      ],
+      "proof_collection_reads": [
+        {
+          "node": "collection_calendar_events",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "collection_calendar_events",
+          "segments": [
+            "fixture_id"
+          ]
+        },
+        {
+          "node": "collection_calendar_events",
+          "segments": [
+            "collection_name"
+          ]
+        },
+        {
+          "node": "collection_calendar_events",
+          "segments": [
+            "members"
+          ]
+        }
+      ]
+    },
+    {
+      "fact_key": "M-16#1#3",
+      "evaluator_ref": {
+        "evaluator_id": "side_effect_count",
+        "evaluator_version": 1
+      },
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/side_effect_count.json",
+      "evaluator_contract_hash": "sha256:7813782950888e8af5c51403d313fc9b950c463e7109681e9cf30d4cd97345a2",
+      "collection_role": {
+        "kind": "node",
+        "alias": "collection_side_effects"
+      },
+      "entries_role": {
+        "kind": "node_set",
+        "aliases": []
+      },
+      "collection_node": {
+        "binding": "snapshot",
+        "ref_id": "collection-side_effects",
+        "kind": "collection",
+        "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+        "semantic_fingerprint": "sha256:c52ebf181a63b23d4c85c2c1203eaf23eaa9dfd1f988ca3b974f2a3f7def2c71",
+        "roles": [
+          "value_input"
+        ]
+      },
+      "collection_snapshot": {
+        "ref_id": "collection-side_effects",
+        "kind": "collection",
+        "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+        "payload": {
+          "id": "collection-side_effects",
+          "fixture_id": "NEXT-GOLDEN-FINANCIAL-V1",
+          "collection_name": "side_effects",
+          "members": []
+        },
+        "authorship": {
+          "source": "fixture",
+          "collection": "side_effects",
+          "mapping": "ordered_complete_membership"
+        },
+        "semantic_fingerprint": "sha256:c52ebf181a63b23d4c85c2c1203eaf23eaa9dfd1f988ca3b974f2a3f7def2c71"
+      },
+      "source_graph_sha256": "sha256:f8e86eb3f947488fa1a2a30398343657d7558b9f445cd805c7d561b616694905",
+      "proposed_delta": {
+        "added": [
+          {
+            "node": "collection_side_effects",
+            "segments": [
+              "collection_name"
+            ]
+          }
+        ],
+        "removed": []
+      },
+      "current_collection_reads": [
+        {
+          "node": "collection_side_effects",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "collection_side_effects",
+          "segments": [
+            "members"
+          ]
+        }
+      ],
+      "proof_collection_reads": [
+        {
+          "node": "collection_side_effects",
+          "segments": [
+            "id"
+          ]
+        },
+        {
+          "node": "collection_side_effects",
+          "segments": [
+            "fixture_id"
+          ]
+        },
+        {
+          "node": "collection_side_effects",
+          "segments": [
+            "collection_name"
+          ]
+        },
+        {
+          "node": "collection_side_effects",
+          "segments": [
+            "members"
+          ]
+        }
+      ]
+    }
+  ],
+  "proposed_totals": {
+    "changed_graphs": 3,
+    "unchanged_graphs": 73,
+    "added_reads": 3,
+    "removed_reads": 0
+  },
+  "limits": "Local source equality and inventory only, no full semantic fingerprint validation or execution. Does not apply normative delta or authorize code/host/global acceptance."
+}
