@@ -6,7 +6,23 @@ Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação exata — source presence encerrado, próximo diagnóstico
+## Próxima ação exata — implementar collection kind documentalmente aprovado
+
+Candidato documental publicado/remoto confirmado:
+524bb9a19f808ec8b183b4a0dd8a9ef32018baa9, pai 6d85f096.
+Helper --check PASS: 11 fontes intactas e três adições propostas, não aplicadas.
+Auditoria enviada uma única vez em conversa limpa, APTO DOCUMENTAL recebido:
+https://chatgpt.com/g/g-p-6aae7fa3ad5c8191a8ace5a6d799fab4-financasbot/c/6ab3a71d-0c3c-83e9-a80a-ecc5ee9e16f3
+Não reenviar. Parecer confrontado/ratificado; recibo collection-kind-independent-review.md
+na pasta n02g-causal-authoring-profile. Implementar somente os três
+reads e testes causais. Arquivos causais previstos: graphs-v2.json,
+tests/next/provenance/authoringIndex.cases.js e metricDirectReads.cases.js.
+Evidência futura: prepare-collection-kind-validation.cjs e
+collection-kind-validation.json na pasta n02g-causal-authoring-profile.
+RED/focais/afetados antes de uma única ampla; runtime intacto.
+Nenhuma suíte em andamento; heartbeat pausado. Sem GO global.
+
+### Histórico imediato — source presence encerrado e diagnóstico
 
 APTO FOCAL de código recebido/confrontado para 449cd3c, sem crítico/alto/médio.
 Recibo source-presence-code-independent-review.md registra limite baixo do
