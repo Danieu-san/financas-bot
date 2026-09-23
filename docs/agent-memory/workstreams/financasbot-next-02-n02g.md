@@ -6,7 +6,25 @@ Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação exata — diagnosticar uma família residual do N02-G
+## Próxima ação exata — revisar proposta owned_cards antes de aplicar
+
+Base documental 76c8a2fe6891ad043ad3e8015ec7ff2471bf473b. Diagnóstico:
+owned_cards@1/S-07#1#1 resolve cada owner_id e compara identidade versionada,
+inclusive do cartão excluído; e0002 já exige a travessia a person_b, mas
+derivation omite esse nó e seu id. Proposta: somente adicionar person_b em
+required_nodes e person_b/id em required_reads. Proof, outros 75 grafos,
+seleção e todos os outros campos/runtime permanecem intactos.
+Plano: docs/plans/workstreams/financasbot-next-02-n02g-owned-cards-decision-v1.md.
+Helper/inventário: prepare-owned-cards-proposal.cjs e owned-cards-proposal.json
+em docs/audit-evidence/n02g-causal-authoring-profile. Syntax e --write-new/--check
+PASS, 11 fontes comparadas com blobs integrais da base. Sem evaluator/oracle,
+sem delta aplicado, sem testes de produto ou ampla repetidos.
+Próximo: publicar proposta sanitizada e uma auditoria documental limpa por hash;
+só após APTO confrontado executar RED/delta/focais/afetados/ampla única estável
+e auditoria de código. Se exigir outro grafo/campo/runtime, reabrir justificativa.
+N02-G sem GO global/grafo/host/produção; heartbeat continua pausado.
+
+### Histórico imediato — due_bill_ids encerrado e próximo diagnóstico
 
 Parecer de 48e1cf68d0174ffa08d77485c54348981775e1e2 fornecido por Daniel:
 APTO FOCAL, sem defeitos críticos/altos/médios/baixos identificados. Confrontado

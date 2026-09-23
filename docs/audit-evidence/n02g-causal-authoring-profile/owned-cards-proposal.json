@@ -1,0 +1,339 @@
+{
+  "schema": "n02g-owned-cards-proposal-v1",
+  "base": "76c8a2fe6891ad043ad3e8015ec7ff2471bf473b",
+  "status": "documentary_proposal_not_applied",
+  "graph_accepted": false,
+  "normative_application_allowed": false,
+  "source_corpus_sha256": "sha256:8570c7a86ed5ccff30a57d1d7dfdd0f50fb1d7869fddba6341540acf29bc6e14",
+  "documents": [
+    {
+      "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+      "lf_sha256": "sha256:921777537f47cd113f3ebb7217f68f9c706a2271f5c90d3efc040ecf7cc40c4c",
+      "bytes": 4962892
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claims-v2.json",
+      "lf_sha256": "sha256:4810612761ea7f232e4445c0d192ae53ebf0761f0ba8752da758efb826b30494",
+      "bytes": 64240
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/metric-evaluator-registry-v1.json",
+      "lf_sha256": "sha256:577fe16b3d5a1dc2e24505de150001afd889408f5294a6834486de338d40a3a0",
+      "bytes": 45195
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evidence-snapshot.schema.json",
+      "lf_sha256": "sha256:054a48930a5f25760f201e8b401f0f34f5a83672366acad6c9c09bdc0ce0b5ef",
+      "bytes": 17718
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/material-field-registry-v1.json",
+      "lf_sha256": "sha256:ee7ef3eff146bc2e9cea2cc986c398371acbff3cf35d858ced8386a9758a4d62",
+      "bytes": 10998
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/graph-binding-contract-v1.md",
+      "lf_sha256": "sha256:da90befb1f526048cfe14122cd8522690292508bebf42d60ea4ecd5838513a40",
+      "bytes": 19080
+    },
+    {
+      "path": "src/next/provenance/metricDirectReads.js",
+      "lf_sha256": "sha256:2526b6eb373fc5265bf61798c85bf976011d3d77430858df75776306067ae3e8",
+      "bytes": 12407
+    },
+    {
+      "path": "src/next/provenance/metricReferences.js",
+      "lf_sha256": "sha256:0a96471a46324599c92c8c2f604e5761749902c6b9393eb738b09aad868d5e7b",
+      "bytes": 2995
+    },
+    {
+      "path": "scripts/agent/validateFinancasBotNextFacts.mjs",
+      "lf_sha256": "sha256:25d838c008ce6b5420e1e52f00aa791ad36758624794d94c22cf1c5d3edfb4f6",
+      "bytes": 18436
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/snapshot-manifest-v1.json",
+      "lf_sha256": "sha256:2547229db3c07f2dd0941601ab5164bf89981ce966e4e23a2e3058124edba8c4",
+      "bytes": 52403
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/owned_cards.json",
+      "lf_sha256": "sha256:67b68e3e0d27a0973127411a960953345eeff0c8adc001ea25001fa2ddbbfc3a",
+      "bytes": 1188
+    }
+  ],
+  "records": [
+    {
+      "fact_key": "S-07#1#1",
+      "evaluator_ref": {
+        "evaluator_id": "owned_cards",
+        "evaluator_version": 1
+      },
+      "bindings": {
+        "context": {
+          "kind": "claim_context"
+        },
+        "cards": {
+          "kind": "node_set",
+          "aliases": [
+            "card_blue",
+            "card_green",
+            "card_offline"
+          ]
+        },
+        "person": {
+          "kind": "node",
+          "alias": "person_a"
+        }
+      },
+      "source_graph_sha256": "sha256:e9858a0deb7e1ca51152ffc8c0b5a5953ff3441a6dd7b2ae9ec1a887b51c5a70",
+      "requirements": {
+        "required_nodes": [
+          "person_a",
+          "person_b"
+        ],
+        "required_reads": [
+          {
+            "node": "person_a",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "person_b",
+            "segments": [
+              "id"
+            ]
+          }
+        ],
+        "relations": [
+          {
+            "card": "card_blue",
+            "card_binding": {
+              "binding": "snapshot",
+              "ref_id": "card-blue",
+              "kind": "card",
+              "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+              "semantic_fingerprint": "sha256:287ce34ecb5741e87838945370f226856d4eb555ffcbfcb55bc427549cd93729",
+              "roles": [
+                "value_input"
+              ]
+            },
+            "edge": {
+              "id": "e0001",
+              "source": "card_blue",
+              "field": "owner_id",
+              "target": "person_a",
+              "relation": "material_ref",
+              "proof_predicates": [
+                "p0011_target"
+              ]
+            },
+            "owner": "person_a",
+            "owner_binding": {
+              "binding": "snapshot",
+              "ref_id": "person-a",
+              "kind": "person",
+              "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+              "semantic_fingerprint": "sha256:37b8d4a3ec13a7498756b5dcda9162338e06c91d57465288ab3512cf07ac67c6",
+              "roles": [
+                "value_input"
+              ]
+            }
+          },
+          {
+            "card": "card_green",
+            "card_binding": {
+              "binding": "snapshot",
+              "ref_id": "card-green",
+              "kind": "card",
+              "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+              "semantic_fingerprint": "sha256:389b9ae67176263c281c5d7f9765c24af08ee88793554dc6ab2cee2bf35f1e2f",
+              "roles": [
+                "value_input"
+              ]
+            },
+            "edge": {
+              "id": "e0002",
+              "source": "card_green",
+              "field": "owner_id",
+              "target": "person_b",
+              "relation": "material_ref",
+              "proof_predicates": [
+                "p0017_target"
+              ]
+            },
+            "owner": "person_b",
+            "owner_binding": {
+              "binding": "snapshot",
+              "ref_id": "person-b",
+              "kind": "person",
+              "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+              "semantic_fingerprint": "sha256:0727eed1b087b390effd2b0bc018c08907be89c583a820d3df42ed74add4bf13",
+              "roles": [
+                "link_proof"
+              ]
+            }
+          },
+          {
+            "card": "card_offline",
+            "card_binding": {
+              "binding": "snapshot",
+              "ref_id": "card-offline",
+              "kind": "card",
+              "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+              "semantic_fingerprint": "sha256:c08e5381eec0897121a04e9913969f8c663b29a91d64971e2a6b1a7dfd3da668",
+              "roles": [
+                "value_input"
+              ]
+            },
+            "edge": {
+              "id": "e0003",
+              "source": "card_offline",
+              "field": "owner_id",
+              "target": "person_a",
+              "relation": "material_ref",
+              "proof_predicates": [
+                "p0023_target"
+              ]
+            },
+            "owner": "person_a",
+            "owner_binding": {
+              "binding": "snapshot",
+              "ref_id": "person-a",
+              "kind": "person",
+              "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+              "semantic_fingerprint": "sha256:37b8d4a3ec13a7498756b5dcda9162338e06c91d57465288ab3512cf07ac67c6",
+              "roles": [
+                "value_input"
+              ]
+            }
+          }
+        ]
+      },
+      "current_derivation": {
+        "required_nodes": [
+          "card_blue",
+          "card_green",
+          "card_offline",
+          "person_a"
+        ],
+        "required_reads": [
+          {
+            "node": "card_blue",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "card_blue",
+            "segments": [
+              "owner_id"
+            ]
+          },
+          {
+            "node": "card_green",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "card_green",
+            "segments": [
+              "owner_id"
+            ]
+          },
+          {
+            "node": "card_offline",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "card_offline",
+            "segments": [
+              "owner_id"
+            ]
+          },
+          {
+            "node": "person_a",
+            "segments": [
+              "id"
+            ]
+          }
+        ],
+        "required_claim_reads": [
+          {
+            "segments": [
+              "subject",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "ref_id"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "value"
+            ]
+          },
+          {
+            "segments": [
+              "time_basis"
+            ]
+          }
+        ],
+        "required_edges": [
+          "e0001",
+          "e0002",
+          "e0003"
+        ],
+        "required_structural": [],
+        "selected_nodes": [
+          "card_blue",
+          "card_offline"
+        ],
+        "evidence_set_mode": "exact",
+        "required_selections": [
+          {
+            "candidate_set": "candidates",
+            "selected_set": "selected"
+          }
+        ]
+      },
+      "proposed_delta": {
+        "added_nodes": [
+          "person_b"
+        ],
+        "added_reads": [
+          {
+            "node": "person_b",
+            "segments": [
+              "id"
+            ]
+          }
+        ],
+        "removed": []
+      },
+      "proof_preserved_sha256": "sha256:65eaf638bfe9d6385352280902c8644085fd2ef2ff3857618d50cee3163ef124"
+    }
+  ],
+  "proposed_totals": {
+    "changed_graphs": 1,
+    "unchanged_graphs": 75,
+    "added_nodes": 1,
+    "added_reads": 1,
+    "removed": 0
+  },
+  "limits": "Source equality and declared snapshot identity only; no full semantic fingerprint validation, evaluator execution or normative application. No graph/host/global/production approval."
+}
