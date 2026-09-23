@@ -6,7 +6,31 @@ Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação exata — publicar e auditar aplicação collection kind
+## Próxima ação exata — collection kind encerrado; diagnóstico residual
+
+APTO FOCAL de b13724a recuperado na mesma conversa e confrontado com Git e
+helper --check PASS. Recibo collection-kind-code-independent-review.md na
+pasta n02g-causal-authoring-profile. Sem crítico/alto/médio; limites estáticos
+e não reexecução de --check preservados. Correção focal encerrada.
+Não repetir ampla nem auditoria deste hash. Próximo objetivo: diagnosticar
+uma família dos 25 resíduos, antes de alterar normativa/runtime. Três derivados
+continuam fora da sonda. N02-G permanece sem GO global.
+
+### Histórico imediato — recuperação da auditoria collection kind
+
+Candidato publicado/remoto confirmado b13724a2ef91e7f0a43ea287c60e89abda9ea5fd,
+pai 64b6ad7f25d8b77cf4759d44f4d1f3f887b806a9, seis arquivos sanitizados.
+Helper --check PASS após commit. Auditoria enviada uma única vez em conversa
+limpa no projeto finançasBot (tab 16); ainda sem parecer consultado.
+A consulta posterior não foi executada: aprovação automática falhou por
+autenticação 401. Não é veredito de insegurança; não contornar nem reenviar.
+Após restabelecer acesso, recuperar a mesma conversa e confrontar o parecer.
+Sonda curta em árvore tracked limpa: .codex-temp/coverage-collection-kind-20260923.json,
+73/76 exercitados, 73 seleções preservadas, correspondências 45 -> 48;
+25 divergências e três derivados fora da sonda. Não equivale a aceitação ou
+porcentagem de conclusão. Nenhuma ampla nova. Heartbeat permanece pausado.
+
+### Histórico imediato — evidência collection kind preparada
 
 Ampla concluída em 2026-09-23T10:41:41.539Z: 2.390 testes, 2.380 PASS,
 0 FAIL/10 SKIP, valid=true, exit_status=0, candidate_unchanged=true.
