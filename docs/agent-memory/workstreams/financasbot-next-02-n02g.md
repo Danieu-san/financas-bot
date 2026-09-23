@@ -8,6 +8,15 @@ Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
 ## Próxima ação exata — após budget_class ratificado
 
+Proposta source-entity-presence fb35e99 recebeu APTO DOCUMENTAL, confrontado
+com helper --check PASS. Recibo source-entity-presence-independent-review.md
+na pasta n02g-causal-authoring-profile. Implementar somente três has/entity_id
+em derivation, testes causais em authoringIndex.cases.js e metricSelection.cases.js
+e composição explícita das igualdades históricas. Runtime preservado. Arquivos
+causais previstos: graphs-v2.json e esses dois arquivos de testes. Limitação
+de aprovação automática por uso ocorreu em uma leitura anterior; nova leitura
+autorizada por Daniel funcionou. Nenhuma ação foi executada na tentativa recusada.
+
 APTO FOCAL de código recebido de Daniel para 63e317c, sem bloqueante/alto/médio.
 Confrontado com Git, código e helper --check PASS; correção focal encerrada.
 Recibo budget-class-code-independent-review.md preserva fontes, limitações e
