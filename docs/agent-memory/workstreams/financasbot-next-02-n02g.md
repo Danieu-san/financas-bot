@@ -6,7 +6,49 @@ Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação exata — após budget_class ratificado
+## Próxima ação exata — aplicação source presence aguardando auditoria
+
+Ampla concluída em 2026-09-23T01:49:05.713Z: 2.386 testes, 2.376 PASS,
+0 FAIL/10 SKIP históricos, valid=true, exit_status=0, candidate_unchanged=true.
+Heartbeat pausado. Conferência prepare-source-presence-validation.cjs
+--write-new/--check PASS: três adições exatas, 73 grafos/demais campos iguais,
+nove fontes protegidas intactas e hashes testados dos três arquivos conferidos.
+Evidência sanitizada source-presence-validation.json. Não repetir suíte verde.
+Próxima ação: commit/publicação sanitizada e auditoria independente focal da
+aplicação por novo hash. Parecer documental fb35e99 não aprova esse código.
+
+Base publicada 95b7086ff56f2d95fed7fa5cd9516e36b5920737. APTO DOCUMENTAL
+fb35e99 ratificado, recibo source-entity-presence-independent-review.md.
+Aplicadas exatamente três adições has/entity_id em derivation.required_structural
+de S-13#1#1, M-09#1#1, N-04#1#1; 73 outros grafos/todos os demais campos
+preservados por comparação integral. Runtime e fontes normativas intactos.
+RED: SOURCE-PRESENCE-001/003 FAIL, property/kernel PASS (2 FAIL/2 PASS).
+GREEN: 4 PASS/0 FAIL/0 SKIP em n02g-source-presence-green.json.
+36 modelos de autoria (presença/ausência/renomeação), 72 positivos de ordem e
+72 negativos versão/unicidade. Três integrações de snapshots admitidos congelam
+expected antes da execução, preservam R/seleção e recusam trace sem has.
+Kernel com entity_id presente correto PASS/incorreto rejeitado; não aceitação
+de grafo mutante. Controles históricos de budget/state/instrument/count compõem
+explicitamente as três adições; igualdades de corpus não relaxadas.
+Afetados concluídos 2026-09-23T01:38:29.258Z: 207 PASS/0 FAIL/0 SKIP,
+resultado n02g-source-presence-affected.json. Revisão local, syntax/diff-check
+e validateAgentWorkflow PASS. Ampla única iniciada em 2026-09-23T01:39:32Z,
+PID 73984, pelo wrapper runWideSourcePresence20260923.cjs. Marcador/processo
+confirmados uma vez; resultado wide-n02g-source-presence-20260923.json em
+.codex-temp, marcador -start.json e stdout/stderr no mesmo prefixo.
+Heartbeat retomar-n02-g-ap-s-su-te-ampla reativado para 20 minutos com instrução
+vigente. Acompanhamento suspenso até heartbeat/pedido. Não iniciar outra ampla
+nem alterar os arquivos causais enquanto roda. Próxima ação: consultar resultado,
+pausar heartbeat ao terminar, confrontar hashes e preparar evidência/auditoria.
+Três arquivos
+causais: graphs-v2.json, authoringIndex.cases.js, metricSelection.cases.js.
+Helper prepare-source-presence-validation.cjs preparado para --write-new/--check
+após ampla verde; ainda não executado. Hash LF graphs antes e2b6b3dbc1bbc6789c97c8698d0d7b9c9d3168bb4f552424bea72e57f3035076,
+depois 465a7674cd2f20eafc9bbb5f3999fdfe8d239c8c273ba4cca310734ce766fa36.
+Após ampla: congelar hashes, evidência sanitizada, commit/publicação e auditoria
+de código própria. Sem GO global/grafo/host/produção.
+
+### Histórico imediato — ratificações budget_class e source presence
 
 Proposta source-entity-presence fb35e99 recebeu APTO DOCUMENTAL, confrontado
 com helper --check PASS. Recibo source-entity-presence-independent-review.md

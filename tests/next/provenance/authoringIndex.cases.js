@@ -109,6 +109,112 @@ function budgetClassRequirements({ roles, nodes, edges, snapshots }) {
     return [...effective].sort().map(node => ({ node, segments: ['budget_class'] }));
 }
 
+function sourcePresenceRequirement(roles, nodes, snapshots) {
+    assert.equal(roles.source.kind, 'node'); const alias = roles.source.alias; const node = nodes[alias];
+    assert.equal(node.kind, 'source_state');
+    const matches = snapshots.filter(s => s.kind === node.kind && s.ref_id === node.ref_id && s.version === node.version);
+    assert.equal(matches.length, 1); assert.equal(matches[0].payload.id, node.ref_id);
+    return { node: alias, operation: 'has', segments: ['entity_id'] };
+}
+
+function reviewedSourcePresenceProposal() {
+    const text = fs.readFileSync(path.join(root, 'docs/audit-evidence/n02g-causal-authoring-profile/source-entity-presence-proposal.json'), 'utf8').replaceAll('\r\n', '\n');
+    assert.equal(hash(text), 'sha256:7571b472d390ae5c723579f0b941f4cdd1a5f8f98aa25ae1390a96e0447ee5a6');
+    return JSON.parse(text);
+}
+
+function undoReviewedSourcePresence(corpus) {
+    let removed = 0;
+    for (const record of reviewedSourcePresenceProposal().records) {
+        const graph = corpus.graphs.find(g => g.fact_key === record.fact_key);
+        for (const addition of record.proposed_delta.added) {
+            const list = graph.trace_contract.derivation.required_structural;
+            const indices = list.flatMap((r, i) => JSON.stringify(r) === JSON.stringify(addition) ? [i] : []);
+            assert.equal(indices.length, 1); list.splice(indices[0], 1); removed++;
+        }
+    }
+    assert.equal(removed, 3);
+}
+
+test('N02G:SOURCE-PRESENCE-001 three authored presence observations preserve every other graph field', () => {
+    const { canonicalValue } = require('../../../src/next/kernel/canonicalValue');
+    const corpus = JSON.parse(fs.readFileSync(path.join(root, graphPath), 'utf8'));
+    const claims = JSON.parse(fs.readFileSync(path.join(root, prefix + 'claims-v2.json'), 'utf8')).claims;
+    const snapshots = JSON.parse(fs.readFileSync(path.join(root, corpus.snapshot_manifest.path), 'utf8')).snapshots;
+    const proposal = reviewedSourcePresenceProposal(); let checked = 0;
+    for (const document of proposal.documents.filter(d => d.path !== graphPath)) {
+        assert.equal(hash(fs.readFileSync(path.join(root, document.path), 'utf8').replaceAll('\r\n', '\n')), document.lf_sha256);
+    }
+    for (const claim of claims.filter(c => c.evaluator_ref.evaluator_id === 'eligible_event_count' && c.evaluator_ref.evaluator_version === 1)) {
+        const graph = corpus.graphs.find(g => g.fact_key === claim.fact_key);
+        const requirement = sourcePresenceRequirement(claim.operand_bindings, graph.nodes, snapshots);
+        assert.equal(graph.trace_contract.derivation.required_structural.filter(r => JSON.stringify(r) === JSON.stringify(requirement)).length, 1);
+        checked++;
+    }
+    assert.equal(checked, 3); assert.equal(corpus.graphs.length, 76);
+    undoReviewedSourcePresence(corpus);
+    assert.equal(hash(canonicalValue(corpus)), proposal.source_corpus_sha256);
+});
+
+test('N02G:SOURCE-PRESENCE-002 authoring presence is independent of aliases and present-field value', () => {
+    // Synthetic authoring inputs, not admitted execution graphs.
+    for (let seed = 0; seed < 12; seed++) for (const entity of [undefined, 'family-a', 'family-b']) {
+        const alias = `renamed-${seed}`; const ref = `source-${seed}`;
+        const payload = { id: ref, ...(entity === undefined ? {} : { entity_id: entity }) };
+        const version = hash(JSON.stringify(payload)); const identity = { kind: 'source_state', ref_id: ref, version };
+        const roles = { source: { kind: 'node', alias } }; const nodes = { [alias]: identity };
+        const snapshots = [{ ...identity, version: hash('other-version'), payload: { id: ref } }, { ...identity, payload }];
+        const expected = { node: alias, operation: 'has', segments: ['entity_id'] };
+        assert.deepEqual(sourcePresenceRequirement(roles, nodes, snapshots), expected);
+        assert.deepEqual(sourcePresenceRequirement(roles, nodes, snapshots.reverse()), expected);
+        assert.throws(() => sourcePresenceRequirement(roles, nodes, snapshots.filter(s => s.version !== version)));
+        assert.throws(() => sourcePresenceRequirement(roles, nodes, [...snapshots, { ...identity, payload }]));
+    }
+});
+
+test('N02G:SOURCE-PRESENCE-003 admitted absent-source integrations reject a trace without presence', async () => {
+    const { evaluateDirectMetric } = require('../../../src/next/provenance/metricDirectReads');
+    const { freezeDeep } = require('../../../src/next/kernel/canonicalValue');
+    const { plan, claims, graphs } = await snapshotAccessFixture(); let checked = 0;
+    const oracle = JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/financasbot-next/golden-claim-oracles-v1.json'), 'utf8'));
+    for (const claim of claims.filter(c => c.evaluator_ref.evaluator_id === 'eligible_event_count' && c.evaluator_ref.evaluator_version === 1)) {
+        const graph = graphs.find(g => g.fact_key === claim.fact_key);
+        const scope = selectionInput(claim, graph, `source-presence-${checked}`);
+        const expected = freezeDeep(structuredClone(Object.fromEntries(['required_nodes', 'required_reads', 'required_claim_reads',
+            'required_edges', 'required_structural', 'required_selections', 'selected_nodes'].map(k => [k, graph.trace_contract.derivation[k]]))));
+        const expectedBefore = JSON.stringify(expected);
+        const accessBindings = plan.observationMetadata({ fact_key: claim.fact_key, phase: 'derivation' });
+        const operandSets = Object.entries(claim.operand_bindings).filter(([, b]) => b.kind === 'node_set').map(([role, b]) => ({ role, aliases: b.aliases }));
+        const recorder = createCausalRecorder({ executionId: scope.executionId, maxEvents: 10000 });
+        const phase = recorder.open({ invocationId: claim.fact_key, phase: 'derivation' }); const controls = []; const operands = {};
+        let value;
+        try {
+            for (const [role_id, binding] of Object.entries(claim.operand_bindings)) {
+                const selector = { fact_key: claim.fact_key, role_id };
+                const access = binding.kind === 'claim_context' ? plan.openContext(selector, phase.observe)
+                    : binding.kind === 'node_set' ? plan.openSet(selector, phase.observe) : plan.open({ ...selector, alias: binding.alias }, phase.observe);
+                controls.push(access); operands[role_id] = access.handle;
+            }
+            value = evaluateDirectMetric(Object.freeze(operands), 'eligible_event_count');
+            for (const access of controls) access.assertHealthy();
+        } finally { for (const access of controls) access.revoke(); }
+        phase.seal(); const trace = recorder.finish();
+        const input = { ...scope, expected, trace, operandSets, accessBindings }; const coverage = comparePhaseCoverage(input);
+        assert.equal(coverage.components.selection.matched, true); assert.equal(coverage.matched, true, claim.fact_key);
+        assert.equal(coverage.graph_accepted, false);
+        const split = claim.fact_key.lastIndexOf('#');
+        assert.equal(value, oracle.turns[claim.fact_key.slice(0, split)].facts[Number(claim.fact_key.slice(split + 1)) - 1].value);
+        const alias = claim.operand_bindings.source.alias;
+        const kept = trace.derivation_trace.filter(e => !(e.operation === 'has' && e.alias === alias && e.path.join('.') === 'entity_id'));
+        assert.equal(trace.derivation_trace.length - kept.length, 1);
+        const altered = { ...trace, derivation_trace: kept.map((e, sequence) => ({ ...e, sequence })) };
+        assert.equal(comparePhaseCoverage({ ...input, trace: altered }).matched, false);
+        assert.equal(trace.derivation_trace.some(e => e.operation === 'get' && e.alias === alias && e.path.join('.') === 'entity_id'), false);
+        assert.equal(JSON.stringify(expected), expectedBefore); checked++;
+    }
+    assert.equal(checked, 3);
+});
+
 function reviewedBudgetClassProposal() {
     const text = fs.readFileSync(path.join(root, 'docs/audit-evidence/n02g-causal-authoring-profile/budget-class-population-proposal.json'), 'utf8').replaceAll('\r\n', '\n');
     assert.equal(hash(text), 'sha256:3a7fe567cb35866d230ffe6b7706c5e53a552fbaa4303ed1902ccbdd63bd1583');
@@ -116,6 +222,8 @@ function reviewedBudgetClassProposal() {
 }
 
 function restoreReviewedBudgetClassReads(corpus) {
+    // Compose the later three presence additions before this historical delta.
+    undoReviewedSourcePresence(corpus);
     // Historical comparison only. Restore exactly the reviewed removals at
     // their original position after the last preserved read of that node.
     const proposal = reviewedBudgetClassProposal(); let restored = 0;
@@ -444,6 +552,8 @@ function countCompensationRequirements(graph, claim) {
 
 test('N02G:COUNT-PHASE-001 effective-category dependency changes only the approved derivation fields', () => {
     const document = JSON.parse(fs.readFileSync(path.join(root, graphPath), 'utf8'));
+    // Undo only the independently reviewed later structural additions.
+    undoReviewedSourcePresence(document);
     const source = JSON.parse(fs.readFileSync(path.join(root, 'docs/audit-evidence/n02g-count-compensation/graphs-extract.json'), 'utf8'));
     assert.equal(source.graphs.length, 3);
     for (const claim of source.claims) {

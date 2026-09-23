@@ -1,0 +1,231 @@
+{
+  "schema": "n02g-source-presence-validation-v1",
+  "base": "95b7086ff56f2d95fed7fa5cd9516e36b5920737",
+  "status": "candidate_awaiting_independent_code_audit",
+  "evidence_kind": "locally_executed_not_external_verdict",
+  "graph_accepted": false,
+  "releaseEligible": false,
+  "scope": {
+    "changed_graphs": 3,
+    "unchanged_graphs": 73,
+    "added_structural": 3,
+    "all_other_graph_fields_preserved": true,
+    "before_lf_sha256": "sha256:e2b6b3dbc1bbc6789c97c8698d0d7b9c9d3168bb4f552424bea72e57f3035076",
+    "after_lf_sha256": "sha256:465a7674cd2f20eafc9bbb5f3999fdfe8d239c8c273ba4cca310734ce766fa36"
+  },
+  "unchanged": [
+    {
+      "path": "docs/contracts/next/provenance-v2/claims-v2.json",
+      "lf_sha256": "sha256:4810612761ea7f232e4445c0d192ae53ebf0761f0ba8752da758efb826b30494",
+      "bytes": 64240
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/metric-evaluator-registry-v1.json",
+      "lf_sha256": "sha256:577fe16b3d5a1dc2e24505de150001afd889408f5294a6834486de338d40a3a0",
+      "bytes": 45195
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evidence-snapshot.schema.json",
+      "lf_sha256": "sha256:054a48930a5f25760f201e8b401f0f34f5a83672366acad6c9c09bdc0ce0b5ef",
+      "bytes": 17718
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/material-field-registry-v1.json",
+      "lf_sha256": "sha256:ee7ef3eff146bc2e9cea2cc986c398371acbff3cf35d858ced8386a9758a4d62",
+      "bytes": 10998
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/eligible_event_count.json",
+      "lf_sha256": "sha256:bf2a5e70c7cf661c8b983a2598ae4142567ce9e1b97e34985851b77dcf0e7937",
+      "bytes": 1333
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/snapshot-manifest-v1.json",
+      "lf_sha256": "sha256:2547229db3c07f2dd0941601ab5164bf89981ce966e4e23a2e3058124edba8c4",
+      "bytes": 52403
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/graph-binding-contract-v1.md",
+      "lf_sha256": "sha256:da90befb1f526048cfe14122cd8522690292508bebf42d60ea4ecd5838513a40",
+      "bytes": 19080
+    },
+    {
+      "path": "src/next/provenance/metricDirectReads.js",
+      "lf_sha256": "sha256:2526b6eb373fc5265bf61798c85bf976011d3d77430858df75776306067ae3e8",
+      "bytes": 12407
+    },
+    {
+      "path": "src/next/provenance/metricSelection.js",
+      "lf_sha256": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "bytes": 11711
+    }
+  ],
+  "red": {
+    "recorded_at": "2026-09-23T01:33:28.480Z",
+    "node": "22.17.0",
+    "phase": "red",
+    "files": [
+      "tests/next/provenance/authoringIndex.cases.js",
+      "tests/next/provenance/metricSelection.cases.js"
+    ],
+    "exit_status": 1,
+    "tap": {
+      "tests": 4,
+      "suites": 0,
+      "pass": 2,
+      "fail": 2,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "coverage": {
+      "line_percent": 58.56,
+      "branch_percent": 68.95,
+      "function_percent": 68.93,
+      "uncovered_lines": ""
+    },
+    "failures": [
+      "not ok 1 - N02G:SOURCE-PRESENCE-001 three authored presence observations preserve every other graph field",
+      "not ok 3 - N02G:SOURCE-PRESENCE-003 admitted absent-source integrations reject a trace without presence"
+    ]
+  },
+  "green": {
+    "recorded_at": "2026-09-23T01:34:53.362Z",
+    "node": "22.17.0",
+    "phase": "green",
+    "files": [
+      "tests/next/provenance/authoringIndex.cases.js",
+      "tests/next/provenance/metricSelection.cases.js"
+    ],
+    "exit_status": 0,
+    "tap": {
+      "tests": 4,
+      "suites": 0,
+      "pass": 4,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "coverage": {
+      "line_percent": 58.75,
+      "branch_percent": 69.55,
+      "function_percent": 69.68,
+      "uncovered_lines": ""
+    },
+    "failures": []
+  },
+  "affected": {
+    "recorded_at": "2026-09-23T01:38:29.258Z",
+    "node": "22.17.0",
+    "phase": "affected",
+    "files": [
+      "tests/next/provenance/authoringIndex.cases.js",
+      "tests/next/provenance/metricSelection.cases.js",
+      "tests/next/provenance/metricDirectReads.cases.js",
+      "tests/next/provenance/causalAuthoring.cases.js",
+      "tests/next/provenance/packageContract.cases.js",
+      "tests/next/provenance/graphCompiler.cases.js",
+      "tests/next/provenance/graphStructure.cases.js",
+      "tests/next/provenance/proofAcceptance.cases.js"
+    ],
+    "exit_status": 0,
+    "tap": {
+      "tests": 207,
+      "suites": 0,
+      "pass": 207,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "coverage": {
+      "line_percent": 94.79,
+      "branch_percent": 87.26,
+      "function_percent": 96.23,
+      "uncovered_lines": ""
+    },
+    "failures": []
+  },
+  "wide": {
+    "recorded_at": "2026-09-23T01:49:05.713Z",
+    "started_at": "2026-09-23T01:39:32.463Z",
+    "node": "22.17.0",
+    "source_head": "95b7086ff56f2d95fed7fa5cd9516e36b5920737",
+    "candidate_files": [
+      {
+        "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+        "raw_sha256": "sha256:465a7674cd2f20eafc9bbb5f3999fdfe8d239c8c273ba4cca310734ce766fa36",
+        "lf_sha256": "sha256:465a7674cd2f20eafc9bbb5f3999fdfe8d239c8c273ba4cca310734ce766fa36"
+      },
+      {
+        "path": "tests/next/provenance/authoringIndex.cases.js",
+        "raw_sha256": "sha256:f558631e28535c5803ff8060f18a3757bc53deff6136f879194bbbba1752a039",
+        "lf_sha256": "sha256:f558631e28535c5803ff8060f18a3757bc53deff6136f879194bbbba1752a039"
+      },
+      {
+        "path": "tests/next/provenance/metricSelection.cases.js",
+        "raw_sha256": "sha256:f4813901771076a13e528674943d4d664c4911da1577a770796348342afad10b",
+        "lf_sha256": "sha256:f4813901771076a13e528674943d4d664c4911da1577a770796348342afad10b"
+      }
+    ],
+    "candidate_unchanged": true,
+    "duration_ms": 573137,
+    "local_only": true,
+    "network_guard_scope": [
+      "fetch",
+      "http",
+      "https",
+      "net",
+      "node_descendants",
+      "non_node_subprocesses_except_audited_local_git_and_tar"
+    ],
+    "test_files": 165,
+    "discovered_test_files": 183,
+    "exit_status": 0,
+    "signal": null,
+    "valid": true,
+    "validation_reasons": [],
+    "tap": {
+      "tests": 2386,
+      "suites": 0,
+      "pass": 2376,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 10,
+      "todo": 0
+    },
+    "coverage": {
+      "line_percent": 92.42,
+      "branch_percent": 78.8,
+      "function_percent": 92.89,
+      "uncovered_lines": ""
+    },
+    "failures": [],
+    "skipped_tests": [
+      "instalador executa install e uninstall restaurando bytes preexistentes",
+      "install adota bloco existente e preserva integralmente os bytes atuais",
+      "install recusa adocao quando backup diverge apenas por BOM sem mutar config",
+      "uninstall recusa configuracao alterada e preserva o arquivo atual",
+      "uninstall recusa divergencia somente de BOM e preserva bytes atuais",
+      "functional: consent, onboarding, settings and dashboard",
+      "functional: expenses, income and credit card installments",
+      "functional: goals, debts, payments and reminders",
+      "functional: analytics, deletion, admin and fallback",
+      "functional: complex analytics handles typos, counts, duplicates and min/max"
+    ]
+  },
+  "properties": {
+    "synthetic_authoring_models": 36,
+    "positive_order_variants": 72,
+    "negative_version_or_uniqueness_checks": 72,
+    "admitted_absent_source_integrations": 3,
+    "missing_presence_trace_mutants": 3,
+    "kernel_present_matching_scope_passes": true,
+    "kernel_present_wrong_scope_rejected": true,
+    "runtime_unchanged": true,
+    "selection_and_R_preserved": true,
+    "expected_frozen_before_execution": true
+  },
+  "limits": "Present-field kernel cases are not admitted mutated graphs. Historical corpus pins compose the three reviewed additions explicitly. No host, graph, global gate or production approval."
+}

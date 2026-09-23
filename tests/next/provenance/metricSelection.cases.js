@@ -433,11 +433,12 @@ test('N02G:METRIC-SELECTION-005 basis and scope are explicit even for empty popu
 
 test('N02G:METRIC-SELECTION-006 source count must equal eligible cardinality, not money or a declared zero', () => {
     const { evaluateDirectMetric } = require('../../../src/next/provenance/metricDirectReads');
-    function run(count, coverage = 'complete', linked = true) {
+    function run(count, coverage = 'complete', linked = true, entity = undefined) {
         const f = fixture({ subject: { kind: 'family_category', family_id: 'f1', category_id: 'food' } });
         const source = createInstrumentedAccess({ emit: e => f.observations.push(e), bindings: [{ alias: 'source', role: 'source',
             identity: { kind: 'source_state', ref_id: 'source', version },
-            value: { id: 'source', period: '2042-06', category_id: 'food', coverage, ...(count === undefined ? {} : { event_count: count }) },
+            value: { id: 'source', period: '2042-06', category_id: 'food', coverage, ...(count === undefined ? {} : { event_count: count }),
+                ...(entity === undefined ? {} : { entity_id: entity }) },
             shape: { type: 'record', fields: Object.fromEntries(['id', 'period', 'category_id', 'coverage', 'event_count', 'entity_id'].map(k => [k, scalar])) } },
         { alias: 'source-category', role: 'source', identity: { kind: 'category', ref_id: 'food', version },
             value: { id: 'food' }, shape: { type: 'record', fields: { id: scalar } } }],
@@ -446,10 +447,15 @@ test('N02G:METRIC-SELECTION-006 source count must equal eligible cardinality, no
             const result = evaluateDirectMetric({ ...f.operands, source: source.handle('source') }, 'eligible_event_count');
             assert.ok(f.observations.some(e => e[1] === 'traverse' && e[2] === 'source' && e[4][0] === 'category_id'));
             assert.equal(f.observations.some(e => e[2] === 'source-category'), false);
+            assert.equal(f.observations.filter(e => e[1] === 'has' && e[2] === 'source' && e[4].join('.') === 'entity_id').length, 1);
+            assert.equal(f.observations.some(e => e[1] === 'get' && e[2] === 'source' && e[4].join('.') === 'entity_id'), entity !== undefined);
             return result;
         } finally { source.revoke(); for (const c of f.controls) c.revoke(); }
     }
     assert.equal(run(3), 3); // monetary total is 135, not 3
+    // Handle-boundary kernel checks, not acceptance of mutated graphs.
+    assert.equal(run(3, 'complete', true, 'f1'), 3);
+    assert.throws(() => run(3, 'complete', true, 'foreign-family'), /direct_metric_scope/);
     for (const count of [0, 2, 4, undefined]) assert.throws(() => run(count), /direct_metric_count/);
     assert.throws(() => run(3, 'partial'), /direct_metric_coverage/);
     assert.throws(() => run(3, 'complete', false), /access_traversal/);
