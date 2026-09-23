@@ -162,6 +162,26 @@ test('N02G:DIRECT-METRIC-006 due dates include both boundaries and exclude statu
     assert.throws(() => evaluateDirectMetric(operands({ ...juneRange, start: '2042-07-01' }), 'due_bill_ids'), /direct_metric_period/);
 });
 
+test('N02G:DUE-BILL-IDS-004 kernel IDs ignore monetary values while totals consume them', () => {
+    // Kernel handles only, not admitted graph mutations.
+    for (const amounts of [[0, 0], [101, 307], [9999, 3]]) for (const metric of ['due_bill_ids', 'due_bills_total']) {
+        const rows = [['first', '2042-06-15', 'open', 'p1', amounts[0]], ['last', '2042-06-30', 'open', 'p1', amounts[1]],
+            ['foreign', '2042-06-20', 'open', 'p2', 500], ['paid', '2042-06-20', 'paid', 'p1', 700], ['late', '2042-07-01', 'open', 'p1', 900]];
+        const bills = instrument([...rows.map(([alias, due_date, status, person_id, amount_minor]) =>
+            [alias, 'bill', { id: alias, due_date, status, person_id, amount_minor }]), ['p1', 'person', { id: 'p1' }], ['p2', 'person', { id: 'p2' }]],
+        rows.map(([source, , , target], i) => ({ id: `link-${i}`, source, target, field: 'person_id', type: 'ref' })), rows.map(row => row[0]));
+        const person = instrument([['person', 'person', { id: 'p1' }]]);
+        try {
+            const value = evaluateDirectMetric({ bills: bills.access.handle, person: person.access.handle('person'),
+                context: context({ kind: 'person', ref_id: 'p1' }, juneRange, 'due_date') }, metric);
+            const reads = bills.observations.filter(e => e[1] === 'get' && e[4].join('.') === 'amount_minor');
+            if (metric === 'due_bill_ids') { assert.deepEqual(value, ['first', 'last']); assert.equal(reads.length, 0); }
+            else { assert.equal(value, amounts[0] + amounts[1]); assert.deepEqual(reads.map(e => e[2]), ['first', 'last']); }
+            bills.access.assertHealthy(); person.access.assertHealthy();
+        } finally { bills.access.revoke(); person.access.revoke(); }
+    }
+});
+
 test('N02G:DIRECT-METRIC-012 family bills resolve every member even without a contributing bill', () => {
     function fixture(members, missing, empty = false) {
         const family = instrument([

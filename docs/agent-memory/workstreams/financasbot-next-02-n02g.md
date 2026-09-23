@@ -6,7 +6,48 @@ Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação exata — implementar due_bill_ids documentalmente aprovado
+## Próxima ação exata — publicar e auditar aplicação due_bill_ids
+
+Ampla concluída em 2026-09-23T11:33:11.779Z: 2.394 testes, 2.384 PASS,
+0 FAIL/10 SKIP, valid=true, exit_status=0, candidate_unchanged=true.
+Heartbeat pausado. prepare-due-bill-ids-validation.cjs --write-new/--check PASS:
+hashes atuais dos três arquivos conferem, corpus integral igual ao pai menos
+a única leitura revisada, dez fontes protegidas intactas. Evidência sanitizada
+due-bill-ids-validation.json. Não repetir suíte verde. Próximo passo: publicar
+commit sanitizado e auditoria independente de código. Sem GO global.
+
+### Histórico imediato — ampla due_bill_ids
+
+Ampla iniciada em 2026-09-23T11:24:19.884Z, PID 113540. Marcador confirmado
+uma vez. Heartbeat retomar-n02-g-ap-s-su-te-ampla reativado para 20 minutos.
+Acompanhamento suspenso até heartbeat/pedido. Não iniciar outra ampla nem
+alterar os três arquivos causais enquanto roda. Ao terminar, pausar heartbeat.
+
+Base de implementação publicada ea1b616322ee12806d42f9cdc650597fc2180957.
+Aplicada uma única remoção bill_rent_b/amount_minor de derivation.required_reads
+em M-15#1#1. Comparação integral com base PASS: proof, due_bills_total, demais
+75 grafos/todos os outros campos e dez fontes protegidas preservados. Runtime intacto.
+RED 2 FAIL/2 PASS (DUE-BILL-IDS-001/003); GREEN 4 PASS/0 FAIL/0 SKIP.
+Afetados em 2026-09-23T11:23:05.401Z: 215 PASS/0 FAIL/0 SKIP, oito arquivos,
+.codex-temp/n02g-due-bill-ids-affected.json; RED/GREEN no mesmo prefixo.
+72 modelos sintéticos, 216 variantes de ordem, 240 negativos de identidade/
+dispatch; não são grafos admitidos. Integração admitida com expected congelado
+antes do evaluator preserva seleção/R, rejeita obrigação monetária histórica
+e trace sem ID. Kernel: três pares de valores, IDs invariantes, totais variam;
+pessoa/status/data fora do escopo continuam excluídos. Kernel não é aceitação.
+Syntax checks, revisão local, diff-check e workflow PASS.
+Hash LF graphs antes 3cb14f7886b54b5541222f7b105c03edf166460c263ed5ac06d03a81371ab2c0,
+depois 921777537f47cd113f3ebb7217f68f9c706a2271f5c90d3efc040ecf7cc40c4c.
+Helper prepare-due-bill-ids-validation.cjs preparado/syntax PASS, não executado;
+--write-new/--check após ampla verde, sem repetir suítes. Wrapper
+.codex-temp/runWideDueBillIds20260923.cjs fixa base e três arquivos causais:
+graphs-v2.json, authoringIndex.cases.js, metricDirectReads.cases.js.
+Resultado vigente: .codex-temp/wide-n02g-due-bill-ids-20260923.json, marcador
+-start.json e stdout/stderr no mesmo prefixo. Não confundir com collection kind.
+Depois: conferir hashes/Git, evidência sanitizada, commit/publicação e auditoria
+de código por novo hash; APTO documental não cobre a aplicação. Sem GO global.
+
+### Histórico imediato — proposta due_bill_ids aprovada
 
 Proposta 2c287a5 recebeu APTO DOCUMENTAL, confrontado; recibo
 due-bill-ids-independent-review.md. Implementar somente a remoção revisada,

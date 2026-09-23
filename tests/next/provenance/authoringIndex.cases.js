@@ -109,6 +109,85 @@ function budgetClassRequirements({ roles, nodes, edges, snapshots }) {
     return [...effective].sort().map(node => ({ node, segments: ['budget_class'] }));
 }
 
+function dueBillNonDerivationalAmounts(evaluator, roles, nodes, snapshots) {
+    assert.equal(evaluator.evaluator_id, 'due_bill_ids'); assert.equal(evaluator.evaluator_version, 1);
+    assert.equal(roles.bills.kind, 'node_set'); assert.equal(new Set(roles.bills.aliases).size, roles.bills.aliases.length);
+    return roles.bills.aliases.map(alias => {
+        const node = nodes[alias]; assert.equal(node.kind, 'bill');
+        const found = snapshots.filter(s => s.kind === node.kind && s.ref_id === node.ref_id && s.version === node.version);
+        assert.equal(found.length, 1); assert.equal(found[0].payload.id, node.ref_id);
+        assert.equal(found[0].semantic_fingerprint, node.semantic_fingerprint);
+        return { node: alias, segments: ['amount_minor'] };
+    });
+}
+function reviewedDueBillIdsProposal() {
+    const text = fs.readFileSync(path.join(root, 'docs/audit-evidence/n02g-causal-authoring-profile/due-bill-ids-proposal.json'), 'utf8').replaceAll('\r\n', '\n');
+    assert.equal(hash(text), 'sha256:37ef33b8e5fa3aa7ee466cc52c74180e4f8b4bc5f6cdd8b46daac364ae88a544');
+    return JSON.parse(text);
+}
+function restoreReviewedDueBillAmount(corpus) {
+    let restored = 0;
+    for (const r of reviewedDueBillIdsProposal().records) {
+        const reads = corpus.graphs.find(g => g.fact_key === r.fact_key).trace_contract.derivation.required_reads;
+        for (const item of r.proposed_delta.removed) {
+            assert.equal(reads.filter(v => JSON.stringify(v) === JSON.stringify(item)).length, 0);
+            const index = r.current_derivation.required_reads.findIndex(v => JSON.stringify(v) === JSON.stringify(item));
+            assert.ok(index >= 0); reads.splice(index, 0, structuredClone(item)); restored++;
+        }
+    }
+    assert.equal(restored, 1);
+}
+
+test('N02G:DUE-BILL-IDS-001 only one noncausal derivation read is removed; proof and total preserved', () => {
+    const { canonicalValue } = require('../../../src/next/kernel/canonicalValue');
+    const corpus = JSON.parse(fs.readFileSync(path.join(root, graphPath), 'utf8'));
+    const claims = JSON.parse(fs.readFileSync(path.join(root, prefix + 'claims-v2.json'), 'utf8')).claims;
+    const snapshots = JSON.parse(fs.readFileSync(path.join(root, corpus.snapshot_manifest.path), 'utf8')).snapshots;
+    const proposal = reviewedDueBillIdsProposal(); let checked = 0;
+    for (const d of proposal.documents.filter(d => d.path !== graphPath)) {
+        assert.equal(hash(fs.readFileSync(path.join(root, d.path), 'utf8').replaceAll('\r\n', '\n')), d.lf_sha256);
+    }
+    for (const claim of claims.filter(c => c.evaluator_ref.evaluator_id === 'due_bill_ids' && c.evaluator_ref.evaluator_version === 1)) {
+        const graph = corpus.graphs.find(g => g.fact_key === claim.fact_key);
+        for (const item of dueBillNonDerivationalAmounts(claim.evaluator_ref, claim.operand_bindings, graph.nodes, snapshots)) {
+            assert.equal(graph.trace_contract.derivation.required_reads.some(v => canonicalValue(v) === canonicalValue(item)), false);
+            assert.equal(graph.trace_contract.proof.required_reads.some(v => canonicalValue(v) === canonicalValue(item)), true);
+        }
+        checked++;
+    }
+    assert.equal(checked, 1); assert.equal(corpus.graphs.length, 76);
+    for (const control of proposal.controls) assert.equal(hash(canonicalValue(corpus.graphs.find(g => g.fact_key === control.fact_key))), control.source_graph_sha256);
+    restoreReviewedDueBillAmount(corpus);
+    assert.equal(hash(canonicalValue(corpus)), proposal.source_corpus_sha256);
+});
+
+test('N02G:DUE-BILL-IDS-002 authoring is independent of names, amounts and roster size', () => {
+    // Synthetic authoring models, not admitted execution graphs.
+    for (let seed = 0; seed < 12; seed++) for (const size of [0, 1, 3]) for (const amount_minor of [0, 999]) {
+        const evaluator = { evaluator_id: 'due_bill_ids', evaluator_version: 1 };
+        const nodes = {}; const snapshots = []; const aliases = [];
+        for (let i = 0; i < size; i++) {
+            const alias = `alias-${seed}-${i}`; aliases.push(alias);
+            const payload = { id: `ref-${seed}-${i}`, amount_minor };
+            const identity = { kind: 'bill', ref_id: payload.id, version: hash(JSON.stringify(payload)), semantic_fingerprint: hash(`semantic-${seed}-${i}-${amount_minor}`) };
+            nodes[alias] = identity; snapshots.push({ ...identity, payload }, { ...identity, version: hash('other-version'), payload });
+        }
+        const roles = { bills: { kind: 'node_set', aliases } };
+        const expected = aliases.map(node => ({ node, segments: ['amount_minor'] }));
+        assert.deepEqual(dueBillNonDerivationalAmounts(evaluator, roles, nodes, snapshots), expected);
+        assert.deepEqual(dueBillNonDerivationalAmounts(evaluator, roles, nodes, snapshots.reverse()), expected);
+        assert.throws(() => dueBillNonDerivationalAmounts({ ...evaluator, evaluator_version: 2 }, roles, nodes, snapshots));
+        assert.throws(() => dueBillNonDerivationalAmounts({ ...evaluator, evaluator_id: 'due_bills_total' }, roles, nodes, snapshots));
+        if (size) {
+            const node = nodes[aliases[0]]; const actual = snapshots.find(s => s.ref_id === node.ref_id && s.version === node.version);
+            assert.throws(() => dueBillNonDerivationalAmounts(evaluator, roles, nodes, snapshots.filter(s => s !== actual)));
+            assert.throws(() => dueBillNonDerivationalAmounts(evaluator, roles, nodes, [...snapshots, structuredClone(actual)]));
+        }
+        roles.bills.aliases.reverse();
+        assert.deepEqual(dueBillNonDerivationalAmounts(evaluator, roles, nodes, snapshots), expected.toReversed());
+    }
+});
+
 const collectionCountMetrics = ['reminder_count', 'calendar_event_count', 'side_effect_count'];
 function collectionKindRequirement(evaluator, roles, nodes, snapshots) {
     assert.ok(collectionCountMetrics.includes(evaluator.evaluator_id));
@@ -128,6 +207,8 @@ function reviewedCollectionKindProposal() {
 }
 
 function undoReviewedCollectionKind(corpus) {
+    // Compose the later reviewed IDs-only removal before historical pins.
+    restoreReviewedDueBillAmount(corpus);
     let removed = 0;
     for (const record of reviewedCollectionKindProposal().records) {
         const graph = corpus.graphs.find(g => g.fact_key === record.fact_key);
@@ -220,6 +301,53 @@ test('N02G:COLLECTION-KIND-003 admitted count integrations reject trace without 
         assert.equal(JSON.stringify(expected), expectedBefore); checked++;
     }
     assert.equal(checked, 3);
+});
+
+test('N02G:DUE-BILL-IDS-003 admitted IDs integration rejects a monetary read obligation', async () => {
+    const { evaluateDirectMetric } = require('../../../src/next/provenance/metricDirectReads');
+    const { freezeDeep } = require('../../../src/next/kernel/canonicalValue');
+    const { plan, claims, graphs } = await snapshotAccessFixture(); let checked = 0;
+    const oracle = JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/financasbot-next/golden-claim-oracles-v1.json'), 'utf8'));
+    for (const claim of claims.filter(c => c.evaluator_ref.evaluator_id === 'due_bill_ids' && c.evaluator_ref.evaluator_version === 1)) {
+        const graph = graphs.find(g => g.fact_key === claim.fact_key);
+        const scope = selectionInput(claim, graph, `due-bill-ids-${checked}`);
+        const expected = freezeDeep(structuredClone(Object.fromEntries(['required_nodes', 'required_reads', 'required_claim_reads',
+            'required_edges', 'required_structural', 'required_selections', 'selected_nodes'].map(k => [k, graph.trace_contract.derivation[k]]))));
+        const expectedBefore = JSON.stringify(expected);
+        const original = reviewedDueBillIdsProposal().records.find(r => r.fact_key === claim.fact_key);
+        const historicalExpected = freezeDeep({ ...structuredClone(expected), required_reads: structuredClone(original.current_derivation.required_reads) });
+        const accessBindings = plan.observationMetadata({ fact_key: claim.fact_key, phase: 'derivation' });
+        const operandSets = Object.entries(claim.operand_bindings).filter(([, b]) => b.kind === 'node_set').map(([role, b]) => ({ role, aliases: b.aliases }));
+        const recorder = createCausalRecorder({ executionId: scope.executionId, maxEvents: 10000 });
+        const phase = recorder.open({ invocationId: claim.fact_key, phase: 'derivation' }); const controls = []; const operands = {};
+        let value;
+        try {
+            for (const [role_id, binding] of Object.entries(claim.operand_bindings)) {
+                const selector = { fact_key: claim.fact_key, role_id };
+                const access = binding.kind === 'claim_context' ? plan.openContext(selector, phase.observe)
+                    : binding.kind === 'node_set' ? plan.openSet(selector, phase.observe) : plan.open({ ...selector, alias: binding.alias }, phase.observe);
+                controls.push(access); operands[role_id] = access.handle;
+            }
+            value = evaluateDirectMetric(Object.freeze(operands), claim.evaluator_ref.evaluator_id);
+            for (const access of controls) access.assertHealthy();
+        } finally { for (const access of controls) access.revoke(); }
+        phase.seal(); const trace = recorder.finish();
+        const input = { ...scope, expected, trace, operandSets, accessBindings }; const coverage = comparePhaseCoverage(input);
+        assert.equal(coverage.components.selection.matched, true); assert.equal(coverage.matched, true, claim.fact_key);
+        assert.equal(coverage.graph_accepted, false);
+        const split = claim.fact_key.lastIndexOf('#');
+        assert.deepEqual(value, oracle.turns[claim.fact_key.slice(0, split)].facts[Number(claim.fact_key.slice(split + 1)) - 1].value);
+        assert.equal(trace.derivation_trace.some(e => e.operation === 'get' && e.path.join('.') === 'amount_minor'), false);
+        assert.equal(comparePhaseCoverage({ ...input, expected: historicalExpected }).matched, false);
+        // Removing a required ID read still fails; the normative correction is not a coverage bypass.
+        const alias = claim.operand_bindings.bills.aliases[0];
+        const kept = trace.derivation_trace.filter(e => !(e.operation === 'get' && e.alias === alias && e.path.join('.') === 'id'));
+        assert.ok(kept.length < trace.derivation_trace.length);
+        const altered = { ...trace, derivation_trace: kept.map((e, sequence) => ({ ...e, sequence })) };
+        assert.equal(comparePhaseCoverage({ ...input, trace: altered }).matched, false);
+        assert.equal(JSON.stringify(expected), expectedBefore); checked++;
+    }
+    assert.equal(checked, 1);
 });
 
 function sourcePresenceRequirement(roles, nodes, snapshots) {
