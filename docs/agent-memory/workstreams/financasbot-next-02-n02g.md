@@ -8,6 +8,13 @@ Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
 ## Próxima ação exata — revisar proposta owned_cards antes de aplicar
 
+Proposta publicada 5bd039cd6bc68338ecbd869659070cec044db01c, pai/base 76c8a2f.
+Abertura do Chat encontrou verificação humana Cloudflare antes do envio.
+Nenhum prompt enviado/parecer recebido; não contornar. Prompt manual completo:
+docs/audit-evidence/n02g-causal-authoring-profile/owned-cards-audit-prompt.md.
+Daniel deve resolver a verificação ou trazer o parecer de conversa limpa.
+Sem parecer auditável, manter proposta não aplicada. Não repetir suíte.
+
 Base documental 76c8a2fe6891ad043ad3e8015ec7ff2471bf473b. Diagnóstico:
 owned_cards@1/S-07#1#1 resolve cada owner_id e compara identidade versionada,
 inclusive do cartão excluído; e0002 já exige a travessia a person_b, mas
