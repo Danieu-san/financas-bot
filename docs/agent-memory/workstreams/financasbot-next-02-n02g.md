@@ -6,7 +6,35 @@ Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação exata — diagnosticar consumption_effect de transferências
+## Próxima ação exata — auditar proposta de consumption_effect de transferências
+
+Proposta pronta, NÃO APLICADA. Helper --write-new/--check, syntax check e
+workflow PASS: 12 fontes iguais aos blobs da base; +6 reads/+6 has em três
+grafos, outros 73 preservados. Nenhum teste de evaluator ou nova ampla executado.
+Publicar quatro arquivos documentais explícitos e preparar visualização auxiliar
+dos três objetos originais completos no patch Git (somente formatação, worktree
+isolada, não integrar). Uma conversa limpa de revisão documental deve examinar
+fontes imutáveis, inclusive originais do corpus, antes de qualquer aplicação.
+
+Diagnóstico na base 94138a06d293e0fb7d68f4d3387d9ca85e8c51d7: três claims
+consumption_effect@1 com subject.kind=transfer_pair; cada role events tem dois
+snapshots que possuem transfer_pair. metricEffects observa has e get para cada
+candidato antes dos filtros de estado/período. Derivation omite ambos; proof
+contém get, mas não has. Proposta: +2 reads/+2 has por grafo, sem runtime ou
+aplicação normativa. A regra deve partir de ID+versão, subject, role, identidade
+versionada e presença autorada; nunca do actual, selected ou oracle.
+Trava anti-remendo: não alegar cobertura geral; registrar composição declarativa
+has-then-get de campo opcional e propriedades de presença/ausência, renomeação,
+ordem e exclusão antes de aplicar qualquer delta. Não promover closure de proof.
+Arquivos previstos neste objetivo documental: plano
+financasbot-next-02-n02g-transfer-scope-decision-v1.md em docs/plans/workstreams;
+prepare-transfer-scope-proposal.cjs e transfer-scope-proposal.json em
+docs/audit-evidence/n02g-causal-authoring-profile. Exigem auditoria documental
+antes da aplicação. Nenhuma ampla nova. Coletor de calibração consultado:
+configured=true, running=false, healthy=false; métricas NAO_DISPONIVEL,
+sem ampliar coleta/configuração nem bloquear produto.
+
+### Ponto concluído — owned_cards
 
 APTO FOCAL de 76b11d3eb56439169d966c58703b0d1506550806 recebido, confrontado
 e ratificado; sem achados. Recibo owned-cards-code-independent-review.md na

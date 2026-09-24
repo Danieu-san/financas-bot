@@ -1,0 +1,1415 @@
+{
+  "schema": "n02g-transfer-scope-proposal-v1",
+  "base": "94138a06d293e0fb7d68f4d3387d9ca85e8c51d7",
+  "status": "documentary_proposal_not_applied",
+  "graph_accepted": false,
+  "normative_application_allowed": false,
+  "profile": {
+    "evaluator_id": "consumption_effect",
+    "evaluator_version": 1,
+    "subject_kind": "transfer_pair",
+    "role": "events",
+    "kind": "event",
+    "field": "transfer_pair",
+    "operation": "has_then_get"
+  },
+  "source_corpus_sha256": "sha256:d43ca488cd551fd5befa240bcec5f52bbf731baa6603e16ffd683736f687670b",
+  "documents": [
+    {
+      "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+      "lf_sha256": "sha256:9a515d6b11dc9251f4cd01eeec0c108f6266b174c3789993ec67add7d6cc4cbb",
+      "bytes": 4962941
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claims-v2.json",
+      "lf_sha256": "sha256:4810612761ea7f232e4445c0d192ae53ebf0761f0ba8752da758efb826b30494",
+      "bytes": 64240
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/metric-evaluator-registry-v1.json",
+      "lf_sha256": "sha256:577fe16b3d5a1dc2e24505de150001afd889408f5294a6834486de338d40a3a0",
+      "bytes": 45195
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evidence-snapshot.schema.json",
+      "lf_sha256": "sha256:054a48930a5f25760f201e8b401f0f34f5a83672366acad6c9c09bdc0ce0b5ef",
+      "bytes": 17718
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/material-field-registry-v1.json",
+      "lf_sha256": "sha256:ee7ef3eff146bc2e9cea2cc986c398371acbff3cf35d858ced8386a9758a4d62",
+      "bytes": 10998
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/graph-binding-contract-v1.md",
+      "lf_sha256": "sha256:da90befb1f526048cfe14122cd8522690292508bebf42d60ea4ecd5838513a40",
+      "bytes": 19080
+    },
+    {
+      "path": "src/next/provenance/metricEffects.js",
+      "lf_sha256": "sha256:7f0a08bbfbdecb4cbdea00c5f1c3c65e65d96ec4bf50e0096f01fe77a424e2ed",
+      "bytes": 5375
+    },
+    {
+      "path": "src/next/provenance/metricSelection.js",
+      "lf_sha256": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "bytes": 11711
+    },
+    {
+      "path": "src/next/provenance/metricReferences.js",
+      "lf_sha256": "sha256:0a96471a46324599c92c8c2f604e5761749902c6b9393eb738b09aad868d5e7b",
+      "bytes": 2995
+    },
+    {
+      "path": "scripts/agent/validateFinancasBotNextFacts.mjs",
+      "lf_sha256": "sha256:25d838c008ce6b5420e1e52f00aa791ad36758624794d94c22cf1c5d3edfb4f6",
+      "bytes": 18436
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/snapshot-manifest-v1.json",
+      "lf_sha256": "sha256:2547229db3c07f2dd0941601ab5164bf89981ce966e4e23a2e3058124edba8c4",
+      "bytes": 52403
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_effect.json",
+      "lf_sha256": "sha256:7dd62b47dcc336828376d44ed54c996f4ef21d27f9f21cfa142cd3722e24eab1",
+      "bytes": 1248
+    }
+  ],
+  "records": [
+    {
+      "fact_key": "S-08#1#1",
+      "evaluator_ref": {
+        "evaluator_id": "consumption_effect",
+        "evaluator_version": 1
+      },
+      "subject": {
+        "kind": "transfer_pair",
+        "ref_id": "transfer-01"
+      },
+      "bindings": {
+        "context": {
+          "kind": "claim_context"
+        },
+        "events": {
+          "kind": "node_set",
+          "aliases": [
+            "evt_transfer_out",
+            "evt_transfer_in"
+          ]
+        },
+        "categories": {
+          "kind": "node_set",
+          "aliases": [
+            "food_snack",
+            "food_market",
+            "food_restaurant",
+            "transport_fuel",
+            "housing_rent",
+            "leisure_cinema",
+            "gifts",
+            "income_salary",
+            "neutral_transfer",
+            "neutral_invoice_payment",
+            "neutral_refund",
+            "health_general"
+          ]
+        }
+      },
+      "source_graph_sha256": "sha256:5f8e37792de2ece23286c28eac90a76753c49ef87adebc01fd50b297d5c3ab8e",
+      "requirements": {
+        "required_reads": [
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "transfer_pair"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "transfer_pair"
+            ]
+          }
+        ],
+        "required_structural": [
+          {
+            "node": "evt_transfer_out",
+            "operation": "has",
+            "segments": [
+              "transfer_pair"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "operation": "has",
+            "segments": [
+              "transfer_pair"
+            ]
+          }
+        ],
+        "sources": [
+          {
+            "alias": "evt_transfer_out",
+            "binding": {
+              "binding": "snapshot",
+              "ref_id": "evt-transfer-out",
+              "kind": "event",
+              "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+              "semantic_fingerprint": "sha256:2e82205aef713e6fec797e1a04cefe3f0f5a4f3e90e3fc97df1866937a610f2d",
+              "roles": [
+                "value_input"
+              ]
+            },
+            "present": true,
+            "source_snapshot_sha256": "sha256:e225131271f837db7064b16105891309221a69b8373fe48b1bf47ca1b2d89159"
+          },
+          {
+            "alias": "evt_transfer_in",
+            "binding": {
+              "binding": "snapshot",
+              "ref_id": "evt-transfer-in",
+              "kind": "event",
+              "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+              "semantic_fingerprint": "sha256:3cb8d479d48bb7ce46d1e960fb6583731f9c8756f251e53638b7a613b8ceebbb",
+              "roles": [
+                "value_input"
+              ]
+            },
+            "present": true,
+            "source_snapshot_sha256": "sha256:de88b80fc87be441705c226632319904bc3cbef3986fabf497e7e912f0c1aaaf"
+          }
+        ]
+      },
+      "current_derivation": {
+        "required_nodes": [
+          "evt_transfer_in",
+          "evt_transfer_out",
+          "food_market",
+          "food_restaurant",
+          "food_snack",
+          "gifts",
+          "health_general",
+          "housing_rent",
+          "income_salary",
+          "leisure_cinema",
+          "neutral_invoice_payment",
+          "neutral_refund",
+          "neutral_transfer",
+          "transport_fuel"
+        ],
+        "required_reads": [
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "person_id"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "amount_minor"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "person_id"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "amount_minor"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "food_market",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "food_market",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "food_restaurant",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "food_restaurant",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "food_snack",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "food_snack",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "gifts",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "gifts",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "health_general",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "health_general",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "housing_rent",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "housing_rent",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "income_salary",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "income_salary",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "leisure_cinema",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "leisure_cinema",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "neutral_invoice_payment",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "neutral_invoice_payment",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "neutral_refund",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "neutral_refund",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "neutral_transfer",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "neutral_transfer",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "transport_fuel",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "transport_fuel",
+            "segments": [
+              "kind"
+            ]
+          }
+        ],
+        "required_claim_reads": [
+          {
+            "segments": [
+              "subject",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "ref_id"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "value"
+            ]
+          },
+          {
+            "segments": [
+              "time_basis"
+            ]
+          }
+        ],
+        "required_edges": [
+          "e0003",
+          "e0005",
+          "e0007",
+          "e0009"
+        ],
+        "required_structural": [],
+        "selected_nodes": [
+          "evt_transfer_out",
+          "evt_transfer_in"
+        ],
+        "evidence_set_mode": "exact",
+        "required_selections": [
+          {
+            "candidate_set": "candidates",
+            "selected_set": "selected"
+          }
+        ]
+      },
+      "proposed_delta": {
+        "added_reads": [
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "transfer_pair"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "transfer_pair"
+            ]
+          }
+        ],
+        "added_structural": [
+          {
+            "node": "evt_transfer_out",
+            "operation": "has",
+            "segments": [
+              "transfer_pair"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "operation": "has",
+            "segments": [
+              "transfer_pair"
+            ]
+          }
+        ],
+        "removed": []
+      },
+      "proof_matching_reads": [
+        {
+          "node": "evt_transfer_in",
+          "segments": [
+            "transfer_pair"
+          ]
+        },
+        {
+          "node": "evt_transfer_out",
+          "segments": [
+            "transfer_pair"
+          ]
+        }
+      ],
+      "proof_matching_structural": [],
+      "proof_preserved_sha256": "sha256:22524e5e9fe4533f07678f80ba95fa27c5b00dc4e29a7a2d81052a0061cc3fb0"
+    },
+    {
+      "fact_key": "M-04#1#3",
+      "evaluator_ref": {
+        "evaluator_id": "consumption_effect",
+        "evaluator_version": 1
+      },
+      "subject": {
+        "kind": "transfer_pair",
+        "ref_id": "transfer-01"
+      },
+      "bindings": {
+        "context": {
+          "kind": "claim_context"
+        },
+        "events": {
+          "kind": "node_set",
+          "aliases": [
+            "evt_transfer_out",
+            "evt_transfer_in"
+          ]
+        },
+        "categories": {
+          "kind": "node_set",
+          "aliases": [
+            "food_snack",
+            "food_market",
+            "food_restaurant",
+            "transport_fuel",
+            "housing_rent",
+            "leisure_cinema",
+            "gifts",
+            "income_salary",
+            "neutral_transfer",
+            "neutral_invoice_payment",
+            "neutral_refund",
+            "health_general"
+          ]
+        }
+      },
+      "source_graph_sha256": "sha256:a57297e84bb0d06e7782f5722af9636553735ca5e12b7d8f5a5a30b6e3d822a1",
+      "requirements": {
+        "required_reads": [
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "transfer_pair"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "transfer_pair"
+            ]
+          }
+        ],
+        "required_structural": [
+          {
+            "node": "evt_transfer_out",
+            "operation": "has",
+            "segments": [
+              "transfer_pair"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "operation": "has",
+            "segments": [
+              "transfer_pair"
+            ]
+          }
+        ],
+        "sources": [
+          {
+            "alias": "evt_transfer_out",
+            "binding": {
+              "binding": "snapshot",
+              "ref_id": "evt-transfer-out",
+              "kind": "event",
+              "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+              "semantic_fingerprint": "sha256:2e82205aef713e6fec797e1a04cefe3f0f5a4f3e90e3fc97df1866937a610f2d",
+              "roles": [
+                "value_input"
+              ]
+            },
+            "present": true,
+            "source_snapshot_sha256": "sha256:e225131271f837db7064b16105891309221a69b8373fe48b1bf47ca1b2d89159"
+          },
+          {
+            "alias": "evt_transfer_in",
+            "binding": {
+              "binding": "snapshot",
+              "ref_id": "evt-transfer-in",
+              "kind": "event",
+              "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+              "semantic_fingerprint": "sha256:3cb8d479d48bb7ce46d1e960fb6583731f9c8756f251e53638b7a613b8ceebbb",
+              "roles": [
+                "value_input"
+              ]
+            },
+            "present": true,
+            "source_snapshot_sha256": "sha256:de88b80fc87be441705c226632319904bc3cbef3986fabf497e7e912f0c1aaaf"
+          }
+        ]
+      },
+      "current_derivation": {
+        "required_nodes": [
+          "evt_transfer_in",
+          "evt_transfer_out",
+          "food_market",
+          "food_restaurant",
+          "food_snack",
+          "gifts",
+          "health_general",
+          "housing_rent",
+          "income_salary",
+          "leisure_cinema",
+          "neutral_invoice_payment",
+          "neutral_refund",
+          "neutral_transfer",
+          "transport_fuel"
+        ],
+        "required_reads": [
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "person_id"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "amount_minor"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "person_id"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "amount_minor"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "food_market",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "food_market",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "food_restaurant",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "food_restaurant",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "food_snack",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "food_snack",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "gifts",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "gifts",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "health_general",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "health_general",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "housing_rent",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "housing_rent",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "income_salary",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "income_salary",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "leisure_cinema",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "leisure_cinema",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "neutral_invoice_payment",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "neutral_invoice_payment",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "neutral_refund",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "neutral_refund",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "neutral_transfer",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "neutral_transfer",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "transport_fuel",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "transport_fuel",
+            "segments": [
+              "kind"
+            ]
+          }
+        ],
+        "required_claim_reads": [
+          {
+            "segments": [
+              "subject",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "ref_id"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "value"
+            ]
+          },
+          {
+            "segments": [
+              "time_basis"
+            ]
+          }
+        ],
+        "required_edges": [
+          "e0003",
+          "e0005",
+          "e0007",
+          "e0009"
+        ],
+        "required_structural": [],
+        "selected_nodes": [
+          "evt_transfer_out",
+          "evt_transfer_in"
+        ],
+        "evidence_set_mode": "exact",
+        "required_selections": [
+          {
+            "candidate_set": "candidates",
+            "selected_set": "selected"
+          }
+        ]
+      },
+      "proposed_delta": {
+        "added_reads": [
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "transfer_pair"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "transfer_pair"
+            ]
+          }
+        ],
+        "added_structural": [
+          {
+            "node": "evt_transfer_out",
+            "operation": "has",
+            "segments": [
+              "transfer_pair"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "operation": "has",
+            "segments": [
+              "transfer_pair"
+            ]
+          }
+        ],
+        "removed": []
+      },
+      "proof_matching_reads": [
+        {
+          "node": "evt_transfer_in",
+          "segments": [
+            "transfer_pair"
+          ]
+        },
+        {
+          "node": "evt_transfer_out",
+          "segments": [
+            "transfer_pair"
+          ]
+        }
+      ],
+      "proof_matching_structural": [],
+      "proof_preserved_sha256": "sha256:22524e5e9fe4533f07678f80ba95fa27c5b00dc4e29a7a2d81052a0061cc3fb0"
+    },
+    {
+      "fact_key": "N-07#1#1",
+      "evaluator_ref": {
+        "evaluator_id": "consumption_effect",
+        "evaluator_version": 1
+      },
+      "subject": {
+        "kind": "transfer_pair",
+        "ref_id": "transfer-01"
+      },
+      "bindings": {
+        "context": {
+          "kind": "claim_context"
+        },
+        "events": {
+          "kind": "node_set",
+          "aliases": [
+            "evt_transfer_out",
+            "evt_transfer_in"
+          ]
+        },
+        "categories": {
+          "kind": "node_set",
+          "aliases": [
+            "food_snack",
+            "food_market",
+            "food_restaurant",
+            "transport_fuel",
+            "housing_rent",
+            "leisure_cinema",
+            "gifts",
+            "income_salary",
+            "neutral_transfer",
+            "neutral_invoice_payment",
+            "neutral_refund",
+            "health_general"
+          ]
+        }
+      },
+      "source_graph_sha256": "sha256:dcbbf244d58e5d93dae86bf51d7f760c299bc8702e30f54277cb31fa84f19351",
+      "requirements": {
+        "required_reads": [
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "transfer_pair"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "transfer_pair"
+            ]
+          }
+        ],
+        "required_structural": [
+          {
+            "node": "evt_transfer_out",
+            "operation": "has",
+            "segments": [
+              "transfer_pair"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "operation": "has",
+            "segments": [
+              "transfer_pair"
+            ]
+          }
+        ],
+        "sources": [
+          {
+            "alias": "evt_transfer_out",
+            "binding": {
+              "binding": "snapshot",
+              "ref_id": "evt-transfer-out",
+              "kind": "event",
+              "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+              "semantic_fingerprint": "sha256:2e82205aef713e6fec797e1a04cefe3f0f5a4f3e90e3fc97df1866937a610f2d",
+              "roles": [
+                "value_input"
+              ]
+            },
+            "present": true,
+            "source_snapshot_sha256": "sha256:e225131271f837db7064b16105891309221a69b8373fe48b1bf47ca1b2d89159"
+          },
+          {
+            "alias": "evt_transfer_in",
+            "binding": {
+              "binding": "snapshot",
+              "ref_id": "evt-transfer-in",
+              "kind": "event",
+              "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+              "semantic_fingerprint": "sha256:3cb8d479d48bb7ce46d1e960fb6583731f9c8756f251e53638b7a613b8ceebbb",
+              "roles": [
+                "value_input"
+              ]
+            },
+            "present": true,
+            "source_snapshot_sha256": "sha256:de88b80fc87be441705c226632319904bc3cbef3986fabf497e7e912f0c1aaaf"
+          }
+        ]
+      },
+      "current_derivation": {
+        "required_nodes": [
+          "evt_transfer_in",
+          "evt_transfer_out",
+          "food_market",
+          "food_restaurant",
+          "food_snack",
+          "gifts",
+          "health_general",
+          "housing_rent",
+          "income_salary",
+          "leisure_cinema",
+          "neutral_invoice_payment",
+          "neutral_refund",
+          "neutral_transfer",
+          "transport_fuel"
+        ],
+        "required_reads": [
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "person_id"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "amount_minor"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "person_id"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "amount_minor"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "food_market",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "food_market",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "food_restaurant",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "food_restaurant",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "food_snack",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "food_snack",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "gifts",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "gifts",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "health_general",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "health_general",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "housing_rent",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "housing_rent",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "income_salary",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "income_salary",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "leisure_cinema",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "leisure_cinema",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "neutral_invoice_payment",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "neutral_invoice_payment",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "neutral_refund",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "neutral_refund",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "neutral_transfer",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "neutral_transfer",
+            "segments": [
+              "kind"
+            ]
+          },
+          {
+            "node": "transport_fuel",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "transport_fuel",
+            "segments": [
+              "kind"
+            ]
+          }
+        ],
+        "required_claim_reads": [
+          {
+            "segments": [
+              "subject",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "ref_id"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "value"
+            ]
+          },
+          {
+            "segments": [
+              "time_basis"
+            ]
+          }
+        ],
+        "required_edges": [
+          "e0003",
+          "e0005",
+          "e0007",
+          "e0009"
+        ],
+        "required_structural": [],
+        "selected_nodes": [
+          "evt_transfer_out",
+          "evt_transfer_in"
+        ],
+        "evidence_set_mode": "exact",
+        "required_selections": [
+          {
+            "candidate_set": "candidates",
+            "selected_set": "selected"
+          }
+        ]
+      },
+      "proposed_delta": {
+        "added_reads": [
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "transfer_pair"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "transfer_pair"
+            ]
+          }
+        ],
+        "added_structural": [
+          {
+            "node": "evt_transfer_out",
+            "operation": "has",
+            "segments": [
+              "transfer_pair"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "operation": "has",
+            "segments": [
+              "transfer_pair"
+            ]
+          }
+        ],
+        "removed": []
+      },
+      "proof_matching_reads": [
+        {
+          "node": "evt_transfer_in",
+          "segments": [
+            "transfer_pair"
+          ]
+        },
+        {
+          "node": "evt_transfer_out",
+          "segments": [
+            "transfer_pair"
+          ]
+        }
+      ],
+      "proof_matching_structural": [],
+      "proof_preserved_sha256": "sha256:22524e5e9fe4533f07678f80ba95fa27c5b00dc4e29a7a2d81052a0061cc3fb0"
+    }
+  ],
+  "excluded_claims": [
+    {
+      "fact_key": "S-09#1#1",
+      "subject": {
+        "kind": "event",
+        "ref_id": "evt-invoice-payment"
+      }
+    }
+  ],
+  "proposed_totals": {
+    "changed_graphs": 3,
+    "unchanged_graphs": 73,
+    "added_reads": 6,
+    "added_structural": 6,
+    "removed": 0
+  },
+  "limits": "Full source equality and declared identity only; no complete fingerprint recomputation, generated property tests, evaluator execution or normative application. No graph/host/global/production approval."
+}
