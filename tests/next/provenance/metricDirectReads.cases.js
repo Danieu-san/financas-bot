@@ -95,6 +95,41 @@ test('N02G:DIRECT-METRIC-004 ownership is computed from references, preserves or
     assert.equal(f.observations.filter(e => e[1] === 'select_member').length, 3);
 });
 
+test('N02G:OWNED-CARDS-004 kernel consumes excluded owners and compares both ID and version', () => {
+    // Kernel handles only, not admitted mutated graphs.
+    for (const reverse of [false, true]) for (const suffix of ['one', 'two', 'three']) {
+        const targetId = `owner-${suffix}`; const foreignId = `foreign-${suffix}`;
+        const observations = []; const otherVersion = `sha256:${'b'.repeat(64)}`;
+        const rows = [
+            ['included', 'card', { id: `card-in-${suffix}`, owner_id: targetId }, version],
+            ['foreign-card', 'card', { id: `card-out-${suffix}`, owner_id: foreignId }, version],
+            ['old-card', 'card', { id: `card-old-${suffix}`, owner_id: targetId }, version],
+            ['current-owner', 'person', { id: targetId, family_id: 'unused' }, version],
+            ['foreign-owner', 'person', { id: foreignId, family_id: 'unused' }, version],
+            ['old-owner', 'person', { id: targetId, family_id: 'unused' }, otherVersion]
+        ];
+        const bindings = rows.map(([alias, kind, value, v]) => ({ alias, role: 'cards', value,
+            identity: { kind, ref_id: value.id, version: v },
+            shape: { type: 'record', fields: Object.fromEntries(Object.keys(value).map(k => [k, scalar])) } }));
+        const roster = ['included', 'foreign-card', 'old-card']; if (reverse) roster.reverse();
+        const links = [['included', 'current-owner'], ['foreign-card', 'foreign-owner'], ['old-card', 'old-owner']]
+            .map(([source, target], i) => ({ id: `owner-link-${i}`, source, target, field: 'owner_id', type: 'ref' }));
+        const access = createNodeSetAccess({ bindings, links, roster, role: 'cards', emit: e => observations.push(e) });
+        const target = instrument([['query', 'person', { id: targetId }]]);
+        try {
+            const result = evaluateDirectMetric({ cards: access.handle, person: target.access.handle('query'),
+                context: context({ kind: 'person', ref_id: targetId }, { kind: 'as_of', value: '2042-06-15' }, 'registry_current') }, 'owned_cards');
+            assert.deepEqual(result, [`card-in-${suffix}`]);
+            for (const owner of ['current-owner', 'foreign-owner', 'old-owner']) {
+                assert.ok(observations.some(e => e[1] === 'get' && e[2] === owner && e[4][0] === 'id'));
+                assert.equal(observations.some(e => e[1] === 'get' && e[2] === owner && e[4][0] === 'family_id'), false);
+            }
+            assert.equal(observations.filter(e => e[1] === 'select_member').length, 3);
+            access.assertHealthy(); target.access.assertHealthy();
+        } finally { access.revoke(); target.access.revoke(); }
+    }
+});
+
 test('N02G:DIRECT-METRIC-005 effect count is tied to complete collection and actual turn references', () => {
     function run(members) {
         const f = instrument([['e1', 'side_effect', { id: 'e1', turn_id: 't1' }], ['e2', 'side_effect', { id: 'e2', turn_id: 't2' }],

@@ -109,6 +109,162 @@ function budgetClassRequirements({ roles, nodes, edges, snapshots }) {
     return [...effective].sort().map(node => ({ node, segments: ['budget_class'] }));
 }
 
+function ownedCardOwnerRequirements(evaluator, roles, nodes, edges, snapshots) {
+    assert.equal(evaluator.evaluator_id, 'owned_cards'); assert.equal(evaluator.evaluator_version, 1);
+    assert.equal(roles.cards.kind, 'node_set'); const aliases = roles.cards.aliases;
+    assert.equal(new Set(aliases).size, aliases.length);
+    function resolve(alias, kind) {
+        const node = nodes[alias]; assert.equal(node.binding, 'snapshot'); assert.equal(node.kind, kind);
+        const found = snapshots.filter(s => s.kind === kind && s.ref_id === node.ref_id && s.version === node.version);
+        assert.equal(found.length, 1); assert.equal(found[0].payload.id, node.ref_id);
+        assert.equal(found[0].semantic_fingerprint, node.semantic_fingerprint); return found[0];
+    }
+    const owners = [];
+    for (const alias of aliases) {
+        const card = resolve(alias, 'card');
+        const refs = edges.filter(e => e.source === alias && e.field === 'owner_id' && e.relation === 'material_ref');
+        assert.equal(refs.length, 1); const owner = resolve(refs[0].target, 'person');
+        assert.equal(card.payload.owner_id, owner.payload.id);
+        if (!owners.includes(refs[0].target)) owners.push(refs[0].target);
+    }
+    return { nodes: owners, reads: owners.map(node => ({ node, segments: ['id'] })) };
+}
+function reviewedOwnedCardsProposal() {
+    const text = fs.readFileSync(path.join(root, 'docs/audit-evidence/n02g-causal-authoring-profile/owned-cards-proposal.json'), 'utf8').replaceAll('\r\n', '\n');
+    assert.equal(hash(text), 'sha256:4041c60f5dce971cc5d60989644f88d54c3aabaab0daa3f9b307b53aeca8d08a');
+    return JSON.parse(text);
+}
+function undoReviewedOwnedCards(corpus) {
+    let removedNodes = 0; let removedReads = 0;
+    for (const r of reviewedOwnedCardsProposal().records) {
+        const d = corpus.graphs.find(g => g.fact_key === r.fact_key).trace_contract.derivation;
+        for (const node of r.proposed_delta.added_nodes) {
+            assert.equal(d.required_nodes.filter(n => n === node).length, 1);
+            d.required_nodes.splice(d.required_nodes.indexOf(node), 1); removedNodes++;
+        }
+        for (const read of r.proposed_delta.added_reads) {
+            const indexes = d.required_reads.flatMap((v, i) => JSON.stringify(v) === JSON.stringify(read) ? [i] : []);
+            assert.equal(indexes.length, 1); d.required_reads.splice(indexes[0], 1); removedReads++;
+        }
+    }
+    assert.equal(removedNodes, 1); assert.equal(removedReads, 1);
+}
+
+test('N02G:OWNED-CARDS-001 owner identity delta preserves every other corpus field', () => {
+    const { canonicalValue } = require('../../../src/next/kernel/canonicalValue');
+    const corpus = JSON.parse(fs.readFileSync(path.join(root, graphPath), 'utf8'));
+    const claims = JSON.parse(fs.readFileSync(path.join(root, prefix + 'claims-v2.json'), 'utf8')).claims;
+    const snapshots = JSON.parse(fs.readFileSync(path.join(root, corpus.snapshot_manifest.path), 'utf8')).snapshots;
+    const proposal = reviewedOwnedCardsProposal(); let checked = 0;
+    for (const doc of proposal.documents.filter(d => d.path !== graphPath)) {
+        assert.equal(hash(fs.readFileSync(path.join(root, doc.path), 'utf8').replaceAll('\r\n', '\n')), doc.lf_sha256);
+    }
+    for (const claim of claims.filter(c => c.evaluator_ref.evaluator_id === 'owned_cards' && c.evaluator_ref.evaluator_version === 1)) {
+        const graph = corpus.graphs.find(g => g.fact_key === claim.fact_key);
+        const requirements = ownedCardOwnerRequirements(claim.evaluator_ref, claim.operand_bindings, graph.nodes, graph.edges, snapshots);
+        for (const node of requirements.nodes) assert.ok(graph.trace_contract.derivation.required_nodes.includes(node));
+        for (const read of requirements.reads) assert.ok(graph.trace_contract.derivation.required_reads.some(r => canonicalValue(r) === canonicalValue(read)));
+        const source = proposal.records.find(r => r.fact_key === claim.fact_key);
+        assert.equal(hash(canonicalValue(graph.trace_contract.proof)), source.proof_preserved_sha256);
+        checked++;
+    }
+    assert.equal(checked, 1); assert.equal(corpus.graphs.length, 76);
+    undoReviewedOwnedCards(corpus); assert.equal(hash(canonicalValue(corpus)), proposal.source_corpus_sha256);
+});
+
+test('N02G:OWNED-CARDS-002 authoring resolves versioned relations independently of aliases and population', () => {
+    // Synthetic authoring models only; not admitted graph mutations.
+    const evaluator = { evaluator_id: 'owned_cards', evaluator_version: 1 };
+    for (let seed = 0; seed < 6; seed++) for (const size of [0, 1, 3]) for (const shared of [false, true]) {
+        const nodes = {}; const snapshots = []; const edges = []; const aliases = [];
+        const ownerAliases = []; const version = hash(`version-${seed}`);
+        function add(alias, kind, ref_id, payload) {
+            const binding = { binding: 'snapshot', kind, ref_id, version, semantic_fingerprint: hash(JSON.stringify(payload)) };
+            nodes[alias] = binding; snapshots.push({ ...binding, payload });
+        }
+        for (let i = 0; i < size; i++) {
+            const alias = `card-alias-${seed}-${i}`; const owner = `owner-alias-${seed}-${shared ? 0 : i}`;
+            const ownerId = `person-id-${seed}-${shared ? 0 : i}`;
+            if (!nodes[owner]) { add(owner, 'person', ownerId, { id: ownerId }); ownerAliases.push(owner); }
+            add(alias, 'card', `card-id-${seed}-${i}`, { id: `card-id-${seed}-${i}`, owner_id: ownerId }); aliases.push(alias);
+            edges.push({ id: `edge-${i}`, source: alias, field: 'owner_id', target: owner, relation: 'material_ref' });
+        }
+        const roles = { cards: { kind: 'node_set', aliases } };
+        const expected = { nodes: ownerAliases, reads: ownerAliases.map(node => ({ node, segments: ['id'] })) };
+        const run = (e = evaluator, r = roles, n = nodes, x = edges, s = snapshots) => ownedCardOwnerRequirements(e, r, n, x, s);
+        assert.deepEqual(run(), expected);
+        assert.deepEqual(run(evaluator, roles, nodes, edges.toReversed(), snapshots.toReversed()), expected);
+        const reversed = ownerAliases.toReversed();
+        assert.deepEqual(run(evaluator, { cards: { kind: 'node_set', aliases: aliases.toReversed() } }),
+            { nodes: reversed, reads: reversed.map(node => ({ node, segments: ['id'] })) });
+        assert.throws(() => run({ ...evaluator, evaluator_version: 2 }));
+        assert.throws(() => run({ ...evaluator, evaluator_id: 'merchant_rule_ids' }));
+        assert.throws(() => run(evaluator, { cards: { kind: 'node', aliases } }));
+        if (size) {
+            const owner = ownerAliases[0]; const actual = snapshots.find(s => s.ref_id === nodes[owner].ref_id);
+            assert.throws(() => run(evaluator, roles, nodes, edges, snapshots.filter(s => s !== actual)));
+            assert.throws(() => run(evaluator, roles, nodes, edges, [...snapshots, structuredClone(actual)]));
+            // Another version is not ambiguous and must not replace the exact one.
+            const other = { ...structuredClone(actual), version: hash('other-version') };
+            assert.deepEqual(run(evaluator, roles, nodes, edges, [other, ...snapshots]), expected);
+            assert.throws(() => run(evaluator, roles, nodes, edges, snapshots.map(s => s === actual ? other : s)));
+            for (const patch of [{ kind: 'account' }, { payload: { id: 'wrong-id' } }, { semantic_fingerprint: hash('wrong') }]) {
+                assert.throws(() => run(evaluator, roles, nodes, edges, snapshots.map(s => s === actual ? { ...s, ...patch } : s)));
+            }
+            assert.throws(() => run(evaluator, roles, nodes, edges.slice(1)));
+            assert.throws(() => run(evaluator, roles, nodes, [...edges, edges[0]]));
+            assert.throws(() => run(evaluator, { cards: { kind: 'node_set', aliases: [...aliases, aliases[0]] } }));
+            const source = snapshots.find(s => s.ref_id === nodes[aliases[0]].ref_id);
+            assert.throws(() => run(evaluator, roles, nodes, edges, snapshots.map(s => s === source ?
+                { ...s, payload: { ...s.payload, owner_id: 'different-owner' } } : s)));
+        }
+    }
+});
+
+test('N02G:OWNED-CARDS-003 admitted exclusion requires the foreign owner ID, with expected frozen first', async () => {
+    const { evaluateDirectMetric } = require('../../../src/next/provenance/metricDirectReads');
+    const { freezeDeep } = require('../../../src/next/kernel/canonicalValue');
+    const { plan, claims, graphs } = await snapshotAccessFixture(); let checked = 0;
+    const oracle = JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/financasbot-next/golden-claim-oracles-v1.json'), 'utf8'));
+    for (const claim of claims.filter(c => c.evaluator_ref.evaluator_id === 'owned_cards' && c.evaluator_ref.evaluator_version === 1)) {
+        const graph = graphs.find(g => g.fact_key === claim.fact_key); const scope = selectionInput(claim, graph, `owned-cards-${checked}`);
+        const fields = ['required_nodes', 'required_reads', 'required_claim_reads', 'required_edges', 'required_structural', 'required_selections', 'selected_nodes'];
+        const expected = freezeDeep(structuredClone(Object.fromEntries(fields.map(k => [k, graph.trace_contract.derivation[k]]))));
+        const expectedBefore = JSON.stringify(expected); const original = reviewedOwnedCardsProposal().records.find(r => r.fact_key === claim.fact_key);
+        const historicalExpected = freezeDeep(structuredClone(Object.fromEntries(fields.map(k => [k, original.current_derivation[k]]))));
+        const missingAlias = original.proposed_delta.added_nodes[0];
+        const accessBindings = plan.observationMetadata({ fact_key: claim.fact_key, phase: 'derivation' });
+        const operandSets = Object.entries(claim.operand_bindings).filter(([, b]) => b.kind === 'node_set').map(([role, b]) => ({ role, aliases: b.aliases }));
+        const recorder = createCausalRecorder({ executionId: scope.executionId, maxEvents: 10000 });
+        const phase = recorder.open({ invocationId: claim.fact_key, phase: 'derivation' }); const controls = []; const operands = {};
+        let value;
+        try {
+            for (const [role_id, binding] of Object.entries(claim.operand_bindings)) {
+                const selector = { fact_key: claim.fact_key, role_id };
+                const access = binding.kind === 'claim_context' ? plan.openContext(selector, phase.observe)
+                    : binding.kind === 'node_set' ? plan.openSet(selector, phase.observe) : plan.open({ ...selector, alias: binding.alias }, phase.observe);
+                controls.push(access); operands[role_id] = access.handle;
+            }
+            value = evaluateDirectMetric(Object.freeze(operands), claim.evaluator_ref.evaluator_id);
+            for (const access of controls) access.assertHealthy();
+        } finally { for (const access of controls) access.revoke(); }
+        phase.seal(); const trace = recorder.finish(); const input = { ...scope, expected, trace, operandSets, accessBindings };
+        const coverage = comparePhaseCoverage(input);
+        assert.equal(coverage.components.selection.matched, true); assert.equal(coverage.matched, true, claim.fact_key);
+        assert.equal(coverage.graph_accepted, false);
+        const split = claim.fact_key.lastIndexOf('#');
+        assert.deepEqual(value, oracle.turns[claim.fact_key.slice(0, split)].facts[Number(claim.fact_key.slice(split + 1)) - 1].value);
+        assert.equal(comparePhaseCoverage({ ...input, expected: historicalExpected }).matched, false);
+        const kept = trace.derivation_trace.filter(e => !(e.operation === 'get' && e.alias === missingAlias && e.path.join('.') === 'id'));
+        assert.ok(kept.length < trace.derivation_trace.length);
+        assert.equal(comparePhaseCoverage({ ...input, trace: { ...trace, derivation_trace: kept.map((e, sequence) => ({ ...e, sequence })) } }).matched, false);
+        assert.equal(trace.derivation_trace.some(e => e.operation === 'get' && e.alias === missingAlias && e.path.join('.') === 'family_id'), false);
+        assert.equal(expected.selected_nodes.includes(missingAlias), false);
+        assert.equal(JSON.stringify(expected), expectedBefore); checked++;
+    }
+    assert.equal(checked, 1);
+});
+
 function dueBillNonDerivationalAmounts(evaluator, roles, nodes, snapshots) {
     assert.equal(evaluator.evaluator_id, 'due_bill_ids'); assert.equal(evaluator.evaluator_version, 1);
     assert.equal(roles.bills.kind, 'node_set'); assert.equal(new Set(roles.bills.aliases).size, roles.bills.aliases.length);
@@ -126,6 +282,7 @@ function reviewedDueBillIdsProposal() {
     return JSON.parse(text);
 }
 function restoreReviewedDueBillAmount(corpus) {
+    undoReviewedOwnedCards(corpus);
     let restored = 0;
     for (const r of reviewedDueBillIdsProposal().records) {
         const reads = corpus.graphs.find(g => g.fact_key === r.fact_key).trace_contract.derivation.required_reads;
@@ -1325,7 +1482,11 @@ test('N02G:TRACE-COMPAT-001 required edge remains independent from derivation no
     const extractText = fs.readFileSync(path.join(root, 'docs/audit-evidence/n02g-causal-authoring-profile/source-extract.json'), 'utf8').replaceAll('\r\n', '\n');
     assert.equal(hash(extractText), 'sha256:ab07fc9265c7412943fb814be96b71b3e6eb237f6b6e12f4ccf7b5c6e119363f');
     const originals = new Map(JSON.parse(extractText).records.map(r => [r.fact_key, r.graph]));
-    const before = inspectTraversalCoverage(graphs.map(g => originals.get(g.fact_key) || g));
+    // Reconstruct the previously reviewed state before comparing its historical
+    // instrument closure; owned_cards is composed as its own exact delta below.
+    const ownerBaseline = { graphs: structuredClone(graphs) }; undoReviewedOwnedCards(ownerBaseline);
+    const afterInstrument = inspectTraversalCoverage(ownerBaseline.graphs);
+    const before = inspectTraversalCoverage(ownerBaseline.graphs.map(g => originals.get(g.fact_key) || g));
     assert.equal(before.edge_only_graphs, 66 - 2);
     assert.equal(before.edge_only_count, 1133 - 4 + 2 * (2 - 1));
     // The closed instrument/statement delta removes 148 irrelevant edges and
@@ -1336,9 +1497,17 @@ test('N02G:TRACE-COMPAT-001 required edge remains independent from derivation no
         .trace_contract[entry.phase].required_edges.includes(entry.edge_id));
     assert.equal(originals.size, 6); assert.equal(affected.length, 166);
     assert.equal(retained.length, 18); assert.equal(affected.length - retained.length, 148);
-    assert.deepEqual(report.edge_only, before.edge_only.filter(g => !originals.has(g.fact_key)));
-    assert.equal(report.edge_only_graphs, before.edge_only_graphs - originals.size);
-    assert.equal(report.edge_only_count, before.edge_only_count - affected.length);
+    assert.deepEqual(afterInstrument.edge_only, before.edge_only.filter(g => !originals.has(g.fact_key)));
+    assert.equal(afterInstrument.edge_only_graphs, before.edge_only_graphs - originals.size);
+    assert.equal(afterInstrument.edge_only_count, before.edge_only_count - affected.length);
+    const ownedRecords = reviewedOwnedCardsProposal().records;
+    const nowCovered = afterInstrument.edge_only.filter(e => ownedRecords.some(r => r.fact_key === e.fact_key
+        && e.phase === 'derivation' && r.requirements.relations.some(link => link.edge.id === e.edge_id
+            && r.proposed_delta.added_nodes.includes(link.owner))));
+    assert.deepEqual(nowCovered.map(e => [e.fact_key, e.phase, e.edge_id]), [['S-07#1#1', 'derivation', 'e0002']]);
+    assert.deepEqual(report.edge_only, afterInstrument.edge_only.filter(e => !nowCovered.includes(e)));
+    assert.equal(report.edge_only_graphs, afterInstrument.edge_only_graphs - 1);
+    assert.equal(report.edge_only_count, afterInstrument.edge_only_count - 1);
     assert.ok(report.edge_only.every(g => g.phase === 'derivation'));
     const graph = graphs.find(g => g.fact_key === 'S-01#1#1');
     const contract = graph.trace_contract.derivation;

@@ -6,7 +6,69 @@ Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação exata — implementar delta owned_cards documentalmente aprovado
+## Próxima ação exata — publicar e auditar aplicação owned_cards
+
+Ampla concluída em 2026-09-23T22:06:30.043Z: 2.398 testes, 2.388 PASS,
+0 FAIL/10 SKIP, valid=true, exit_status=0, candidate_unchanged=true.
+Retomada inicial foi impedida por limite de uso na aprovação automática;
+nenhum comando recusado foi executado. Após Continue de Daniel, heartbeat
+pausado e prepare-owned-cards-validation.cjs --write-new/--check PASS.
+Evidência sanitizada: owned-cards-validation.json na pasta n02g-causal-authoring-profile.
+Corpus integral = base + um nó e um read; outros 75 grafos/todos os demais
+campos e dez fontes protegidas intactos; hashes dos três arquivos testados
+conferem. Não repetir ampla verde. Próximo: commit sanitizado e uma auditoria
+independente de código por hash; APTO documental não aprova esta aplicação.
+
+### Histórico imediato — ampla owned_cards
+
+Ampla única iniciada em 2026-09-23T21:53:21.659Z, PID 235620, base
+f7eeb4d89eac5671048b8b5d0ae2f17dac0325fb. Marcador confirmado uma vez:
+.codex-temp/wide-n02g-owned-cards-20260923-start.json. Resultado esperado
+no mesmo prefixo .json; stdout/stderr em -stdout.log/-stderr.log.
+Não iniciar outra suíte, não alterar os três arquivos causais nem HEAD enquanto
+roda. Suspender acompanhamento; heartbeat retomar-n02-g-ap-s-su-te-ampla
+retomará após 20 minutos. Ao terminar, pausar heartbeat, confrontar hashes/Git
+e executar prepare-owned-cards-validation.cjs --write-new/--check se verde;
+depois evidência sanitizada, commit/publicação e auditoria independente de código.
+
+Focais finais 5 PASS/0 FAIL/0 SKIP (OWNED-CARDS-001..004 e TRACE-COMPAT-001).
+Afetados finais em 2026-09-23T21:52:49.282Z: 219 PASS/0 FAIL/0 SKIP,
+.codex-temp/n02g-owned-cards-affected-v2.json. Primeiros resultados preservados.
+Revisão local, syntax/diff-check e workflow PASS. Hash LF authoringIndex.cases.js
+0a6ca888b0d3c5cdfea29ae92728d45cda8b32c640c1232f87848ba076679d59;
+metricDirectReads.cases.js 6a5c6788dc1313dd8c7c50698db829c58980349545369c101aeffe57ee8e4f16.
+Nenhum GO global/grafo/host/produção; APTO documental não aprova aplicação.
+
+### Histórico imediato — implementação e validação afetada
+
+Base de implementação f7eeb4d89eac5671048b8b5d0ae2f17dac0325fb publicada.
+Delta aplicado somente em S-07#1#1: +person_b required_nodes e +person_b/id
+required_reads derivacionais. Comparação integral PASS: demais 75 grafos e
+todos os outros campos/proof/seleção preservados; dez fontes protegidas intactas.
+Runtime não mudou. SHA LF graphs atual 9a515d6b11dc9251f4cd01eeec0c108f6266b174c3789993ec67add7d6cc4cbb.
+
+RED inicial 3 FAIL/1 PASS preservado: um erro de role no harness kernel,
+corrigido sem produto. RED v2 2 FAIL/2 PASS (001/003 causais), GREEN inicial
+4 PASS. Afetados iniciais 218 PASS/1 FAIL: TRACE-COMPAT-001 precisava compor
+a remoção exata de S-07#1#1/derivation/e0002 do diagnóstico edge_only após
+cobertura do dono. Teste agora restaura owned_cards antes dos pins instrument,
+mantém os 148/18 casos anteriores e exige igualdade de todos os outros
+diagnósticos. Focais v2 incluem os quatro novos e TRACE-COMPAT-001; afetados
+v2 em execução pelo wrapper .codex-temp/runOwnedCardsTests.cjs, sessão local.
+Resultados únicos preservados em .codex-temp/n02g-owned-cards-{fase}.json.
+
+Helper prepare-owned-cards-validation.cjs preparado para --write-new/--check
+somente depois da ampla verde; não executado ainda. Wrapper amplo exclusivo:
+.codex-temp/runWideOwnedCards20260923.cjs, exige base acima e três arquivos
+causais exatos (graphs-v2.json, authoringIndex.cases.js, metricDirectReads.cases.js).
+Ainda não iniciar ampla se afetados v2 não estiverem verdes. Nenhuma ampla
+owned_cards iniciou neste ponto; não confundir com due_bill_ids concluída.
+Depois de verde estável, iniciar uma ampla, reativar heartbeat de 20 minutos
+com resultado wide-n02g-owned-cards-20260923.json e suspender acompanhamento.
+Após ampla: hashes, evidência sanitizada, commit/publicação e auditoria de código.
+Sem GO global/grafo/host/produção. Kernel/modelos não são grafos mutantes admitidos.
+
+### Histórico — autorização documental confrontada
 
 Nova auditoria de 8f94d2b/5bd039c terminou APTO DOCUMENTAL, sem achados,
 confrontado e ratificado em owned-cards-source-access-review.md. O auditor
