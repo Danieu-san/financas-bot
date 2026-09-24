@@ -2,9 +2,10 @@
 
 Data: 2026-09-11. Estado: CHARTER APROVADO; IMPLEMENTAÇÃO EM DESENVOLVIMENTO.
 
-Handoff em 2026-09-24: execução suspensa a pedido de Daniel para outro Codex.
-Recorte transfer scope passou focais/afetados e ampla (2.392 PASS, 0 FAIL,
-10 SKIP); candidato ainda exige auditoria independente de código. Não repetir
+Retomada em 2026-09-24: recorte transfer scope aprovado focalmente no código
+98de8ef46ab2e0c3ee58a326a073322367cedbdf após evidência auxiliar 07445669841a1526809d2c95df8913a7516bb66e.
+Focais/afetados e ampla local preservados (2.392 PASS, 0 FAIL, 10 SKIP).
+Auditoria estática independente não equivale a reexecução das suítes. Não repetir
 suíte verde nem ampliar o plano na retomada. Ponto exato, hashes e evidência em
 docs/agent-memory/workstreams/financasbot-next-02-n02g.md. N02-G sem GO global.
 Base: `aea4ac31e358ed8d8907e78f6002c8bb80233bc8`.

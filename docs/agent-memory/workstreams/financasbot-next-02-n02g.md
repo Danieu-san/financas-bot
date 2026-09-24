@@ -1,12 +1,63 @@
 # N02-G — checkpoint
 
-Atualização: 2026-09-24. Estado: HANDOFF; transfer scope com ampla verde, AGUARDANDO AUDITORIA DE CÓDIGO; SEM GO GLOBAL/EXECUTÁVEL N02-G.
+Atualização: 2026-09-24. Estado: transfer scope APROVADO FOCALMENTE após auditoria de código; retomada do diagnóstico residual; SEM GO GLOBAL/EXECUTÁVEL N02-G.
 Base: `aea4ac31e358ed8d8907e78f6002c8bb80233bc8`.
 Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação exata — retomar handoff e auditar código transfer scope
+## Próxima ação exata — diagnóstico residual após transfer scope
+
+Parecer final recebido: APROVÁVEL para 98de8ef46ab2e0c3ee58a326a073322367cedbdf,
+pai e7b78e3e94f540ed685d4d35d82aac9b6de8246a. Evidência auxiliar auditada:
+07445669841a1526809d2c95df8913a7516bb66e, pai igual ao candidato; não integrar.
+Zero CRITICAL/HIGH/MEDIUM; LOW de autenticação dos summaries permanece como
+limite explícito, não defeito causal bloqueante. NO-GO inicial preservado abaixo.
+Remotos e helper --check reconfirmados. Recorte de código encerrado focalmente;
+não reenviar auditoria ou repetir ampla. Monitor de auditoria permanece PAUSADO.
+Sonda única concluída: .codex-temp/coverage-transfer-scope-20260924.json.
+Comparada integralmente com coverage-owned-cards-20260923.json, somente os
+três registros transfer scope mudaram; todos passaram a corresponder. Agora:
+73 exercitados, 73 seleções correspondentes, 53 composições correspondentes,
+20 divergências e três derivados fora da sonda. Sem percentual/global GO;
+a sonda não aceita grafos nem confronta resultados/oracle.
+Próximo recorte: reconciliar referências de pagamento neutro em
+consumption_effect/event (S-09#1#1) e invoice_payment_consumption_effect
+(M-05#1#5, N-08#1#1). metricEffects lê identidade de conta/cartão e percorre
+account_id nos três; o contrato derivacional não exige esses payloads.
+Nos dois invoice_payment_consumption_effect falta ainda a leitura explícita
+de settles_card_id, embora o traversal já ocorra. Confrontar semântica de
+neutralidade/vínculo econômico e divisão derivation/proof antes de editar;
+não remover validação causal nem copiar trace para expected. Não alterar
+balance_delta, parcelas ou outros residuais no mesmo recorte por conveniência.
+Coletor de metadados local consultado: configured=true, running=false,
+healthy=false; medidas desta retomada NAO_DISPONIVEL. Não iniciar/reconfigurar
+telemetria nem bloquear o produto por essa lacuna.
+Preservar .codex-temp e branches auxiliares; nenhum GO global/NEXT-03/produção.
+
+### Histórico — lacuna de acesso antes do parecer final
+
+Parecer de código recebido em 2026-09-24: NO-GO por revisão incompleta,
+sem defeito causal CRITICAL/HIGH/MEDIUM. Auditor não conseguiu ler os três
+registros completos antes/depois no corpus grande. LOW: summaries locais
+não autenticam execução independente, limite já declarado e preservado.
+Recibo: docs/audit-evidence/n02g-causal-authoring-profile/transfer-scope-code-source-access-review.md.
+Monitor pausado. Preparar/publicar evidência nova de acesso em branch auxiliar
+codex/n02g-transfer-scope-code-evidence-20260924 (não integrar). Mesmos bytes
+do candidato; nenhuma suíte ampla repetida. Concluir somente a leitura
+pendente com a evidência adicional, sem reabrir revisões já realizadas.
+
+Retomada validada em 2026-09-24: worktree/resume_target e remoto no candidato
+98de8ef46ab2e0c3ee58a326a073322367cedbdf, pai único e7b78e3e94f540ed685d4d35d82aac9b6de8246a.
+Helper --check, workflow e diff-check PASS; ampla verde não repetida.
+Uma auditoria de código foi enviada e recebida em conversa limpa do projeto:
+https://chatgpt.com/g/g-p-6aae7fa3ad5c8191a8ace5a6d799fab4-financasbot/c/6ab56e95-f6d0-83e9-ac1c-2f60625dc0fc
+Chat confirmou revisão focal e iniciou consulta ao GitHub. Não reenviar este SHA.
+Tentativa anterior pelo notificador dedicado não confirmou composer/envio e foi
+interrompida antes do envio pelo navegador interno, autorizado por Daniel.
+Recolher o parecer desta conversa e confrontá-lo localmente antes de encerrar
+transfer scope. O Chat foi instruído a não alterar o canal GitHub.
+O registro de handoff abaixo é histórico anterior ao envio.
 
 Daniel pediu handoff para outro Codex. Trabalho parado em fronteira consistente;
 não iniciar próximo recorte. Ampla final concluída em 2026-09-24T10:17:43.921Z:
