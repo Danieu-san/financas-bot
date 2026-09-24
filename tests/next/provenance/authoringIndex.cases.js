@@ -109,6 +109,146 @@ function budgetClassRequirements({ roles, nodes, edges, snapshots }) {
     return [...effective].sort().map(node => ({ node, segments: ['budget_class'] }));
 }
 
+// Declarative optional-field composition for this reviewed profile only.
+function transferScopeRequirements(claim, nodes, snapshots) {
+    assert.deepEqual(claim.evaluator_ref, { evaluator_id: 'consumption_effect', evaluator_version: 1 });
+    assert.equal(claim.subject.kind, 'transfer_pair');
+    const profile = { role: 'events', kind: 'event', field: 'transfer_pair', operation: 'has_then_get' };
+    const role = claim.operand_bindings[profile.role]; assert.equal(role.kind, 'node_set');
+    assert.equal(new Set(role.aliases).size, role.aliases.length);
+    const reads = []; const structural = []; const ids = new Set();
+    for (const alias of role.aliases) {
+        const n = nodes[alias]; assert.equal(n.binding, 'snapshot'); assert.equal(n.kind, profile.kind);
+        assert.ok(!ids.has(n.ref_id)); ids.add(n.ref_id);
+        const found = snapshots.filter(s => s.kind === n.kind && s.ref_id === n.ref_id && s.version === n.version);
+        assert.equal(found.length, 1); const s = found[0]; assert.equal(s.payload.id, n.ref_id);
+        assert.equal(s.semantic_fingerprint, n.semantic_fingerprint);
+        structural.push({ node: alias, operation: 'has', segments: [profile.field] });
+        if (Object.hasOwn(s.payload, profile.field)) {
+            require('../../../src/next/provenance/literalTypes').validateLiteral({ type: 'id', value: s.payload[profile.field] });
+            reads.push({ node: alias, segments: [profile.field] });
+        }
+    }
+    return { reads, structural };
+}
+function reviewedTransferScopeProposal() {
+    const text = fs.readFileSync(path.join(root, 'docs/audit-evidence/n02g-causal-authoring-profile/transfer-scope-proposal.json'), 'utf8').replaceAll('\r\n', '\n');
+    assert.equal(hash(text), 'sha256:bac176de329bbb6fc009165f92830efcdc12716f61211bf8e02d1c4c669993d3');
+    return JSON.parse(text);
+}
+function undoReviewedTransferScope(corpus) {
+    const counts = { required_reads: 0, required_structural: 0 };
+    for (const r of reviewedTransferScopeProposal().records) {
+        const d = corpus.graphs.find(g => g.fact_key === r.fact_key).trace_contract.derivation;
+        for (const [field, delta] of [['required_reads', 'added_reads'], ['required_structural', 'added_structural']]) {
+            for (const item of r.proposed_delta[delta]) {
+                const indexes = d[field].flatMap((v, i) => JSON.stringify(v) === JSON.stringify(item) ? [i] : []);
+                assert.equal(indexes.length, 1); d[field].splice(indexes[0], 1); counts[field]++;
+            }
+        }
+    }
+    assert.deepEqual(counts, { required_reads: 6, required_structural: 6 });
+}
+test('N02G:TRANSFER-SCOPE-001 optional scope delta preserves the complete remaining corpus', () => {
+    const { canonicalValue } = require('../../../src/next/kernel/canonicalValue');
+    const corpus = JSON.parse(fs.readFileSync(path.join(root, graphPath), 'utf8'));
+    const claims = JSON.parse(fs.readFileSync(path.join(root, prefix + 'claims-v2.json'), 'utf8')).claims;
+    const snapshots = JSON.parse(fs.readFileSync(path.join(root, corpus.snapshot_manifest.path), 'utf8')).snapshots;
+    const proposal = reviewedTransferScopeProposal(); let checked = 0;
+    for (const doc of proposal.documents.filter(d => d.path !== graphPath)) {
+        assert.equal(hash(fs.readFileSync(path.join(root, doc.path), 'utf8').replaceAll('\r\n', '\n')), doc.lf_sha256);
+    }
+    for (const claim of claims.filter(c => c.evaluator_ref.evaluator_id === 'consumption_effect' && c.evaluator_ref.evaluator_version === 1 && c.subject.kind === 'transfer_pair')) {
+        const graph = corpus.graphs.find(g => g.fact_key === claim.fact_key);
+        const expected = transferScopeRequirements(claim, graph.nodes, snapshots);
+        for (const [field, values] of [['required_reads', expected.reads], ['required_structural', expected.structural]]) {
+            for (const item of values) assert.ok(graph.trace_contract.derivation[field].some(r => canonicalValue(r) === canonicalValue(item)), `${claim.fact_key}/${field}`);
+        }
+        const source = proposal.records.find(r => r.fact_key === claim.fact_key);
+        assert.equal(hash(canonicalValue(graph.trace_contract.proof)), source.proof_preserved_sha256); checked++;
+    }
+    assert.equal(checked, 3); assert.equal(corpus.graphs.length, 76);
+    undoReviewedTransferScope(corpus); assert.equal(hash(canonicalValue(corpus)), proposal.source_corpus_sha256);
+});
+test('N02G:TRANSFER-SCOPE-002 has-then-get composes across presence, identity, order and exclusion models', () => {
+    // Synthetic authoring models, not admitted graph mutations.
+    let models = 0;
+    for (let seed = 0; seed < 6; seed++) for (const size of [0, 1, 4]) for (const mode of ['absent', 'same', 'different', 'mixed']) {
+        const version = hash(`scope-version-${seed}`); const nodes = {}; const snapshots = []; const aliases = []; const present = [];
+        for (let i = 0; i < size; i++) {
+            const alias = `alias-${seed}-${i}`; const ref_id = `event-id-${seed}-${i}`;
+            const exists = mode !== 'absent' && (mode !== 'mixed' || i % 2 === 0);
+            const payload = { id: ref_id, state: i % 2 ? 'projected' : 'confirmed', date: i % 2 ? '2041-01-01' : '2042-06-12', amount_minor: 13 + i };
+            if (exists) { payload.transfer_pair = mode === 'same' ? `pair-${seed}` : `other-${seed}-${i}`; present.push(alias); }
+            const n = { binding: 'snapshot', kind: 'event', ref_id, version, semantic_fingerprint: hash(JSON.stringify(payload)) };
+            nodes[alias] = n; snapshots.push({ ...n, payload }); aliases.push(alias);
+        }
+        const claim = { evaluator_ref: { evaluator_id: 'consumption_effect', evaluator_version: 1 }, subject: { kind: 'transfer_pair', ref_id: `pair-${seed}` },
+            operand_bindings: { events: { kind: 'node_set', aliases } } };
+        const expected = { reads: present.map(node => ({ node, segments: ['transfer_pair'] })),
+            structural: aliases.map(node => ({ node, operation: 'has', segments: ['transfer_pair'] })) };
+        const run = (c = claim, n = nodes, s = snapshots) => transferScopeRequirements(c, n, s);
+        assert.deepEqual(run(), expected); assert.deepEqual(run(claim, nodes, snapshots.toReversed()), expected);
+        assert.deepEqual(run({ ...claim, fact_key: 'irrelevant', subject: { kind: 'transfer_pair', ref_id: 'unrelated' }, selected_nodes: [] }), expected);
+        const reversed = structuredClone(claim); reversed.operand_bindings.events.aliases.reverse();
+        assert.deepEqual(run(reversed), { reads: expected.reads.toReversed(), structural: expected.structural.toReversed() });
+        for (const evaluator_ref of [{ evaluator_id: 'consumption_effect', evaluator_version: 2 }, { evaluator_id: 'net_consumption', evaluator_version: 1 }]) assert.throws(() => run({ ...claim, evaluator_ref }));
+        assert.throws(() => run({ ...claim, subject: { kind: 'event', ref_id: 'x' } }));
+        assert.throws(() => run({ ...claim, operand_bindings: { events: { kind: 'node', aliases } } }));
+        if (size) {
+            const first = snapshots[0]; const otherVersion = { ...first, version: hash('other-version') };
+            assert.deepEqual(run(claim, nodes, [otherVersion, ...snapshots]), expected);
+            assert.throws(() => run(claim, nodes, snapshots.slice(1)));
+            assert.throws(() => run(claim, nodes, [...snapshots, first]));
+            assert.throws(() => run(claim, nodes, [otherVersion, ...snapshots.slice(1)]));
+            for (const patch of [{ kind: 'bill' }, { payload: { id: 'wrong' } }, { semantic_fingerprint: hash('wrong') }]) assert.throws(() => run(claim, nodes, [{ ...first, ...patch }, ...snapshots.slice(1)]));
+            assert.throws(() => run({ ...claim, operand_bindings: { events: { kind: 'node_set', aliases: [...aliases, aliases[0]] } } }));
+            for (const transfer_pair of [undefined, null, '', 7]) assert.throws(() => run(claim, nodes, [{ ...first, payload: { ...first.payload, transfer_pair } }, ...snapshots.slice(1)]));
+        }
+        models++;
+    }
+    assert.equal(models, 72);
+});
+test('N02G:TRANSFER-SCOPE-003 admitted scopes reject historical expected and missing presence or value traces', async () => {
+    const { evaluateEffects } = require('../../../src/next/provenance/metricEffects');
+    const { freezeDeep } = require('../../../src/next/kernel/canonicalValue');
+    const { plan, claims, graphs } = await snapshotAccessFixture(); let checked = 0; let rejected = 0;
+    const oracle = JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/financasbot-next/golden-claim-oracles-v1.json'), 'utf8'));
+    for (const claim of claims.filter(c => c.evaluator_ref.evaluator_id === 'consumption_effect' && c.evaluator_ref.evaluator_version === 1 && c.subject.kind === 'transfer_pair')) {
+        const graph = graphs.find(g => g.fact_key === claim.fact_key); const scope = selectionInput(claim, graph, `transfer-scope-${checked}`);
+        const fields = ['required_nodes', 'required_reads', 'required_claim_reads', 'required_edges', 'required_structural', 'required_selections', 'selected_nodes'];
+        const expected = freezeDeep(structuredClone(Object.fromEntries(fields.map(k => [k, graph.trace_contract.derivation[k]]))));
+        const expectedBefore = JSON.stringify(expected); const original = reviewedTransferScopeProposal().records.find(r => r.fact_key === claim.fact_key);
+        const historicalExpected = freezeDeep(structuredClone(Object.fromEntries(fields.map(k => [k, original.current_derivation[k]]))));
+        const accessBindings = plan.observationMetadata({ fact_key: claim.fact_key, phase: 'derivation' });
+        const operandSets = Object.entries(claim.operand_bindings).filter(([, b]) => b.kind === 'node_set').map(([role, b]) => ({ role, aliases: b.aliases }));
+        const recorder = createCausalRecorder({ executionId: scope.executionId, maxEvents: 10000 });
+        const phase = recorder.open({ invocationId: claim.fact_key, phase: 'derivation' }); const controls = []; const operands = {}; let value;
+        try {
+            for (const [role_id, binding] of Object.entries(claim.operand_bindings)) {
+                const selector = { fact_key: claim.fact_key, role_id };
+                const access = binding.kind === 'claim_context' ? plan.openContext(selector, phase.observe) : plan.openSet(selector, phase.observe);
+                controls.push(access); operands[role_id] = access.handle;
+            }
+            value = evaluateEffects(Object.freeze(operands), claim.evaluator_ref.evaluator_id);
+            for (const access of controls) access.assertHealthy();
+        } finally { for (const access of controls) access.revoke(); }
+        phase.seal(); const trace = recorder.finish(); const input = { ...scope, expected, trace, operandSets, accessBindings };
+        const coverage = comparePhaseCoverage(input); assert.equal(coverage.components.selection.matched, true);
+        assert.equal(coverage.matched, true, claim.fact_key); assert.equal(coverage.graph_accepted, false);
+        const split = claim.fact_key.lastIndexOf('#');
+        assert.deepEqual(value, oracle.turns[claim.fact_key.slice(0, split)].facts[Number(claim.fact_key.slice(split + 1)) - 1].value);
+        assert.equal(comparePhaseCoverage({ ...input, expected: historicalExpected }).matched, false);
+        for (const alias of claim.operand_bindings.events.aliases) for (const operation of ['get', 'has']) {
+            const kept = trace.derivation_trace.filter(e => !(e.operation === operation && e.alias === alias && e.path.join('.') === 'transfer_pair'));
+            assert.ok(kept.length < trace.derivation_trace.length);
+            assert.equal(comparePhaseCoverage({ ...input, trace: { ...trace, derivation_trace: kept.map((e, sequence) => ({ ...e, sequence })) } }).matched, false); rejected++;
+        }
+        assert.equal(JSON.stringify(expected), expectedBefore); checked++;
+    }
+    assert.equal(checked, 3); assert.equal(rejected, 12);
+});
+
 function ownedCardOwnerRequirements(evaluator, roles, nodes, edges, snapshots) {
     assert.equal(evaluator.evaluator_id, 'owned_cards'); assert.equal(evaluator.evaluator_version, 1);
     assert.equal(roles.cards.kind, 'node_set'); const aliases = roles.cards.aliases;
@@ -135,6 +275,7 @@ function reviewedOwnedCardsProposal() {
     return JSON.parse(text);
 }
 function undoReviewedOwnedCards(corpus) {
+    undoReviewedTransferScope(corpus);
     let removedNodes = 0; let removedReads = 0;
     for (const r of reviewedOwnedCardsProposal().records) {
         const d = corpus.graphs.find(g => g.fact_key === r.fact_key).trace_contract.derivation;

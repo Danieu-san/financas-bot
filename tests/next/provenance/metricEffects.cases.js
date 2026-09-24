@@ -4,18 +4,18 @@ const assert = require('node:assert/strict');
 const { createInstrumentedAccess, createNodeSetAccess } = require('../../../src/next/provenance/instrumentedAccess');
 const { evaluateEffects } = require('../../../src/next/provenance/metricEffects');
 const scalar = { type: 'scalar' }; const version = `sha256:${'c'.repeat(64)}`;
-function fixture({ metric = 'net_consumption', mutate = () => {}, subject = { kind: 'event', ref_id: 'purchase' }, roster = ['purchase', 'refund'], namespace, omitOwnerLink, period = { kind: 'month', value: '2042-06' } } = {}) {
+function fixture({ metric = 'net_consumption', mutate = () => {}, subject = { kind: 'event', ref_id: 'purchase' }, roster = ['purchase', 'refund'], namespace, omitOwnerLink, categoryKind = 'expense', period = { kind: 'month', value: '2042-06' } } = {}) {
     const rows = [{ id: 'purchase', date: '2042-06-07', state: 'confirmed', person_id: 'p', category_id: 'food', amount_minor: -123 },
         { id: 'refund', date: '2042-06-09', state: 'confirmed', person_id: 'p', category_id: 'refund-category', amount_minor: 23, compensates: 'purchase' },
         { id: 'other', date: '2042-06-07', state: 'confirmed', person_id: 'p', category_id: 'food', amount_minor: -123 }];
     mutate(rows);
-    const cats = [{ id: 'food', kind: 'expense' }, { id: 'refund-category', kind: 'compensation' }];
+    const cats = [{ id: 'food', kind: categoryKind }, { id: 'refund-category', kind: 'compensation' }];
     // Generated fixtures use payload IDs different from both the aliases and
     // the original symbolic labels. Rewriting is test setup, never runtime.
     const ref = value => namespace === undefined ? value : `${namespace}-id-${value}`;
     const alias = value => namespace === undefined ? value : `node-${value}`;
     if (namespace !== undefined) {
-        for (const row of [...rows, ...cats]) for (const field of ['id', 'person_id', 'category_id', 'compensates']) {
+        for (const row of [...rows, ...cats]) for (const field of ['id', 'person_id', 'category_id', 'compensates', 'transfer_pair']) {
             if (Object.hasOwn(row, field)) row[field] = ref(row[field]);
         }
         subject = Object.fromEntries(Object.entries(subject).map(([field, value]) =>
@@ -42,6 +42,43 @@ function fixture({ metric = 'net_consumption', mutate = () => {}, subject = { ki
     const operands = { events: events.handle, categories: categories.handle, context: context.handle('ctx') };
     return { run: () => evaluateEffects(operands, metric), observations, operands, controls: [events, categories, context] };
 }
+
+test('N02G:TRANSFER-SCOPE-004 kernel distinguishes optional pair selection before state and period exclusion', () => {
+    // Kernel handles only; not admitted graph mutations or economic proof acceptance.
+    let variants = 0;
+    for (let seed = 0; seed < 6; seed++) for (const periodKind of ['date', 'month']) for (const reverse of [false, true]) for (const categoryKind of ['expense', 'neutral']) {
+        const roster = ['first', 'absent', 'different', 'outside', 'projected', 'last'];
+        const mutate = rows => {
+            rows.splice(0, rows.length, ...roster.map(id => ({ id, date: '2042-06-12', state: 'confirmed', person_id: 'p', category_id: 'food', amount_minor: -(10 + seed), transfer_pair: 'pair' })));
+            delete rows[1].transfer_pair; rows[2].transfer_pair = 'another-pair'; rows[3].date = '2041-01-01'; rows[4].state = 'projected';
+            rows[5].amount_minor = -(70 + seed * 3);
+        };
+        const namespace = `transfer-${seed}`;
+        const f = fixture({ metric: 'consumption_effect', subject: { kind: 'transfer_pair', ref_id: 'pair' },
+            period: { kind: periodKind, value: periodKind === 'month' ? '2042-06' : '2042-06-12' },
+            roster: reverse ? roster.toReversed() : roster, namespace, categoryKind, mutate });
+        const alias = label => `node-${namespace}-id-${label}`;
+        try {
+            assert.equal(f.run(), categoryKind === 'neutral' ? 0 : 80 + seed * 4);
+            const observed = op => f.observations.filter(e => e[1] === op && e[4]?.[0] === 'transfer_pair').map(e => e[2]).sort();
+            assert.deepEqual(observed('has'), roster.map(alias).sort());
+            assert.deepEqual(observed('get'), roster.filter(x => x !== 'absent').map(alias).sort());
+            assert.deepEqual(observed('traverse'), []);
+            assert.deepEqual(f.observations.filter(e => e[1] === 'get' && e[4]?.[0] === 'amount_minor').map(e => e[2]).sort(), ['first', 'last'].map(alias).sort());
+            for (const c of f.controls) c.assertHealthy(); variants++;
+        } finally { for (const c of f.controls) c.revoke(); }
+    }
+    assert.equal(variants, 48);
+    // Present undefined is rejected by handle construction, before evaluator.
+    assert.throws(() => fixture({ metric: 'consumption_effect', subject: { kind: 'transfer_pair', ref_id: 'pair' }, roster: ['purchase'],
+        mutate: rows => { rows[0].transfer_pair = undefined; } }), /observation_shape_invalid/);
+    for (const transfer_pair of [null, '', 7]) {
+        const f = fixture({ metric: 'consumption_effect', subject: { kind: 'transfer_pair', ref_id: 'pair' }, roster: ['purchase'],
+            mutate: rows => { rows[0].transfer_pair = transfer_pair; } });
+        try { assert.throws(f.run, /access_set_predicate_threw/); }
+        finally { for (const c of f.controls) c.revoke(); }
+    }
+});
 
 test('N02G:SCALAR-REFERENCE-003 economic effects resolve owner links without reading their payload', () => {
     for (let seed = 0; seed < 6; seed++) {

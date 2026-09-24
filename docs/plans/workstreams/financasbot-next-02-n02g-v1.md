@@ -1,6 +1,12 @@
 # N02-G — execução integral de provenance
 
 Data: 2026-09-11. Estado: CHARTER APROVADO; IMPLEMENTAÇÃO EM DESENVOLVIMENTO.
+
+Handoff em 2026-09-24: execução suspensa a pedido de Daniel para outro Codex.
+Recorte transfer scope passou focais/afetados e ampla (2.392 PASS, 0 FAIL,
+10 SKIP); candidato ainda exige auditoria independente de código. Não repetir
+suíte verde nem ampliar o plano na retomada. Ponto exato, hashes e evidência em
+docs/agent-memory/workstreams/financasbot-next-02-n02g.md. N02-G sem GO global.
 Base: `aea4ac31e358ed8d8907e78f6002c8bb80233bc8`.
 Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.

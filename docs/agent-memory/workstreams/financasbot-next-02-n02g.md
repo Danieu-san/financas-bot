@@ -1,12 +1,78 @@
 # N02-G — checkpoint
 
-Atualização: 2026-09-23. Estado: owned_cards COM APTO FOCAL INDEPENDENTE RATIFICADO; SEM GO GLOBAL/EXECUTÁVEL N02-G.
+Atualização: 2026-09-24. Estado: HANDOFF; transfer scope com ampla verde, AGUARDANDO AUDITORIA DE CÓDIGO; SEM GO GLOBAL/EXECUTÁVEL N02-G.
 Base: `aea4ac31e358ed8d8907e78f6002c8bb80233bc8`.
 Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação exata — implementar transfer scope após APTO documental
+## Próxima ação exata — retomar handoff e auditar código transfer scope
+
+Daniel pediu handoff para outro Codex. Trabalho parado em fronteira consistente;
+não iniciar próximo recorte. Ampla final concluída em 2026-09-24T10:17:43.921Z:
+2.402 testes, 2.392 PASS/0 FAIL/10 SKIP, valid=true, exit_status=0,
+candidate_unchanged=true. HEAD da execução: e7b78e3e94f540ed685d4d35d82aac9b6de8246a.
+Heartbeat retomar-n02-g-ap-s-su-te-ampla PAUSADO para evitar dois executores.
+prepare-transfer-scope-validation.cjs --write-new/--check PASS; evidência
+sanitizada transfer-scope-validation.json na pasta n02g-causal-authoring-profile.
+Helper confrontou os hashes testados, corpus integral e 11 fontes protegidas.
+Não repetir ampla verde sem mudança causal. Nenhuma auditoria de código enviada.
+
+O commit que incorpora este handoff é o candidato de código (pai e7b78e3).
+Descobri-lo com git log/rev-parse e conferir remoto; não usar dd2518a, que é
+somente proposta documental. Na retomada, executar START-HERE/resumePortableWork
+e confirmar esta worktree/branch antes de ler o checkpoint como vigente.
+Usar audit-immutable-gate: uma conversa limpa, hash imutável do candidato e
+seus arquivos exatos; pedir APTO/NO-GO FOCAL de código, não GO global. Auditoria
+deve confrontar grafos originais/alterados pelo patch nativo, os dois arquivos
+de testes e helper/evidência; consultar proposta/plano/recibo documental,
+metricEffects.js, registry/contrato/binding contract/claims/manifest/schema.
+Se houver bloqueio de segurança, não insistir: prompt manual e aguardar Daniel.
+Confrontar parecer localmente antes de encerrar transfer scope. Só depois
+retomar diagnóstico residual N02-G, sem ampliar escopo. Codex → Astra → Alto.
+
+Árvore prevista após commit: rastreados limpos; .codex-temp/ permanece local,
+não rastreada, com runtime Node 22.17.0, logs e wrappers. Não adicioná-la ao Git,
+apagá-la ou copiá-la como pacote indiscriminado. Evidência necessária à auditoria
+está sanitizada/versionada; os logs completos continuam no SSD nesta worktree.
+Raiz canônica não foi sobrescrita; outras worktrees (incluindo a auxiliar de
+formatação) ficam preservadas e não devem ser integradas. Sem deploy/produção,
+sem segredos/autenticação/sessões no handoff. Autorização contínua cobre somente
+commits sanitizados e auditorias pertinentes. Reavaliar plano na saída N02-G.
+
+### Histórico imediato — execução da ampla
+
+Ampla iniciada em 2026-09-24T02:49:48.947Z, PID 251912; marcador confirmado
+uma vez. Suspender acompanhamento e retomar após 20 minutos pelo heartbeat
+retomar-n02-g-ap-s-su-te-ampla. Não iniciar outra ampla. Ao concluir, pausar
+heartbeat, confrontar hashes/Git e continuar pelo helper/evidência/auditoria.
+
+Base e7b78e3e94f540ed685d4d35d82aac9b6de8246a. Aplicados somente +6 reads/+6 has
+derivacionais nos três grafos de transfer_pair. Comparação integral PASS:
+corpus atual = base + delta fechado; outros 73 grafos/todos os outros campos,
+proof/seleção e 11 fontes protegidas intactos. Runtime não mudou.
+RED inicial 3 FAIL/1 PASS preservado: kernel esperava undefined presente chegar
+ao evaluator, mas construção do handle o rejeita. Corrigido somente o teste.
+RED v2 2 FAIL/2 PASS (001/003); GREEN 4 PASS. Afetados 232 PASS/0 FAIL/0 SKIP
+em 2026-09-24T02:48:26.451Z, .codex-temp/n02g-transfer-scope-affected.json.
+72 modelos, três integrações, 12 negativos de trace e 48 variantes kernel;
+expected congelado antes do evaluator. Modelos/kernel não são grafos admitidos.
+Inversão exata do delta composta antes de owned_cards nos pins históricos.
+Revisão local, syntax/diff-check, workflow e comparação de fontes PASS.
+
+Wrapper amplo exclusivo .codex-temp/runWideTransferScope20260924.cjs; resultado
+.codex-temp/wide-n02g-transfer-scope-20260924.json, marcador -start.json e logs
+-stdout.log/-stderr.log. Não repetir nem confundir com owned_cards concluída.
+Três arquivos causais a congelar: graphs-v2.json, authoringIndex.cases.js e
+metricEffects.cases.js. Não alterar estes arquivos ou HEAD enquanto roda.
+Hashes LF: graphs 6ca2c7de51c3a48109ffb6b6096f31981e3058fdae16ed8078ad47aa3a59501c;
+authoringIndex 9959f81ba7dc78f41a2b2a782146477631d6786858bc4d0ea1d21d0aa011ae8c;
+metricEffects.cases 63fe34f5b2da29466127207b094814229a33b00a91273b321e16b55ac2161e86.
+Helper prepare-transfer-scope-validation.cjs preparado, ainda NÃO executado;
+usar --write-new/--check só após ampla verde. Depois commit/publicação e
+auditoria independente de código. Não integrar branch auxiliar formatada.
+
+### Histórico imediato — autorização documental
 
 APTO DOCUMENTAL de dd2518a recebido, confrontado e ratificado, sem achados.
 Recibo transfer-scope-independent-review.md em n02g-causal-authoring-profile.
