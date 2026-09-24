@@ -6,7 +6,27 @@ Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação exata — auditar proposta de consumption_effect de transferências
+## Próxima ação exata — recuperar parecer de transfer scope
+
+Uma revisão documental enviada em conversa limpa (GPT-5.6 Sol / Alta):
+https://chatgpt.com/g/g-p-6aae7fa3ad5c8191a8ace5a6d799fab4-financasbot/c/6ab48b3a-0544-83e9-a5ed-29f5a38c69f3
+Recebimento e pesquisa confirmados; ainda sem veredito final neste checkpoint.
+NÃO reenviar candidato. Recuperar parecer, confrontar fontes/limites e registrar
+recibo antes de implementar. Tentativa anterior parou por limite de uso antes
+de enviar qualquer prompt; Continue explícito permitiu esta retomada.
+Helper --check e workflow novamente PASS após publicação; normativa intacta.
+
+Proposta publicada: dd2518a6b7c34f3387c49d50e22b716af0751c77, pai 94138a0,
+quatro arquivos documentais. Fonte auxiliar publicada:
+f068aa13a343f584790890744fbd7a27072a5715, pai exato dd2518a, apenas formatação
+dos três objetos completos em graphs-v2.json. Branch isolada
+codex/n02g-transfer-scope-source-view-20260924; NÃO integrar/cherry-pick.
+Comparação local: corpus 76/76 profundamente igual, bytes LF fora dos três
+objetos iguais. Blob original 6e3a07aaff8590ad83fc91dce98be1bf3e381fbf;
+SHA LF original 9a515d6b11dc9251f4cd01eeec0c108f6266b174c3789993ec67add7d6cc4cbb;
+SHA LF formatado f9967ace9cca9fb955af59588c38ab5cd8a380081fba58fa6df117d8789ee832.
+Originais nas linhas 18/37/85 (34.520 bytes cada) aparecem como removidos no
+patch nativo. Verificar esse lado original, não confiar só na proposta extraída.
 
 Proposta pronta, NÃO APLICADA. Helper --write-new/--check, syntax check e
 workflow PASS: 12 fontes iguais aos blobs da base; +6 reads/+6 has em três
