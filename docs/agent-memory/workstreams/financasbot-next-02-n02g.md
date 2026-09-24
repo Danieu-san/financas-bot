@@ -1,12 +1,37 @@
 # N02-G — checkpoint
 
-Atualização: 2026-09-24. Estado: PAYMENT-REFERENCE APROVADO FOCALMENTE; diagnóstico residual N02-G; SEM GO GLOBAL/EXECUTÁVEL N02-G.
+Atualização: 2026-09-24. Estado: PAYMENT-REFERENCE APROVADO FOCALMENTE; DIRECT-EVENT proposta documental aguardando revisão; SEM GO GLOBAL/EXECUTÁVEL N02-G.
 Base: `aea4ac31e358ed8d8907e78f6002c8bb80233bc8`.
 Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação exata — diagnóstico residual após PAYMENT-REFERENCE
+## Próxima ação exata — revisão documental DIRECT-EVENT
+
+Recibo PAYMENT-REFERENCE publicado em 07a2b2f04707c504c5412c0fc1456f1ced02fcf4.
+Classificação da sonda preservada: 17 divergências em cinco classes de métricas
+(contas/movimentos, parcelas, movimentos diretos/pagamentos, similares), com três
+derivados ainda não exercitados; contagens não são progresso percentual/global.
+Próximo recorte: quatro métricas diretas, cinco claims. Existe decisão normativa
+pendente: statement_payment_correspondence exige observação estrutural de ausência,
+mas sua derivation não declara nenhuma. A trava anti-remendo impede ajustar
+runtime ou expected antes de revisar a composição proposta.
+Proposta: docs/audit-evidence/n02g-causal-authoring-profile/direct-event-proposal.md,
+helper prepare-direct-event-proposal.cjs e JSON homônimo. Base 07a2b2f...;
+delta SIMULADO: somente um keys no evento da métrica correspondence; 75 grafos
+inalterados e proof integral preservada. Os demais quatro focais não mudam.
+Helper --write-new/--check PASS, 11 fontes ligadas à base, 15 renomeações,
+reordenação e três negativos. Não houve execução financeira nem suíte ampla.
+Primeira execução do helper falhou no extrator de predicados (confundia IDs das
+obligations com objetos); corrigido para graph.predicates antes de gerar JSON.
+Telemetria: configured=true, running=false, healthy=false; métricas NAO_DISPONIVEL.
+Publicar candidato sanitizado e enviar UMA revisão documental limpa, priorizando
+a interpretação proof/derivation de invoice_payment_amount e keys/closed-world.
+Não implementar nem aplicar o delta antes do parecer confrontado. Depois:
+RED gerado, correção aprovada, integrações, afetados, ampla única e auditoria de
+CÓDIGO distinta. Preservar .codex-temp; sem global GO/NEXT-03/deploy/produção.
+
+### Fechamento focal anterior — PAYMENT-REFERENCE
 
 Parecer independente recebido de Daniel: APROVÁVEL para o código do candidato
 abaixo; zero defeitos causais CRITICAL/HIGH/MEDIUM/LOW. Revisão estática dos

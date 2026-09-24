@@ -2,6 +2,17 @@
 
 Data: 2026-09-11. Estado: CHARTER APROVADO; IMPLEMENTAÇÃO EM DESENVOLVIMENTO.
 
+Recorte DIRECT-EVENT aberto em 2026-09-24 após fechamento PAYMENT-REFERENCE.
+Proposta documental (não aplicada) em
+docs/audit-evidence/n02g-causal-authoring-profile/direct-event-proposal.md.
+Cinco claims/quatro métricas: balance_delta, invoice_payment_amount,
+invoice_payment_target_card e statement_payment_correspondence. Antes do código,
+revisar a composição de referências admitidas versus payloads/proof e a adição
+de uma observação keys exigida pelo contrato de ausência de vínculo a fatura.
+Helper gera projeção dos fontes fixados e delta separado; não lê trace/resultado
+nem altera normativa. APTO documental, se obtido, não aprova implementação.
+Demais métricas/derivados e gate global permanecem abertos.
+
 Recorte PAYMENT-REFERENCE (2026-09-24, base 151816b6e02a500754aaf72796755ed693f39907):
 adequar exclusivamente metricEffects aos contratos já autorados. O cálculo
 consumption_effect/event não consome conta/cartão; a prova econômica continua
