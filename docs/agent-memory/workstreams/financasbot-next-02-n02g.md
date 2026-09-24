@@ -1,12 +1,38 @@
 # N02-G — checkpoint
 
-Atualização: 2026-09-24. Estado: PAYMENT-REFERENCE com ampla verde; CANDIDATO AGUARDANDO AUDITORIA DE CÓDIGO; SEM GO GLOBAL/EXECUTÁVEL N02-G.
+Atualização: 2026-09-24. Estado: PAYMENT-REFERENCE APROVADO FOCALMENTE; diagnóstico residual N02-G; SEM GO GLOBAL/EXECUTÁVEL N02-G.
 Base: `aea4ac31e358ed8d8907e78f6002c8bb80233bc8`.
 Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação exata — diagnóstico residual após transfer scope
+## Próxima ação exata — diagnóstico residual após PAYMENT-REFERENCE
+
+Parecer independente recebido de Daniel: APROVÁVEL para o código do candidato
+abaixo; zero defeitos causais CRITICAL/HIGH/MEDIUM/LOW. Revisão estática dos
+fontes imutáveis, não execução independente. Confronto local: HEAD/parent e
+remoto exatos, metricEffects/metricReferences e helper --check PASS. A derivação
+genérica não consome conta/cartão; a dedicada observa scalar + relação admitida;
+proof econômico permanece obrigatório e graph_accepted:false. Limite explícito:
+summaries não autenticam execução externa; o auditor verificou a transformação
+fonte→projeção, não releu integralmente o grande graphs-v2.json.
+Monitor PAUSADO; não repetir auditoria deste hash nem ampla verde. Próximo passo:
+classificar as 17 divergências restantes da sonda preservada e fixar um recorte
+causal antes de editar. Três derivados ainda fora da sonda; sem GO global.
+
+Candidato publicado: `09cb5f1cc9994373364c083f6b82e8d7b8534efb`.
+Parent único: `151816b6e02a500754aaf72796755ed693f39907`.
+HEAD remoto confirmado; helper `prepare-payment-reference-validation.cjs --check`
+PASS também após commit. Uma auditoria de CÓDIGO enviada, com mensagem persistida
+e resposta inicial do auditor confirmando revisão e pesquisa no GitHub.
+Conversa: https://chatgpt.com/g/g-p-6aae7fa3ad5c8191a8ace5a6d799fab4-financasbot/c/6ab584b8-ba50-83e9-9e29-e8a38d031761
+Monitor `acompanhar-revis-o-focal-n02-g` PAUSADO após o parecer final desta
+conversa/candidato. Não reenviar prompt nem acionar bot.
+Resposta incompleta não encerra o gate. Não repetir a ampla verde sem mudança
+causal. Após aprovação focal, registrar recibo e retomar as divergências
+residuais do N02-G; sem GO global, NEXT-03, deploy, produção ou dados reais.
+
+### Evidência e preparação já concluídas
 
 Ampla concluída 2026-09-24T20:07:18.662Z: 2.405 testes, 2.395 PASS,
 0 FAIL/10 SKIP/0 TODO/cancelled, valid=true, exit_status=0,
@@ -16,7 +42,7 @@ arquivos normativos/fontes protegidos intactos e hashes dos três arquivos
 causais conferidos. Evidência sanitizada: payment-reference-validation.json.
 Inclui contexto focal derivation/relações/proof dos três grafos, derivado do
 corpus integral byte-idêntico à base, com blob/SHA; não é novo contrato.
-Preparar/publicar o commit desta árvore e enviar UMA revisão de código limpa,
+Commit publicado e revisão de código limpa enviada conforme registro acima,
 confrontando primeiro risco de suprimir validação econômica. Sem substituir
 expected pelo trace. Auditor responde no Chat, não escreve no canal GitHub.
 Uma aprovação focal encerra só PAYMENT-REFERENCE; depois retomar residual.

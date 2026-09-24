@@ -20,7 +20,13 @@ valid=true, candidato inalterado. Primeira bateria afetada teve uma falha de
 pin histórico; preservada na evidência e resolvida por sucessão explícita do
 único fonte alterado, sem atualizar a proposta histórica. Helper confere 96
 arquivos protegidos e hashes testados; não autentica execução externamente.
-Estado máximo: candidato de código aguardando auditoria independente.
+Auditoria independente recebida em 2026-09-24: APROVÁVEL exclusivamente para
+09cb5f1cc9994373364c083f6b82e8d7b8534efb, parent 151816b6e02a500754aaf72796755ed693f39907,
+sem findings causais. Revisão estática dos fontes e da transformação fonte→projeção,
+não reexecução das suítes nem leitura integral do grande graphs-v2.json pelo
+auditor. Confronto local de identidade, código e helper --check concluído. Recorte
+PAYMENT-REFERENCE encerrado focalmente; prosseguir diagnóstico residual N02-G.
+Sem GO global, NEXT-03, deploy, produção ou dados reais.
 
 Retomada em 2026-09-24: recorte transfer scope aprovado focalmente no código
 98de8ef46ab2e0c3ee58a326a073322367cedbdf após evidência auxiliar 07445669841a1526809d2c95df8913a7516bb66e.
