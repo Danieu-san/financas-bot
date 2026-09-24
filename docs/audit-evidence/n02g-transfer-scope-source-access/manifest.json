@@ -1,0 +1,112 @@
+{
+  "schema": "n02g-transfer-scope-source-access-v1",
+  "candidate": "98de8ef46ab2e0c3ee58a326a073322367cedbdf",
+  "parent": "e7b78e3e94f540ed685d4d35d82aac9b6de8246a",
+  "source_path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+  "source_pins": {
+    "before": {
+      "commit": "e7b78e3e94f540ed685d4d35d82aac9b6de8246a",
+      "blob": "6e3a07aaff8590ad83fc91dce98be1bf3e381fbf",
+      "sha256": "9a515d6b11dc9251f4cd01eeec0c108f6266b174c3789993ec67add7d6cc4cbb"
+    },
+    "after": {
+      "commit": "98de8ef46ab2e0c3ee58a326a073322367cedbdf",
+      "blob": "8661d1c6bf4b11a8d727d304346f7a815d9e9fff",
+      "sha256": "6ca2c7de51c3a48109ffb6b6096f31981e3058fdae16ed8078ad47aa3a59501c"
+    }
+  },
+  "records": [
+    {
+      "fact_key": "S-08#1#1",
+      "side": "before",
+      "source_commit": "e7b78e3e94f540ed685d4d35d82aac9b6de8246a",
+      "file": "S-08-1-1.before.json",
+      "bytes": 40395,
+      "sha256": "f94172d96eded029524c848bf926cc817a064ecc2dec51acd50c06b1f60a2946",
+      "original_record_line": 18,
+      "original_line_sha256": "74859ccc43bb254970ea45ceac7d63e4aaf3c664cb55738dfce8f557664c4df1",
+      "original_line_bytes": 34520
+    },
+    {
+      "fact_key": "M-04#1#3",
+      "side": "before",
+      "source_commit": "e7b78e3e94f540ed685d4d35d82aac9b6de8246a",
+      "file": "M-04-1-3.before.json",
+      "bytes": 40395,
+      "sha256": "cb30001f3febc3fdf4a3902f83c4a176c91ab351220d6bcda570acc806f7f174",
+      "original_record_line": 37,
+      "original_line_sha256": "0a1c2a0176525d2da4b0cc93deba79ba5b8bbcd7e1c45ddb361f24daa469592f",
+      "original_line_bytes": 34520
+    },
+    {
+      "fact_key": "N-07#1#1",
+      "side": "before",
+      "source_commit": "e7b78e3e94f540ed685d4d35d82aac9b6de8246a",
+      "file": "N-07-1-1.before.json",
+      "bytes": 40395,
+      "sha256": "69d475c57f7bbd7248f42b2bbcf50a41fc90ba19d83a0fe0b7fc6806218c1272",
+      "original_record_line": 85,
+      "original_line_sha256": "1080e4b0d5facc26b815d3c7bd0bb1337d7a9cabe6756b4c87c4f9ed326d24e5",
+      "original_line_bytes": 34520
+    },
+    {
+      "fact_key": "S-08#1#1",
+      "side": "after",
+      "source_commit": "98de8ef46ab2e0c3ee58a326a073322367cedbdf",
+      "file": "S-08-1-1.after.json",
+      "bytes": 40674,
+      "sha256": "ddef582856741bfcd8123e8efd2fa0aff3a0e6b963a24d3a3292c507f5bc0303",
+      "original_record_line": 18,
+      "original_line_sha256": "c209b722f916ae9fddce4acade46095d65b7779c51811c37c490341aa55b0f31",
+      "original_line_bytes": 34781
+    },
+    {
+      "fact_key": "M-04#1#3",
+      "side": "after",
+      "source_commit": "98de8ef46ab2e0c3ee58a326a073322367cedbdf",
+      "file": "M-04-1-3.after.json",
+      "bytes": 40674,
+      "sha256": "6c4e34a9b16597970e205096e09740c97d006c1ba78d9526b676a6300cf9e18a",
+      "original_record_line": 37,
+      "original_line_sha256": "780e354678f2ea425370ef8742fceb14643bce01067c2002e45f54b73da63e11",
+      "original_line_bytes": 34781
+    },
+    {
+      "fact_key": "N-07#1#1",
+      "side": "after",
+      "source_commit": "98de8ef46ab2e0c3ee58a326a073322367cedbdf",
+      "file": "N-07-1-1.after.json",
+      "bytes": 40674,
+      "sha256": "947f3b4a265d602de99f12ecf85ab95e2dd60d96e504847d449a746923819834",
+      "original_record_line": 85,
+      "original_line_sha256": "f12cfaff03f68a90eba685826ad484bc6e69db93dbb4dbb43cbe4c9d348733f1",
+      "original_line_bytes": 34781
+    }
+  ],
+  "tested_files": [
+    {
+      "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+      "candidate_blob": "8661d1c6bf4b11a8d727d304346f7a815d9e9fff",
+      "lf_sha256": "6ca2c7de51c3a48109ffb6b6096f31981e3058fdae16ed8078ad47aa3a59501c"
+    },
+    {
+      "path": "tests/next/provenance/authoringIndex.cases.js",
+      "candidate_blob": "f182046f27f58ffc931f19070e6515a476958e6f",
+      "lf_sha256": "9959f81ba7dc78f41a2b2a782146477631d6786858bc4d0ea1d21d0aa011ae8c"
+    },
+    {
+      "path": "tests/next/provenance/metricEffects.cases.js",
+      "candidate_blob": "123c1f7593133f3ca57e13829ad94bba64267d70",
+      "lf_sha256": "63fe34f5b2da29466127207b094814229a33b00a91273b321e16b55ac2161e86"
+    }
+  ],
+  "scope": {
+    "complete_before_after_records": 6,
+    "changed_graphs": 3,
+    "unchanged_graphs": 73,
+    "added_reads": 6,
+    "added_has": 6,
+    "entire_corpus_deep_equality_except_exact_delta": true
+  },
+  "limits": "Readable complete synthetic records, tied to original immutable Git blobs. No execution authenticity claim, suite rerun, product change, or approval."
+}
