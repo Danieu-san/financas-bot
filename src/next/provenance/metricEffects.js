@@ -2,7 +2,7 @@
 const { parseDate, parseMonth } = require('./civilCalendar');
 const { validateLiteral } = require('./literalTypes');
 const { createCategoryReader } = require('./metricSelection');
-const { readNodeIdentity, createUniqueNodeReader, readReference, readReferenceId } = require('./metricReferences');
+const { createUniqueNodeReader, readReference, readReferenceId } = require('./metricReferences');
 const fail = code => { throw new Error(`effect_metric_${code}`); };
 const id = value => { validateLiteral({ type: 'id', value }); return value; };
 const money = value => { if (!Number.isSafeInteger(value) || Object.is(value, -0)) fail('amount'); return value; };
@@ -58,7 +58,11 @@ function evaluateEffects(operands, metric) {
         if (metric === 'net_consumption' && purchase && !scope) fail('compensation');
         if (metric === 'invoice_payment_consumption_effect' || metric === 'consumption_effect' && kind === 'event') {
             if (own.key !== 'neutral.invoice_payment' || own.economicKind !== 'neutral') fail('payment');
-            readNodeIdentity(event.follow('settles_card_id'), 'card'); readNodeIdentity(event.follow('account_id'), 'account');
+            // The dedicated payment formula consumes the admitted card
+            // reference, not the target payload. Generic consumption has no
+            // account/card input here; economic links remain separate proof
+            // obligations. Arithmetic success is never graph acceptance.
+            if (metric === 'invoice_payment_consumption_effect') readReferenceId(event, 'settles_card_id');
         }
         return state === 'confirmed' && scope && (periodKind === 'month' ? date.slice(0, 7) === periodValue : date === periodValue);
     });

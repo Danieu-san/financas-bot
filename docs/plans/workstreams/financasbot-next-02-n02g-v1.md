@@ -2,6 +2,26 @@
 
 Data: 2026-09-11. Estado: CHARTER APROVADO; IMPLEMENTAÇÃO EM DESENVOLVIMENTO.
 
+Recorte PAYMENT-REFERENCE (2026-09-24, base 151816b6e02a500754aaf72796755ed693f39907):
+adequar exclusivamente metricEffects aos contratos já autorados. O cálculo
+consumption_effect/event não consome conta/cartão; a prova econômica continua
+separada e obrigatória. invoice_payment_consumption_effect observa o scalar
+settles_card_id e sua relação admitida sem consumir o payload do cartão.
+Não modificar os 76 grafos, expected, proof, contratos, seleção ou fórmula.
+Três propriedades focais cobrem kernel gerado, guards, integrações e retirada
+de observações reais. O pin histórico de metricEffects mantém predecessor e
+sucessor explícitos, sem reescrever a proposta já auditada. A aprovação deste
+recorte exige afetados, ampla única estável e revisão independente de código;
+sucesso aritmético isolado nunca aprova a neutralidade econômica de um claim.
+
+Validação local concluída em 2026-09-24: RED 3 FAIL, focal 3 PASS, afetados
+finais 252 PASS e ampla única 2.405/2.395 PASS/0 FAIL/10 SKIP/0 TODO,
+valid=true, candidato inalterado. Primeira bateria afetada teve uma falha de
+pin histórico; preservada na evidência e resolvida por sucessão explícita do
+único fonte alterado, sem atualizar a proposta histórica. Helper confere 96
+arquivos protegidos e hashes testados; não autentica execução externamente.
+Estado máximo: candidato de código aguardando auditoria independente.
+
 Retomada em 2026-09-24: recorte transfer scope aprovado focalmente no código
 98de8ef46ab2e0c3ee58a326a073322367cedbdf após evidência auxiliar 07445669841a1526809d2c95df8913a7516bb66e.
 Focais/afetados e ampla local preservados (2.392 PASS, 0 FAIL, 10 SKIP).

@@ -4,6 +4,78 @@ const assert = require('node:assert/strict');
 const { createInstrumentedAccess, createNodeSetAccess } = require('../../../src/next/provenance/instrumentedAccess');
 const { evaluateEffects } = require('../../../src/next/provenance/metricEffects');
 const scalar = { type: 'scalar' }; const version = `sha256:${'c'.repeat(64)}`;
+// Kernel boundary fixtures, not financial proof/graph acceptance. Aliases,
+// payload IDs and amounts vary independently; targets stay admitted, but their
+// payload must not be consumed to calculate a neutral contribution.
+function paymentFixture({ metric, seed, periodKind = 'month', amount = -100, state = 'confirmed', day = '2042-06-12', categoryKind = 'neutral', omitCard = false, omitLink = false } = {}) {
+    const observations = []; const emit = e => observations.push(e);
+    const payment = { id: `payment-${seed}`, date: day, state, person_id: `person-${seed}`,
+        category_id: 'neutral.invoice_payment', amount_minor: amount, account_id: `account-${seed}` };
+    if (!omitCard) payment.settles_card_id = `card-${seed}`;
+    const binding = (alias, kind, value, role = 'events') => ({ alias, role, value,
+        identity: { kind, ref_id: value.id, version },
+        shape: { type: 'record', fields: Object.fromEntries(Object.keys(value).map(k => [k, scalar])) } });
+    const category = { id: 'neutral.invoice_payment', kind: categoryKind };
+    const bindings = [binding('payment', 'event', payment), binding('owner', 'person', { id: payment.person_id }),
+        binding('category', 'category', category), binding('account', 'account', { id: payment.account_id }),
+        binding('card', 'card', { id: `card-${seed}` })];
+    const links = [['person_id', 'owner'], ['category_id', 'category'], ['account_id', 'account'],
+        ...(!omitCard && !omitLink ? [['settles_card_id', 'card']] : [])]
+        .map(([field, target]) => ({ id: `link-${field}`, source: 'payment', field, target, type: 'ref' }));
+    const events = createNodeSetAccess({ role: 'events', roster: ['payment'], bindings, links, emit });
+    const categories = createNodeSetAccess({ role: 'categories', bindings: [binding('category', 'category', category, 'categories')], emit });
+    const context = createInstrumentedAccess({ emit, bindings: [{ alias: 'ctx', role: 'context',
+        value: { subject: { kind: 'event', ref_id: payment.id }, period: { kind: periodKind, value: periodKind === 'month' ? '2042-06' : '2042-06-12' }, time_basis: 'event_date' },
+        shape: { type: 'record', fields: { subject: { type: 'record', fields: { kind: scalar, ref_id: scalar } },
+            period: { type: 'record', fields: { kind: scalar, value: scalar } }, time_basis: scalar } } }] });
+    const operands = { events: events.handle, categories: categories.handle, context: context.handle('ctx') };
+    return { run: () => evaluateEffects(operands, metric), observations, controls: [events, categories, context] };
+}
+
+test('N02G:PAYMENT-REFERENCE-001 generated neutral calculations consume only their functional reference contract', () => {
+    let checked = 0;
+    for (let seed = 0; seed < 6; seed++) for (const metric of ['consumption_effect', 'invoice_payment_consumption_effect'])
+        for (const periodKind of ['date', 'month']) for (const amount of [-137 - seed, 0, 251 + seed]) {
+            const f = paymentFixture({ metric, seed, periodKind, amount });
+            try {
+                assert.equal(f.run(), 0);
+                assert.equal(f.observations.some(e => ['account', 'card'].includes(e[2]) || e[4]?.[0] === 'account_id'), false);
+                const cardEvents = f.observations.filter(e => e[2] === 'payment' && e[4]?.[0] === 'settles_card_id');
+                assert.deepEqual(cardEvents.map(e => e[1]), metric === 'invoice_payment_consumption_effect' ? ['get', 'traverse'] : []);
+                for (const control of f.controls) control.assertHealthy(); checked++;
+            } finally { for (const control of f.controls) control.revoke(); }
+        }
+    assert.equal(checked, 72);
+});
+
+test('N02G:PAYMENT-REFERENCE-002 scalar consumers fail without an admitted card link and preserve payment guards', () => {
+    for (const metric of ['consumption_effect', 'invoice_payment_consumption_effect']) {
+        for (const options of [{ omitCard: true }, { omitLink: true }]) {
+            const f = paymentFixture({ metric, seed: 9, ...options });
+            try {
+                if (metric === 'invoice_payment_consumption_effect') assert.throws(f.run, /access_set_predicate_threw/);
+                else { assert.equal(f.run(), 0); for (const control of f.controls) control.assertHealthy(); }
+                // Generic arithmetic success is deliberately NOT proof acceptance.
+            } finally { for (const control of f.controls) control.revoke(); }
+        }
+        for (const options of [{ categoryKind: 'expense' }, { state: 'unknown' }, { day: 'not-a-date' }]) {
+            const f = paymentFixture({ metric, seed: 10, ...options });
+            try { assert.throws(f.run, /access_set_predicate_threw/); }
+            finally { for (const control of f.controls) control.revoke(); }
+        }
+        for (const options of [{ state: 'projected' }, { day: '2041-01-01' }]) {
+            const f = paymentFixture({ metric, seed: 11, ...options });
+            try {
+                assert.equal(f.run(), 0);
+                assert.equal(f.observations.some(e => e[1] === 'get' && e[4]?.[0] === 'amount_minor'), false);
+                assert.deepEqual(f.observations.filter(e => e[2] === 'payment' && e[4]?.[0] === 'settles_card_id').map(e => e[1]),
+                    metric === 'invoice_payment_consumption_effect' ? ['get', 'traverse'] : []);
+                for (const control of f.controls) control.assertHealthy();
+            } finally { for (const control of f.controls) control.revoke(); }
+        }
+    }
+});
+
 function fixture({ metric = 'net_consumption', mutate = () => {}, subject = { kind: 'event', ref_id: 'purchase' }, roster = ['purchase', 'refund'], namespace, omitOwnerLink, categoryKind = 'expense', period = { kind: 'month', value: '2042-06' } } = {}) {
     const rows = [{ id: 'purchase', date: '2042-06-07', state: 'confirmed', person_id: 'p', category_id: 'food', amount_minor: -123 },
         { id: 'refund', date: '2042-06-09', state: 'confirmed', person_id: 'p', category_id: 'refund-category', amount_minor: 23, compensates: 'purchase' },

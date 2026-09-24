@@ -1,12 +1,72 @@
 # N02-G — checkpoint
 
-Atualização: 2026-09-24. Estado: transfer scope APROVADO FOCALMENTE após auditoria de código; retomada do diagnóstico residual; SEM GO GLOBAL/EXECUTÁVEL N02-G.
+Atualização: 2026-09-24. Estado: PAYMENT-REFERENCE com ampla verde; CANDIDATO AGUARDANDO AUDITORIA DE CÓDIGO; SEM GO GLOBAL/EXECUTÁVEL N02-G.
 Base: `aea4ac31e358ed8d8907e78f6002c8bb80233bc8`.
 Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
 ## Próxima ação exata — diagnóstico residual após transfer scope
+
+Ampla concluída 2026-09-24T20:07:18.662Z: 2.405 testes, 2.395 PASS,
+0 FAIL/10 SKIP/0 TODO/cancelled, valid=true, exit_status=0,
+candidate_unchanged=true. Heartbeat retomar-n02-g-pagamento-neutro-ap-s-su-te
+PAUSADO. Não repetir suíte verde. Helper --write-new/--check PASS com 96
+arquivos normativos/fontes protegidos intactos e hashes dos três arquivos
+causais conferidos. Evidência sanitizada: payment-reference-validation.json.
+Inclui contexto focal derivation/relações/proof dos três grafos, derivado do
+corpus integral byte-idêntico à base, com blob/SHA; não é novo contrato.
+Preparar/publicar o commit desta árvore e enviar UMA revisão de código limpa,
+confrontando primeiro risco de suprimir validação econômica. Sem substituir
+expected pelo trace. Auditor responde no Chat, não escreve no canal GitHub.
+Uma aprovação focal encerra só PAYMENT-REFERENCE; depois retomar residual.
+Interrupção por limite de uso impediu a primeira regeneração de evidência;
+Continue de Daniel autorizou a retomada, sem reexecutar testes nem alterar código.
+
+### Histórico imediato — ampla PAYMENT-REFERENCE
+
+AMPLA ÚNICA iniciada 2026-09-24T19:51:54.400Z, PID 7876, base/HEAD
+151816b6e02a500754aaf72796755ed693f39907. Marcador confirmado uma vez.
+Wrapper local .codex-temp/runWidePaymentReference20260924.cjs; resultado
+.codex-temp/wide-n02g-payment-reference-20260924.json, marcador -start.json,
+logs -stdout.log/-stderr.log. Não alterar HEAD nem os três arquivos causais;
+não iniciar outra ampla. Afetados finais v2: 252 PASS/0 FAIL/SKIP/TODO.
+Heartbeat retomar-n02-g-pagamento-neutro-ap-s-su-te ATIVO a cada 20 minutos;
+pausar ao concluir/falhar. Daniel autorizou continuidade autônoma ausente.
+Depois de verde: confrontar hashes/candidate_unchanged, executar helper
+prepare-payment-reference-validation.cjs --write-new/--check, atualizar estado,
+commit sanitizado/publicação e uma auditoria focal de código. Não foi enviada
+auditoria deste recorte ainda. Não repetir ampla verde sem mudança causal.
+
+PAYMENT-REFERENCE implementado: RED 3 FAIL/0 PASS; GREEN 3 PASS/0 FAIL/SKIP/TODO.
+72 variantes kernel, três integrações com expected congelado e quatro negativos
+por retirada de get/traverse. Corpus/contratos/proof byte-idênticos à base.
+Sonda .codex-temp/coverage-payment-reference-20260924.json: somente S-09#1#1,
+M-05#1#5 e N-08#1#1 mudaram; agora 56 composições correspondentes, 17 divergências,
+73 seleções e três derivados não exercitados. Não é gate de aceitação.
+Afetados iniciais: 251 PASS/1 FAIL, somente TRANSFER-SCOPE-001 pelo pin histórico
+do runtime alterado. Preservados log/resultado; teste agora vincula explicitamente
+predecessor 7f0a08bb… ao sucessor 7cb9fe24… sem mudar a proposta histórica.
+Afetados v2 encerrados (.codex-temp/payment-reference-affected-v2-20260924.json).
+Revisão causal local: não filtra trace, não muda expected nem relaxa validação
+de neutralidade, data/estado e vínculo de referência consumido. Prova separada
+continua pendente na arquitetura; kernel não aceita grafo. Syntax/workflow/diff
+checks PASS. Helper de evidência preparado, executar --write-new/--check apenas
+após ampla verde. Não confundir os summaries locais com autenticação independente.
+
+Recorte ativo PAYMENT-REFERENCE (base 151816b6e02a500754aaf72796755ed693f39907):
+preservar integralmente corpus/contratos/proof; corrigir somente acessos de
+metricEffects.js conforme consumption_effect versus invoice_payment_consumption_effect.
+O primeiro não consome payload/referência de conta/cartão no cálculo; o segundo
+consome settles_card_id via readReferenceId (scalar + relação admitida), não
+identidade/payload do target nem account_id. Prova econômica separada continua
+obrigatória; resultado zero do kernel nunca aceita grafo ou pagamento sozinho.
+Arquivos causais previstos: src/next/provenance/metricEffects.js,
+tests/next/provenance/metricEffects.cases.js e authoringIndex.cases.js.
+Registrar evidência em docs/audit-evidence/n02g-causal-authoring-profile/
+payment-reference-validation.json e helper prepare-payment-reference-validation.cjs.
+Sequência: RED kernel/corpus, correção, GREEN/afetados, revisão adversarial,
+uma ampla estável e auditoria independente do código. Não alterar outras métricas.
 
 Parecer final recebido: APROVÁVEL para 98de8ef46ab2e0c3ee58a326a073322367cedbdf,
 pai e7b78e3e94f540ed685d4d35d82aac9b6de8246a. Evidência auxiliar auditada:

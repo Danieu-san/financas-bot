@@ -155,8 +155,19 @@ test('N02G:TRANSFER-SCOPE-001 optional scope delta preserves the complete remain
     const claims = JSON.parse(fs.readFileSync(path.join(root, prefix + 'claims-v2.json'), 'utf8')).claims;
     const snapshots = JSON.parse(fs.readFileSync(path.join(root, corpus.snapshot_manifest.path), 'utf8')).snapshots;
     const proposal = reviewedTransferScopeProposal(); let checked = 0;
+    // A later runtime-only candidate must not rewrite the historical proposal.
+    // Explicit predecessor/successor pins retain content identity on both sides;
+    // the PAYMENT-REFERENCE properties prove behavior, not this hash alone.
+    const sourceSuccessors = {
+        'src/next/provenance/metricEffects.js': {
+            predecessor: 'sha256:7f0a08bbfbdecb4cbdea00c5f1c3c65e65d96ec4bf50e0096f01fe77a424e2ed',
+            successor: 'sha256:7cb9fe24b2d8aefd3560d8089544bfe5431f124256c35023ff6b8e126283f5fb'
+        }
+    };
     for (const doc of proposal.documents.filter(d => d.path !== graphPath)) {
-        assert.equal(hash(fs.readFileSync(path.join(root, doc.path), 'utf8').replaceAll('\r\n', '\n')), doc.lf_sha256);
+        const transition = sourceSuccessors[doc.path];
+        if (transition) assert.equal(doc.lf_sha256, transition.predecessor);
+        assert.equal(hash(fs.readFileSync(path.join(root, doc.path), 'utf8').replaceAll('\r\n', '\n')), transition?.successor || doc.lf_sha256);
     }
     for (const claim of claims.filter(c => c.evaluator_ref.evaluator_id === 'consumption_effect' && c.evaluator_ref.evaluator_version === 1 && c.subject.kind === 'transfer_pair')) {
         const graph = corpus.graphs.find(g => g.fact_key === claim.fact_key);
@@ -1486,6 +1497,53 @@ test('N02G:OBSERVED-METRIC-003 installment selection is independently observed f
         checked++;
     }
     assert.equal(checked, 8);
+});
+
+test('N02G:PAYMENT-REFERENCE-003 neutral payment derivations match frozen authored contracts without target payload', async () => {
+    const { evaluateEffects } = require('../../../src/next/provenance/metricEffects');
+    const { freezeDeep } = require('../../../src/next/kernel/canonicalValue');
+    const { plan, claims, graphs } = await snapshotAccessFixture(); let checked = 0; let rejected = 0;
+    const oracle = JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/financasbot-next/golden-claim-oracles-v1.json'), 'utf8'));
+    for (const claim of claims.filter(c => c.subject.kind === 'event' && ['consumption_effect', 'invoice_payment_consumption_effect'].includes(c.metric))) {
+        const graph = graphs.find(g => g.fact_key === claim.fact_key); const before = JSON.stringify(graph);
+        const scope = selectionInput(claim, graph, `payment-reference-${checked}`);
+        const fields = ['required_nodes', 'required_reads', 'required_claim_reads', 'required_edges', 'required_structural', 'required_selections', 'selected_nodes'];
+        const expected = freezeDeep(structuredClone(Object.fromEntries(fields.map(k => [k, graph.trace_contract.derivation[k]]))));
+        const accessBindings = plan.observationMetadata({ fact_key: claim.fact_key, phase: 'derivation' });
+        const operandSets = Object.entries(claim.operand_bindings).filter(([, b]) => b.kind === 'node_set').map(([role, b]) => ({ role, aliases: b.aliases }));
+        const recorder = createCausalRecorder({ executionId: scope.executionId, maxEvents: 10000 });
+        const phase = recorder.open({ invocationId: claim.fact_key, phase: 'derivation' }); const controls = []; const operands = {}; let value;
+        try {
+            for (const [role_id, binding] of Object.entries(claim.operand_bindings)) {
+                const selector = { fact_key: claim.fact_key, role_id };
+                const access = binding.kind === 'claim_context' ? plan.openContext(selector, phase.observe) : plan.openSet(selector, phase.observe);
+                controls.push(access); operands[role_id] = access.handle;
+            }
+            value = evaluateEffects(Object.freeze(operands), claim.metric);
+            for (const access of controls) access.assertHealthy();
+        } finally { for (const access of controls) access.revoke(); }
+        phase.seal(); const trace = recorder.finish(); const input = { ...scope, expected, trace, operandSets, accessBindings };
+        const coverage = comparePhaseCoverage(input);
+        assert.equal(coverage.matched, true, claim.fact_key); assert.equal(coverage.graph_accepted, false);
+        const split = claim.fact_key.lastIndexOf('#');
+        assert.deepEqual(value, oracle.turns[claim.fact_key.slice(0, split)].facts[Number(claim.fact_key.slice(split + 1)) - 1].value);
+        // Proof still has separate account/card relations. Derivation success
+        // neither executes these obligations nor accepts the economic claim.
+        for (const field of ['account_id', 'settles_card_id']) {
+            const edge = graph.edges.find(e => e.field === field && claim.operand_bindings.events.aliases.includes(e.source));
+            assert.ok(edge); assert.ok(graph.trace_contract.proof.required_edges.includes(edge.id));
+            assert.equal(trace.derivation_trace.some(e => e.alias === edge.target && ['get', 'identity'].includes(e.operation)), false);
+        }
+        if (claim.metric === 'invoice_payment_consumption_effect') {
+            for (const operation of ['get', 'traverse']) {
+                const kept = trace.derivation_trace.filter(e => !(e.operation === operation && e.path?.join('.') === 'settles_card_id'));
+                assert.ok(kept.length < trace.derivation_trace.length);
+                assert.equal(comparePhaseCoverage({ ...input, trace: { ...trace, derivation_trace: kept.map((e, sequence) => ({ ...e, sequence })) } }).matched, false); rejected++;
+            }
+        }
+        assert.equal(JSON.stringify(graph), before); checked++;
+    }
+    assert.equal(checked, 3); assert.equal(rejected, 4);
 });
 
 test('N02G:OBSERVED-METRIC-004 economic effects use observed links, not signed amount coincidence', async () => {

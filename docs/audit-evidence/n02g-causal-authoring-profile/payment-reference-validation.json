@@ -1,0 +1,1730 @@
+{
+  "schema": "n02g-payment-reference-validation-v1",
+  "base": "151816b6e02a500754aaf72796755ed693f39907",
+  "status": "candidate_awaiting_independent_code_audit",
+  "evidence_kind": "locally_executed_not_external_verdict",
+  "execution_authentication": false,
+  "graph_accepted": false,
+  "releaseEligible": false,
+  "changed_sources": [
+    "src/next/provenance/metricEffects.js",
+    "tests/next/provenance/authoringIndex.cases.js",
+    "tests/next/provenance/metricEffects.cases.js"
+  ],
+  "protected_files": [
+    {
+      "path": "docs/contracts/next/provenance-v2/authoring-contract-v1.md",
+      "lf_sha256": "sha256:7040d3cee24341a15af3fb3ca6acf84df6a207b10af13828739f545f87ae1328"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/causal-authoring-candidates/README.md",
+      "lf_sha256": "sha256:1c018f2e87d96ea4bb504574751171e1ad192820aa60a1e32976d83964bd9b1b"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/causal-authoring-candidates/consumption-by-instrument-profile-v1.json",
+      "lf_sha256": "sha256:4c2be2d8f773b85e008d8f476d37196bdab9b0bac58848c616294f685fcda99a"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/causal-authoring-candidates/statement-total-profile-v1.json",
+      "lf_sha256": "sha256:12cd0fa53fb62121068cdb85ededa91a0b5faec6976d2a9eb3a8045502485723"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claim-contract.schema.json",
+      "lf_sha256": "sha256:b69ef61b562061f057a9bf08f47623ae432c723f565e8775f3dbe6eb942ea998"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claims-v2.json",
+      "lf_sha256": "sha256:4810612761ea7f232e4445c0d192ae53ebf0761f0ba8752da758efb826b30494"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluation-policy-v1.json",
+      "lf_sha256": "sha256:4b6ee6a6fb365aa97a22a087de032e998dbb31ffd929d3ea2b094544f28f40dd"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-authoring-semantics-v1.md",
+      "lf_sha256": "sha256:720e31b2a8a7c0490adf620a8ccaedbe54e06d0502e518e61c8c69252a006a7f"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contract.schema.json",
+      "lf_sha256": "sha256:2c3bc0a86bf45da2c4466118bb6ad9506f1824a209c419c3c7180718e294a183"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/account_balance.json",
+      "lf_sha256": "sha256:b509b72bf341c36f60cc7fda7030602a0fdfcc1dae24a0687cb899d4b15a35ed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/balance_delta.json",
+      "lf_sha256": "sha256:39a1a87663a54e5d37c8e1a35f02596330d48b71e70a431fa27fe58193339a1e"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/bills_open.json",
+      "lf_sha256": "sha256:9fed67d44d48c3965043964769ce6481b876a793decf16901e7e666261593faf"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/budget_class_consumption.json",
+      "lf_sha256": "sha256:e336d72e581c06401fd6ef3cc5b041b6c2b7ad56745fe25ff5980ca763ed8561"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/calendar_event_count.json",
+      "lf_sha256": "sha256:fa3f00c0a019ab0702f94b2c97f2e575509c308343d2208c992ac677e98097b8"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/category_budget_remaining.json",
+      "lf_sha256": "sha256:4e4f9e38d7495397799578d1f73366d067ef5a5a7ca47879071dacd3669436c5"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/category_consumption.json",
+      "lf_sha256": "sha256:b6e8edf05cb8acc7155bea56d84c4827c4fa9c97b54cacdc13805602468564a3"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/category_spent.json",
+      "lf_sha256": "sha256:f168ac80d9ac17abf516e76729105c03a6efcf1743bdd4459e94f0c75f851baa"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_by_instrument.json",
+      "lf_sha256": "sha256:e32bc36ae9642c1db0d0eb6dce05c3861a80d967b974613eafc8fc6a341dbd37"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_difference.json",
+      "lf_sha256": "sha256:f5d8eda523ba66305010fed07ca6c657b76c486774eac052c3151ddcc85546f7"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_effect.json",
+      "lf_sha256": "sha256:7dd62b47dcc336828376d44ed54c996f4ef21d27f9f21cfa142cd3722e24eab1"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_total.json",
+      "lf_sha256": "sha256:4e07fd44f09a99168cd92d6a9caa664ef5c847146aae64905b859c4cf313be3a"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/due_bill_ids.json",
+      "lf_sha256": "sha256:a9ddce797a0f90184dad2e3fd50cb20d6534648485ed9f27592cbfe03782ebf4"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/due_bills_total.json",
+      "lf_sha256": "sha256:aaa1e469986731240f28f22ffe4559c4a663b13d2a01718f61e866c3e1f62e86"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/eligible_event_count.json",
+      "lf_sha256": "sha256:bf2a5e70c7cf661c8b983a2598ae4142567ce9e1b97e34985851b77dcf0e7937"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/gross_consumption.json",
+      "lf_sha256": "sha256:787b125062623e9ffaea8d248ef0554a93e23458275566390c88e88b5e3d00d6"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/income_minus_open_bills.json",
+      "lf_sha256": "sha256:1d87b903b2e41e0bdfa4edc5ec1708c1e10e81dfa9cff30560dd5206b4637b86"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/income_realized.json",
+      "lf_sha256": "sha256:3098c37340e1c22e6137691c498c1e1b3756a8319f2187eb17fa0c16e8abedea"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/installments_projected.json",
+      "lf_sha256": "sha256:924d883d776a5f0da128ee931d96ff27aa1f9effa5ca86d3c81f21af35bf4988"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/installments_projected_amount.json",
+      "lf_sha256": "sha256:6cd3f810f260c6fa94b4509c1d8e043866accc8a0314446fde59d51b28763f0a"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/installments_realized.json",
+      "lf_sha256": "sha256:0115cf8a9d922e43b6b393cecc521a9659a41f75b68591b579eed01490c5d3f7"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/installments_realized_amount.json",
+      "lf_sha256": "sha256:8987257b8976651b8e82c7e414fda6472ba5aa60ce58befaef3a5661956eb8a7"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/invoice_payment_amount.json",
+      "lf_sha256": "sha256:8b0b104d9d9623fc65847611532eb69810464f2869b5f9421557f07441562928"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/invoice_payment_consumption_effect.json",
+      "lf_sha256": "sha256:613b290689de669c2e5ab437fe12ce6f495bdfb766ed848d7716ea50f6b9c7c6"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/invoice_payment_target_card.json",
+      "lf_sha256": "sha256:a58d6ee1480662230142a532903facd36cbbe3b7f67705dc01345574a324acfa"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/merchant_rule_ids.json",
+      "lf_sha256": "sha256:b3ec5d6c4003258cd25431a709197c37a1cf7f70e10125b2f0c8d15bba95abbe"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/movement_ids.json",
+      "lf_sha256": "sha256:4c41b92c8bcf511536461ec676441babe401ef3906144beb960150605a786b96"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/net_consumption.json",
+      "lf_sha256": "sha256:1bbf9d81f52b9766156ab60ddd4d8da961b958440e32df12dc0ce315c76fe891"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/owned_cards.json",
+      "lf_sha256": "sha256:67b68e3e0d27a0973127411a960953345eeff0c8adc001ea25001fa2ddbbfc3a"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/projected_installments.json",
+      "lf_sha256": "sha256:d5c649bcaf00627f23d1930ac78de03dfb41f2fb5e0c11cb26d1e177f57feaee"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/ranking_winner.json",
+      "lf_sha256": "sha256:aabe7e1423046863612c8d0ca4816bdc91e98d02c0f1cd2ce1a8a0e4f2b51889"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/refund_amount.json",
+      "lf_sha256": "sha256:2dafc200e53dfa069e3b7e12d42c0ead14db1f2b020768ec5fd2a6fcda4c515c"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/reminder_count.json",
+      "lf_sha256": "sha256:16b84262decf1b92536ed697b09844e0c76f5153f4570e8ec49bc550010f8514"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/safe_daily_pace.json",
+      "lf_sha256": "sha256:195e3968cc2f7f7dd2e46fdcb2619c19892b5c56a27d0e3c62f76fe08ba9a14d"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/side_effect_count.json",
+      "lf_sha256": "sha256:7813782950888e8af5c51403d313fc9b950c463e7109681e9cf30d4cd97345a2"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/similar_event_ids.json",
+      "lf_sha256": "sha256:1f994c3caaea2a7c7fa968a49f872bb2b3f4d8ce0b959fc25bf26bbe5dac6817"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/source_coverage.json",
+      "lf_sha256": "sha256:9a80ff7de3d119bb6f598db2af660c33095b64c82802741c01ed119ae95d38d8"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/statement_payment_correspondence.json",
+      "lf_sha256": "sha256:3ffc3131e77bc4ead3248a3a5b49108093d16ddbbcb94635d49d7fc59d1171ec"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/statement_total.json",
+      "lf_sha256": "sha256:cca2c51e9d89ef572d069eb019d30924fc41409724c1d07abc7d2a215ce1d002"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-witness-contracts-v1.json",
+      "lf_sha256": "sha256:5a1a9d3b31357009f6e89d8a397c3fa6c7f079d58d06af5b0991c2cc65df5093"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-witness-contracts.schema.json",
+      "lf_sha256": "sha256:dd5af1b4ab9d29f67d87b7b979076f8b4695cd917062d63ec34da6c12240adaa"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evidence-snapshot.schema.json",
+      "lf_sha256": "sha256:054a48930a5f25760f201e8b401f0f34f5a83672366acad6c9c09bdc0ce0b5ef"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/graph-authoring-review-v1.md",
+      "lf_sha256": "sha256:b68e673b0f4edc38d023c6440db3afcb02264f7789a89d486abff8182e01e39e"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/graph-binding-contract-v1.md",
+      "lf_sha256": "sha256:da90befb1f526048cfe14122cd8522690292508bebf42d60ea4ecd5838513a40"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+      "lf_sha256": "sha256:6ca2c7de51c3a48109ffb6b6096f31981e3058fdae16ed8078ad47aa3a59501c"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/material-field-registry-v1.json",
+      "lf_sha256": "sha256:ee7ef3eff146bc2e9cea2cc986c398371acbff3cf35d858ced8386a9758a4d62"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/metric-evaluator-registry-v1.json",
+      "lf_sha256": "sha256:577fe16b3d5a1dc2e24505de150001afd889408f5294a6834486de338d40a3a0"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/metric-evaluator-registry.schema.json",
+      "lf_sha256": "sha256:de5eb3828b8faaf58eeddc9f90d9342b509f86fd32ea8b66f9174448c536e066"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/n02f-correction-review-v1.md",
+      "lf_sha256": "sha256:814ddcb57991b6b315fa102a38df0b118447015398b10d934c8967b1e7f5b4ff"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/operator-registry-v1.json",
+      "lf_sha256": "sha256:24427e9dd30a5b2d5eaf6f9e2651869e8582df4b5dc9eab54b924a0b687e33b6"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/operator-registry-v2.json",
+      "lf_sha256": "sha256:d28eb3dfbf7ea6949c1ff696e9f9bc7aa572c3ab8433a06d316936092a2dcac7"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/predicate-templates-v1.json",
+      "lf_sha256": "sha256:15a1adfe3290b26808d3ee8cb1e1db36175f122df54cd2ef1474873ad5d8833f"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/provenance-graph.schema.json",
+      "lf_sha256": "sha256:9e3c148c95d6fecd3d93f019ad5a5967126f8bf1cb9bde9d152c70c057a1740b"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/registry-semantics-v1.md",
+      "lf_sha256": "sha256:9dad2d3833eee30b46c36899ff9bd3fc1b708112495edf8e3db075ac7f3302c4"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/snapshot-manifest-v1.json",
+      "lf_sha256": "sha256:2547229db3c07f2dd0941601ab5164bf89981ce966e4e23a2e3058124edba8c4"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/temporal-and-selection-witnesses-v1.json",
+      "lf_sha256": "sha256:92329f779a5b08f46f4554d129b934dcc2acf176741bf66ba82ab794f2c095bf"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/temporal-relations-decision-v1.md",
+      "lf_sha256": "sha256:a6581b9533f25d6a8864091ffacda0119e2d93df323c37918bddb0c56e297f1e"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/type-and-identity-contract-v2.md",
+      "lf_sha256": "sha256:41082ed25096b7289028d632e2ba7db86aa5400f9c5fbeb73da4ce7e3d9f560b"
+    },
+    {
+      "path": "src/next/provenance/artifactLoader.js",
+      "lf_sha256": "sha256:24d108c16a30e03d96e826da64e94c1ada9a9ef8d4a9edef8e20411dd9a0099f"
+    },
+    {
+      "path": "src/next/provenance/authoringIR.js",
+      "lf_sha256": "sha256:aa3e98a1ebf2d11118ba75dda5e0f89457e31d04eb5b457a5266bd41b099afb4"
+    },
+    {
+      "path": "src/next/provenance/causalRecorder.js",
+      "lf_sha256": "sha256:838aa38083ead2e5301751b901435011e483c3ae31e485e346c468a88f84d491"
+    },
+    {
+      "path": "src/next/provenance/civilCalendar.js",
+      "lf_sha256": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899"
+    },
+    {
+      "path": "src/next/provenance/claimContext.js",
+      "lf_sha256": "sha256:908e44c14d3602fc06284a4e956e0e29fb68497b32f5321200672c6329efa4ae"
+    },
+    {
+      "path": "src/next/provenance/claimRequirements.js",
+      "lf_sha256": "sha256:3ec6b93051eaec259f3f8431504163756d1dd4dbfb31edc15df23bc21894dac3"
+    },
+    {
+      "path": "src/next/provenance/collectionRequirements.js",
+      "lf_sha256": "sha256:250b181a8551d0f0d0ce80d177c193fa40164fc2d023e8660dda7fe644aeab80"
+    },
+    {
+      "path": "src/next/provenance/executionProfile.js",
+      "lf_sha256": "sha256:8030b1f4a120ba37e6713057e9c5aa5b7d413183df4c26e3e8833814ad323abd"
+    },
+    {
+      "path": "src/next/provenance/graphCompiler.js",
+      "lf_sha256": "sha256:bb150709a7c3fd1ed93ea0f6700efb5b81065cd4586b4ccbf85922ab12b861be"
+    },
+    {
+      "path": "src/next/provenance/graphStructure.js",
+      "lf_sha256": "sha256:a8d533ea51cee2c1ea3738fecfa8195a6b700f40184ab2dd86f9a25463945cdd"
+    },
+    {
+      "path": "src/next/provenance/instrumentedAccess.js",
+      "lf_sha256": "sha256:788ee2a46840ee542e9e846a1a3fc0a8e69bc6bacd49af78b5b666a02648c917"
+    },
+    {
+      "path": "src/next/provenance/literalTypes.js",
+      "lf_sha256": "sha256:c99b3a919c995638702325dcb7c2cb1f8e338388700429b3bc9f1cce7a00b4ec"
+    },
+    {
+      "path": "src/next/provenance/metricDirectReads.js",
+      "lf_sha256": "sha256:2526b6eb373fc5265bf61798c85bf976011d3d77430858df75776306067ae3e8"
+    },
+    {
+      "path": "src/next/provenance/metricInstallments.js",
+      "lf_sha256": "sha256:2ce3b79c32bfd806fb6c61117be682cebfb9dc7140c4eeea02b8323b56502997"
+    },
+    {
+      "path": "src/next/provenance/metricReferences.js",
+      "lf_sha256": "sha256:0a96471a46324599c92c8c2f604e5761749902c6b9393eb738b09aad868d5e7b"
+    },
+    {
+      "path": "src/next/provenance/metricSelection.js",
+      "lf_sha256": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f"
+    },
+    {
+      "path": "src/next/provenance/obligationBindings.js",
+      "lf_sha256": "sha256:e23ff2fd39f5ae8cfb2eb0502612bc6bb27436accc4edb93a89df1e0bb6717be"
+    },
+    {
+      "path": "src/next/provenance/observationContract.js",
+      "lf_sha256": "sha256:6613ce41109990765f90e70695fdb8c0deb1af4a7b9c42a7376daa32b03dfcbb"
+    },
+    {
+      "path": "src/next/provenance/operandBindings.js",
+      "lf_sha256": "sha256:50cacfb104e9e792d1118428f81fe659b4ae9c07407b979a1c2b122141303e60"
+    },
+    {
+      "path": "src/next/provenance/operatorTypes.js",
+      "lf_sha256": "sha256:c56fef4c8710cec5d091dd182c4d084d049ec54549c65a000b807f8cb9e1a8c1"
+    },
+    {
+      "path": "src/next/provenance/packageContract.js",
+      "lf_sha256": "sha256:8cb5878c7d0fb77f35a25c34e8f7febb92cdddc18b0f061772a332e9ce9a7c8e"
+    },
+    {
+      "path": "src/next/provenance/pinnedCivilTimezone.js",
+      "lf_sha256": "sha256:55dcb62295a7e314756fb36c3f0e45c0eb71273e494e223a81d08f74fad7756d"
+    },
+    {
+      "path": "src/next/provenance/predicateTypes.js",
+      "lf_sha256": "sha256:b34048c85c1a4ab1afea3559dc526ddf39a8db16a5efd27dd6e0789acba8ec58"
+    },
+    {
+      "path": "src/next/provenance/proofAcceptance.js",
+      "lf_sha256": "sha256:0390bae7f8ed164cf8a6b2bdabf0c5992559791015ebe79b49ac3ddc3a95676b"
+    },
+    {
+      "path": "src/next/provenance/proofOperators.js",
+      "lf_sha256": "sha256:a697f90f01fb7628e2b542f3e0547cadb0ac323c1b6e9d24112bd7cb61c2dcde"
+    },
+    {
+      "path": "src/next/provenance/scalarProofOperators.js",
+      "lf_sha256": "sha256:9b9acda5fe22dca77ea57cfa0c95fc7b01f5b9db752fe748d8cfbae074d8c83d"
+    },
+    {
+      "path": "src/next/provenance/schemaRegistryProjection.js",
+      "lf_sha256": "sha256:498adbdb7d5e4b07aa9f9d75af7769b0bf8204165eca2262b0aff51226cb261c"
+    },
+    {
+      "path": "src/next/provenance/selectionBindings.js",
+      "lf_sha256": "sha256:4fe421752ddaa02a9505b7c95481a9642cd2947a5cde837770a0edb347642c43"
+    },
+    {
+      "path": "src/next/provenance/templateReferences.js",
+      "lf_sha256": "sha256:c6fd713b8e417b9a363b423767c11a5c220d6c93c338f88756beee3615c93fe2"
+    }
+  ],
+  "normative_context": {
+    "source": "docs/contracts/next/provenance-v2/graphs-v2.json",
+    "base_blob": "8661d1c6bf4b11a8d727d304346f7a815d9e9fff",
+    "source_lf_sha256": "sha256:6ca2c7de51c3a48109ffb6b6096f31981e3058fdae16ed8078ad47aa3a59501c",
+    "records": [
+      {
+        "fact_key": "S-09#1#1",
+        "claim_id": "claim-S-09#1#1",
+        "derivation": {
+          "required_nodes": [
+            "evt_invoice_payment",
+            "food_market",
+            "food_restaurant",
+            "food_snack",
+            "gifts",
+            "health_general",
+            "housing_rent",
+            "income_salary",
+            "leisure_cinema",
+            "neutral_invoice_payment",
+            "neutral_refund",
+            "neutral_transfer",
+            "transport_fuel"
+          ],
+          "required_reads": [
+            {
+              "node": "evt_invoice_payment",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "evt_invoice_payment",
+              "segments": [
+                "date"
+              ]
+            },
+            {
+              "node": "evt_invoice_payment",
+              "segments": [
+                "person_id"
+              ]
+            },
+            {
+              "node": "evt_invoice_payment",
+              "segments": [
+                "category_id"
+              ]
+            },
+            {
+              "node": "evt_invoice_payment",
+              "segments": [
+                "amount_minor"
+              ]
+            },
+            {
+              "node": "evt_invoice_payment",
+              "segments": [
+                "state"
+              ]
+            },
+            {
+              "node": "food_market",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "food_market",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "food_restaurant",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "food_restaurant",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "food_snack",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "food_snack",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "gifts",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "gifts",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "health_general",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "health_general",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "housing_rent",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "housing_rent",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "income_salary",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "income_salary",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "leisure_cinema",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "leisure_cinema",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "neutral_invoice_payment",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "neutral_invoice_payment",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "neutral_refund",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "neutral_refund",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "neutral_transfer",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "neutral_transfer",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "transport_fuel",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "transport_fuel",
+              "segments": [
+                "kind"
+              ]
+            }
+          ],
+          "required_claim_reads": [
+            {
+              "segments": [
+                "subject",
+                "kind"
+              ]
+            },
+            {
+              "segments": [
+                "subject",
+                "ref_id"
+              ]
+            },
+            {
+              "segments": [
+                "period",
+                "kind"
+              ]
+            },
+            {
+              "segments": [
+                "period",
+                "value"
+              ]
+            },
+            {
+              "segments": [
+                "time_basis"
+              ]
+            }
+          ],
+          "required_edges": [
+            "e0003",
+            "e0005"
+          ],
+          "required_structural": [],
+          "selected_nodes": [
+            "evt_invoice_payment"
+          ],
+          "evidence_set_mode": "exact",
+          "required_selections": [
+            {
+              "candidate_set": "candidates",
+              "selected_set": "selected"
+            }
+          ]
+        },
+        "payment_links": [
+          {
+            "edge": {
+              "id": "e0004",
+              "source": "evt_invoice_payment",
+              "field": "account_id",
+              "target": "account_a",
+              "relation": "material_ref",
+              "proof_predicates": [
+                "p0026_target"
+              ]
+            },
+            "derivation_required": false,
+            "proof_required": true,
+            "proof_reads": [
+              {
+                "node": "account_a",
+                "segments": [
+                  "id"
+                ]
+              },
+              {
+                "node": "account_a",
+                "segments": [
+                  "owner_id"
+                ]
+              },
+              {
+                "node": "account_a",
+                "segments": [
+                  "type"
+                ]
+              },
+              {
+                "node": "account_a",
+                "segments": [
+                  "opening_balance_minor"
+                ]
+              },
+              {
+                "node": "account_a",
+                "segments": [
+                  "opening_balance_as_of"
+                ]
+              },
+              {
+                "node": "evt_invoice_payment",
+                "segments": [
+                  "account_id"
+                ]
+              }
+            ],
+            "proof_predicates": [
+              {
+                "id": "p0026_target",
+                "obligation": "economic_links",
+                "atom": "edge",
+                "op": "ref_targets_node",
+                "args": [
+                  {
+                    "edge": "e0004"
+                  },
+                  {
+                    "node": "account_a"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "edge": {
+              "id": "e0006",
+              "source": "evt_invoice_payment",
+              "field": "settles_card_id",
+              "target": "card_blue",
+              "relation": "material_ref",
+              "proof_predicates": [
+                "p0030_target"
+              ]
+            },
+            "derivation_required": false,
+            "proof_required": true,
+            "proof_reads": [
+              {
+                "node": "card_blue",
+                "segments": [
+                  "id"
+                ]
+              },
+              {
+                "node": "card_blue",
+                "segments": [
+                  "owner_id"
+                ]
+              },
+              {
+                "node": "card_blue",
+                "segments": [
+                  "closing_day"
+                ]
+              },
+              {
+                "node": "card_blue",
+                "segments": [
+                  "due_day"
+                ]
+              },
+              {
+                "node": "evt_invoice_payment",
+                "segments": [
+                  "settles_card_id"
+                ]
+              }
+            ],
+            "proof_predicates": [
+              {
+                "id": "p0030_target",
+                "obligation": "economic_links",
+                "atom": "edge",
+                "op": "ref_targets_node",
+                "args": [
+                  {
+                    "edge": "e0006"
+                  },
+                  {
+                    "node": "card_blue"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fact_key": "M-05#1#5",
+        "claim_id": "claim-M-05#1#5",
+        "derivation": {
+          "required_nodes": [
+            "evt_invoice_payment",
+            "food_market",
+            "food_restaurant",
+            "food_snack",
+            "gifts",
+            "health_general",
+            "housing_rent",
+            "income_salary",
+            "leisure_cinema",
+            "neutral_invoice_payment",
+            "neutral_refund",
+            "neutral_transfer",
+            "transport_fuel"
+          ],
+          "required_reads": [
+            {
+              "node": "evt_invoice_payment",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "evt_invoice_payment",
+              "segments": [
+                "date"
+              ]
+            },
+            {
+              "node": "evt_invoice_payment",
+              "segments": [
+                "person_id"
+              ]
+            },
+            {
+              "node": "evt_invoice_payment",
+              "segments": [
+                "category_id"
+              ]
+            },
+            {
+              "node": "evt_invoice_payment",
+              "segments": [
+                "amount_minor"
+              ]
+            },
+            {
+              "node": "evt_invoice_payment",
+              "segments": [
+                "state"
+              ]
+            },
+            {
+              "node": "evt_invoice_payment",
+              "segments": [
+                "settles_card_id"
+              ]
+            },
+            {
+              "node": "food_market",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "food_market",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "food_restaurant",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "food_restaurant",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "food_snack",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "food_snack",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "gifts",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "gifts",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "health_general",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "health_general",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "housing_rent",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "housing_rent",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "income_salary",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "income_salary",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "leisure_cinema",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "leisure_cinema",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "neutral_invoice_payment",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "neutral_invoice_payment",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "neutral_refund",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "neutral_refund",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "neutral_transfer",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "neutral_transfer",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "transport_fuel",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "transport_fuel",
+              "segments": [
+                "kind"
+              ]
+            }
+          ],
+          "required_claim_reads": [
+            {
+              "segments": [
+                "subject",
+                "kind"
+              ]
+            },
+            {
+              "segments": [
+                "subject",
+                "ref_id"
+              ]
+            },
+            {
+              "segments": [
+                "period",
+                "kind"
+              ]
+            },
+            {
+              "segments": [
+                "period",
+                "value"
+              ]
+            },
+            {
+              "segments": [
+                "time_basis"
+              ]
+            }
+          ],
+          "required_edges": [
+            "e0003",
+            "e0005",
+            "e0006"
+          ],
+          "required_structural": [],
+          "selected_nodes": [
+            "evt_invoice_payment"
+          ],
+          "evidence_set_mode": "exact",
+          "required_selections": [
+            {
+              "candidate_set": "candidates",
+              "selected_set": "selected"
+            }
+          ]
+        },
+        "payment_links": [
+          {
+            "edge": {
+              "id": "e0004",
+              "source": "evt_invoice_payment",
+              "field": "account_id",
+              "target": "account_a",
+              "relation": "material_ref",
+              "proof_predicates": [
+                "p0026_target"
+              ]
+            },
+            "derivation_required": false,
+            "proof_required": true,
+            "proof_reads": [
+              {
+                "node": "account_a",
+                "segments": [
+                  "id"
+                ]
+              },
+              {
+                "node": "account_a",
+                "segments": [
+                  "owner_id"
+                ]
+              },
+              {
+                "node": "account_a",
+                "segments": [
+                  "type"
+                ]
+              },
+              {
+                "node": "account_a",
+                "segments": [
+                  "opening_balance_minor"
+                ]
+              },
+              {
+                "node": "account_a",
+                "segments": [
+                  "opening_balance_as_of"
+                ]
+              },
+              {
+                "node": "evt_invoice_payment",
+                "segments": [
+                  "account_id"
+                ]
+              }
+            ],
+            "proof_predicates": [
+              {
+                "id": "p0026_target",
+                "obligation": "economic_links",
+                "atom": "edge",
+                "op": "ref_targets_node",
+                "args": [
+                  {
+                    "edge": "e0004"
+                  },
+                  {
+                    "node": "account_a"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "edge": {
+              "id": "e0006",
+              "source": "evt_invoice_payment",
+              "field": "settles_card_id",
+              "target": "card_blue",
+              "relation": "material_ref",
+              "proof_predicates": [
+                "p0030_target"
+              ]
+            },
+            "derivation_required": true,
+            "proof_required": true,
+            "proof_reads": [
+              {
+                "node": "card_blue",
+                "segments": [
+                  "id"
+                ]
+              },
+              {
+                "node": "card_blue",
+                "segments": [
+                  "owner_id"
+                ]
+              },
+              {
+                "node": "card_blue",
+                "segments": [
+                  "closing_day"
+                ]
+              },
+              {
+                "node": "card_blue",
+                "segments": [
+                  "due_day"
+                ]
+              },
+              {
+                "node": "evt_invoice_payment",
+                "segments": [
+                  "settles_card_id"
+                ]
+              }
+            ],
+            "proof_predicates": [
+              {
+                "id": "p0030_target",
+                "obligation": "economic_links",
+                "atom": "edge",
+                "op": "ref_targets_node",
+                "args": [
+                  {
+                    "edge": "e0006"
+                  },
+                  {
+                    "node": "card_blue"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fact_key": "N-08#1#1",
+        "claim_id": "claim-N-08#1#1",
+        "derivation": {
+          "required_nodes": [
+            "evt_invoice_payment",
+            "food_market",
+            "food_restaurant",
+            "food_snack",
+            "gifts",
+            "health_general",
+            "housing_rent",
+            "income_salary",
+            "leisure_cinema",
+            "neutral_invoice_payment",
+            "neutral_refund",
+            "neutral_transfer",
+            "transport_fuel"
+          ],
+          "required_reads": [
+            {
+              "node": "evt_invoice_payment",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "evt_invoice_payment",
+              "segments": [
+                "date"
+              ]
+            },
+            {
+              "node": "evt_invoice_payment",
+              "segments": [
+                "person_id"
+              ]
+            },
+            {
+              "node": "evt_invoice_payment",
+              "segments": [
+                "category_id"
+              ]
+            },
+            {
+              "node": "evt_invoice_payment",
+              "segments": [
+                "amount_minor"
+              ]
+            },
+            {
+              "node": "evt_invoice_payment",
+              "segments": [
+                "state"
+              ]
+            },
+            {
+              "node": "evt_invoice_payment",
+              "segments": [
+                "settles_card_id"
+              ]
+            },
+            {
+              "node": "food_market",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "food_market",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "food_restaurant",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "food_restaurant",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "food_snack",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "food_snack",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "gifts",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "gifts",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "health_general",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "health_general",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "housing_rent",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "housing_rent",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "income_salary",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "income_salary",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "leisure_cinema",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "leisure_cinema",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "neutral_invoice_payment",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "neutral_invoice_payment",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "neutral_refund",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "neutral_refund",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "neutral_transfer",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "neutral_transfer",
+              "segments": [
+                "kind"
+              ]
+            },
+            {
+              "node": "transport_fuel",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "transport_fuel",
+              "segments": [
+                "kind"
+              ]
+            }
+          ],
+          "required_claim_reads": [
+            {
+              "segments": [
+                "subject",
+                "kind"
+              ]
+            },
+            {
+              "segments": [
+                "subject",
+                "ref_id"
+              ]
+            },
+            {
+              "segments": [
+                "period",
+                "kind"
+              ]
+            },
+            {
+              "segments": [
+                "period",
+                "value"
+              ]
+            },
+            {
+              "segments": [
+                "time_basis"
+              ]
+            }
+          ],
+          "required_edges": [
+            "e0003",
+            "e0005",
+            "e0006"
+          ],
+          "required_structural": [],
+          "selected_nodes": [
+            "evt_invoice_payment"
+          ],
+          "evidence_set_mode": "exact",
+          "required_selections": [
+            {
+              "candidate_set": "candidates",
+              "selected_set": "selected"
+            }
+          ]
+        },
+        "payment_links": [
+          {
+            "edge": {
+              "id": "e0004",
+              "source": "evt_invoice_payment",
+              "field": "account_id",
+              "target": "account_a",
+              "relation": "material_ref",
+              "proof_predicates": [
+                "p0026_target"
+              ]
+            },
+            "derivation_required": false,
+            "proof_required": true,
+            "proof_reads": [
+              {
+                "node": "account_a",
+                "segments": [
+                  "id"
+                ]
+              },
+              {
+                "node": "account_a",
+                "segments": [
+                  "owner_id"
+                ]
+              },
+              {
+                "node": "account_a",
+                "segments": [
+                  "type"
+                ]
+              },
+              {
+                "node": "account_a",
+                "segments": [
+                  "opening_balance_minor"
+                ]
+              },
+              {
+                "node": "account_a",
+                "segments": [
+                  "opening_balance_as_of"
+                ]
+              },
+              {
+                "node": "evt_invoice_payment",
+                "segments": [
+                  "account_id"
+                ]
+              }
+            ],
+            "proof_predicates": [
+              {
+                "id": "p0026_target",
+                "obligation": "economic_links",
+                "atom": "edge",
+                "op": "ref_targets_node",
+                "args": [
+                  {
+                    "edge": "e0004"
+                  },
+                  {
+                    "node": "account_a"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "edge": {
+              "id": "e0006",
+              "source": "evt_invoice_payment",
+              "field": "settles_card_id",
+              "target": "card_blue",
+              "relation": "material_ref",
+              "proof_predicates": [
+                "p0030_target"
+              ]
+            },
+            "derivation_required": true,
+            "proof_required": true,
+            "proof_reads": [
+              {
+                "node": "card_blue",
+                "segments": [
+                  "id"
+                ]
+              },
+              {
+                "node": "card_blue",
+                "segments": [
+                  "owner_id"
+                ]
+              },
+              {
+                "node": "card_blue",
+                "segments": [
+                  "closing_day"
+                ]
+              },
+              {
+                "node": "card_blue",
+                "segments": [
+                  "due_day"
+                ]
+              },
+              {
+                "node": "evt_invoice_payment",
+                "segments": [
+                  "settles_card_id"
+                ]
+              }
+            ],
+            "proof_predicates": [
+              {
+                "id": "p0030_target",
+                "obligation": "economic_links",
+                "atom": "edge",
+                "op": "ref_targets_node",
+                "args": [
+                  {
+                    "edge": "e0006"
+                  },
+                  {
+                    "node": "card_blue"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "red": {
+    "tap": {
+      "tests": 3,
+      "suites": 0,
+      "pass": 0,
+      "fail": 3,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "failures": [
+      "not ok 1 - N02G:PAYMENT-REFERENCE-003 neutral payment derivations match frozen authored contracts without target payload",
+      "not ok 2 - N02G:PAYMENT-REFERENCE-001 generated neutral calculations consume only their functional reference contract",
+      "not ok 3 - N02G:PAYMENT-REFERENCE-002 scalar consumers fail without an admitted card link and preserve payment guards"
+    ],
+    "local_log_lf_sha256": "sha256:f845a605bc11ed2116ae9f3149bacec871fe137cfee322f46306d979095dd104"
+  },
+  "green": {
+    "tap": {
+      "tests": 3,
+      "suites": 0,
+      "pass": 3,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "failures": [],
+    "local_log_lf_sha256": "sha256:51b6ac341999699fdc5fcffa66156792ec29d3151ddcb695f21fae12eb9660a0"
+  },
+  "initial_affected": {
+    "recorded_at": "2026-09-24T19:47:31.278Z",
+    "node": "22.17.0",
+    "files": [
+      "tests/next/provenance/authoringIndex.cases.js",
+      "tests/next/provenance/metricSelection.cases.js",
+      "tests/next/provenance/metricDirectReads.cases.js",
+      "tests/next/provenance/metricEffects.cases.js",
+      "tests/next/provenance/causalAuthoring.cases.js",
+      "tests/next/provenance/packageContract.cases.js",
+      "tests/next/provenance/graphCompiler.cases.js",
+      "tests/next/provenance/graphStructure.cases.js",
+      "tests/next/provenance/proofAcceptance.cases.js",
+      "tests/next/provenance/guestBundle.cases.js",
+      "tests/next/provenance/artifactLoader.cases.js"
+    ],
+    "exit_status": 1,
+    "tap": {
+      "tests": 252,
+      "suites": 0,
+      "pass": 251,
+      "fail": 1,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "failures": [
+      "not ok 14 - N02G:TRANSFER-SCOPE-001 optional scope delta preserves the complete remaining corpus"
+    ]
+  },
+  "affected": {
+    "recorded_at": "2026-09-24T19:51:08.793Z",
+    "node": "22.17.0",
+    "files": [
+      "tests/next/provenance/authoringIndex.cases.js",
+      "tests/next/provenance/metricSelection.cases.js",
+      "tests/next/provenance/metricDirectReads.cases.js",
+      "tests/next/provenance/metricEffects.cases.js",
+      "tests/next/provenance/causalAuthoring.cases.js",
+      "tests/next/provenance/packageContract.cases.js",
+      "tests/next/provenance/graphCompiler.cases.js",
+      "tests/next/provenance/graphStructure.cases.js",
+      "tests/next/provenance/proofAcceptance.cases.js",
+      "tests/next/provenance/guestBundle.cases.js",
+      "tests/next/provenance/artifactLoader.cases.js"
+    ],
+    "exit_status": 0,
+    "tap": {
+      "tests": 252,
+      "suites": 0,
+      "pass": 252,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "failures": []
+  },
+  "wide": {
+    "recorded_at": "2026-09-24T20:07:18.662Z",
+    "started_at": "2026-09-24T19:51:54.400Z",
+    "node": "22.17.0",
+    "source_head": "151816b6e02a500754aaf72796755ed693f39907",
+    "candidate_files": [
+      {
+        "path": "src/next/provenance/metricEffects.js",
+        "raw_sha256": "sha256:7cb9fe24b2d8aefd3560d8089544bfe5431f124256c35023ff6b8e126283f5fb",
+        "lf_sha256": "sha256:7cb9fe24b2d8aefd3560d8089544bfe5431f124256c35023ff6b8e126283f5fb"
+      },
+      {
+        "path": "tests/next/provenance/authoringIndex.cases.js",
+        "raw_sha256": "sha256:2e117227e9317bd691bf832b5b93d3a08b07c0ef46a0f9862ec38ec40a52e0be",
+        "lf_sha256": "sha256:2e117227e9317bd691bf832b5b93d3a08b07c0ef46a0f9862ec38ec40a52e0be"
+      },
+      {
+        "path": "tests/next/provenance/metricEffects.cases.js",
+        "raw_sha256": "sha256:7d2f9a187a41b7c8b55f20755ad5d64ee93b1f29444fd18f99e7b5fa707cb39b",
+        "lf_sha256": "sha256:7d2f9a187a41b7c8b55f20755ad5d64ee93b1f29444fd18f99e7b5fa707cb39b"
+      }
+    ],
+    "candidate_unchanged": true,
+    "duration_ms": 924093,
+    "local_only": true,
+    "network_guard_scope": [
+      "fetch",
+      "http",
+      "https",
+      "net",
+      "node_descendants",
+      "non_node_subprocesses_except_audited_local_git_and_tar"
+    ],
+    "test_files": 165,
+    "discovered_test_files": 183,
+    "exit_status": 0,
+    "signal": null,
+    "valid": true,
+    "validation_reasons": [],
+    "tap": {
+      "tests": 2405,
+      "suites": 0,
+      "pass": 2395,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 10,
+      "todo": 0
+    },
+    "coverage": {
+      "line_percent": 92.44,
+      "branch_percent": 78.92,
+      "function_percent": 93,
+      "uncovered_lines": ""
+    },
+    "failures": [],
+    "skipped_tests": [
+      "instalador executa install e uninstall restaurando bytes preexistentes",
+      "install adota bloco existente e preserva integralmente os bytes atuais",
+      "install recusa adocao quando backup diverge apenas por BOM sem mutar config",
+      "uninstall recusa configuracao alterada e preserva o arquivo atual",
+      "uninstall recusa divergencia somente de BOM e preserva bytes atuais",
+      "functional: consent, onboarding, settings and dashboard",
+      "functional: expenses, income and credit card installments",
+      "functional: goals, debts, payments and reminders",
+      "functional: analytics, deletion, admin and fallback",
+      "functional: complex analytics handles typos, counts, duplicates and min/max"
+    ]
+  },
+  "properties": {
+    "kernel_variants": 72,
+    "admitted_derivation_integrations": 3,
+    "missing_observation_negatives": 4,
+    "expected_frozen_before_execution": true,
+    "corpus_and_proof_unchanged": true,
+    "no_target_payload_or_account_access": true,
+    "payment_reference_scalar_and_edge_required": true
+  },
+  "limits": "Kernel result is not proof acceptance. Separate economic proof remains required, not executed by these focal tests. Local summaries are not external execution authentication. No global N02-G/NEXT-03/deploy/production approval."
+}
