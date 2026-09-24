@@ -1,12 +1,42 @@
 # N02-G — checkpoint
 
-Atualização: 2026-09-23. Estado: due_bill_ids COM APTO FOCAL INDEPENDENTE RATIFICADO; SEM GO GLOBAL/EXECUTÁVEL N02-G.
+Atualização: 2026-09-23. Estado: owned_cards COM APTO FOCAL INDEPENDENTE RATIFICADO; SEM GO GLOBAL/EXECUTÁVEL N02-G.
 Base: `aea4ac31e358ed8d8907e78f6002c8bb80233bc8`.
 Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação exata — publicar e auditar aplicação owned_cards
+## Próxima ação exata — diagnosticar consumption_effect de transferências
+
+APTO FOCAL de 76b11d3eb56439169d966c58703b0d1506550806 recebido, confrontado
+e ratificado; sem achados. Recibo owned-cards-code-independent-review.md na
+pasta docs/audit-evidence/n02g-causal-authoring-profile. Auditor leu objetos
+antes/depois pelo patch nativo, não executou testes nem leu corpus raw inteiro.
+Helper --check PASS, hashes causais iguais à ampla; correção owned_cards encerrada.
+Nenhuma nova suíte/auditoria deste hash necessária sem mudança causal/evidência.
+
+Sonda comparada com due_bill_ids: apenas S-07#1#1 mudou de divergente para
+correspondente; 73 seleções preservadas, 50 correspondências, 23 divergências
+e três derivados não exercitados. Não usar como porcentagem/global GO.
+Próximo objetivo delimitado: consumo de transferências em consumption_effect@1,
+S-08#1#1, M-04#1#3 e N-07#1#1 (reads/has de transfer_pair adicionais).
+Confrontar contratos, bindings e runtime antes de propor mudança. Não alterar
+outras famílias por conveniência; reavaliar roadmap apenas na saída do N02-G.
+Heartbeat pausado. Sem GO global/grafo/host/produção; sem deploy.
+
+### Histórico imediato — auditoria owned_cards
+
+Candidato publicado 76b11d3eb56439169d966c58703b0d1506550806, pai único
+f7eeb4d89eac5671048b8b5d0ae2f17dac0325fb, seis arquivos sanitizados.
+Helper --check PASS após commit; nenhuma ampla repetida. Heartbeat PAUSADO.
+Uma auditoria de código enviada em conversa limpa, ainda aguardando resposta:
+https://chatgpt.com/g/g-p-6aae7fa3ad5c8191a8ace5a6d799fab4-financasbot/c/6ab48006-bd5c-83e9-bca0-25920b832eda
+Não reenviar o hash. Recuperar e confrontar veredito antes de encerrar correção.
+Sonda curta .codex-temp/coverage-owned-cards-20260923.json, source_head 76b11d3,
+tracked limpo: 73/76 exercitados, 73 seleções preservadas, 50 correspondências,
+23 divergências e três derivados fora da sonda. Sem aceitação/percentual/global GO.
+
+### Histórico imediato — ampla verde e publicação
 
 Ampla concluída em 2026-09-23T22:06:30.043Z: 2.398 testes, 2.388 PASS,
 0 FAIL/10 SKIP, valid=true, exit_status=0, candidate_unchanged=true.
