@@ -6,7 +6,20 @@ Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação exata — recuperar parecer de transfer scope
+## Próxima ação exata — implementar transfer scope após APTO documental
+
+APTO DOCUMENTAL de dd2518a recebido, confrontado e ratificado, sem achados.
+Recibo transfer-scope-independent-review.md em n02g-causal-authoring-profile.
+Não equivale a aprovação de código/aplicação. Próxima sequência autorizada:
+RED, delta fechado (+6 reads/+6 has), GREEN/propriedades/negativos/afetados,
+uma ampla estável, evidência sanitizada e nova auditoria de código.
+Arquivos causais previstos: graphs-v2.json, authoringIndex.cases.js,
+metricEffects.cases.js. Helpers locais de teste em .codex-temp; helper de
+validação/evidência prepare-transfer-scope-validation.cjs e
+transfer-scope-validation.json na pasta audit-evidence acima após ampla.
+Manter runtime/proof/seleção/73 outros grafos intactos. Sem GO global.
+
+### Histórico imediato — solicitação documental
 
 Uma revisão documental enviada em conversa limpa (GPT-5.6 Sol / Alta):
 https://chatgpt.com/g/g-p-6aae7fa3ad5c8191a8ace5a6d799fab4-financasbot/c/6ab48b3a-0544-83e9-a5ed-29f5a38c69f3
