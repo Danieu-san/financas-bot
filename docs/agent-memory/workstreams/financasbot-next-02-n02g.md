@@ -1,12 +1,69 @@
 # N02-G — checkpoint
 
-Atualização: 2026-09-24. Estado: PAYMENT-REFERENCE APROVADO FOCALMENTE; DIRECT-EVENT v2 NÃO APTO, endurecimento candidato documental; SEM GO GLOBAL/EXECUTÁVEL N02-G.
+Atualização: 2026-09-25. Estado: PAYMENT-REFERENCE APROVADO FOCALMENTE; DIRECT-EVENT helper documental APTO, decisão normativa das cinco derivações pendente; SEM GO GLOBAL/EXECUTÁVEL N02-G.
 Base: `aea4ac31e358ed8d8907e78f6002c8bb80233bc8`.
 Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação exata — publicar e auditar endurecimento DIRECT-EVENT v2
+## Próxima ação exata — publicar/enviar decisão normativa focal DIRECT-EVENT
+
+Esclarecimento recebido do auditor: alternativa B. APTO de 3d343696 julgou
+somente guardas/negativos/preservação, NÃO suficiência normativa das cinco
+proposed_derivation para aplicação. Não alterar runtime/corpus antes desta
+decisão. Monitores anteriores EXCLUÍDOS após respectivas conclusões.
+
+Novo pacote documental, parent 3d343696482136ff4c5535e81776d3ed04c44f7e:
+docs/audit-evidence/n02g-causal-authoring-profile/direct-event-composition-decision.md,
+direct-event-composition-review.json e prepare-direct-event-composition-review.cjs.
+Projeção: 5 claims completos, 4 contratos completos, 10 snapshots, bindings e
+relações diretas, derivações originais/propostas e seções 2/4 do binding;
+11 documentos de origem conferidos contra a base; 79.710 bytes. Syntax,
+--write-new e --check PASS. Nenhuma fórmula/trace/oracle executado, nenhuma
+proposta aplicada, nenhuma ampla repetida. Proof completa não projetada;
+hash não demonstra sua suficiência. O pacote declara precisamente os limites.
+
+Enviar uma revisão normativa deste NOVO objeto em conversa limpa no projeto
+finançasBot. Pergunta explícita: as cinco composições satisfazem seus contratos
+e são documentalmente aptas para IMPLEMENTAR? Não repetir auditoria do helper
+aprovado nem dos 76 grafos. Depois confrontar resposta; somente APTO dessa
+decisão permite iniciar candidato de código sob autorização vigente de Daniel.
+Código futuro exige RED/afetados/ampla única/auditoria própria. Sem GO global,
+NEXT-03, deploy, produção ou dados reais. .codex-temp permanece local.
+
+### Histórico — APTO do helper e esclarecimento concluído
+
+Parecer recebido para 3d343696482136ff4c5535e81776d3ed04c44f7e, parent único
+12d93ee1d9388bda9c5f704b0062f8b97d1b0dd5: APTO exclusivamente para endurecimento
+documental, zero C/H/M/L no delta. Auditor leu os três artefatos focais completos
+e trechos causais dos dois contratos/schema; não reexecutou testes nem releu os
+76 grafos. Confronto local: HEAD/remoto/parent conferem; helper --check PASS.
+Guarda nominal após relação coerente e fechamento de keys confirmados.
+
+Limite textual do parecer: "não é GO para aplicar as propostas". Não converter
+isso em ratificação das cinco derivações nem em aprovação de código. Esclarecer
+na mesma conversa se o APTO também julga a composição já lida ou se aprova
+somente o helper, sem solicitar releitura/auditoria duplicada. Até resposta
+inequívoca, preservar runtime, corpus, registry e contratos. A autorização de
+Daniel permite continuidade, mas não substitui o gate de revisão do plano.
+Monitor da revisão concluída EXCLUÍDO. Esclarecimento A/B enviado uma vez na
+mesma conversa, sem nova auditoria/pesquisa; resposta final B recebida.
+Monitor conferir-alcance-direct-event foi criado e EXCLUÍDO após conclusão.
+.codex-temp e alterações alheias
+preservadas. Sem autorização nova necessária para continuidade já concedida;
+pendência é alcance da revisão, não permissão operacional de Daniel.
+
+### Histórico — envio do endurecimento
+
+Candidato publicado e remoto confirmado: 3d343696482136ff4c5535e81776d3ed04c44f7e.
+Parent único: 12d93ee1d9388bda9c5f704b0062f8b97d1b0dd5. Cinco paths documentais;
+árvore preservada com .codex-temp local. Uma revisão enviada no novo projeto
+finançasBot, GPT-5.6 Sol / Alta; prompt persistido e início do auditor confirmados.
+Conversa: https://chatgpt.com/g/g-p-6ab5c3870a30819187d0d634619231c5-financasbot/c/6ab5c56e-5274-83e9-8bff-bb58f7bce9ee
+Monitor acompanhar-revis-o-focal-n02-g foi ATIVO a cada 5 minutos, atualização
+confirmada; excluído após recebimento do parecer final. Não reenviar auditoria.
+Workflow e git diff --check PASS antes do commit. Este recibo posterior é local
+e não modifica o objeto auditado. APTO documental não aprova runtime.
 
 Parent da correção: 12d93ee1d9388bda9c5f704b0062f8b97d1b0dd5. Parecer externo
 NÃO APTO confrontado: HIGH categoria nominal não verificada; MEDIUM fechamento

@@ -1,0 +1,2517 @@
+{
+  "schema": "n02g-direct-event-composition-review-v1",
+  "base": "3d343696482136ff4c5535e81776d3ed04c44f7e",
+  "status": "normative_review_pending_not_applied",
+  "scope": "Five derivation compositions only. Not a new audit of the approved helper, 76 graphs, proof sufficiency or runtime.",
+  "documents": [
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/direct-event-proposal-v2.json",
+      "lf_sha256": "sha256:6d315f09056d13e0f0f68873c158c9e48567b7c28dac6a90036e31085083d490",
+      "bytes": 90867
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+      "lf_sha256": "sha256:6ca2c7de51c3a48109ffb6b6096f31981e3058fdae16ed8078ad47aa3a59501c",
+      "bytes": 4963724
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claims-v2.json",
+      "lf_sha256": "sha256:4810612761ea7f232e4445c0d192ae53ebf0761f0ba8752da758efb826b30494",
+      "bytes": 64240
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/metric-evaluator-registry-v1.json",
+      "lf_sha256": "sha256:577fe16b3d5a1dc2e24505de150001afd889408f5294a6834486de338d40a3a0",
+      "bytes": 45195
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/snapshot-manifest-v1.json",
+      "lf_sha256": "sha256:2547229db3c07f2dd0941601ab5164bf89981ce966e4e23a2e3058124edba8c4",
+      "bytes": 52403
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evidence-snapshot.schema.json",
+      "lf_sha256": "sha256:054a48930a5f25760f201e8b401f0f34f5a83672366acad6c9c09bdc0ce0b5ef",
+      "bytes": 17718
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/graph-binding-contract-v1.md",
+      "lf_sha256": "sha256:da90befb1f526048cfe14122cd8522690292508bebf42d60ea4ecd5838513a40",
+      "bytes": 19080
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/balance_delta.json",
+      "lf_sha256": "sha256:39a1a87663a54e5d37c8e1a35f02596330d48b71e70a431fa27fe58193339a1e",
+      "bytes": 1162
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/invoice_payment_amount.json",
+      "lf_sha256": "sha256:8b0b104d9d9623fc65847611532eb69810464f2869b5f9421557f07441562928",
+      "bytes": 1206
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/invoice_payment_target_card.json",
+      "lf_sha256": "sha256:a58d6ee1480662230142a532903facd36cbbe3b7f67705dc01345574a324acfa",
+      "bytes": 1207
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/statement_payment_correspondence.json",
+      "lf_sha256": "sha256:3ffc3131e77bc4ead3248a3a5b49108093d16ddbbcb94635d49d7fc59d1171ec",
+      "bytes": 1436
+    }
+  ],
+  "contracts": [
+    {
+      "registry_entry": {
+        "evaluator_id": "balance_delta",
+        "evaluator_version": 1,
+        "metric": "balance_delta",
+        "unit": "BRL_minor",
+        "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/balance_delta.json",
+        "evaluator_contract_hash": "sha256:39a1a87663a54e5d37c8e1a35f02596330d48b71e70a431fa27fe58193339a1e",
+        "artifact_status": "not_built",
+        "roles": [
+          {
+            "role_id": "context",
+            "semantic_role": "scope",
+            "input_kind": "claim_context",
+            "cardinality": "one",
+            "ordered": false
+          },
+          {
+            "role_id": "event",
+            "semantic_role": "source",
+            "input_kind": "node",
+            "cardinality": "one",
+            "ordered": false
+          }
+        ],
+        "witness_contract_ids": [
+          "balance_delta_discriminant"
+        ]
+      },
+      "contract": {
+        "schema_version": 1,
+        "contract_id": "balance_delta_v1",
+        "metric": "balance_delta",
+        "unit": "BRL_minor",
+        "stage": "authoring",
+        "signature": {
+          "context": "explicit_versioned_instrumented_claim",
+          "operands": "resolve_roles_from_metric_evaluator_registry",
+          "output": {
+            "kind": "money_minor"
+          }
+        },
+        "semantics": [
+          "Retornar amount_minor do movimento consultado após provar sua ligação à conta e data. Manter o sinal."
+        ],
+        "algebraic_properties": [
+          "Uma contribuição elegível adicional altera o total pela contribuição definida; evento fora do escopo não altera resultado."
+        ],
+        "reuse": {
+          "path": "scripts/agent/validateFinancasBotNextFacts.mjs",
+          "locator": "derive.balance_delta",
+          "status": "behavior_reference_requires_instrumented_adaptation"
+        },
+        "limitations": [
+          "Assinatura de autoria; executável instrumentado e seu closure ainda não foram construídos/revisados.",
+          "A fórmula opera somente sobre handles e roles resolvidos do registry, com escopo/período comprovados pelo grafo.",
+          "Não usar oracle como input, autodeclarar trace ou aceitar campo non_material."
+        ]
+      }
+    },
+    {
+      "registry_entry": {
+        "evaluator_id": "invoice_payment_amount",
+        "evaluator_version": 1,
+        "metric": "invoice_payment_amount",
+        "unit": "BRL_minor",
+        "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/invoice_payment_amount.json",
+        "evaluator_contract_hash": "sha256:8b0b104d9d9623fc65847611532eb69810464f2869b5f9421557f07441562928",
+        "artifact_status": "not_built",
+        "roles": [
+          {
+            "role_id": "context",
+            "semantic_role": "scope",
+            "input_kind": "claim_context",
+            "cardinality": "one",
+            "ordered": false
+          },
+          {
+            "role_id": "event",
+            "semantic_role": "source",
+            "input_kind": "node",
+            "cardinality": "one",
+            "ordered": false
+          }
+        ],
+        "witness_contract_ids": [
+          "invoice_payment_amount_discriminant"
+        ]
+      },
+      "contract": {
+        "schema_version": 1,
+        "contract_id": "invoice_payment_amount_v1",
+        "metric": "invoice_payment_amount",
+        "unit": "BRL_minor",
+        "stage": "authoring",
+        "signature": {
+          "context": "explicit_versioned_instrumented_claim",
+          "operands": "resolve_roles_from_metric_evaluator_registry",
+          "output": {
+            "kind": "money_minor"
+          }
+        },
+        "semantics": [
+          "Retornar magnitude de amount_minor do evento de pagamento consultado após validar categoria, conta e vínculo ao cartão."
+        ],
+        "algebraic_properties": [
+          "Uma contribuição elegível adicional altera o total pela contribuição definida; evento fora do escopo não altera resultado."
+        ],
+        "reuse": {
+          "path": "scripts/agent/validateFinancasBotNextFacts.mjs",
+          "locator": "derive.invoice_payment_amount",
+          "status": "behavior_reference_requires_instrumented_adaptation"
+        },
+        "limitations": [
+          "Assinatura de autoria; executável instrumentado e seu closure ainda não foram construídos/revisados.",
+          "A fórmula opera somente sobre handles e roles resolvidos do registry, com escopo/período comprovados pelo grafo.",
+          "Não usar oracle como input, autodeclarar trace ou aceitar campo non_material."
+        ]
+      }
+    },
+    {
+      "registry_entry": {
+        "evaluator_id": "invoice_payment_target_card",
+        "evaluator_version": 1,
+        "metric": "invoice_payment_target_card",
+        "unit": "entity_ids",
+        "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/invoice_payment_target_card.json",
+        "evaluator_contract_hash": "sha256:a58d6ee1480662230142a532903facd36cbbe3b7f67705dc01345574a324acfa",
+        "artifact_status": "not_built",
+        "roles": [
+          {
+            "role_id": "context",
+            "semantic_role": "scope",
+            "input_kind": "claim_context",
+            "cardinality": "one",
+            "ordered": false
+          },
+          {
+            "role_id": "event",
+            "semantic_role": "source",
+            "input_kind": "node",
+            "cardinality": "one",
+            "ordered": false
+          },
+          {
+            "role_id": "card",
+            "semantic_role": "target",
+            "input_kind": "node",
+            "cardinality": "one",
+            "ordered": false
+          }
+        ],
+        "witness_contract_ids": [
+          "invoice_payment_target_card_discriminant"
+        ]
+      },
+      "contract": {
+        "schema_version": 1,
+        "contract_id": "invoice_payment_target_card_v1",
+        "metric": "invoice_payment_target_card",
+        "unit": "entity_ids",
+        "stage": "authoring",
+        "signature": {
+          "context": "explicit_versioned_instrumented_claim",
+          "operands": "resolve_roles_from_metric_evaluator_registry",
+          "output": {
+            "kind": "id"
+          }
+        },
+        "semantics": [
+          "Retornar ID do cartão resolvido por settles_card_id do pagamento consultado. Não inferir identidade da fatura a partir do cartão."
+        ],
+        "algebraic_properties": [
+          "Alterar vínculo comprovado altera a identidade retornada; igualdade do texto de label não preserva identidade."
+        ],
+        "reuse": {
+          "path": "scripts/agent/validateFinancasBotNextFacts.mjs",
+          "locator": "derive.invoice_payment_target_card",
+          "status": "behavior_reference_requires_instrumented_adaptation"
+        },
+        "limitations": [
+          "Assinatura de autoria; executável instrumentado e seu closure ainda não foram construídos/revisados.",
+          "A fórmula opera somente sobre handles e roles resolvidos do registry, com escopo/período comprovados pelo grafo.",
+          "Não usar oracle como input, autodeclarar trace ou aceitar campo non_material."
+        ]
+      }
+    },
+    {
+      "registry_entry": {
+        "evaluator_id": "statement_payment_correspondence",
+        "evaluator_version": 1,
+        "metric": "statement_payment_correspondence",
+        "unit": "state",
+        "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/statement_payment_correspondence.json",
+        "evaluator_contract_hash": "sha256:3ffc3131e77bc4ead3248a3a5b49108093d16ddbbcb94635d49d7fc59d1171ec",
+        "artifact_status": "not_built",
+        "roles": [
+          {
+            "role_id": "context",
+            "semantic_role": "scope",
+            "input_kind": "claim_context",
+            "cardinality": "one",
+            "ordered": false
+          },
+          {
+            "role_id": "event",
+            "semantic_role": "source",
+            "input_kind": "node",
+            "cardinality": "one",
+            "ordered": false
+          },
+          {
+            "role_id": "card",
+            "semantic_role": "target",
+            "input_kind": "node",
+            "cardinality": "one",
+            "ordered": false
+          }
+        ],
+        "witness_contract_ids": [
+          "statement_payment_correspondence_discriminant"
+        ]
+      },
+      "contract": {
+        "schema_version": 1,
+        "contract_id": "statement_payment_correspondence_v1",
+        "metric": "statement_payment_correspondence",
+        "unit": "state",
+        "stage": "authoring",
+        "signature": {
+          "context": "explicit_versioned_instrumented_claim",
+          "operands": "resolve_roles_from_metric_evaluator_registry",
+          "output": {
+            "kind": "enum",
+            "enum_values": [
+              "unproven"
+            ]
+          }
+        },
+        "semantics": [
+          "Retornar unproven quando o schema revisado e as observações estruturais comprovam ausência de vínculo a uma fatura específica.",
+          "O mundo v1 não contém statement_id/settles_statement_id/settles_statement_period. Proven exige nova evidência e schema revisados; não há caminho de autoria para fabricá-los neste corpus."
+        ],
+        "algebraic_properties": [
+          "Trocar somente settles_card_id não cria correspondência de fatura comprovada."
+        ],
+        "reuse": {
+          "path": "scripts/agent/validateFinancasBotNextFacts.mjs",
+          "locator": "derive.statement_payment_correspondence",
+          "status": "behavior_reference_requires_instrumented_adaptation"
+        },
+        "limitations": [
+          "Assinatura de autoria; executável instrumentado e seu closure ainda não foram construídos/revisados.",
+          "A fórmula opera somente sobre handles e roles resolvidos do registry, com escopo/período comprovados pelo grafo.",
+          "Não usar oracle como input, autodeclarar trace ou aceitar campo non_material."
+        ]
+      }
+    }
+  ],
+  "event_payload_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "date",
+      "person_id",
+      "category_id",
+      "amount_minor",
+      "state"
+    ],
+    "properties": {
+      "id": {
+        "$ref": "#/definitions/id"
+      },
+      "date": {
+        "$ref": "#/definitions/date"
+      },
+      "person_id": {
+        "$ref": "#/definitions/ref"
+      },
+      "account_id": {
+        "$ref": "#/definitions/ref"
+      },
+      "card_id": {
+        "$ref": "#/definitions/ref"
+      },
+      "category_id": {
+        "$ref": "#/definitions/ref"
+      },
+      "amount_minor": {
+        "$ref": "#/definitions/money_minor"
+      },
+      "state": {
+        "enum": [
+          "confirmed",
+          "projected"
+        ]
+      },
+      "merchant_key": {
+        "$ref": "#/definitions/ref"
+      },
+      "compensates": {
+        "$ref": "#/definitions/ref"
+      },
+      "transfer_pair": {
+        "$ref": "#/definitions/ref"
+      },
+      "settles_card_id": {
+        "$ref": "#/definitions/ref"
+      },
+      "installment_plan": {
+        "$ref": "#/definitions/ref"
+      },
+      "installment_number": {
+        "$ref": "#/definitions/positive_integer"
+      },
+      "installment_total": {
+        "$ref": "#/definitions/positive_integer"
+      }
+    }
+  },
+  "binding_sections": {
+    "snapshots": "## 2. Snapshots primários\n\nCada nó snapshot fixa kind/ref_id/version/semantic_fingerprint e papéis de\nevidência. O manifest mapeia a identidade ao registro original da fixture ou\na um objeto auxiliar explicitamente autorado e revisado. O payload é validado\npelo schema do kind antes de ficar acessível. O envelope não pode mascarar\npayload.id diferente, campo desconhecido ou versão diferente da fonte.\n\nAs arestas do payload são refs nominais. No contexto do snapshot manifest,\ncada ref deve resolver exatamente um nó do kind permitido e da revisão\ncongelada. Targets múltiplos no registry são alternativas de tipo, não licença\npara escolher um de dois nós com o mesmo ID. A ordem das ref_lists permanece\nobservável; duplicatas são proibidas onde o tipo representa conjunto.\n\nO graph declara cada aresta material efetivamente presente, inclusive membros\nde coleção e relações auxiliares. A enumeração é confrontada com os payloads,\nnão tomada como completa por ter sido escrita pelo autor. Cada edge vincula\nsource/field/target e predicados que provam a relação. O fingerprint sozinho\nnão atende economic_links. Ausência de campo opcional deve ser observada quando\na prova depende dela; não simular um campo inexistente com valor null.",
+    "observation": "## 4. Contrato de observação\n\nPeríodo, sujeito e filtros usados no cálculo também são inputs explícitos.\nO registry pode declarar input_kind claim_context, cardinalidade one, ligado\nao claim imutável daquela invocação pelo binding fechado `{kind: claim_context}`.\nNão aceita outro claim_id fornecido pelo evaluator. O host fornece esse contexto\npor handle instrumentado, versionado pelo hash do claim contract. Todos os\ncampos do contexto são materiais; o schema de claim é sua autoridade de tipo.\nrequired_claim_reads registra os paths lidos por fase. Não há leitura gratuita\ndo descriptor nem um segundo resultado/role normativo armazenado nele.\n\ntrace_contract contém requisitos separados de derivation e proof. Cada fase\ndeclara nós, campos, arestas, operações estruturais e seleção esperados. A\nexecução futura observa ambos pelo mesmo recorder. Nenhum desses requisitos\né um trace produzido pelo evaluator. R permanece fora desse documento de\nobservação e é validado separadamente com o oracle.\n\nrequired_reads identifica pares node/path; repetições da mesma leitura no log\nnão inventam outra evidência. A projeção de cobertura compara o conjunto exato\ndesses pares, enquanto o log preserva ordem e multiplicidade da execução.\nrequired_structural enumera existência, keys, iterator, índice, ordem,\nmembership, cardinalidade/length, seleção, traversal e terminação antecipada.\nO resultado de cada observação vem de I; a representação é do recorder.\nNão se presume que observar length equivale a ler os membros ou sua ordem.\n\nNo perfil N02-G de relações materiais admitidas, follow(field) e\ntraverse(edge_id) observam a travessia pelo evento I/traverse com source,\nfield, edge_id e target. A obrigação canônica dessa observação é a aresta\nem required_edges da fase. Não há uma segunda observação estrutural criada\nimplicitamente para a mesma travessia. A leitura do valor da referência é\num get distinto e exige required_reads (ou required_claim_reads, quando\naplicável); nem get nem traversal substitui a outra operação.\n\nrequired_structural cobre as operações estruturais efetivamente realizadas\nalém da resolução de aresta, como cardinalidade, enumeração, ordem e\nmembership de listas. Resolver membros não cobre essas operações. A presença\nde traversal no enum estrutural não cria uma segunda obrigação automática\nnem autoriza tratá-lo como alias de required_edges. Uma declaração explícita\nde required_structural/traversal não pode ser ignorada ou satisfeita por\nconveniência; enquanto não houver semântica/projeção própria suportada para\ntal declaração neste perfil, ela deve impedir aceitação.\n\nAplicação candidata da regra revisada no hash\n122b9f7decdb83a925c657fe8f6d642b73cb7651: ao selecionar pela categoria efetiva\nde uma compensação, declarar o campo que identifica a compra compensada e\nsua aresta material, inclusive para candidatos excluídos. A referência deve\nconcordar com o ID do alvo consumido. Autoria definida pela semântica e pelas\nrelações antes da execução, nunca pelo actual/oracle. Parecer documental APTO\npara implementar; não constitui GO do código nem do N02-G.\n\nToda leitura causal, escalar ou estrutural, deve estar coberta pela fase correta;\nleitura ausente/extra, campo non_material ou aresta ignorada impede aprovação.\nselected_nodes e required_nodes são conceitos distintos: um registro examinado\npara exclusão pertence às leituras, mas pode estar fora da seleção financeira.\nrequired_nodes é o inventário de nós examinados/consumidos na fase.\nrequired_selections coincide exatamente com os pares candidate_set/selected_set\ndas operações atribuídas àquela fase pela regra de bindings abaixo.\nselected_nodes é a união exata dos sets dessas operações, observada pelo\nrecorder por fase. Não copiar a seleção autorada nem tratar leitura como\nseleção. Em grafo derivado sem selections, selected_nodes é vazio;\nos pais consumidos diretamente permanecem em required_nodes/required_reads.\nNenhum nó adicional pode ser admitido só para inflar a prova; seus papéis devem\nser necessários aos operands ou às obrigações explicitamente justificadas.\n\n### Dependências transitivas consumidas pela fórmula\n\nO inventário da fase inclui dados materialmente consumidos por dependências\ntransitivas da fórmula, não somente aqueles ligados como roles diretos.\nResolver uma referência não dispensa declarar leituras/identidades do alvo\nque o cálculo realmente usa, nem exige automaticamente ler todo o alvo.\nQuando a fórmula usa a população familiar exata como filtro, declarar a\nleitura de members, cardinalidade e enumeração em ordem, além de cada relação\nmaterial admitida de membro. Os campos/identidades dos membros não entram só\npor serem alvos dessas arestas. As expectativas são fixadas pela semântica e\npelos bindings/relações autorados antes da execução, nunca pelo actual/oracle.\nIsso não copia a closure de proof para derivation nem altera seleção financeira.\n\nAplicação local candidata: população familiar alcançada por budget.family_id\nem safe_daily_pace, conforme proposta documental revisada no hash\nf27c504086aad13a035c71021a34ff7f6ff2606b. Parecer APTO para implementar o\ndesenho, não GO do código; auditoria do candidato executável ainda obrigatória.\n\n### Seleção por fase — correção normativa N02G-SB-001\n\n`selections` continua sendo a autoria completa da escolha financeira, inclusive\npredicados dos selecionados e exclusões. Proof deve executar **todas** essas\nseleções e cobrir todos os candidatos, seus campos e estruturas causais. Essa\nobrigação não pode ser removida porque a derivation usa um operando já ligado.\n\nAntes da execução, cada par é classificado pelos operand_bindings do claim:\n\n- Havendo exatamente um role `node_set` cujo roster coincide, inclusive ordem,\n  com o candidate_set, a seleção é obrigatória também em derivation.\n- Sem esse role, somente é admitido o caso prebound: selected_set não vazio e\n  cada membro explicitamente ligado por um role `node`. Essa seleção pertence\n  apenas a proof. A derivation consome esses operandos e mantém seus\n  required_nodes/required_reads, sem afirmar uma seleção que não executa.\n- Mais de um role candidato, ou ausência de um dos dois bindings acima, falha\n  fechado. Não escolher role por resultado, nome de métrica ou fact_key.\n\nrequired_selections de cada fase deve ser exatamente a lista classificada;\nselected_nodes é sua união, vazia se não há operação de seleção nessa fase.\nNão confundir ausência de seleção com uma seleção executada cujo resultado é\nvazio: a segunda ainda exige eventos e cobertura dos candidatos examinados.\nToda fase com seleção cobre todos os candidatos em required_nodes e reads,\nincluindo excluídos. O binding prebound não dispensa a prova da escolha e não\nautoriza preencher derivation com eventos de proof ou de resolução estática.\n\nA regra é declaração de obrigação anterior à execução, nunca comparação\npreenchida a partir do actual. A aceitação final continua exigindo ambas as\nfases e todos os demais gates; ausência de seleção derivacional não concede\naceitação parcial. Esta correção foi autorizada por Daniel em 2026-09-18 e\npermanece candidata à auditoria focal antes de ratificação/GO.\n\nFingerprint exige os campos materiais completos do nó. Esses acessos pertencem\nà fase proof e devem aparecer em seu contrato, mesmo quando a fórmula lê apenas\nalguns deles. A representação de trace de leituras compostas deve preservar as\noperações sobre estrutura; uma leitura do container não substitui observação\ndos campos realmente usados. O schema não afirma implementar instrumentação."
+  },
+  "snapshots": [
+    {
+      "ref_id": "account-a",
+      "kind": "account",
+      "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+      "payload": {
+        "id": "account-a",
+        "label": "Conta Principal A",
+        "owner_id": "person-a",
+        "type": "checking",
+        "opening_balance_minor": 0,
+        "opening_balance_as_of": "2042-06-01"
+      },
+      "authorship": {
+        "source": "fixture",
+        "collection": "accounts",
+        "record_id": "account-a",
+        "mapping": "identity_payload"
+      },
+      "semantic_fingerprint": "sha256:550c513138b6ba9eb4da7adb7602e04a98cc08393f44e0a2ca32a3dbf5219250"
+    },
+    {
+      "ref_id": "evt-transfer-out",
+      "kind": "event",
+      "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+      "payload": {
+        "id": "evt-transfer-out",
+        "date": "2042-06-12",
+        "person_id": "person-a",
+        "account_id": "account-a",
+        "category_id": "neutral.transfer",
+        "amount_minor": -15000,
+        "state": "confirmed",
+        "transfer_pair": "transfer-01"
+      },
+      "authorship": {
+        "source": "fixture",
+        "collection": "events",
+        "record_id": "evt-transfer-out",
+        "mapping": "identity_payload"
+      },
+      "semantic_fingerprint": "sha256:2e82205aef713e6fec797e1a04cefe3f0f5a4f3e90e3fc97df1866937a610f2d"
+    },
+    {
+      "ref_id": "neutral.transfer",
+      "kind": "category",
+      "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+      "payload": {
+        "id": "neutral.transfer",
+        "label": "Transferencia interna",
+        "kind": "neutral"
+      },
+      "authorship": {
+        "source": "fixture",
+        "collection": "categories",
+        "record_id": "neutral.transfer",
+        "mapping": "identity_payload"
+      },
+      "semantic_fingerprint": "sha256:6eb0a80402c0657d78116c7af91419a8c01aefb6cceb46fdd9d6d8797ec1f1c6"
+    },
+    {
+      "ref_id": "person-a",
+      "kind": "person",
+      "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+      "payload": {
+        "id": "person-a",
+        "label": "Pessoa A",
+        "family_id": "family-example"
+      },
+      "authorship": {
+        "source": "fixture",
+        "collection": "people",
+        "record_id": "person-a",
+        "mapping": "identity_payload"
+      },
+      "semantic_fingerprint": "sha256:37b8d4a3ec13a7498756b5dcda9162338e06c91d57465288ab3512cf07ac67c6"
+    },
+    {
+      "ref_id": "transfer-01",
+      "kind": "transfer_identity",
+      "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+      "payload": {
+        "id": "transfer-01",
+        "members": [
+          "evt-transfer-out",
+          "evt-transfer-in"
+        ]
+      },
+      "authorship": {
+        "source": "fixture",
+        "collection": "events",
+        "mapping": "exact_transfer_pair_members"
+      },
+      "semantic_fingerprint": "sha256:7affe3cadf3bcee97e22f276e382677f98ae76c11fc5bee1b20b20450b1bb134"
+    },
+    {
+      "ref_id": "account-reserve",
+      "kind": "account",
+      "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+      "payload": {
+        "id": "account-reserve",
+        "label": "Reserva Exemplo",
+        "owner_id": "person-a",
+        "type": "reserve",
+        "opening_balance_minor": 0,
+        "opening_balance_as_of": "2042-06-01"
+      },
+      "authorship": {
+        "source": "fixture",
+        "collection": "accounts",
+        "record_id": "account-reserve",
+        "mapping": "identity_payload"
+      },
+      "semantic_fingerprint": "sha256:a99eca5b3d0230554b297ed8e216b39d483083d4ae08603b5c495df71adce089"
+    },
+    {
+      "ref_id": "evt-transfer-in",
+      "kind": "event",
+      "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+      "payload": {
+        "id": "evt-transfer-in",
+        "date": "2042-06-12",
+        "person_id": "person-a",
+        "account_id": "account-reserve",
+        "category_id": "neutral.transfer",
+        "amount_minor": 15000,
+        "state": "confirmed",
+        "transfer_pair": "transfer-01"
+      },
+      "authorship": {
+        "source": "fixture",
+        "collection": "events",
+        "record_id": "evt-transfer-in",
+        "mapping": "identity_payload"
+      },
+      "semantic_fingerprint": "sha256:3cb8d479d48bb7ce46d1e960fb6583731f9c8756f251e53638b7a613b8ceebbb"
+    },
+    {
+      "ref_id": "card-blue",
+      "kind": "card",
+      "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+      "payload": {
+        "id": "card-blue",
+        "label": "Cartao Azul",
+        "owner_id": "person-a",
+        "closing_day": 10,
+        "due_day": 17
+      },
+      "authorship": {
+        "source": "fixture",
+        "collection": "cards",
+        "record_id": "card-blue",
+        "mapping": "identity_payload"
+      },
+      "semantic_fingerprint": "sha256:287ce34ecb5741e87838945370f226856d4eb555ffcbfcb55bc427549cd93729"
+    },
+    {
+      "ref_id": "evt-invoice-payment",
+      "kind": "event",
+      "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+      "payload": {
+        "id": "evt-invoice-payment",
+        "date": "2042-06-13",
+        "person_id": "person-a",
+        "account_id": "account-a",
+        "category_id": "neutral.invoice_payment",
+        "amount_minor": -60000,
+        "state": "confirmed",
+        "settles_card_id": "card-blue"
+      },
+      "authorship": {
+        "source": "fixture",
+        "collection": "events",
+        "record_id": "evt-invoice-payment",
+        "mapping": "identity_payload"
+      },
+      "semantic_fingerprint": "sha256:b49d3cdddbe9fc4283d4a7615d647845a0f1c5924570e14f0677539388bd8d9e"
+    },
+    {
+      "ref_id": "neutral.invoice_payment",
+      "kind": "category",
+      "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+      "payload": {
+        "id": "neutral.invoice_payment",
+        "label": "Pagamento de fatura",
+        "kind": "neutral"
+      },
+      "authorship": {
+        "source": "fixture",
+        "collection": "categories",
+        "record_id": "neutral.invoice_payment",
+        "mapping": "identity_payload"
+      },
+      "semantic_fingerprint": "sha256:f01b43f2389abc00a013f33f4222aa0c8b4c59739b9dee666ed9377f3f77d05b"
+    }
+  ],
+  "records": [
+    {
+      "claim": {
+        "claim_id": "claim-M-04#1#1",
+        "fact_key": "M-04#1#1",
+        "metric": "balance_delta",
+        "unit": "BRL_minor",
+        "subject": {
+          "kind": "account",
+          "ref_id": "account-a"
+        },
+        "period": {
+          "kind": "date",
+          "value": "2042-06-12"
+        },
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evaluator_ref": {
+          "evaluator_id": "balance_delta",
+          "evaluator_version": 1
+        },
+        "operand_bindings": {
+          "context": {
+            "kind": "claim_context"
+          },
+          "event": {
+            "kind": "node",
+            "alias": "evt_transfer_out"
+          }
+        }
+      },
+      "role_and_relation_nodes": {
+        "account_a": {
+          "binding": "snapshot",
+          "ref_id": "account-a",
+          "kind": "account",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:550c513138b6ba9eb4da7adb7602e04a98cc08393f44e0a2ca32a3dbf5219250",
+          "roles": [
+            "link_proof"
+          ]
+        },
+        "evt_transfer_out": {
+          "binding": "snapshot",
+          "ref_id": "evt-transfer-out",
+          "kind": "event",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:2e82205aef713e6fec797e1a04cefe3f0f5a4f3e90e3fc97df1866937a610f2d",
+          "roles": [
+            "value_input"
+          ]
+        },
+        "neutral_transfer": {
+          "binding": "snapshot",
+          "ref_id": "neutral.transfer",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:6eb0a80402c0657d78116c7af91419a8c01aefb6cceb46fdd9d6d8797ec1f1c6",
+          "roles": [
+            "link_proof"
+          ]
+        },
+        "person_a": {
+          "binding": "snapshot",
+          "ref_id": "person-a",
+          "kind": "person",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:37b8d4a3ec13a7498756b5dcda9162338e06c91d57465288ab3512cf07ac67c6",
+          "roles": [
+            "link_proof"
+          ]
+        },
+        "transfer_01": {
+          "binding": "snapshot",
+          "ref_id": "transfer-01",
+          "kind": "transfer_identity",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:7affe3cadf3bcee97e22f276e382677f98ae76c11fc5bee1b20b20450b1bb134",
+          "roles": [
+            "link_proof"
+          ]
+        }
+      },
+      "direct_material_relations": [
+        {
+          "id": "e0007",
+          "source": "evt_transfer_out",
+          "field": "person_id",
+          "target": "person_a",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0036_target"
+          ]
+        },
+        {
+          "id": "e0008",
+          "source": "evt_transfer_out",
+          "field": "account_id",
+          "target": "account_a",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0037_target"
+          ]
+        },
+        {
+          "id": "e0009",
+          "source": "evt_transfer_out",
+          "field": "category_id",
+          "target": "neutral_transfer",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0038_target"
+          ]
+        },
+        {
+          "id": "e0010",
+          "source": "evt_transfer_out",
+          "field": "transfer_pair",
+          "target": "transfer_01",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0041_target"
+          ]
+        }
+      ],
+      "original_derivation": {
+        "required_nodes": [
+          "evt_transfer_out"
+        ],
+        "required_reads": [
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "person_id"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "account_id"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "amount_minor"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "state"
+            ]
+          }
+        ],
+        "required_claim_reads": [
+          {
+            "segments": [
+              "subject",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "ref_id"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "value"
+            ]
+          },
+          {
+            "segments": [
+              "time_basis"
+            ]
+          }
+        ],
+        "required_edges": [
+          "e0007",
+          "e0008",
+          "e0009"
+        ],
+        "required_structural": [],
+        "selected_nodes": [],
+        "evidence_set_mode": "exact",
+        "required_selections": []
+      },
+      "proposed_derivation": {
+        "required_nodes": [
+          "evt_transfer_out"
+        ],
+        "required_reads": [
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "account_id"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "amount_minor"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "state"
+            ]
+          }
+        ],
+        "required_claim_reads": [
+          {
+            "segments": [
+              "period",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "value"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "ref_id"
+            ]
+          },
+          {
+            "segments": [
+              "time_basis"
+            ]
+          }
+        ],
+        "required_edges": [
+          "e0008"
+        ],
+        "required_structural": [],
+        "selected_nodes": [],
+        "evidence_set_mode": "exact",
+        "required_selections": []
+      },
+      "reasons": [
+        {
+          "dimension": "read",
+          "node": "evt_transfer_out",
+          "field": "id",
+          "reason": "queried_event_identity_date_confirmed_guard"
+        },
+        {
+          "dimension": "read",
+          "node": "evt_transfer_out",
+          "field": "date",
+          "reason": "queried_event_identity_date_confirmed_guard"
+        },
+        {
+          "dimension": "read",
+          "node": "evt_transfer_out",
+          "field": "state",
+          "reason": "queried_event_identity_date_confirmed_guard"
+        },
+        {
+          "dimension": "read",
+          "node": "evt_transfer_out",
+          "field": "account_id",
+          "reason": "balance_delta:contract_reference"
+        },
+        {
+          "dimension": "edge",
+          "id": "e0008",
+          "reason": "balance_delta:resolved_account_id"
+        },
+        {
+          "dimension": "read",
+          "node": "evt_transfer_out",
+          "field": "amount_minor",
+          "reason": "balance_delta:functional_amount"
+        }
+      ],
+      "delta": {
+        "required_nodes": {
+          "added": [],
+          "removed": []
+        },
+        "required_reads": {
+          "added": [],
+          "removed": [
+            {
+              "node": "evt_transfer_out",
+              "segments": [
+                "person_id"
+              ]
+            },
+            {
+              "node": "evt_transfer_out",
+              "segments": [
+                "category_id"
+              ]
+            }
+          ]
+        },
+        "required_claim_reads": {
+          "added": [],
+          "removed": []
+        },
+        "required_edges": {
+          "added": [],
+          "removed": [
+            "e0007",
+            "e0009"
+          ]
+        },
+        "required_structural": {
+          "added": [],
+          "removed": []
+        }
+      },
+      "preserved_proof_identity": "sha256:a7ee60c716c505e8b59cadfb79a3bbbca4d1d383b41c0017eca5c8722d60f417"
+    },
+    {
+      "claim": {
+        "claim_id": "claim-M-04#1#2",
+        "fact_key": "M-04#1#2",
+        "metric": "balance_delta",
+        "unit": "BRL_minor",
+        "subject": {
+          "kind": "account",
+          "ref_id": "account-reserve"
+        },
+        "period": {
+          "kind": "date",
+          "value": "2042-06-12"
+        },
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evaluator_ref": {
+          "evaluator_id": "balance_delta",
+          "evaluator_version": 1
+        },
+        "operand_bindings": {
+          "context": {
+            "kind": "claim_context"
+          },
+          "event": {
+            "kind": "node",
+            "alias": "evt_transfer_in"
+          }
+        }
+      },
+      "role_and_relation_nodes": {
+        "account_reserve": {
+          "binding": "snapshot",
+          "ref_id": "account-reserve",
+          "kind": "account",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:a99eca5b3d0230554b297ed8e216b39d483083d4ae08603b5c495df71adce089",
+          "roles": [
+            "link_proof"
+          ]
+        },
+        "evt_transfer_in": {
+          "binding": "snapshot",
+          "ref_id": "evt-transfer-in",
+          "kind": "event",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:3cb8d479d48bb7ce46d1e960fb6583731f9c8756f251e53638b7a613b8ceebbb",
+          "roles": [
+            "value_input"
+          ]
+        },
+        "neutral_transfer": {
+          "binding": "snapshot",
+          "ref_id": "neutral.transfer",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:6eb0a80402c0657d78116c7af91419a8c01aefb6cceb46fdd9d6d8797ec1f1c6",
+          "roles": [
+            "link_proof"
+          ]
+        },
+        "person_a": {
+          "binding": "snapshot",
+          "ref_id": "person-a",
+          "kind": "person",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:37b8d4a3ec13a7498756b5dcda9162338e06c91d57465288ab3512cf07ac67c6",
+          "roles": [
+            "link_proof"
+          ]
+        },
+        "transfer_01": {
+          "binding": "snapshot",
+          "ref_id": "transfer-01",
+          "kind": "transfer_identity",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:7affe3cadf3bcee97e22f276e382677f98ae76c11fc5bee1b20b20450b1bb134",
+          "roles": [
+            "link_proof"
+          ]
+        }
+      },
+      "direct_material_relations": [
+        {
+          "id": "e0003",
+          "source": "evt_transfer_in",
+          "field": "person_id",
+          "target": "person_a",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0026_target"
+          ]
+        },
+        {
+          "id": "e0004",
+          "source": "evt_transfer_in",
+          "field": "account_id",
+          "target": "account_reserve",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0027_target"
+          ]
+        },
+        {
+          "id": "e0005",
+          "source": "evt_transfer_in",
+          "field": "category_id",
+          "target": "neutral_transfer",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0028_target"
+          ]
+        },
+        {
+          "id": "e0006",
+          "source": "evt_transfer_in",
+          "field": "transfer_pair",
+          "target": "transfer_01",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0031_target"
+          ]
+        }
+      ],
+      "original_derivation": {
+        "required_nodes": [
+          "evt_transfer_in"
+        ],
+        "required_reads": [
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "person_id"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "account_id"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "amount_minor"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "state"
+            ]
+          }
+        ],
+        "required_claim_reads": [
+          {
+            "segments": [
+              "subject",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "ref_id"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "value"
+            ]
+          },
+          {
+            "segments": [
+              "time_basis"
+            ]
+          }
+        ],
+        "required_edges": [
+          "e0003",
+          "e0004",
+          "e0005"
+        ],
+        "required_structural": [],
+        "selected_nodes": [],
+        "evidence_set_mode": "exact",
+        "required_selections": []
+      },
+      "proposed_derivation": {
+        "required_nodes": [
+          "evt_transfer_in"
+        ],
+        "required_reads": [
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "account_id"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "amount_minor"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "state"
+            ]
+          }
+        ],
+        "required_claim_reads": [
+          {
+            "segments": [
+              "period",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "value"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "ref_id"
+            ]
+          },
+          {
+            "segments": [
+              "time_basis"
+            ]
+          }
+        ],
+        "required_edges": [
+          "e0004"
+        ],
+        "required_structural": [],
+        "selected_nodes": [],
+        "evidence_set_mode": "exact",
+        "required_selections": []
+      },
+      "reasons": [
+        {
+          "dimension": "read",
+          "node": "evt_transfer_in",
+          "field": "id",
+          "reason": "queried_event_identity_date_confirmed_guard"
+        },
+        {
+          "dimension": "read",
+          "node": "evt_transfer_in",
+          "field": "date",
+          "reason": "queried_event_identity_date_confirmed_guard"
+        },
+        {
+          "dimension": "read",
+          "node": "evt_transfer_in",
+          "field": "state",
+          "reason": "queried_event_identity_date_confirmed_guard"
+        },
+        {
+          "dimension": "read",
+          "node": "evt_transfer_in",
+          "field": "account_id",
+          "reason": "balance_delta:contract_reference"
+        },
+        {
+          "dimension": "edge",
+          "id": "e0004",
+          "reason": "balance_delta:resolved_account_id"
+        },
+        {
+          "dimension": "read",
+          "node": "evt_transfer_in",
+          "field": "amount_minor",
+          "reason": "balance_delta:functional_amount"
+        }
+      ],
+      "delta": {
+        "required_nodes": {
+          "added": [],
+          "removed": []
+        },
+        "required_reads": {
+          "added": [],
+          "removed": [
+            {
+              "node": "evt_transfer_in",
+              "segments": [
+                "person_id"
+              ]
+            },
+            {
+              "node": "evt_transfer_in",
+              "segments": [
+                "category_id"
+              ]
+            }
+          ]
+        },
+        "required_claim_reads": {
+          "added": [],
+          "removed": []
+        },
+        "required_edges": {
+          "added": [],
+          "removed": [
+            "e0003",
+            "e0005"
+          ]
+        },
+        "required_structural": {
+          "added": [],
+          "removed": []
+        }
+      },
+      "preserved_proof_identity": "sha256:1cf1c86ea010dc256ce5594d317963dc4b656b5330bfae4417e9d673ae925979"
+    },
+    {
+      "claim": {
+        "claim_id": "claim-M-05#1#2",
+        "fact_key": "M-05#1#2",
+        "metric": "invoice_payment_amount",
+        "unit": "BRL_minor",
+        "subject": {
+          "kind": "event",
+          "ref_id": "evt-invoice-payment"
+        },
+        "period": {
+          "kind": "date",
+          "value": "2042-06-13"
+        },
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evaluator_ref": {
+          "evaluator_id": "invoice_payment_amount",
+          "evaluator_version": 1
+        },
+        "operand_bindings": {
+          "context": {
+            "kind": "claim_context"
+          },
+          "event": {
+            "kind": "node",
+            "alias": "evt_invoice_payment"
+          }
+        }
+      },
+      "role_and_relation_nodes": {
+        "account_a": {
+          "binding": "snapshot",
+          "ref_id": "account-a",
+          "kind": "account",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:550c513138b6ba9eb4da7adb7602e04a98cc08393f44e0a2ca32a3dbf5219250",
+          "roles": [
+            "link_proof"
+          ]
+        },
+        "card_blue": {
+          "binding": "snapshot",
+          "ref_id": "card-blue",
+          "kind": "card",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:287ce34ecb5741e87838945370f226856d4eb555ffcbfcb55bc427549cd93729",
+          "roles": [
+            "link_proof"
+          ]
+        },
+        "evt_invoice_payment": {
+          "binding": "snapshot",
+          "ref_id": "evt-invoice-payment",
+          "kind": "event",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:b49d3cdddbe9fc4283d4a7615d647845a0f1c5924570e14f0677539388bd8d9e",
+          "roles": [
+            "value_input"
+          ]
+        },
+        "neutral_invoice_payment": {
+          "binding": "snapshot",
+          "ref_id": "neutral.invoice_payment",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:f01b43f2389abc00a013f33f4222aa0c8b4c59739b9dee666ed9377f3f77d05b",
+          "roles": [
+            "link_proof"
+          ]
+        },
+        "person_a": {
+          "binding": "snapshot",
+          "ref_id": "person-a",
+          "kind": "person",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:37b8d4a3ec13a7498756b5dcda9162338e06c91d57465288ab3512cf07ac67c6",
+          "roles": [
+            "link_proof"
+          ]
+        }
+      },
+      "direct_material_relations": [
+        {
+          "id": "e0003",
+          "source": "evt_invoice_payment",
+          "field": "person_id",
+          "target": "person_a",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0025_target"
+          ]
+        },
+        {
+          "id": "e0004",
+          "source": "evt_invoice_payment",
+          "field": "account_id",
+          "target": "account_a",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0026_target"
+          ]
+        },
+        {
+          "id": "e0005",
+          "source": "evt_invoice_payment",
+          "field": "category_id",
+          "target": "neutral_invoice_payment",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0027_target"
+          ]
+        },
+        {
+          "id": "e0006",
+          "source": "evt_invoice_payment",
+          "field": "settles_card_id",
+          "target": "card_blue",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0030_target"
+          ]
+        }
+      ],
+      "original_derivation": {
+        "required_nodes": [
+          "evt_invoice_payment"
+        ],
+        "required_reads": [
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "person_id"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "amount_minor"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "settles_card_id"
+            ]
+          }
+        ],
+        "required_claim_reads": [
+          {
+            "segments": [
+              "subject",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "ref_id"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "value"
+            ]
+          },
+          {
+            "segments": [
+              "time_basis"
+            ]
+          }
+        ],
+        "required_edges": [
+          "e0003",
+          "e0005",
+          "e0006"
+        ],
+        "required_structural": [],
+        "selected_nodes": [],
+        "evidence_set_mode": "exact",
+        "required_selections": []
+      },
+      "proposed_derivation": {
+        "required_nodes": [
+          "evt_invoice_payment"
+        ],
+        "required_reads": [
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "account_id"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "amount_minor"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "settles_card_id"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "state"
+            ]
+          }
+        ],
+        "required_claim_reads": [
+          {
+            "segments": [
+              "period",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "value"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "ref_id"
+            ]
+          },
+          {
+            "segments": [
+              "time_basis"
+            ]
+          }
+        ],
+        "required_edges": [
+          "e0004",
+          "e0005",
+          "e0006"
+        ],
+        "required_structural": [],
+        "selected_nodes": [],
+        "evidence_set_mode": "exact",
+        "required_selections": []
+      },
+      "reasons": [
+        {
+          "dimension": "read",
+          "node": "evt_invoice_payment",
+          "field": "id",
+          "reason": "queried_event_identity_date_confirmed_guard"
+        },
+        {
+          "dimension": "read",
+          "node": "evt_invoice_payment",
+          "field": "date",
+          "reason": "queried_event_identity_date_confirmed_guard"
+        },
+        {
+          "dimension": "read",
+          "node": "evt_invoice_payment",
+          "field": "state",
+          "reason": "queried_event_identity_date_confirmed_guard"
+        },
+        {
+          "dimension": "read",
+          "node": "evt_invoice_payment",
+          "field": "category_id",
+          "reason": "invoice_payment_amount:contract_reference"
+        },
+        {
+          "dimension": "edge",
+          "id": "e0005",
+          "reason": "invoice_payment_amount:resolved_category_id"
+        },
+        {
+          "dimension": "read",
+          "node": "evt_invoice_payment",
+          "field": "account_id",
+          "reason": "invoice_payment_amount:contract_reference"
+        },
+        {
+          "dimension": "edge",
+          "id": "e0004",
+          "reason": "invoice_payment_amount:resolved_account_id"
+        },
+        {
+          "dimension": "read",
+          "node": "evt_invoice_payment",
+          "field": "settles_card_id",
+          "reason": "invoice_payment_amount:contract_reference"
+        },
+        {
+          "dimension": "edge",
+          "id": "e0006",
+          "reason": "invoice_payment_amount:resolved_settles_card_id"
+        },
+        {
+          "dimension": "read",
+          "node": "evt_invoice_payment",
+          "field": "amount_minor",
+          "reason": "invoice_payment_amount:functional_amount"
+        }
+      ],
+      "delta": {
+        "required_nodes": {
+          "added": [],
+          "removed": []
+        },
+        "required_reads": {
+          "added": [
+            {
+              "node": "evt_invoice_payment",
+              "segments": [
+                "account_id"
+              ]
+            }
+          ],
+          "removed": [
+            {
+              "node": "evt_invoice_payment",
+              "segments": [
+                "person_id"
+              ]
+            }
+          ]
+        },
+        "required_claim_reads": {
+          "added": [],
+          "removed": []
+        },
+        "required_edges": {
+          "added": [
+            "e0004"
+          ],
+          "removed": [
+            "e0003"
+          ]
+        },
+        "required_structural": {
+          "added": [],
+          "removed": []
+        }
+      },
+      "preserved_proof_identity": "sha256:3cb488a1c6abc40e8bf551b193566747d3d2c8b9b02fc714a0f13300996e2ad3"
+    },
+    {
+      "claim": {
+        "claim_id": "claim-M-05#1#3",
+        "fact_key": "M-05#1#3",
+        "metric": "invoice_payment_target_card",
+        "unit": "entity_ids",
+        "subject": {
+          "kind": "event",
+          "ref_id": "evt-invoice-payment"
+        },
+        "period": {
+          "kind": "date",
+          "value": "2042-06-13"
+        },
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evaluator_ref": {
+          "evaluator_id": "invoice_payment_target_card",
+          "evaluator_version": 1
+        },
+        "operand_bindings": {
+          "context": {
+            "kind": "claim_context"
+          },
+          "event": {
+            "kind": "node",
+            "alias": "evt_invoice_payment"
+          },
+          "card": {
+            "kind": "node",
+            "alias": "card_blue"
+          }
+        }
+      },
+      "role_and_relation_nodes": {
+        "account_a": {
+          "binding": "snapshot",
+          "ref_id": "account-a",
+          "kind": "account",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:550c513138b6ba9eb4da7adb7602e04a98cc08393f44e0a2ca32a3dbf5219250",
+          "roles": [
+            "link_proof"
+          ]
+        },
+        "card_blue": {
+          "binding": "snapshot",
+          "ref_id": "card-blue",
+          "kind": "card",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:287ce34ecb5741e87838945370f226856d4eb555ffcbfcb55bc427549cd93729",
+          "roles": [
+            "value_input"
+          ]
+        },
+        "evt_invoice_payment": {
+          "binding": "snapshot",
+          "ref_id": "evt-invoice-payment",
+          "kind": "event",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:b49d3cdddbe9fc4283d4a7615d647845a0f1c5924570e14f0677539388bd8d9e",
+          "roles": [
+            "value_input"
+          ]
+        },
+        "neutral_invoice_payment": {
+          "binding": "snapshot",
+          "ref_id": "neutral.invoice_payment",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:f01b43f2389abc00a013f33f4222aa0c8b4c59739b9dee666ed9377f3f77d05b",
+          "roles": [
+            "link_proof"
+          ]
+        },
+        "person_a": {
+          "binding": "snapshot",
+          "ref_id": "person-a",
+          "kind": "person",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:37b8d4a3ec13a7498756b5dcda9162338e06c91d57465288ab3512cf07ac67c6",
+          "roles": [
+            "link_proof"
+          ]
+        }
+      },
+      "direct_material_relations": [
+        {
+          "id": "e0002",
+          "source": "card_blue",
+          "field": "owner_id",
+          "target": "person_a",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0018_target"
+          ]
+        },
+        {
+          "id": "e0003",
+          "source": "evt_invoice_payment",
+          "field": "person_id",
+          "target": "person_a",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0025_target"
+          ]
+        },
+        {
+          "id": "e0004",
+          "source": "evt_invoice_payment",
+          "field": "account_id",
+          "target": "account_a",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0026_target"
+          ]
+        },
+        {
+          "id": "e0005",
+          "source": "evt_invoice_payment",
+          "field": "category_id",
+          "target": "neutral_invoice_payment",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0027_target"
+          ]
+        },
+        {
+          "id": "e0006",
+          "source": "evt_invoice_payment",
+          "field": "settles_card_id",
+          "target": "card_blue",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0030_target"
+          ]
+        }
+      ],
+      "original_derivation": {
+        "required_nodes": [
+          "card_blue",
+          "evt_invoice_payment"
+        ],
+        "required_reads": [
+          {
+            "node": "card_blue",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "card_blue",
+            "segments": [
+              "owner_id"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "person_id"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "settles_card_id"
+            ]
+          }
+        ],
+        "required_claim_reads": [
+          {
+            "segments": [
+              "subject",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "ref_id"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "value"
+            ]
+          },
+          {
+            "segments": [
+              "time_basis"
+            ]
+          }
+        ],
+        "required_edges": [
+          "e0002",
+          "e0003",
+          "e0005",
+          "e0006"
+        ],
+        "required_structural": [],
+        "selected_nodes": [],
+        "evidence_set_mode": "exact",
+        "required_selections": []
+      },
+      "proposed_derivation": {
+        "required_nodes": [
+          "card_blue",
+          "evt_invoice_payment"
+        ],
+        "required_reads": [
+          {
+            "node": "card_blue",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "settles_card_id"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "state"
+            ]
+          }
+        ],
+        "required_claim_reads": [
+          {
+            "segments": [
+              "period",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "value"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "ref_id"
+            ]
+          },
+          {
+            "segments": [
+              "time_basis"
+            ]
+          }
+        ],
+        "required_edges": [
+          "e0006"
+        ],
+        "required_structural": [],
+        "selected_nodes": [],
+        "evidence_set_mode": "exact",
+        "required_selections": []
+      },
+      "reasons": [
+        {
+          "dimension": "read",
+          "node": "evt_invoice_payment",
+          "field": "id",
+          "reason": "queried_event_identity_date_confirmed_guard"
+        },
+        {
+          "dimension": "read",
+          "node": "evt_invoice_payment",
+          "field": "date",
+          "reason": "queried_event_identity_date_confirmed_guard"
+        },
+        {
+          "dimension": "read",
+          "node": "evt_invoice_payment",
+          "field": "state",
+          "reason": "queried_event_identity_date_confirmed_guard"
+        },
+        {
+          "dimension": "read",
+          "node": "evt_invoice_payment",
+          "field": "settles_card_id",
+          "reason": "invoice_payment_target_card:contract_reference"
+        },
+        {
+          "dimension": "edge",
+          "id": "e0006",
+          "reason": "invoice_payment_target_card:resolved_settles_card_id"
+        },
+        {
+          "dimension": "read",
+          "node": "card_blue",
+          "field": "id",
+          "reason": "returned_card_identity_bound_to_card_role"
+        }
+      ],
+      "delta": {
+        "required_nodes": {
+          "added": [],
+          "removed": []
+        },
+        "required_reads": {
+          "added": [],
+          "removed": [
+            {
+              "node": "card_blue",
+              "segments": [
+                "owner_id"
+              ]
+            },
+            {
+              "node": "evt_invoice_payment",
+              "segments": [
+                "person_id"
+              ]
+            },
+            {
+              "node": "evt_invoice_payment",
+              "segments": [
+                "category_id"
+              ]
+            }
+          ]
+        },
+        "required_claim_reads": {
+          "added": [],
+          "removed": []
+        },
+        "required_edges": {
+          "added": [],
+          "removed": [
+            "e0002",
+            "e0003",
+            "e0005"
+          ]
+        },
+        "required_structural": {
+          "added": [],
+          "removed": []
+        }
+      },
+      "preserved_proof_identity": "sha256:3cb488a1c6abc40e8bf551b193566747d3d2c8b9b02fc714a0f13300996e2ad3"
+    },
+    {
+      "claim": {
+        "claim_id": "claim-M-05#1#4",
+        "fact_key": "M-05#1#4",
+        "metric": "statement_payment_correspondence",
+        "unit": "state",
+        "subject": {
+          "kind": "event",
+          "ref_id": "evt-invoice-payment"
+        },
+        "period": {
+          "kind": "date",
+          "value": "2042-06-13"
+        },
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evaluator_ref": {
+          "evaluator_id": "statement_payment_correspondence",
+          "evaluator_version": 1
+        },
+        "operand_bindings": {
+          "context": {
+            "kind": "claim_context"
+          },
+          "event": {
+            "kind": "node",
+            "alias": "evt_invoice_payment"
+          },
+          "card": {
+            "kind": "node",
+            "alias": "card_blue"
+          }
+        }
+      },
+      "role_and_relation_nodes": {
+        "account_a": {
+          "binding": "snapshot",
+          "ref_id": "account-a",
+          "kind": "account",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:550c513138b6ba9eb4da7adb7602e04a98cc08393f44e0a2ca32a3dbf5219250",
+          "roles": [
+            "link_proof"
+          ]
+        },
+        "card_blue": {
+          "binding": "snapshot",
+          "ref_id": "card-blue",
+          "kind": "card",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:287ce34ecb5741e87838945370f226856d4eb555ffcbfcb55bc427549cd93729",
+          "roles": [
+            "value_input"
+          ]
+        },
+        "evt_invoice_payment": {
+          "binding": "snapshot",
+          "ref_id": "evt-invoice-payment",
+          "kind": "event",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:b49d3cdddbe9fc4283d4a7615d647845a0f1c5924570e14f0677539388bd8d9e",
+          "roles": [
+            "value_input"
+          ]
+        },
+        "neutral_invoice_payment": {
+          "binding": "snapshot",
+          "ref_id": "neutral.invoice_payment",
+          "kind": "category",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:f01b43f2389abc00a013f33f4222aa0c8b4c59739b9dee666ed9377f3f77d05b",
+          "roles": [
+            "link_proof"
+          ]
+        },
+        "person_a": {
+          "binding": "snapshot",
+          "ref_id": "person-a",
+          "kind": "person",
+          "version": "sha256:09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+          "semantic_fingerprint": "sha256:37b8d4a3ec13a7498756b5dcda9162338e06c91d57465288ab3512cf07ac67c6",
+          "roles": [
+            "link_proof"
+          ]
+        }
+      },
+      "direct_material_relations": [
+        {
+          "id": "e0002",
+          "source": "card_blue",
+          "field": "owner_id",
+          "target": "person_a",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0018_target"
+          ]
+        },
+        {
+          "id": "e0003",
+          "source": "evt_invoice_payment",
+          "field": "person_id",
+          "target": "person_a",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0025_target"
+          ]
+        },
+        {
+          "id": "e0004",
+          "source": "evt_invoice_payment",
+          "field": "account_id",
+          "target": "account_a",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0026_target"
+          ]
+        },
+        {
+          "id": "e0005",
+          "source": "evt_invoice_payment",
+          "field": "category_id",
+          "target": "neutral_invoice_payment",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0027_target"
+          ]
+        },
+        {
+          "id": "e0006",
+          "source": "evt_invoice_payment",
+          "field": "settles_card_id",
+          "target": "card_blue",
+          "relation": "material_ref",
+          "proof_predicates": [
+            "p0030_target"
+          ]
+        }
+      ],
+      "original_derivation": {
+        "required_nodes": [
+          "card_blue",
+          "evt_invoice_payment"
+        ],
+        "required_reads": [
+          {
+            "node": "card_blue",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "card_blue",
+            "segments": [
+              "owner_id"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "person_id"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "settles_card_id"
+            ]
+          }
+        ],
+        "required_claim_reads": [
+          {
+            "segments": [
+              "subject",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "ref_id"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "value"
+            ]
+          },
+          {
+            "segments": [
+              "time_basis"
+            ]
+          }
+        ],
+        "required_edges": [
+          "e0002",
+          "e0003",
+          "e0005",
+          "e0006"
+        ],
+        "required_structural": [],
+        "selected_nodes": [],
+        "evidence_set_mode": "exact",
+        "required_selections": []
+      },
+      "proposed_derivation": {
+        "required_nodes": [
+          "evt_invoice_payment"
+        ],
+        "required_reads": [
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "state"
+            ]
+          }
+        ],
+        "required_claim_reads": [
+          {
+            "segments": [
+              "period",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "value"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "ref_id"
+            ]
+          },
+          {
+            "segments": [
+              "time_basis"
+            ]
+          }
+        ],
+        "required_edges": [],
+        "required_structural": [
+          {
+            "node": "evt_invoice_payment",
+            "operation": "keys",
+            "segments": []
+          }
+        ],
+        "selected_nodes": [],
+        "evidence_set_mode": "exact",
+        "required_selections": []
+      },
+      "reasons": [
+        {
+          "dimension": "read",
+          "node": "evt_invoice_payment",
+          "field": "id",
+          "reason": "queried_event_identity_date_confirmed_guard"
+        },
+        {
+          "dimension": "read",
+          "node": "evt_invoice_payment",
+          "field": "date",
+          "reason": "queried_event_identity_date_confirmed_guard"
+        },
+        {
+          "dimension": "read",
+          "node": "evt_invoice_payment",
+          "field": "state",
+          "reason": "queried_event_identity_date_confirmed_guard"
+        },
+        {
+          "dimension": "structural",
+          "node": "evt_invoice_payment",
+          "operation": "keys",
+          "reason": "schema_and_observed_absence_of_statement_link"
+        }
+      ],
+      "delta": {
+        "required_nodes": {
+          "added": [],
+          "removed": [
+            "card_blue"
+          ]
+        },
+        "required_reads": {
+          "added": [],
+          "removed": [
+            {
+              "node": "card_blue",
+              "segments": [
+                "id"
+              ]
+            },
+            {
+              "node": "card_blue",
+              "segments": [
+                "owner_id"
+              ]
+            },
+            {
+              "node": "evt_invoice_payment",
+              "segments": [
+                "person_id"
+              ]
+            },
+            {
+              "node": "evt_invoice_payment",
+              "segments": [
+                "category_id"
+              ]
+            },
+            {
+              "node": "evt_invoice_payment",
+              "segments": [
+                "settles_card_id"
+              ]
+            }
+          ]
+        },
+        "required_claim_reads": {
+          "added": [],
+          "removed": []
+        },
+        "required_edges": {
+          "added": [],
+          "removed": [
+            "e0002",
+            "e0003",
+            "e0005",
+            "e0006"
+          ]
+        },
+        "required_structural": {
+          "added": [
+            {
+              "node": "evt_invoice_payment",
+              "operation": "keys",
+              "segments": []
+            }
+          ],
+          "removed": []
+        }
+      },
+      "preserved_proof_identity": "sha256:3cb488a1c6abc40e8bf551b193566747d3d2c8b9b02fc714a0f13300996e2ad3"
+    }
+  ],
+  "limits": "Lossless selected source fields with explicit omissions. Proof hash identifies preserved proof; it does not prove semantic sufficiency. No oracle, evaluator, actual trace or financial execution. Schema excerpt does not replace its referenced definitions."
+}

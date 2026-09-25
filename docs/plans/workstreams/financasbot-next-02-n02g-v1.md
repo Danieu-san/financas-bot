@@ -2,6 +2,17 @@
 
 Data: 2026-09-11. Estado: CHARTER APROVADO; IMPLEMENTAÇÃO EM DESENVOLVIMENTO.
 
+2026-09-25: APTO independente recebido para o endurecimento documental
+3d343696482136ff4c5535e81776d3ed04c44f7e, sem findings no delta; não execução
+externa dos testes. Confronto local de identidade/helper PASS. Esclarecimento
+do auditor confirmou que a suficiência normativa das cinco proposed_derivation
+NÃO foi concluída. Não usar o APTO do helper como aprovação dessa composição.
+Decisão específica em docs/audit-evidence/n02g-causal-authoring-profile/
+direct-event-composition-decision.md, com projeção imutável limitada a cinco
+claims/quatro contratos. Sem novo desenho: julgar as mesmas cinco propostas
+antes de aplicá-las. Futuro candidato de código e auditoria própria continuam
+obrigatórios; corpus/runtime/contratos preservados até esta revisão normativa.
+
 Endurecimento documental DIRECT-EVENT v2, parent 12d93ee1d9388bda9c5f704b0062f8b97d1b0dd5:
 o NÃO APTO focal confirmou ausência de checagem nominal da categoria e fechamento
 incompleto das keys no helper. Corrigir por restrição nominal declarativa e
