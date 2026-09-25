@@ -2,6 +2,33 @@
 
 Data: 2026-09-11. Estado: CHARTER APROVADO; IMPLEMENTAÇÃO EM DESENVOLVIMENTO.
 
+2026-09-25 — DIRECT-EVENT: parecer final APTO DOCUMENTAL PARA IMPLEMENTAR
+recebido para 44342793c30573f38952e58a2c2ab0721065996e, parent único
+3d343696482136ff4c5535e81776d3ed04c44f7e, zero C/H/M/L. Diferentemente do
+parecer do helper, esta revisão julgou explicitamente a suficiência normativa
+das cinco proposed_derivation. Revisão estática, não execução externa de testes.
+
+Implementação focal em preparação: aplicar exatamente a proposta v2 congelada
+nos cinco grafos, preservando proof e todo o resto do corpus; separar as quatro
+fórmulas no metricDirectReads. Referências meramente nominais usam scalar+follow
+admitido, sem leitura incidental do payload alvo. Target-card compara identidade
+e versão. Correspondence observa keys contra a projeção fechada do schema e não
+consome card/ref; amount exige neutral.invoice_payment. Guards continuam reais.
+REDs, integração com expected congelado antes da execução, afetados e ampla
+única estável são pré-requisitos para nova auditoria independente de CÓDIGO.
+Nada nesta aprovação documental encerra o código, N02-G ou NEXT-02 global.
+
+Validação local do candidato DIRECT-EVENT concluída: 6 focais e 281 afetados
+PASS, sem FAIL/SKIP/TODO. Ampla única: 2.411 testes / 2.401 PASS / 0 FAIL /
+10 SKIP / 0 TODO; valid=true, candidato inalterado. Evidência em
+docs/audit-evidence/n02g-causal-authoring-profile/direct-event-validation.json;
+helper confere hashes testados e igualdade integral da aplicação das cinco
+propostas congeladas. Erros intermediários de harness/formatação/pins históricos
+estão preservados, não ocultados. Código ainda exige revisão independente do
+novo SHA. A aprovação documental anterior não aprova este runtime.
+
+### Histórico — decisão normativa antes da resposta final
+
 2026-09-25: APTO independente recebido para o endurecimento documental
 3d343696482136ff4c5535e81776d3ed04c44f7e, sem findings no delta; não execução
 externa dos testes. Confronto local de identidade/helper PASS. Esclarecimento

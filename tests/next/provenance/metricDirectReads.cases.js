@@ -27,8 +27,8 @@ function assertResolvedReferenceReads(observations) {
 }
 function payment() {
     const f = instrument([['event', 'event', { id: 'payment', date: '2042-06-13', state: 'confirmed', amount_minor: -300,
-        category_id: 'neutral', account_id: 'account', settles_card_id: 'card' }],
-    ['category', 'category', { id: 'neutral', kind: 'neutral' }], ['account', 'account', { id: 'account' }],
+        category_id: 'neutral.invoice_payment', account_id: 'account', settles_card_id: 'card' }],
+    ['category', 'category', { id: 'neutral.invoice_payment', kind: 'neutral' }], ['account', 'account', { id: 'account' }],
     ['card', 'card', { id: 'card' }]], ['category_id', 'account_id', 'settles_card_id'].map((field, i) => ({
         id: `link${i}`, source: 'event', field, target: ['category', 'account', 'card'][i], type: 'ref' })));
     return { ...f, operands: { context: context({ kind: 'event', ref_id: 'payment' }, { kind: 'date', value: '2042-06-13' }, 'event_date'),
@@ -338,10 +338,12 @@ test('N02G:DIRECT-METRIC-007 calendar and reminder zeros require a complete popu
     }
 });
 
-test('N02G:DIRECT-REFERENCE-001 payment reference scalar mismatch cannot be hidden by a valid resolved target', () => {
-    for (const metric of ['balance_delta', 'invoice_payment_amount', 'invoice_payment_target_card', 'statement_payment_correspondence']) {
-        const fields = metric === 'balance_delta' ? ['account_id'] : ['category_id', 'account_id', 'settles_card_id'];
-        for (const field of fields) for (const mutant of [undefined, '', 7, 'different-valid-id']) {
+test('N02G:DIRECT-REFERENCE-001 consumed reference scalars are validated; coherence of reference-only targets belongs to admission', () => {
+    for (const metric of ['balance_delta', 'invoice_payment_amount', 'invoice_payment_target_card']) {
+        const fields = metric === 'balance_delta' ? ['account_id'] : metric === 'invoice_payment_amount'
+            ? ['category_id', 'account_id', 'settles_card_id'] : ['settles_card_id'];
+        for (const field of fields) for (const mutant of [undefined, '', 7, ...(
+            metric !== 'invoice_payment_amount' || field === 'category_id' ? ['different-valid-id'] : [])]) {
             const f = payment();
             const event = Object.freeze({ ...f.operands.event,
                 get: key => key === field ? mutant : f.operands.event.get(key) });

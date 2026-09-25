@@ -5,6 +5,10 @@ const { selectConsumption } = require('./metricSelection');
 const { readNodeIdentity: identity, readReference, readReferenceId, readReferenceIds } = require('./metricReferences');
 const fail = code => { throw new Error(`direct_metric_${code}`); };
 const id = value => { validateLiteral({ type: 'id', value }); return value; };
+// Reviewed projection of evidence-snapshot.schema.json/payload_event. Kept in
+// the executable closure; a test requires equality with the normative schema.
+const EVENT_V1_FIELDS = Object.freeze(['id', 'date', 'person_id', 'account_id', 'card_id', 'category_id', 'amount_minor', 'state',
+    'merchant_key', 'compensates', 'transfer_pair', 'settles_card_id', 'installment_plan', 'installment_number', 'installment_total']);
 function same(a, b) { return a.ref === b.ref && a.version === b.version; }
 function period(context, kind, basis) {
     if (context.get('time_basis') !== basis) fail('basis');
@@ -143,21 +147,27 @@ function evaluateDirectMetric(operands, metric) {
         if (actualDay !== day) fail('period');
         if (event.get('state') !== 'confirmed') fail('state');
         if (metric === 'balance_delta') {
-            const account = readReference(event, 'account_id', 'account');
-            if (account.ref !== subject(context, 'account')) fail('scope');
+            const account = readReferenceId(event, 'account_id');
+            if (account !== subject(context, 'account')) fail('scope');
             return checkedMoney(event.get('amount_minor'));
         }
         if (subject(context, 'event') !== eventId.ref) fail('scope');
-        const { node: category } = readReference(event, 'category_id', 'category');
-        if (category.get('kind') !== 'neutral') fail('payment_category');
-        readReference(event, 'account_id', 'account');
-        const target = readReference(event, 'settles_card_id', 'card');
-        if (metric === 'invoice_payment_amount') return Math.abs(checkedMoney(event.get('amount_minor')));
-        if (!same(target, identity(operands.card, 'card'))) fail('target');
-        if (metric === 'invoice_payment_target_card') return target.ref;
+        if (metric === 'invoice_payment_amount') {
+            // Admission already binds scalar references to typed targets. This
+            // formula needs the nominal category, not the target payload.
+            if (readReferenceId(event, 'category_id') !== 'neutral.invoice_payment') fail('payment_category');
+            readReferenceId(event, 'account_id');
+            readReferenceId(event, 'settles_card_id');
+            return Math.abs(checkedMoney(event.get('amount_minor')));
+        }
+        if (metric === 'invoice_payment_target_card') {
+            const target = readReference(event, 'settles_card_id', 'card');
+            if (!same(target, identity(operands.card, 'card'))) fail('target');
+            return target.ref;
+        }
         // The admitted v1 schema has no statement-link fields. Enumerate the
         // actual exposed structure; a card reference cannot stand in for one.
-        for (const name of event.keys()) if (['statement_id', 'settles_statement_id', 'settles_statement_period'].includes(name)) fail('statement_schema');
+        for (const name of event.keys()) if (!EVENT_V1_FIELDS.includes(name)) fail('statement_schema');
         return 'unproven';
     }
     if (metric === 'eligible_event_count') {
@@ -215,4 +225,4 @@ function evaluateDirectMetric(operands, metric) {
     fail('metric');
 }
 
-module.exports = { evaluateDirectMetric };
+module.exports = { evaluateDirectMetric, EVENT_V1_FIELDS };

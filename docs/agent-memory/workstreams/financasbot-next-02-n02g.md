@@ -1,12 +1,71 @@
 # N02-G — checkpoint
 
-Atualização: 2026-09-25. Estado: PAYMENT-REFERENCE APROVADO FOCALMENTE; DIRECT-EVENT helper documental APTO, decisão normativa das cinco derivações pendente; SEM GO GLOBAL/EXECUTÁVEL N02-G.
+Atualização: 2026-09-25. Estado: PAYMENT-REFERENCE APROVADO FOCALMENTE; DIRECT-EVENT código validado localmente, aguardando auditoria independente; SEM GO GLOBAL/EXECUTÁVEL N02-G.
 Base: `aea4ac31e358ed8d8907e78f6002c8bb80233bc8`.
 Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação exata — publicar/enviar decisão normativa focal DIRECT-EVENT
+## Próxima ação exata — publicar e auditar código DIRECT-EVENT
+
+Checkpoint de execução (2026-09-25): código/derivações implementados localmente,
+ainda NÃO commitados nem auditados. HEAD/base permanece
+44342793c30573f38952e58a2c2ab0721065996e. Focais finais: 6/6 PASS;
+afetados: 281/281 PASS; zero FAIL/SKIP/TODO em ambos. Syntax e diff --check PASS.
+RED inicial: 3 FAIL causais. Primeiro GREEN teve um erro de fixture (NaN recusado
+na admissão antes do guard), depois corrigido para isolar o guard numérico.
+Primeiros afetados: 9 FAIL, preservados nos logs; fonte histórico, diagnóstico
+pré-delta e serialização foram ajustados explicitamente. A proposta antiga não
+foi reescrita. Novo diff do corpus: exatamente cinco linhas/grafos, proof e 71
+demais grafos preservados por inversão integral contra hash anterior.
+
+Ampla única CONCLUÍDA em 2026-09-25T12:20:03Z: 2.411 testes, 2.401 PASS,
+0 FAIL, 10 SKIP, 0 TODO; exit_status=0, valid=true, candidate_unchanged=true.
+Linhas 92,46%, branches 79,12%, funções 93,02%. Skips não são PASS.
+Wrapper/PID históricos: .codex-temp/runWideDirectEvent20260925.cjs, 20120.
+Resultado local: .codex-temp/wide-n02g-direct-event-20260925.json.
+Evidência sanitizada: docs/audit-evidence/n02g-causal-authoring-profile/
+direct-event-validation.json. Helper prepare-direct-event-validation.cjs
+--write-new e --check PASS: hashes dos seis arquivos materiais testados,
+proposta congelada, igualdade integral corpus esperado/atual e 11 autoridades
+inalteradas. Não reroda testes nem autentica externamente os relatos locais.
+Próximo: commit publicado e UMA auditoria independente de código em conversa
+limpa no projeto finançasBot. Não reutilizar APTO documental como GO e não
+repetir ampla verde sem mudança causal.
+Focais: .codex-temp/n02g-direct-event-green-v4.json; afetados finais:
+.codex-temp/n02g-direct-event-affected-v2.json. Logs anteriores preservados.
+.codex-temp continua local, não publicar seu conteúdo indiscriminadamente.
+Monitor da revisão documental foi EXCLUÍDO; não há auditoria nova enviada.
+
+Parecer final recebido na conversa abaixo: APTO DOCUMENTAL PARA IMPLEMENTAR
+para 44342793c30573f38952e58a2c2ab0721065996e, parent único
+3d343696482136ff4c5535e81776d3ed04c44f7e. Zero CRITICAL/HIGH/MEDIUM/LOW.
+O auditor leu os três artefatos focais e confrontou contratos, binding §2/§4
+e schema. Não executou testes. Desta vez o alcance é explicitamente a
+suficiência normativa das cinco proposed_derivation, não apenas o helper.
+Monitor acompanhar-composi-o-direct-event EXCLUÍDO após conclusão.
+
+Confronto local: candidato/parent e proposta congelada preservados. Implementar
+somente as cinco composições: balance_delta com referência escalar de account;
+payment amount com categoria nominal neutral.invoice_payment e refs account/card;
+target card com identidade/version do target; correspondence com keys do schema
+fechado, sem ler referências/card. Guards de período/subject/state são comparações
+reais; não descartar reads nem derivar expected do actual. Proof e 71 outros
+grafos permanecem intactos. Primeiro REDs, aplicação exata da proposta revisada,
+GREEN/afetados, uma ampla estável e auditoria independente do novo código.
+O APTO documental não aprova código nem fecha N02-G/NEXT-02.
+
+### Histórico — envio da decisão normativa
+
+Candidato publicado/remoto confirmado: 44342793c30573f38952e58a2c2ab0721065996e,
+parent único 3d343696482136ff4c5535e81776d3ed04c44f7e. Cinco paths documentais;
+uma revisão enviada em conversa limpa no projeto finançasBot, GPT-5.6 Sol/Alta.
+Recebimento confirmado por prompt persistido e resposta inicial do auditor
+assumindo revisão normativa (não apenas extração). Conversa:
+https://chatgpt.com/g/g-p-6ab5c3870a30819187d0d634619231c5-financasbot/c/6ab6189d-69f4-83e9-b034-b66fc67a592b
+Monitor Acompanhar composição DIRECT-EVENT ATIVO a cada 5 minutos, criação
+confirmada. Excluir ao concluir/bloquear; não reenviar o hash. Este recibo local
+é posterior ao commit e não altera seu objeto. Nenhuma ampla foi iniciada.
 
 Esclarecimento recebido do auditor: alternativa B. APTO de 3d343696 julgou
 somente guardas/negativos/preservação, NÃO suficiência normativa das cinco

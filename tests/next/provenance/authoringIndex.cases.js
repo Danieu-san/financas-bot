@@ -136,7 +136,31 @@ function reviewedTransferScopeProposal() {
     assert.equal(hash(text), 'sha256:bac176de329bbb6fc009165f92830efcdc12716f61211bf8e02d1c4c669993d3');
     return JSON.parse(text);
 }
+function reviewedDirectEventProposal() {
+    const text = fs.readFileSync(path.join(root, 'docs/audit-evidence/n02g-causal-authoring-profile/direct-event-proposal-v2.json'), 'utf8').replaceAll('\r\n', '\n');
+    assert.equal(hash(text), 'sha256:6d315f09056d13e0f0f68873c158c9e48567b7c28dac6a90036e31085083d490');
+    return JSON.parse(text);
+}
+function assertHistoricalSource(document) {
+    // Historical proposals stay immutable. This independently pinned successor
+    // is the DIRECT-EVENT code delta, whose behavior is tested separately.
+    let expected = document.lf_sha256;
+    if (document.path === 'src/next/provenance/metricDirectReads.js') {
+        assert.equal(expected, 'sha256:2526b6eb373fc5265bf61798c85bf976011d3d77430858df75776306067ae3e8');
+        expected = 'sha256:5c894c224bb7432819fa1feb335902c8f4cf9a531c155b50beb0ae9b53ddefad';
+    }
+    assert.equal(hash(fs.readFileSync(path.join(root, document.path), 'utf8').replaceAll('\r\n', '\n')), expected);
+}
+function undoReviewedDirectEvent(corpus) {
+    const proposal = reviewedDirectEventProposal(); assert.equal(proposal.records.length, 5);
+    for (const r of proposal.records) {
+        const matches = corpus.graphs.filter(g => g.fact_key === r.fact_key); assert.equal(matches.length, 1);
+        assert.deepEqual(matches[0].trace_contract.derivation, r.proposed_derivation);
+        matches[0].trace_contract.derivation = structuredClone(r.current_derivation);
+    }
+}
 function undoReviewedTransferScope(corpus) {
+    undoReviewedDirectEvent(corpus);
     const counts = { required_reads: 0, required_structural: 0 };
     for (const r of reviewedTransferScopeProposal().records) {
         const d = corpus.graphs.find(g => g.fact_key === r.fact_key).trace_contract.derivation;
@@ -309,7 +333,7 @@ test('N02G:OWNED-CARDS-001 owner identity delta preserves every other corpus fie
     const snapshots = JSON.parse(fs.readFileSync(path.join(root, corpus.snapshot_manifest.path), 'utf8')).snapshots;
     const proposal = reviewedOwnedCardsProposal(); let checked = 0;
     for (const doc of proposal.documents.filter(d => d.path !== graphPath)) {
-        assert.equal(hash(fs.readFileSync(path.join(root, doc.path), 'utf8').replaceAll('\r\n', '\n')), doc.lf_sha256);
+        assertHistoricalSource(doc);
     }
     for (const claim of claims.filter(c => c.evaluator_ref.evaluator_id === 'owned_cards' && c.evaluator_ref.evaluator_version === 1)) {
         const graph = corpus.graphs.find(g => g.fact_key === claim.fact_key);
@@ -454,7 +478,7 @@ test('N02G:DUE-BILL-IDS-001 only one noncausal derivation read is removed; proof
     const snapshots = JSON.parse(fs.readFileSync(path.join(root, corpus.snapshot_manifest.path), 'utf8')).snapshots;
     const proposal = reviewedDueBillIdsProposal(); let checked = 0;
     for (const d of proposal.documents.filter(d => d.path !== graphPath)) {
-        assert.equal(hash(fs.readFileSync(path.join(root, d.path), 'utf8').replaceAll('\r\n', '\n')), d.lf_sha256);
+        assertHistoricalSource(d);
     }
     for (const claim of claims.filter(c => c.evaluator_ref.evaluator_id === 'due_bill_ids' && c.evaluator_ref.evaluator_version === 1)) {
         const graph = corpus.graphs.find(g => g.fact_key === claim.fact_key);
@@ -537,7 +561,7 @@ test('N02G:COLLECTION-KIND-001 three domain reads preserve all other graph field
     const snapshots = JSON.parse(fs.readFileSync(path.join(root, corpus.snapshot_manifest.path), 'utf8')).snapshots;
     const proposal = reviewedCollectionKindProposal(); let checked = 0;
     for (const document of proposal.documents.filter(d => d.path !== graphPath)) {
-        assert.equal(hash(fs.readFileSync(path.join(root, document.path), 'utf8').replaceAll('\r\n', '\n')), document.lf_sha256);
+        assertHistoricalSource(document);
     }
     for (const claim of claims.filter(c => collectionCountMetrics.includes(c.evaluator_ref.evaluator_id) && c.evaluator_ref.evaluator_version === 1)) {
         const graph = corpus.graphs.find(g => g.fact_key === claim.fact_key);
@@ -695,7 +719,7 @@ test('N02G:SOURCE-PRESENCE-001 three authored presence observations preserve eve
     const snapshots = JSON.parse(fs.readFileSync(path.join(root, corpus.snapshot_manifest.path), 'utf8')).snapshots;
     const proposal = reviewedSourcePresenceProposal(); let checked = 0;
     for (const document of proposal.documents.filter(d => d.path !== graphPath)) {
-        assert.equal(hash(fs.readFileSync(path.join(root, document.path), 'utf8').replaceAll('\r\n', '\n')), document.lf_sha256);
+        assertHistoricalSource(document);
     }
     for (const claim of claims.filter(c => c.evaluator_ref.evaluator_id === 'eligible_event_count' && c.evaluator_ref.evaluator_version === 1)) {
         const graph = corpus.graphs.find(g => g.fact_key === claim.fact_key);
@@ -1499,6 +1523,68 @@ test('N02G:OBSERVED-METRIC-003 installment selection is independently observed f
     assert.equal(checked, 8);
 });
 
+test('N02G:DIRECT-EVENT-004 exact frozen proposal changes only five derivations and preserves complete source corpus', () => {
+    const { canonicalValue } = require('../../../src/next/kernel/canonicalValue');
+    const corpus = JSON.parse(fs.readFileSync(path.join(root, graphPath), 'utf8')); const proposal = reviewedDirectEventProposal();
+    for (const r of proposal.records) {
+        const graph = corpus.graphs.find(g => g.fact_key === r.fact_key);
+        assert.deepEqual(graph.trace_contract.derivation, r.proposed_derivation);
+        assert.equal(hash(canonicalValue(graph.trace_contract.proof)), r.proof_preserved_sha256);
+    }
+    assert.equal(corpus.graphs.length, 76); undoReviewedDirectEvent(corpus);
+    assert.equal(hash(canonicalValue(corpus)), proposal.source_corpus_sha256);
+});
+
+test('N02G:DIRECT-EVENT-005 five admitted executions match pre-frozen derivations; missing or extra observations fail', async () => {
+    const { evaluateDirectMetric } = require('../../../src/next/provenance/metricDirectReads');
+    const { freezeDeep } = require('../../../src/next/kernel/canonicalValue');
+    const { plan, claims, graphs } = await snapshotAccessFixture(); const proposal = reviewedDirectEventProposal();
+    const oracle = JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/financasbot-next/golden-claim-oracles-v1.json'), 'utf8'));
+    let checked = 0; let negatives = 0;
+    for (const record of proposal.records) {
+        const claim = claims.find(c => c.fact_key === record.fact_key); const graph = graphs.find(g => g.fact_key === claim.fact_key);
+        const before = JSON.stringify(graph); const scope = selectionInput(claim, graph, `direct-event-${checked}`);
+        assert.deepEqual(graph.trace_contract.derivation, record.proposed_derivation);
+        const fields = ['required_nodes', 'required_reads', 'required_claim_reads', 'required_edges', 'required_structural', 'required_selections', 'selected_nodes'];
+        const expected = freezeDeep(structuredClone(Object.fromEntries(fields.map(k => [k, record.proposed_derivation[k]]))));
+        const accessBindings = plan.observationMetadata({ fact_key: claim.fact_key, phase: 'derivation' });
+        const recorder = createCausalRecorder({ executionId: scope.executionId, maxEvents: 10000 });
+        const phase = recorder.open({ invocationId: claim.fact_key, phase: 'derivation' }); const controls = []; const operands = {}; let value;
+        try {
+            for (const [role_id, binding] of Object.entries(claim.operand_bindings)) {
+                const selector = { fact_key: claim.fact_key, role_id };
+                const access = binding.kind === 'claim_context' ? plan.openContext(selector, phase.observe)
+                    : plan.open({ ...selector, alias: binding.alias }, phase.observe);
+                controls.push(access); operands[role_id] = access.handle;
+            }
+            value = evaluateDirectMetric(Object.freeze(operands), claim.metric);
+            for (const access of controls) access.assertHealthy();
+        } finally { for (const access of controls) access.revoke(); }
+        phase.seal(); const trace = recorder.finish(); const input = { ...scope, expected, trace, operandSets: [], accessBindings };
+        const coverage = comparePhaseCoverage(input);
+        assert.equal(coverage.matched, true, `${claim.fact_key}: ${JSON.stringify(coverage)}`);
+        assert.equal(coverage.graph_accepted, false); assert.deepEqual(expected.required_selections, []); assert.deepEqual(expected.selected_nodes, []);
+        const split = claim.fact_key.lastIndexOf('#');
+        assert.deepEqual(value, oracle.turns[claim.fact_key.slice(0, split)].facts[Number(claim.fact_key.slice(split + 1)) - 1].value);
+        // Remove an entire observed dimension, including repeated reads; a
+        // duplicate read cannot accidentally retain the obligation under test.
+        const dimensions = new Map();
+        for (const e of trace.derivation_trace.filter(e => ['get', 'traverse', 'keys'].includes(e.operation))) {
+            const key = JSON.stringify([e.operation, e.alias, e.path]); dimensions.set(key, e);
+        }
+        for (const key of dimensions.keys()) {
+            const kept = trace.derivation_trace.filter(e => JSON.stringify([e.operation, e.alias, e.path]) !== key);
+            assert.equal(comparePhaseCoverage({ ...input, trace: { ...trace, derivation_trace: kept.map((e, sequence) => ({ ...e, sequence })) } }).matched, false, `${claim.fact_key}/${key}`);
+            negatives++;
+        }
+        const read = trace.derivation_trace.find(e => e.operation === 'get' && e.alias === claim.operand_bindings.event.alias);
+        const extra = [...trace.derivation_trace, { ...read, path: ['person_id'], sequence: trace.derivation_trace.length }];
+        assert.equal(comparePhaseCoverage({ ...input, trace: { ...trace, derivation_trace: extra } }).matched, false);
+        assert.equal(JSON.stringify(graph), before); checked++;
+    }
+    assert.equal(checked, 5); assert.ok(negatives >= 30);
+});
+
 test('N02G:PAYMENT-REFERENCE-003 neutral payment derivations match frozen authored contracts without target payload', async () => {
     const { evaluateEffects } = require('../../../src/next/provenance/metricEffects');
     const { freezeDeep } = require('../../../src/next/kernel/canonicalValue');
@@ -1670,7 +1756,13 @@ test('N02G:REFUND-PHASE-002 both refund contexts have exact partial derivation c
 test('N02G:TRACE-COMPAT-001 required edge remains independent from derivation node and read coverage', async () => {
     const { inspectTraversalCoverage } = await import(pathToFileURL(path.join(root, 'scripts/agent/inspectNextProvenanceTraceCompatibility.mjs')));
     const { plan, graphs } = await snapshotAccessFixture();
-    const report = inspectTraversalCoverage(graphs);
+    // Keep the historical traversal/owned-card comparison on its exact corpus.
+    // DIRECT-EVENT-004/005 separately prove the successor's five derivations.
+    const beforeDirectEvent = { graphs: structuredClone(graphs) }; undoReviewedDirectEvent(beforeDirectEvent);
+    const report = inspectTraversalCoverage(beforeDirectEvent.graphs);
+    const currentReport = inspectTraversalCoverage(graphs); assert.equal(currentReport.compatible, true);
+    const directKeys = new Set(reviewedDirectEventProposal().records.map(r => r.fact_key));
+    assert.deepEqual(currentReport.edge_only.filter(e => !directKeys.has(e.fact_key)), report.edge_only.filter(e => !directKeys.has(e.fact_key)));
     assert.equal(report.compatible, true); assert.equal(report.graphs_checked, 76);
     // The reviewed refund closure supplies both endpoints and scalar reads
     // for e0002/e0004 in each of the two refund graphs: four edge-only cases
