@@ -31,7 +31,7 @@ const manifest = read(corpus.snapshot_manifest.path); assert.equal(sha(manifest)
 const snapshots = JSON.parse(manifest).snapshots;
 const profiles = {
     balance_delta: { subject: 'account', references: { account_id: 'account' }, scalar: ['amount_minor'], card: false, keys: false },
-    invoice_payment_amount: { subject: 'event', references: { category_id: 'category', account_id: 'account', settles_card_id: 'card' }, scalar: ['amount_minor'], card: false, keys: false },
+    invoice_payment_amount: { subject: 'event', references: { category_id: 'category', account_id: 'account', settles_card_id: 'card' }, nominal_references: { category_id: 'neutral.invoice_payment' }, scalar: ['amount_minor'], card: false, keys: false },
     invoice_payment_target_card: { subject: 'event', references: { settles_card_id: 'card' }, scalar: [], card: true, keys: false },
     statement_payment_correspondence: { subject: 'event', references: {}, scalar: [], card: false, keys: true }
 };
@@ -48,23 +48,23 @@ const forbiddenStatementFields = ['statement_id', 'settles_statement_id', 'settl
 for (const field of forbiddenStatementFields) assert.equal(Object.hasOwn(eventSchema.properties, field), false);
 assert.equal(corpus.graphs.length, 76); assert.equal(new Set(corpus.graphs.map(g => g.fact_key)).size, 76);
 assert.equal(new Set(claims.map(c => c.fact_key)).size, claims.length);
-function snapshot(graph, alias, kind) {
+function snapshot(graph, alias, kind, pool = snapshots) {
     const node = graph.nodes[alias]; assert.ok(node); assert.equal(node.binding, 'snapshot');
     assert.equal(node.kind, kind);
-    const found = snapshots.filter(s => s.kind === kind && s.ref_id === node.ref_id && s.version === node.version);
+    const found = pool.filter(s => s.kind === kind && s.ref_id === node.ref_id && s.version === node.version);
     assert.equal(found.length, 1); const s = found[0]; assert.equal(s.payload.id, node.ref_id);
     assert.equal(s.semantic_fingerprint, node.semantic_fingerprint); return s;
 }
-function relation(graph, alias, field, kind) {
-    const source = snapshot(graph, alias, graph.nodes[alias].kind);
+function relation(graph, alias, field, kind, pool = snapshots) {
+    const source = snapshot(graph, alias, graph.nodes[alias].kind, pool);
     const links = graph.edges.filter(e => e.source === alias && e.field === field && e.relation === 'material_ref');
     assert.equal(links.length, 1, 'relation_cardinality'); const edge = links[0];
-    const target = snapshot(graph, edge.target, kind); assert.equal(source.payload[field], target.payload.id, 'relation_value');
+    const target = snapshot(graph, edge.target, kind, pool); assert.equal(source.payload[field], target.payload.id, 'relation_value');
     return edge;
 }
 const dimensions = ['required_nodes', 'required_reads', 'required_claim_reads', 'required_edges', 'required_structural'];
 function normalize(d) { return Object.fromEntries(Object.entries(d).map(([k, v]) => [k, dimensions.includes(k) ? sorted(v) : v])); }
-function compose(claim, graph) {
+function compose(claim, graph, pool = snapshots) {
     assert.ok(Object.hasOwn(profiles, claim.metric), 'unknown_metric');
     assert.equal(claim.evaluator_ref.evaluator_id, claim.metric); assert.equal(claim.evaluator_ref.evaluator_version, 1);
     const profile = profiles[claim.metric]; const bindings = claim.operand_bindings;
@@ -73,7 +73,7 @@ function compose(claim, graph) {
     for (const r of contract.roles) assert.equal(bindings[r.role_id].kind, r.input_kind === 'claim_context' ? 'claim_context' : 'node');
     assert.deepEqual(bindings.context, { kind: 'claim_context' });
     assert.equal(bindings.event.kind, 'node'); const eventAlias = bindings.event.alias;
-    const event = snapshot(graph, eventAlias, 'event');
+    const event = snapshot(graph, eventAlias, 'event', pool);
     assert.equal(claim.subject.kind, profile.subject); assert.equal(claim.time_basis, 'event_date');
     assert.equal(claim.period.kind, 'date');
     const d = { required_nodes: [eventAlias], required_reads: [], required_claim_reads: [], required_edges: [], required_structural: [],
@@ -86,20 +86,23 @@ function compose(claim, graph) {
     for (const segments of [['subject', 'kind'], ['subject', 'ref_id'], ['period', 'kind'], ['period', 'value'], ['time_basis']])
         d.required_claim_reads.push({ segments });
     for (const [field, kind] of Object.entries(profile.references)) {
-        const edge = relation(graph, eventAlias, field, kind);
+        const edge = relation(graph, eventAlias, field, kind, pool);
+        if (Object.hasOwn(profile.nominal_references || {}, field))
+            assert.equal(event.payload[field], profile.nominal_references[field], `nominal_reference_mismatch:${field}`);
         readScalar(eventAlias, field, `${claim.metric}:contract_reference`); d.required_edges.push(edge.id);
         reasons.push({ dimension: 'edge', id: edge.id, reason: `${claim.metric}:resolved_${field}` });
     }
     for (const field of profile.scalar) readScalar(eventAlias, field, `${claim.metric}:functional_amount`);
     if (profile.card) {
         assert.equal(bindings.card.kind, 'node'); const alias = bindings.card.alias;
-        const card = snapshot(graph, alias, 'card'); const edge = relation(graph, eventAlias, 'settles_card_id', 'card');
+        const card = snapshot(graph, alias, 'card', pool); const edge = relation(graph, eventAlias, 'settles_card_id', 'card', pool);
         assert.equal(graph.nodes[edge.target].ref_id, card.ref_id); assert.equal(graph.nodes[edge.target].version, card.version);
         assert.equal(edge.target, alias, 'card_role_alias'); d.required_nodes.push(alias);
         readScalar(alias, 'id', 'returned_card_identity_bound_to_card_role');
     }
     if (profile.keys) {
-        for (const field of forbiddenStatementFields) assert.equal(Object.hasOwn(event.payload, field), false);
+        for (const field of Object.keys(event.payload))
+            assert.ok(Object.hasOwn(eventSchema.properties, field), `event_schema_extra_key:${field}`);
         d.required_structural.push({ node: eventAlias, operation: 'keys', segments: [] });
         reasons.push({ dimension: 'structural', node: eventAlias, operation: 'keys', reason: 'schema_and_observed_absence_of_statement_link' });
     }
@@ -164,7 +167,7 @@ for (const record of records) {
     assert.deepEqual(compose(reversedClaim, reversedGraph).derivation, record.proposed_derivation); reorderedCases++;
 }
 const negatives = [];
-function rejects(name, fn) { assert.throws(fn); negatives.push(name); }
+function rejects(name, fn, expected) { assert.throws(fn, expected); negatives.push(name); }
 const amountClaim = claims.find(c => c.metric === 'invoice_payment_amount');
 const amountGraph = corpus.graphs.find(g => g.fact_key === amountClaim.fact_key);
 rejects('unknown_metric', () => compose({ ...amountClaim, metric: 'unknown' }, amountGraph));
@@ -185,6 +188,33 @@ rejects('same_kind_account_value_mismatch', () => compose(amountClaim, mismatche
 const targetClaim = claims.find(c => c.metric === 'invoice_payment_target_card');
 const targetGraph = corpus.graphs.find(g => g.fact_key === targetClaim.fact_key);
 rejects('wrong_card_role', () => compose({ ...targetClaim, operand_bindings: { ...targetClaim.operand_bindings, card: { kind: 'node', alias: targetClaim.operand_bindings.event.alias } } }, targetGraph));
+// Synthetic composition inputs, not admitted production snapshots. Change a
+// copied pool only; exact error assertions prove the intended semantic guard,
+// not file pinning, a broken reference or a different nominal kind, rejects it.
+const originalPoolDigest = digest(snapshots);
+const categoryEdge = amountGraph.edges.find(e => e.source === amountClaim.operand_bindings.event.alias && e.field === 'category_id');
+const otherCategories = snapshots.filter(s => s.kind === 'category' && s.ref_id !== 'neutral.invoice_payment');
+assert.ok(otherCategories.length > 1);
+for (const alternative of otherCategories) {
+    const pool = structuredClone(snapshots); const graph = structuredClone(amountGraph);
+    const source = snapshot(graph, amountClaim.operand_bindings.event.alias, 'event', pool);
+    source.payload.category_id = alternative.ref_id;
+    graph.nodes.alternative_category = { ...graph.nodes[categoryEdge.target], ref_id: alternative.ref_id,
+        version: alternative.version, semantic_fingerprint: alternative.semantic_fingerprint };
+    graph.edges = graph.edges.map(e => e.id === categoryEdge.id ? { ...e, target: 'alternative_category' } : e);
+    // Control: a structurally coherent same-kind relation really exists.
+    assert.equal(relation(graph, amountClaim.operand_bindings.event.alias, 'category_id', 'category', pool).target, 'alternative_category');
+    rejects(`wrong_nominal_category:${alternative.ref_id}`, () => compose(amountClaim, graph, pool), /nominal_reference_mismatch/);
+}
+const correspondenceClaim = claims.find(c => c.metric === 'statement_payment_correspondence');
+const correspondenceGraph = corpus.graphs.find(g => g.fact_key === correspondenceClaim.fact_key);
+for (const field of [...Array.from({ length: 32 }, (_, i) => `extension_${i}`), ...forbiddenStatementFields, 'unreviewed_link', 'future_metadata', 'Statement_Id']) {
+    assert.equal(Object.hasOwn(eventSchema.properties, field), false);
+    const pool = structuredClone(snapshots);
+    snapshot(correspondenceGraph, correspondenceClaim.operand_bindings.event.alias, 'event', pool).payload[field] = 'synthetic';
+    rejects(`event_schema_extra_key:${field}`, () => compose(correspondenceClaim, correspondenceGraph, pool), /event_schema_extra_key/);
+}
+assert.equal(digest(snapshots), originalPoolDigest);
 assert.equal(digest(corpus), before);
 const totals = Object.fromEntries(dimensions.map(k => [k, { added: records.reduce((n, r) => n + r.delta[k].added.length, 0), removed: records.reduce((n, r) => n + r.delta[k].removed.length, 0) }]));
 const record = { schema: 'n02g-direct-event-proposal-v2', base, status: 'documentary_proposal_not_applied',

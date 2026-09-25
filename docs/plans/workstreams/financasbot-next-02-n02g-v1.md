@@ -2,6 +2,16 @@
 
 Data: 2026-09-11. Estado: CHARTER APROVADO; IMPLEMENTAÇÃO EM DESENVOLVIMENTO.
 
+Endurecimento documental DIRECT-EVENT v2, parent 12d93ee1d9388bda9c5f704b0062f8b97d1b0dd5:
+o NÃO APTO focal confirmou ausência de checagem nominal da categoria e fechamento
+incompleto das keys no helper. Corrigir por restrição nominal declarativa e
+confronto de todas as keys com properties do schema fixado, sem novos reads,
+sem alteração da composição ou do delta simulado. REDs reproduzidos; helper
+--check PASS com 57 negativos, 15 renames e 10 invariâncias. Cinco registros
+propostos/provas/fontes iguais ao parent. A nova revisão é documental do helper,
+não auditoria nem aprovação de runtime. Ampla financeira não repetida.
+APTO confrontado continua obrigatório antes de aplicar qualquer proposta.
+
 DIRECT-EVENT v1 (f51b32f4f6a57364ddac1cb7e0282af7017a5d4a) recebeu NÃO APTO.
 Confronto confirmou conta derivacional obrigatória em invoice_payment_amount
 e referências excedentes nos outros contratos. A v1 não foi aplicada.

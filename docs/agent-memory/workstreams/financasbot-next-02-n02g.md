@@ -1,12 +1,46 @@
 # N02-G — checkpoint
 
-Atualização: 2026-09-24. Estado: PAYMENT-REFERENCE APROVADO FOCALMENTE; DIRECT-EVENT v1 NÃO APTO, v2 candidata documental; SEM GO GLOBAL/EXECUTÁVEL N02-G.
+Atualização: 2026-09-24. Estado: PAYMENT-REFERENCE APROVADO FOCALMENTE; DIRECT-EVENT v2 NÃO APTO, endurecimento candidato documental; SEM GO GLOBAL/EXECUTÁVEL N02-G.
 Base: `aea4ac31e358ed8d8907e78f6002c8bb80233bc8`.
 Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação exata — publicar/revisar DIRECT-EVENT v2
+## Próxima ação exata — publicar e auditar endurecimento DIRECT-EVENT v2
+
+Parent da correção: 12d93ee1d9388bda9c5f704b0062f8b97d1b0dd5. Parecer externo
+NÃO APTO confrontado: HIGH categoria nominal não verificada; MEDIUM fechamento
+das keys não conferido contra o conjunto inteiro do schema; LOW testes ausentes.
+Composição das quatro métricas mantida, inclusive correspondence sem consumo
+de card. Nada aplicado ao runtime/registry/contratos/corpus. Monitor PAUSADO após
+recebimento do parecer; não consultar novamente a conversa v2 como pendente.
+
+Correção somente do helper/documentação: nominal_references declarativo após
+relação coerente; todas as keys próprias enumeráveis do payload JSON confrontadas
+com properties do schema fixado. Não afirma validação integral do JSON Schema.
+Inputs sintéticos em pools copiados testam compose, não admissão de fingerprints.
+RED nominal reproduzido; após corrigi-lo, RED de extensão arbitrária reproduzido.
+GREEN: helper --check, 57 negativos (8 anteriores + 11 categorias alternativas
++ 38 extensões de keys), 15 renames, 5 reordenações, 5 adulterações do expected
+antigo. Comparação integral ao parent confirma records/proposed_totals/contracts/
+documents/source_corpus_sha256 inalterados. Syntax check PASS. Nenhuma ampla
+repetida: não houve alteração de execução financeira. .codex-temp preservada.
+Telemetria NAO_DISPONIVEL (checkpoint anterior registra coletor inativo).
+
+Enviar UMA reauditoria focal do novo hash no projeto finançasBot indicado por
+Daniel, usando navegador interno autenticado. APTO documental não aprova código.
+Após envio confirmado, atualizar monitor de 5 minutos para a nova conversa.
+Sem GO global, NEXT-03, deploy, produção ou dados reais.
+
+### Histórico — envio e rejeição da v2 original
+
+Candidato publicado: 12d93ee1d9388bda9c5f704b0062f8b97d1b0dd5, parent único
+f51b32f4f6a57364ddac1cb7e0282af7017a5d4a. Remoto confirmado. Uma revisão enviada,
+conversa criada e pesquisa do auditor confirmadas. Não reenviar.
+Conversa: https://chatgpt.com/g/g-p-6aae7fa3ad5c8191a8ace5a6d799fab4-financasbot/c/6ab5c056-1b34-83e9-910e-fd47adf3dff9
+Monitor acompanhar-revis-o-focal-n02-g foi ATIVO a cada 5 minutos (ativação confirmada
+para v2), depois PAUSADO no parecer final. APTO documental não aprova código;
+implementar apenas após confronto e sob limites do plano vigente.
 
 Parecer v1 recebido: NÃO APTO para f51b32f4f6a57364ddac1cb7e0282af7017a5d4a.
 Confronto confirmou HIGH (account_id exigido em amount), MEDIUM (referências

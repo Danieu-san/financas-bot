@@ -4,7 +4,34 @@
 NÃO APLICADA. Substitui a proposta v1 rejeitada, preservada no Git e nos
 artefatos sem sufixo v2. Não altera runtime, registry, contratos ou 76 grafos.
 
-## Confronto do NÃO APTO
+## Endurecimento após a revisão de 12d93ee
+
+A v2 publicada recebeu NÃO APTO: o helper conferia categoria de mesmo kind,
+mas não sua identidade nominal, e a ausência das três chaves conhecidas não
+provava fechamento de todas as chaves do payload. As alegações de validação
+nominal/fechamento não eram demonstradas naquele hash. A composição proposta
+permanece a mesma; nenhuma parte foi aplicada ao runtime ou corpus.
+
+Contrato da correção: restrições nominais são dados declarativos do perfil
+(category_id = neutral.invoice_payment), verificadas após a relação coerente;
+o fechamento de keys usa o conjunto completo de properties do schema fixado,
+não uma lista crescente de nomes proibidos. Testes geram referências coerentes
+para todas as categorias alternativas da fixture e extensões sintéticas fora
+do schema. Cada rejeição exige o erro específico, sem depender de pins ou de
+uma referência quebrada. Isso valida composição documental, não admissão de
+snapshots mutados nem validação integral de tipos/valores do JSON Schema.
+
+Execução local: RED de categoria nominal reproduzido (relação coerente de mesmo
+kind aceita antes da correção); após a guarda nominal, extensão arbitrária
+reproduziu outro RED. Helper --check final PASS: 57 negativos, dos quais 11
+categorias alternativas e 38 extensões de keys (32 nomes gerados, três vínculos
+statement conhecidos e três outros nomes); 15 renames, 5 reordenações e 5
+adulterações do expected antigo. Comparação integral dos records, proposed_totals,
+contracts, documents e source_corpus_sha256 com 12d93ee confirmou igualdade.
+Os pools dos negativos são cópias e o digest do pool original é preservado.
+São testes locais de composição documental; nenhuma suíte financeira repetida.
+
+## Histórico — confronto do NÃO APTO v1
 
 HIGH confirmado: invoice_payment_amount exige explicitamente validação de
 categoria, conta e cartão. Sua referência account_id precisa de get + resolução
