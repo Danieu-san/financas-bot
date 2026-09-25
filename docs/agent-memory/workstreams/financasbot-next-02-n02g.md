@@ -1,15 +1,47 @@
 # N02-G — checkpoint
 
-Atualização: 2026-09-24. Estado: PAYMENT-REFERENCE APROVADO FOCALMENTE; DIRECT-EVENT proposta documental aguardando revisão; SEM GO GLOBAL/EXECUTÁVEL N02-G.
+Atualização: 2026-09-24. Estado: PAYMENT-REFERENCE APROVADO FOCALMENTE; DIRECT-EVENT v1 NÃO APTO, v2 candidata documental; SEM GO GLOBAL/EXECUTÁVEL N02-G.
 Base: `aea4ac31e358ed8d8907e78f6002c8bb80233bc8`.
 Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação exata — revisão documental DIRECT-EVENT
+## Próxima ação exata — publicar/revisar DIRECT-EVENT v2
+
+Parecer v1 recebido: NÃO APTO para f51b32f4f6a57364ddac1cb7e0282af7017a5d4a.
+Confronto confirmou HIGH (account_id exigido em amount), MEDIUM (referências
+extras sustentadas pela autoria, não pelo contrato) e LOW (checks limitados
+a keys; canonicalValue não protegido no helper). Nada da v1 foi aplicado.
+Monitor permaneceu PAUSADO: a reativação anterior falhou por limite de uso;
+o parecer chegou por anexo antes da retomada. Não reenviar auditoria v1.
+
+Nova proposta: docs/audit-evidence/n02g-causal-authoring-profile/
+direct-event-proposal-v2.md, prepare-direct-event-proposal-v2.cjs e JSON v2.
+Base f51b32f...; fontes/runtime/contratos/corpus preservados. Perfil completo
+por métrica: saldo exige conta; amount exige categoria/conta/cartão; target_card
+consome cartão sem owner; correspondence consulta estrutura do evento sem
+consumir card. Esta última separação é decisão explícita a revisar, não GO herdado.
+Simulação: 5 grafos alterados/71 iguais; -1 node, +1/-13 reads, +1/-12 edges,
++1 keys, contexto/seleção/proof preservados. Helper --write-new/--check PASS;
+12 documentos protegidos incluindo canonicalValue antes de import. 15 renames
+do perfil completo, 5 reordenações, 5 adulterações do expected antigo sem efeito,
+8 negativos. Check rejeitou JSON obsoleto após adição do oitavo negativo; JSON
+atualizado e igualdade integral conferida. Nenhuma execução financeira/ampla.
+Enviar UMA auditoria documental v2 em conversa limpa; não aplicar delta nem
+implementar até APTO confrontado. Código futuro exige RED/afetados/ampla/auditoria.
+Preservar .codex-temp e bloqueios globais. Telemetria NAO_DISPONIVEL (inativa).
+
+### Histórico — DIRECT-EVENT v1 rejeitada
+
+Candidato publicado f51b32f4f6a57364ddac1cb7e0282af7017a5d4a, parent único
+07a2b2f04707c504c5412c0fc1456f1ced02fcf4; remoto confirmado. Revisão enviada UMA
+vez e recebimento confirmado por resposta inicial/pesquisa do auditor.
+Conversa: https://chatgpt.com/g/g-p-6aae7fa3ad5c8191a8ace5a6d799fab4-financasbot/c/6ab58913-bf38-83e9-a9a5-3ffd1a8e581f
+Monitor acompanhar-revis-o-focal-n02-g permaneceu PAUSADO por falha na ativação;
+parecer recebido manualmente. Não reenviar. Aprovação documental não aprova código futuro.
 
 Recibo PAYMENT-REFERENCE publicado em 07a2b2f04707c504c5412c0fc1456f1ced02fcf4.
-Classificação da sonda preservada: 17 divergências em cinco classes de métricas
+Classificação da sonda preservada: 17 divergências em quatro classes de métricas
 (contas/movimentos, parcelas, movimentos diretos/pagamentos, similares), com três
 derivados ainda não exercitados; contagens não são progresso percentual/global.
 Próximo recorte: quatro métricas diretas, cinco claims. Existe decisão normativa

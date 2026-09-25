@@ -2,7 +2,18 @@
 
 Data: 2026-09-11. Estado: CHARTER APROVADO; IMPLEMENTAÇÃO EM DESENVOLVIMENTO.
 
-Recorte DIRECT-EVENT aberto em 2026-09-24 após fechamento PAYMENT-REFERENCE.
+DIRECT-EVENT v1 (f51b32f4f6a57364ddac1cb7e0282af7017a5d4a) recebeu NÃO APTO.
+Confronto confirmou conta derivacional obrigatória em invoice_payment_amount
+e referências excedentes nos outros contratos. A v1 não foi aplicada.
+Proposta substituta em docs/audit-evidence/n02g-causal-authoring-profile/
+direct-event-proposal-v2.md: perfil completo por métrica, sem input de trace,
+delta simulado de cinco grafos (71 intactos), proof integral preservada;
+keys válido, account_id acrescentado em amount, referências não causais retiradas.
+Correspondence separado de target_card requer julgamento explícito do auditor.
+Helper v2 protege canonicalValue e testa a composição completa. Nenhum runtime,
+contrato ou corpus modificado nesta etapa; APTO documental ainda pendente.
+
+Histórico da v1 rejeitada: DIRECT-EVENT aberto em 2026-09-24 após fechamento PAYMENT-REFERENCE.
 Proposta documental (não aplicada) em
 docs/audit-evidence/n02g-causal-authoring-profile/direct-event-proposal.md.
 Cinco claims/quatro métricas: balance_delta, invoice_payment_amount,
