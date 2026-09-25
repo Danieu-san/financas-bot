@@ -1,6 +1,21 @@
 # N02-G — execução integral de provenance
 
-Data: 2026-09-11. Estado: CHARTER APROVADO; IMPLEMENTAÇÃO EM DESENVOLVIMENTO.
+Data: 2026-09-11. Estado: CHARTER APROVADO; N02-G EM EXECUÇÃO; SEM GO GLOBAL.
+
+Atualização 2026-09-25: DIRECT-EVENT foi aprovado focalmente no código do
+candidato `2357887e2e2c419c3f2e152638400fb977898b90` (parent único
+`44342793c30573f38952e58a2c2ab0721065996e`), sem findings. A auditoria foi
+estática e não reexecutou os testes; a evidência local final permanece 6/6
+focais, 281/281 afetados e ampla única 2.411/2.401 PASS/0 FAIL/10 SKIP/0 TODO,
+`valid=true`, `candidate_unchanged=true`. Não repetir essa ampla sem mudança
+causal. O código não encerra N02-G nem NEXT-02 global.
+
+Próximo recorte após retomada: diagnóstico-only de `M-16#1#2 / similar_event_ids`,
+confrontando contrato, grafo, binding e observações instrumentadas. A sonda não
+é critério de aceitação e não autoriza copiar `actual` para `expected`. Exigir
+decisão normativa antes de eventual alteração de runtime/corpus, seguida de
+REDs, testes afetados, uma ampla estável e auditoria independente do novo código.
+Preservar `.codex-temp`; sem GO global, NEXT-03, deploy, produção ou dados reais.
 
 2026-09-25 — DIRECT-EVENT: parecer final APTO DOCUMENTAL PARA IMPLEMENTAR
 recebido para 44342793c30573f38952e58a2c2ab0721065996e, parent único

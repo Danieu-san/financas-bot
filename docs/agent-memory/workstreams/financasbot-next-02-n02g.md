@@ -1,12 +1,46 @@
 # N02-G — checkpoint
 
-Atualização: 2026-09-25. Estado: PAYMENT-REFERENCE APROVADO FOCALMENTE; DIRECT-EVENT código validado localmente, aguardando auditoria independente; SEM GO GLOBAL/EXECUTÁVEL N02-G.
+Atualização: 2026-09-25. Estado: PAYMENT-REFERENCE e DIRECT-EVENT APROVADOS FOCALMENTE; SEM GO GLOBAL/EXECUTÁVEL N02-G.
 Base: `aea4ac31e358ed8d8907e78f6002c8bb80233bc8`.
 Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação exata — publicar e auditar código DIRECT-EVENT
+## Próxima ação exata — diagnóstico do próximo recorte N02-G
+
+DIRECT-EVENT aprovado focalmente pelo parecer independente na conversa do
+projeto finançasBot: candidato `2357887e2e2c419c3f2e152638400fb977898b90`,
+parent único `44342793c30573f38952e58a2c2ab0721065996e`, zero findings em todas
+as severidades. Revisão estática de código; o auditor não reexecutou testes.
+Conversa: https://chatgpt.com/g/g-p-6ab5c3870a30819187d0d634619231c5-financasbot/c/6ab66e52-a8f4-83e9-900d-14dd639070b1
+Monitor de auditoria excluído após o parecer; não reenviar este hash.
+
+Evidência local já relatada e preservada: 6/6 focais, 281/281 afetados e uma
+ampla final de 2.411 testes (2.401 PASS, 0 FAIL, 10 SKIP, 0 TODO),
+`valid=true`, `candidate_unchanged=true`. Não repetir a ampla sem mudança causal.
+O helper `prepare-direct-event-validation.cjs --check` passou e confirmou o
+delta exato das cinco propostas. `.codex-temp` permanece local e não deve ser
+publicada nem descartada indiscriminadamente.
+
+Próxima ação após a retomada: continuar o diagnóstico-only da cobertura N02-G,
+começando por `M-16#1#2 / similar_event_ids`; confrontar contrato, grafo,
+binding e leituras reais antes de propor qualquer edição. A sonda atual não
+aceita grafos nem valida resultado/oracle. Não copiar `actual` para `expected`;
+qualquer alteração de runtime/corpus exige primeiro a decisão normativa
+aplicável, REDs, bateria afetada, uma ampla estável e auditoria própria.
+Três métricas derivadas ainda não exercitadas: `M-01#1#3 ranking_winner`,
+`M-01#1#4 consumption_difference` e `M-14#1#3 income_minus_open_bills`.
+
+Handoff solicitado para outro Codex/computador. Candidato de código publicado
+em `2357887e2e2c419c3f2e152638400fb977898b90`; branch
+`codex/financasbot-n02g-provenance-engine-20260911`. Nesta fronteira não iniciar
+o próximo recorte. Preservar a árvore existente e `.codex-temp`; na retomada,
+ler `AGENTS.md` e `docs/agent-memory/START-HERE.md`, executar
+`scripts/agent/resumePortableWork.ps1` e conferir o `resume_target` antes de
+usar este checkpoint. Sem GO global N02-G/NEXT-02, NEXT-03, deploy, produção ou
+dados reais.
+
+### Histórico — evidência local anterior à publicação
 
 Checkpoint de execução (2026-09-25): código/derivações implementados localmente,
 ainda NÃO commitados nem auditados. HEAD/base permanece
