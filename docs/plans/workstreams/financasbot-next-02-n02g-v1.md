@@ -10,11 +10,14 @@ focais, 281/281 afetados e ampla única 2.411/2.401 PASS/0 FAIL/10 SKIP/0 TODO,
 `valid=true`, `candidate_unchanged=true`. Não repetir essa ampla sem mudança
 causal. O código não encerra N02-G nem NEXT-02 global.
 
-Próximo recorte após retomada: diagnóstico-only de `M-16#1#2 / similar_event_ids`,
-confrontando contrato, grafo, binding e observações instrumentadas. A sonda não
-é critério de aceitação e não autoriza copiar `actual` para `expected`. Exigir
-decisão normativa antes de eventual alteração de runtime/corpus, seguida de
-REDs, testes afetados, uma ampla estável e auditoria independente do novo código.
+2026-09-26: diagnóstico de `M-16#1#2 / similar_event_ids` concluído; continuidade
+autônoma autorizada. Proposta documental NÃO APLICADA em
+`docs/audit-evidence/n02g-causal-authoring-profile/similar-event-proposal.md`,
+JSON e helper homônimos. Perfil completo por composição de contexto, população,
+referência opcional e identidade transitiva; não novo remendo por fact_key.
+Próxima ação: auditoria da suficiência normativa, antes de qualquer aplicação.
+A sonda não é aceitação nem autoriza copiar actual para expected. Após APTO
+documental confrontado: REDs, afetados, uma ampla estável e auditoria da aplicação.
 Preservar `.codex-temp`; sem GO global, NEXT-03, deploy, produção ou dados reais.
 
 2026-09-25 — DIRECT-EVENT: parecer final APTO DOCUMENTAL PARA IMPLEMENTAR

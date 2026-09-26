@@ -1,12 +1,79 @@
 # N02-G — checkpoint
 
-Atualização: 2026-09-25. Estado: PAYMENT-REFERENCE e DIRECT-EVENT APROVADOS FOCALMENTE; SEM GO GLOBAL/EXECUTÁVEL N02-G.
+Atualização: 2026-09-26. Estado: SIMILAR-EVENT PROPOSTA DOCUMENTAL NÃO APLICADA; PAYMENT-REFERENCE e DIRECT-EVENT APROVADOS FOCALMENTE; SEM GO GLOBAL/EXECUTÁVEL N02-G.
 Base: `aea4ac31e358ed8d8907e78f6002c8bb80233bc8`.
 Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação exata — diagnóstico do próximo recorte N02-G
+## Próxima ação — auditoria documental de SIMILAR-EVENT
+
+Daniel autorizou continuidade autônoma em 2026-09-26. Proposta de perfil causal
+completo preparada sobre `c3db3ecb8ffe4af681ec2547df6abb13896e9c40`, sem
+aplicação ao corpus/runtime. Fontes e gates:
+`docs/audit-evidence/n02g-causal-authoring-profile/similar-event-proposal.md`,
+JSON homônimo e `prepare-similar-event-proposal.cjs`.
+Composição declarativa por ID+versão, roles, presença e relações versionadas;
+não lê actual/oracle nem copia proof. Neste corpus: 17 nós, 50 reads, 5 claim
+reads, 1 aresta e 16 has. 24 modelos documentais e 144 negativos PASS; não são
+execuções financeiras ou mutantes admitidos. Preservados 75 outros grafos,
+proof e demais campos na simulação. Nenhuma suíte financeira repetida.
+
+Publicar somente proposta/helper/evidência e checkpoint/plano sanitizados.
+Pedir APTO DOCUMENTAL para a suficiência do perfil/delta, não apenas para o
+helper. Se necessário, expor objeto original em branch auxiliar de formatação,
+sem integrar. Não implementar antes de confrontar o parecer com fontes locais.
+A aplicação posterior exige RED/afetados, ampla estável e auditoria própria.
+Sem GO global, NEXT-03, deploy, produção ou dados reais.
+
+Telemetria: coletor local estava parado; iniciado saudável, sem alteração de
+configuração ou ampliação de coleta. Objetivo N02G-SIMILAR-PROPOSAL-20260926;
+ausência de métricas nativas deve permanecer NAO_DISPONIVEL, nunca zero.
+
+## Histórico — retomada 2026-09-25 / diagnóstico-only concluído
+
+Retomada validada por `resumePortableWork.ps1`: raiz efetiva
+`.codex-worktrees/financasbot-n02g-provenance-engine`, branch acima e HEAD
+`c3db3ecb8ffe4af681ec2547df6abb13896e9c40`. Árvore rastreada inicialmente
+limpa; `.codex-temp` preservada. Nenhum runtime, teste ou corpus foi alterado.
+
+Recorte examinado: `M-16#1#2 / similar_event_ids@1`. Foram confrontados contrato
+da métrica, claim/roles, grafo integral local, snapshots ligados por
+kind/ref_id/version, registry material, seção 4 do binding contract,
+`metricDirectReads.js`, `metricReferences.js` e teste DIRECT-REFERENCE-002.
+A evidência instrumentada reutilizada é
+`.codex-temp/coverage-direct-event-20260925.json`, source_head `2357887...`:
+sua única alteração rastreada declarada era este checkpoint; o diff desse
+commit até o HEAD da retomada contém somente checkpoint/plano. Não houve nova
+execução da sonda ou de testes, nem repetição da ampla verde.
+
+Diagnóstico: o contrato seleciona eventos confirmed por mês e merchant, sem
+filtro de pessoa/categoria. A derivation atual exige 82 reads e 33 arestas;
+32 reads (person_id/category_id dos 16 candidatos) e suas 32 arestas não
+participam dessa fórmula. O runtime observa has(merchant_key) nos 16 candidatos
+antes do retorno do predicado, mas required_structural está vazio. Havendo a
+referência, lê o escalar, segue a relação e consome a identidade versionada do
+merchant. Neste corpus só evt_market_a possui merchant_key; sua aresta e o ID
+do merchant já estão declarados. Nós, reads de claim e seleção não divergiram
+na sonda. A sonda não verifica R/oracle nem aceita grafo/host.
+
+A hipótese causal a submeter à decisão normativa é um perfil completo por
+evaluator ID+versão, roles e relações admitidas, não um patch por fact_key:
+para este corpus, 17 nós, 50 reads, 5 claim reads, 1 aresta e 16 has.
+Esses números não são autorização para editar. Proof permanece separado:
+possui apenas 12 has(merchant_key), logo copiá-lo não autoraria as observações
+dos 16 candidatos. Não preencher expected por actual nem acrescentar leituras
+inúteis ao runtime para satisfazer inventário antigo. Preservar proof, seleção
+e demais 75 grafos em qualquer futura proposta fechada.
+
+Próxima fronteira: somente com autorização de avanço, preparar a decisão
+documental do perfil causal completo e seus controles (ausência/presença,
+merchant diferente/versão diferente, estado/período, aliases e população),
+respeitando a trava anti-remendo. Nenhuma proposta foi aplicada ou publicada;
+implementação segue dependendo dos gates normativos, RED/afetados, ampla
+estável e auditoria próprios. SEM GO global N02-G, NEXT-03 ou produção.
+
+## Histórico da fronteira recebida — diagnóstico do próximo recorte N02-G
 
 DIRECT-EVENT aprovado focalmente pelo parecer independente na conversa do
 projeto finançasBot: candidato `2357887e2e2c419c3f2e152638400fb977898b90`,

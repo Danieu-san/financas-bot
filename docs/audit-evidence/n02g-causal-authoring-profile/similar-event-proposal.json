@@ -1,0 +1,1710 @@
+{
+  "schema": "n02g-similar-event-proposal-v1",
+  "base": "c3db3ecb8ffe4af681ec2547df6abb13896e9c40",
+  "status": "documentary_proposal_not_applied",
+  "graph_accepted": false,
+  "normative_application_allowed": false,
+  "runtime_approval": false,
+  "source_corpus_sha256": "sha256:82f171f80e49c5565cc42fa3af748043728f892b23473d938bb9e04470606993",
+  "documents": [
+    {
+      "path": "src/next/kernel/canonicalValue.js",
+      "lf_sha256": "sha256:f6d571ddc1c7917f6a0ec8e25b17368c3e23ba10111ea5aa591c692d6739205b",
+      "bytes": 2146,
+      "blob": "75aa19edcf5ab77540d49c4973e10c48d9dcf9c1"
+    },
+    {
+      "path": "src/next/provenance/civilCalendar.js",
+      "lf_sha256": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "bytes": 3345,
+      "blob": "c4096c4237760b0d80b8a62ac78ed4eef95576ba"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+      "lf_sha256": "sha256:51a8ce8b97366df352d88a7eb5dc61049ef0e771daa9be9cef1eb030f1cdb08b",
+      "bytes": 4963056,
+      "blob": "7befc35e12e51c47816d183af8ea261ede17549a"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claims-v2.json",
+      "lf_sha256": "sha256:4810612761ea7f232e4445c0d192ae53ebf0761f0ba8752da758efb826b30494",
+      "bytes": 64240,
+      "blob": "0f0ade4e0f174966ae9f2660df97cc0b29d2d775"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/metric-evaluator-registry-v1.json",
+      "lf_sha256": "sha256:577fe16b3d5a1dc2e24505de150001afd889408f5294a6834486de338d40a3a0",
+      "bytes": 45195,
+      "blob": "2050944ba328605b743413ead44abe54456cc119"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evidence-snapshot.schema.json",
+      "lf_sha256": "sha256:054a48930a5f25760f201e8b401f0f34f5a83672366acad6c9c09bdc0ce0b5ef",
+      "bytes": 17718,
+      "blob": "3bbba0aae5c05d2bf0d30a714a5e1faa518f6fb1"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/material-field-registry-v1.json",
+      "lf_sha256": "sha256:ee7ef3eff146bc2e9cea2cc986c398371acbff3cf35d858ced8386a9758a4d62",
+      "bytes": 10998,
+      "blob": "03d53deb88eae3317dc1c0f58f7af552bd8b12bf"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/graph-binding-contract-v1.md",
+      "lf_sha256": "sha256:da90befb1f526048cfe14122cd8522690292508bebf42d60ea4ecd5838513a40",
+      "bytes": 19080,
+      "blob": "6556cd13008c7c4197a27d668755c5941b3644f7"
+    },
+    {
+      "path": "src/next/provenance/metricDirectReads.js",
+      "lf_sha256": "sha256:5c894c224bb7432819fa1feb335902c8f4cf9a531c155b50beb0ae9b53ddefad",
+      "bytes": 12998,
+      "blob": "01809afda0433982213b49ef2a0a05920c62236e"
+    },
+    {
+      "path": "src/next/provenance/metricReferences.js",
+      "lf_sha256": "sha256:0a96471a46324599c92c8c2f604e5761749902c6b9393eb738b09aad868d5e7b",
+      "bytes": 2995,
+      "blob": "81858370706a5f4eb59ffb093498c8cca502f1f3"
+    },
+    {
+      "path": "tests/next/provenance/metricDirectReads.cases.js",
+      "lf_sha256": "sha256:d0e8e1cc06e94d763df12370aef8cac98c01d2ff7b9d0a5becf0f443c775f266",
+      "bytes": 28929,
+      "blob": "12efb38eae9b4e247f7148f8c04168ffb23e30d8"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/snapshot-manifest-v1.json",
+      "lf_sha256": "sha256:2547229db3c07f2dd0941601ab5164bf89981ce966e4e23a2e3058124edba8c4",
+      "bytes": 52403,
+      "blob": "f83ff603add9d90b2850a2f05ad87e36923e88ed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/similar_event_ids.json",
+      "lf_sha256": "sha256:1f994c3caaea2a7c7fa968a49f872bb2b3f4d8ce0b959fc25bf26bbe5dac6817",
+      "bytes": 1228,
+      "blob": "3624b97206830f978820b0d61251f0dd129c49da"
+    }
+  ],
+  "profile": {
+    "evaluator_id": "similar_event_ids",
+    "evaluator_version": 1,
+    "context": {
+      "subject_kind": "merchant",
+      "period_kind": "month",
+      "time_basis": "event_date",
+      "reads": [
+        [
+          "subject",
+          "kind"
+        ],
+        [
+          "subject",
+          "ref_id"
+        ],
+        [
+          "period",
+          "kind"
+        ],
+        [
+          "period",
+          "value"
+        ],
+        [
+          "time_basis"
+        ]
+      ]
+    },
+    "scope": {
+      "role": "merchant",
+      "kind": "merchant_identity",
+      "reads": [
+        "id"
+      ]
+    },
+    "population": {
+      "role": "events",
+      "kind": "event",
+      "reads": [
+        "id",
+        "date",
+        "state"
+      ],
+      "optional_references": [
+        {
+          "field": "merchant_key",
+          "target_kind": "merchant_identity",
+          "target_reads": [
+            "id"
+          ]
+        }
+      ]
+    }
+  },
+  "contract": {
+    "schema_version": 1,
+    "contract_id": "similar_event_ids_v1",
+    "metric": "similar_event_ids",
+    "unit": "entity_ids",
+    "stage": "authoring",
+    "signature": {
+      "context": "explicit_versioned_instrumented_claim",
+      "operands": "resolve_roles_from_metric_evaluator_registry",
+      "output": {
+        "kind": "id_set"
+      }
+    },
+    "semantics": [
+      "Retornar IDs dos eventos confirmed do mês com merchant_key exatamente igual à consultada. Similar aqui é a igualdade revisada de chave, não aproximação textual ou merge automático."
+    ],
+    "algebraic_properties": [
+      "Adicionar membro elegível novo altera exatamente a lista por esse ID; membro fora do escopo não entra."
+    ],
+    "reuse": {
+      "path": "scripts/agent/validateFinancasBotNextFacts.mjs",
+      "locator": "derive.similar_event_ids",
+      "status": "behavior_reference_requires_instrumented_adaptation"
+    },
+    "limitations": [
+      "Assinatura de autoria; executável instrumentado e seu closure ainda não foram construídos/revisados.",
+      "A fórmula opera somente sobre handles e roles resolvidos do registry, com escopo/período comprovados pelo grafo.",
+      "Não usar oracle como input, autodeclarar trace ou aceitar campo non_material."
+    ]
+  },
+  "registry_entry": {
+    "evaluator_id": "similar_event_ids",
+    "evaluator_version": 1,
+    "metric": "similar_event_ids",
+    "unit": "entity_ids",
+    "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/similar_event_ids.json",
+    "evaluator_contract_hash": "sha256:1f994c3caaea2a7c7fa968a49f872bb2b3f4d8ce0b959fc25bf26bbe5dac6817",
+    "artifact_status": "not_built",
+    "roles": [
+      {
+        "role_id": "context",
+        "semantic_role": "scope",
+        "input_kind": "claim_context",
+        "cardinality": "one",
+        "ordered": false
+      },
+      {
+        "role_id": "events",
+        "semantic_role": "population",
+        "input_kind": "node_set",
+        "cardinality": "many",
+        "ordered": true
+      },
+      {
+        "role_id": "merchant",
+        "semantic_role": "scope",
+        "input_kind": "node",
+        "cardinality": "one",
+        "ordered": false
+      }
+    ],
+    "witness_contract_ids": [
+      "similar_event_ids_discriminant"
+    ]
+  },
+  "records": [
+    {
+      "fact_key": "M-16#1#2",
+      "claim": {
+        "claim_id": "claim-M-16#1#2",
+        "fact_key": "M-16#1#2",
+        "metric": "similar_event_ids",
+        "unit": "entity_ids",
+        "subject": {
+          "kind": "merchant",
+          "ref_id": "merchant-market-example"
+        },
+        "period": {
+          "kind": "month",
+          "value": "2042-06"
+        },
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evaluator_ref": {
+          "evaluator_id": "similar_event_ids",
+          "evaluator_version": 1
+        },
+        "operand_bindings": {
+          "context": {
+            "kind": "claim_context"
+          },
+          "events": {
+            "kind": "node_set",
+            "aliases": [
+              "evt_salary_a",
+              "evt_market_a",
+              "evt_snack_a",
+              "evt_fuel_a",
+              "evt_restaurant_b",
+              "evt_refund_b",
+              "evt_cinema_b",
+              "evt_gift_b",
+              "evt_transfer_out",
+              "evt_transfer_in",
+              "evt_invoice_payment",
+              "evt_rent_a",
+              "evt_installment_1",
+              "evt_installment_2",
+              "evt_installment_3",
+              "evt_bill_projected"
+            ]
+          },
+          "merchant": {
+            "kind": "node",
+            "alias": "merchant_market_example"
+          }
+        }
+      },
+      "graph_sha256": "sha256:c353f092a96f22199438c04d244816d74d1418e31fc633873ce8681f24c196ac",
+      "proof_preserved_sha256": "sha256:707f83b2c479e31ec739c1876e463d7a5a04286f8107c22ee062841fcc461168",
+      "current_derivation": {
+        "required_nodes": [
+          "evt_bill_projected",
+          "evt_cinema_b",
+          "evt_fuel_a",
+          "evt_gift_b",
+          "evt_installment_1",
+          "evt_installment_2",
+          "evt_installment_3",
+          "evt_invoice_payment",
+          "evt_market_a",
+          "evt_refund_b",
+          "evt_rent_a",
+          "evt_restaurant_b",
+          "evt_salary_a",
+          "evt_snack_a",
+          "evt_transfer_in",
+          "evt_transfer_out",
+          "merchant_market_example"
+        ],
+        "required_reads": [
+          {
+            "node": "evt_bill_projected",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_bill_projected",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_bill_projected",
+            "segments": [
+              "person_id"
+            ]
+          },
+          {
+            "node": "evt_bill_projected",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "evt_bill_projected",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_cinema_b",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_cinema_b",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_cinema_b",
+            "segments": [
+              "person_id"
+            ]
+          },
+          {
+            "node": "evt_cinema_b",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "evt_cinema_b",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_fuel_a",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_fuel_a",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_fuel_a",
+            "segments": [
+              "person_id"
+            ]
+          },
+          {
+            "node": "evt_fuel_a",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "evt_fuel_a",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_gift_b",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_gift_b",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_gift_b",
+            "segments": [
+              "person_id"
+            ]
+          },
+          {
+            "node": "evt_gift_b",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "evt_gift_b",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_installment_1",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_installment_1",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_installment_1",
+            "segments": [
+              "person_id"
+            ]
+          },
+          {
+            "node": "evt_installment_1",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "evt_installment_1",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_installment_2",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_installment_2",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_installment_2",
+            "segments": [
+              "person_id"
+            ]
+          },
+          {
+            "node": "evt_installment_2",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "evt_installment_2",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_installment_3",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_installment_3",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_installment_3",
+            "segments": [
+              "person_id"
+            ]
+          },
+          {
+            "node": "evt_installment_3",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "evt_installment_3",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "person_id"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_market_a",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_market_a",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_market_a",
+            "segments": [
+              "person_id"
+            ]
+          },
+          {
+            "node": "evt_market_a",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "evt_market_a",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_market_a",
+            "segments": [
+              "merchant_key"
+            ]
+          },
+          {
+            "node": "evt_refund_b",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_refund_b",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_refund_b",
+            "segments": [
+              "person_id"
+            ]
+          },
+          {
+            "node": "evt_refund_b",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "evt_refund_b",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_rent_a",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_rent_a",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_rent_a",
+            "segments": [
+              "person_id"
+            ]
+          },
+          {
+            "node": "evt_rent_a",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "evt_rent_a",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_restaurant_b",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_restaurant_b",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_restaurant_b",
+            "segments": [
+              "person_id"
+            ]
+          },
+          {
+            "node": "evt_restaurant_b",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "evt_restaurant_b",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_salary_a",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_salary_a",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_salary_a",
+            "segments": [
+              "person_id"
+            ]
+          },
+          {
+            "node": "evt_salary_a",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "evt_salary_a",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_snack_a",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_snack_a",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_snack_a",
+            "segments": [
+              "person_id"
+            ]
+          },
+          {
+            "node": "evt_snack_a",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "evt_snack_a",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "person_id"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "person_id"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "merchant_market_example",
+            "segments": [
+              "id"
+            ]
+          }
+        ],
+        "required_claim_reads": [
+          {
+            "segments": [
+              "subject",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "ref_id"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "value"
+            ]
+          },
+          {
+            "segments": [
+              "time_basis"
+            ]
+          }
+        ],
+        "required_edges": [
+          "e0023",
+          "e0025",
+          "e0026",
+          "e0028",
+          "e0029",
+          "e0031",
+          "e0032",
+          "e0034",
+          "e0035",
+          "e0037",
+          "e0039",
+          "e0041",
+          "e0043",
+          "e0045",
+          "e0047",
+          "e0049",
+          "e0051",
+          "e0053",
+          "e0054",
+          "e0055",
+          "e0057",
+          "e0059",
+          "e0061",
+          "e0062",
+          "e0064",
+          "e0065",
+          "e0067",
+          "e0068",
+          "e0070",
+          "e0071",
+          "e0073",
+          "e0075",
+          "e0077"
+        ],
+        "required_structural": [],
+        "selected_nodes": [
+          "evt_market_a"
+        ],
+        "evidence_set_mode": "exact",
+        "required_selections": [
+          {
+            "candidate_set": "candidates",
+            "selected_set": "selected"
+          }
+        ]
+      },
+      "proposed_derivation": {
+        "required_nodes": [
+          "evt_bill_projected",
+          "evt_cinema_b",
+          "evt_fuel_a",
+          "evt_gift_b",
+          "evt_installment_1",
+          "evt_installment_2",
+          "evt_installment_3",
+          "evt_invoice_payment",
+          "evt_market_a",
+          "evt_refund_b",
+          "evt_rent_a",
+          "evt_restaurant_b",
+          "evt_salary_a",
+          "evt_snack_a",
+          "evt_transfer_in",
+          "evt_transfer_out",
+          "merchant_market_example"
+        ],
+        "required_reads": [
+          {
+            "node": "evt_bill_projected",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_bill_projected",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_bill_projected",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_cinema_b",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_cinema_b",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_cinema_b",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_fuel_a",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_fuel_a",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_fuel_a",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_gift_b",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_gift_b",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_gift_b",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_installment_1",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_installment_1",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_installment_1",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_installment_2",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_installment_2",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_installment_2",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_installment_3",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_installment_3",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_installment_3",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_market_a",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_market_a",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_market_a",
+            "segments": [
+              "merchant_key"
+            ]
+          },
+          {
+            "node": "evt_market_a",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_refund_b",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_refund_b",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_refund_b",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_rent_a",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_rent_a",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_rent_a",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_restaurant_b",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_restaurant_b",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_restaurant_b",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_salary_a",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_salary_a",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_salary_a",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_snack_a",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_snack_a",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_snack_a",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "merchant_market_example",
+            "segments": [
+              "id"
+            ]
+          }
+        ],
+        "required_claim_reads": [
+          {
+            "segments": [
+              "period",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "value"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "ref_id"
+            ]
+          },
+          {
+            "segments": [
+              "time_basis"
+            ]
+          }
+        ],
+        "required_edges": [
+          "e0054"
+        ],
+        "required_structural": [
+          {
+            "node": "evt_bill_projected",
+            "operation": "has",
+            "segments": [
+              "merchant_key"
+            ]
+          },
+          {
+            "node": "evt_cinema_b",
+            "operation": "has",
+            "segments": [
+              "merchant_key"
+            ]
+          },
+          {
+            "node": "evt_fuel_a",
+            "operation": "has",
+            "segments": [
+              "merchant_key"
+            ]
+          },
+          {
+            "node": "evt_gift_b",
+            "operation": "has",
+            "segments": [
+              "merchant_key"
+            ]
+          },
+          {
+            "node": "evt_installment_1",
+            "operation": "has",
+            "segments": [
+              "merchant_key"
+            ]
+          },
+          {
+            "node": "evt_installment_2",
+            "operation": "has",
+            "segments": [
+              "merchant_key"
+            ]
+          },
+          {
+            "node": "evt_installment_3",
+            "operation": "has",
+            "segments": [
+              "merchant_key"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "operation": "has",
+            "segments": [
+              "merchant_key"
+            ]
+          },
+          {
+            "node": "evt_market_a",
+            "operation": "has",
+            "segments": [
+              "merchant_key"
+            ]
+          },
+          {
+            "node": "evt_refund_b",
+            "operation": "has",
+            "segments": [
+              "merchant_key"
+            ]
+          },
+          {
+            "node": "evt_rent_a",
+            "operation": "has",
+            "segments": [
+              "merchant_key"
+            ]
+          },
+          {
+            "node": "evt_restaurant_b",
+            "operation": "has",
+            "segments": [
+              "merchant_key"
+            ]
+          },
+          {
+            "node": "evt_salary_a",
+            "operation": "has",
+            "segments": [
+              "merchant_key"
+            ]
+          },
+          {
+            "node": "evt_snack_a",
+            "operation": "has",
+            "segments": [
+              "merchant_key"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "operation": "has",
+            "segments": [
+              "merchant_key"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "operation": "has",
+            "segments": [
+              "merchant_key"
+            ]
+          }
+        ],
+        "selected_nodes": [
+          "evt_market_a"
+        ],
+        "evidence_set_mode": "exact",
+        "required_selections": [
+          {
+            "candidate_set": "candidates",
+            "selected_set": "selected"
+          }
+        ]
+      },
+      "delta": {
+        "required_nodes": {
+          "removed": [],
+          "added": []
+        },
+        "required_reads": {
+          "removed": [
+            {
+              "node": "evt_bill_projected",
+              "segments": [
+                "person_id"
+              ]
+            },
+            {
+              "node": "evt_bill_projected",
+              "segments": [
+                "category_id"
+              ]
+            },
+            {
+              "node": "evt_cinema_b",
+              "segments": [
+                "person_id"
+              ]
+            },
+            {
+              "node": "evt_cinema_b",
+              "segments": [
+                "category_id"
+              ]
+            },
+            {
+              "node": "evt_fuel_a",
+              "segments": [
+                "person_id"
+              ]
+            },
+            {
+              "node": "evt_fuel_a",
+              "segments": [
+                "category_id"
+              ]
+            },
+            {
+              "node": "evt_gift_b",
+              "segments": [
+                "person_id"
+              ]
+            },
+            {
+              "node": "evt_gift_b",
+              "segments": [
+                "category_id"
+              ]
+            },
+            {
+              "node": "evt_installment_1",
+              "segments": [
+                "person_id"
+              ]
+            },
+            {
+              "node": "evt_installment_1",
+              "segments": [
+                "category_id"
+              ]
+            },
+            {
+              "node": "evt_installment_2",
+              "segments": [
+                "person_id"
+              ]
+            },
+            {
+              "node": "evt_installment_2",
+              "segments": [
+                "category_id"
+              ]
+            },
+            {
+              "node": "evt_installment_3",
+              "segments": [
+                "person_id"
+              ]
+            },
+            {
+              "node": "evt_installment_3",
+              "segments": [
+                "category_id"
+              ]
+            },
+            {
+              "node": "evt_invoice_payment",
+              "segments": [
+                "person_id"
+              ]
+            },
+            {
+              "node": "evt_invoice_payment",
+              "segments": [
+                "category_id"
+              ]
+            },
+            {
+              "node": "evt_market_a",
+              "segments": [
+                "person_id"
+              ]
+            },
+            {
+              "node": "evt_market_a",
+              "segments": [
+                "category_id"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "segments": [
+                "person_id"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "segments": [
+                "category_id"
+              ]
+            },
+            {
+              "node": "evt_rent_a",
+              "segments": [
+                "person_id"
+              ]
+            },
+            {
+              "node": "evt_rent_a",
+              "segments": [
+                "category_id"
+              ]
+            },
+            {
+              "node": "evt_restaurant_b",
+              "segments": [
+                "person_id"
+              ]
+            },
+            {
+              "node": "evt_restaurant_b",
+              "segments": [
+                "category_id"
+              ]
+            },
+            {
+              "node": "evt_salary_a",
+              "segments": [
+                "person_id"
+              ]
+            },
+            {
+              "node": "evt_salary_a",
+              "segments": [
+                "category_id"
+              ]
+            },
+            {
+              "node": "evt_snack_a",
+              "segments": [
+                "person_id"
+              ]
+            },
+            {
+              "node": "evt_snack_a",
+              "segments": [
+                "category_id"
+              ]
+            },
+            {
+              "node": "evt_transfer_in",
+              "segments": [
+                "person_id"
+              ]
+            },
+            {
+              "node": "evt_transfer_in",
+              "segments": [
+                "category_id"
+              ]
+            },
+            {
+              "node": "evt_transfer_out",
+              "segments": [
+                "person_id"
+              ]
+            },
+            {
+              "node": "evt_transfer_out",
+              "segments": [
+                "category_id"
+              ]
+            }
+          ],
+          "added": []
+        },
+        "required_claim_reads": {
+          "removed": [],
+          "added": []
+        },
+        "required_edges": {
+          "removed": [
+            "e0023",
+            "e0025",
+            "e0026",
+            "e0028",
+            "e0029",
+            "e0031",
+            "e0032",
+            "e0034",
+            "e0035",
+            "e0037",
+            "e0039",
+            "e0041",
+            "e0043",
+            "e0045",
+            "e0047",
+            "e0049",
+            "e0051",
+            "e0053",
+            "e0055",
+            "e0057",
+            "e0059",
+            "e0061",
+            "e0062",
+            "e0064",
+            "e0065",
+            "e0067",
+            "e0068",
+            "e0070",
+            "e0071",
+            "e0073",
+            "e0075",
+            "e0077"
+          ],
+          "added": []
+        },
+        "required_structural": {
+          "removed": [],
+          "added": [
+            {
+              "node": "evt_bill_projected",
+              "operation": "has",
+              "segments": [
+                "merchant_key"
+              ]
+            },
+            {
+              "node": "evt_cinema_b",
+              "operation": "has",
+              "segments": [
+                "merchant_key"
+              ]
+            },
+            {
+              "node": "evt_fuel_a",
+              "operation": "has",
+              "segments": [
+                "merchant_key"
+              ]
+            },
+            {
+              "node": "evt_gift_b",
+              "operation": "has",
+              "segments": [
+                "merchant_key"
+              ]
+            },
+            {
+              "node": "evt_installment_1",
+              "operation": "has",
+              "segments": [
+                "merchant_key"
+              ]
+            },
+            {
+              "node": "evt_installment_2",
+              "operation": "has",
+              "segments": [
+                "merchant_key"
+              ]
+            },
+            {
+              "node": "evt_installment_3",
+              "operation": "has",
+              "segments": [
+                "merchant_key"
+              ]
+            },
+            {
+              "node": "evt_invoice_payment",
+              "operation": "has",
+              "segments": [
+                "merchant_key"
+              ]
+            },
+            {
+              "node": "evt_market_a",
+              "operation": "has",
+              "segments": [
+                "merchant_key"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "operation": "has",
+              "segments": [
+                "merchant_key"
+              ]
+            },
+            {
+              "node": "evt_rent_a",
+              "operation": "has",
+              "segments": [
+                "merchant_key"
+              ]
+            },
+            {
+              "node": "evt_restaurant_b",
+              "operation": "has",
+              "segments": [
+                "merchant_key"
+              ]
+            },
+            {
+              "node": "evt_salary_a",
+              "operation": "has",
+              "segments": [
+                "merchant_key"
+              ]
+            },
+            {
+              "node": "evt_snack_a",
+              "operation": "has",
+              "segments": [
+                "merchant_key"
+              ]
+            },
+            {
+              "node": "evt_transfer_in",
+              "operation": "has",
+              "segments": [
+                "merchant_key"
+              ]
+            },
+            {
+              "node": "evt_transfer_out",
+              "operation": "has",
+              "segments": [
+                "merchant_key"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "checks": {
+    "generated_models": 24,
+    "negative_cases": 144,
+    "original_corpus_unchanged": true,
+    "original_pool_unchanged": true,
+    "unchanged_graphs": 75,
+    "all_proof_preserved": true
+  },
+  "limits": "Local documentary composition, not an independent verdict. No evaluator, actual, recorder, oracle, full snapshot admission/fingerprint recomputation or financial tests. No graph, host, global or production acceptance."
+}
