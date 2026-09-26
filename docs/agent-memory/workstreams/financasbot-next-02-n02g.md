@@ -1,12 +1,86 @@
 # N02-G — checkpoint
 
-Atualização: 2026-09-26. Estado: SIMILAR-EVENT APTO DOCUMENTAL RATIFICADO; aplicação pendente; SEM GO GLOBAL/EXECUTÁVEL N02-G.
+Atualização: 2026-09-26. Estado: SIMILAR-EVENT validação local verde, candidato para auditoria; SEM GO GLOBAL/EXECUTÁVEL N02-G.
 Base: `aea4ac31e358ed8d8907e78f6002c8bb80233bc8`.
 Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação — RED e aplicação fechada de SIMILAR-EVENT
+## Próxima ação — publicar e auditar a aplicação SIMILAR-EVENT
+
+Ampla única CONCLUÍDA em 2026-09-26T18:08:19.888Z: 2.414 testes,
+2.404 PASS/0 FAIL/10 SKIP/0 TODO, exit_status=0, valid=true,
+candidate_unchanged=true. Não repetir sem mudança causal. Resultado preservado
+em `.codex-temp/wide-n02g-similar-event-20260926.json`.
+Helper prepare-similar-event-validation.cjs --write-new e --check PASS:
+reconstrução integral exata, 75 grafos/proof/demais campos intactos, 11 fontes
+protegidas inalteradas e hashes LF dos três arquivos testados coincidentes.
+Evidência sanitizada: `similar-event-validation.json` na pasta de evidências.
+Próximo passo imediato: commit/publicação sanitizados e auditoria independente
+de aplicação pelo Chrome autorizado; somente depois ratificar o recorte e
+diagnosticar o seguinte. Não confundir APTO documental com GO da aplicação.
+
+### Histórico — execução da ampla e pausa
+
+Ampla única INICIADA em 2026-09-26T17:56:59.100Z, PID 216880, base
+`133e919834ee53ddee3b51e47916331665716734`. Marcador confirmado:
+`.codex-temp/wide-n02g-similar-event-20260926-start.json`; resultado esperado
+`.codex-temp/wide-n02g-similar-event-20260926.json`. Não iniciar outra suíte.
+Wrapper `.codex-temp/runWideSimilarEvent20260926.cjs`; logs stdout/stderr
+homônimos. Três arquivos causais congelados no marcador; NÃO alterá-los nem
+mudar HEAD enquanto a ampla roda. Afetados finais v2: 261 PASS/0 FAIL/0 SKIP.
+
+Daniel pediu não acompanhar continuamente amplas: parar e consultar somente
+após 20 minutos ou quando ele chamar. Retorno automático não confirmado devido
+à permissão de leitura da automação (detalhes abaixo). Após o resultado:
+confrontar hashes antes/depois e Git; se verde, executar helper --write-new e
+--check, publicar candidato sanitizado e auditar a aplicação no Chrome.
+Se falhar, investigar somente o recorte causal; preservar todos os logs.
+Não repetir a ampla verde sem mudança causal; não aceitar grafo/host/global.
+
+### Evidência anterior ao início da ampla
+
+Base publicada/HEAD congelado: `133e919834ee53ddee3b51e47916331665716734`.
+Aplicação local ainda NÃO commitada: somente os cinco inventários aprovados
+da derivation M-16#1#2. Corpus reconstruído integralmente contra a proposta;
+75 outros grafos, proof e demais campos preservados. Runtime intacto.
+Três arquivos causais: graphs-v2.json, authoringIndex.cases.js e
+metricDirectReads.cases.js. Não integrar a branch auxiliar de formatação.
+
+RED v1: 2 FAIL/1 PASS, integração parava na comparação documental. Preservado.
+RED v2: 2 FAIL/1 PASS; integração agora executa com expected congelado do grafo
+original e falha na cobertura observada. GREEN v1: 3 PASS. Primeiro afetado:
+260 PASS/1 FAIL em TRACE-COMPAT-001, preservado. Composição histórica corrigida
+para retirar exatamente as 32 relações aprovadas; todos os demais diagnósticos
+continuam iguais. GREEN final v2: 4 PASS/0 FAIL/0 SKIP, incluindo esse controle.
+Afetados v2 concluídos: 261 PASS/0 FAIL/0 SKIP. Logs/JSON locais:
+`.codex-temp/n02g-similar-event-*`.
+
+Integração admitida congela expected antes da execução, rejeita inventário
+antigo e remoção de cada grupo get/has/traverse (incluindo repetições). Consulta
+oracle somente depois. 24 variantes kernel cobrem ausência, comerciante
+estrangeiro, mesmo ID/outra versão, mês/state, aliases/população e não leitura
+de pessoa/categoria/valor. Kernel não é grafo mutante admitido.
+
+Helper `docs/audit-evidence/n02g-causal-authoring-profile/prepare-similar-event-validation.cjs`
+preparado e syntax PASS; executar --write-new e --check SOMENTE após ampla
+verde. Wrapper `.codex-temp/runWideSimilarEvent20260926.cjs` iniciado somente
+após afetados v2 verdes. Ampla anterior DIRECT-EVENT não repetida.
+Depois da ampla: confrontar hashes, preparar commit sanitizado e auditoria
+independente de aplicação no Chrome autorizado. Sem GO global/grafo/host.
+
+Retomada automática: leitura da configuração da automação existente foi negada
+pelo controle de permissão; pedido de autorização específica enviado a Daniel.
+Nenhuma configuração foi alterada e não se deve presumir retorno agendado.
+
+Telemetria desta etapa encerrada na pausa da ampla: objetivo
+N02G-SIMILAR-APPLY-20260926, 776 eventos atribuídos (776 métricas, 0 logs
+capturados, 72 token_metrics, 105 tool_events). O resumo global do coletor
+registrou 176 não atribuídos; não imputar esses eventos ao objetivo.
+Contadores de eventos não são total de tokens/custo; totais não estabelecidos
+permanecem NAO_DISPONIVEL. Nenhum dado bruto de telemetria publicado.
+
+### Parecer documental ratificado
 
 Parecer APTO DOCUMENTAL PARA IMPLEMENTAR recebido em anexo por Daniel e
 confrontado com Git/helper/fontes locais. Aprova expressamente a suficiência

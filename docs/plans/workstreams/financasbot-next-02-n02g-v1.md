@@ -2,6 +2,20 @@
 
 Data: 2026-09-11. Estado: CHARTER APROVADO; N02-G EM EXECUÇÃO; SEM GO GLOBAL.
 
+2026-09-26 — ampla SIMILAR-EVENT concluída às 18:08:19Z, 2.404 PASS/0 FAIL/
+10 SKIP, candidato inalterado. Helper de evidência --write-new/--check PASS,
+11 fontes protegidas e reconstrução integral conferidas. Publicar e auditar
+a aplicação no Chrome; não repetir ampla verde nem declarar GO global.
+
+2026-09-26 — SIMILAR-EVENT aplicado localmente após APTO documental ratificado
+em 133e919834ee53ddee3b51e47916331665716734. Runtime intacto; somente derivation
+focal e dois arquivos de testes. 4 focais finais e 261 afetados PASS; primeiras
+falhas RED/histórico preservadas. Ampla única iniciada 17:56:59Z, PID 216880;
+consultar checkpoint e `.codex-temp/wide-n02g-similar-event-20260926.json` após
+20 minutos ou chamado de Daniel, sem polling e sem outra ampla. Congelar HEAD
+e três arquivos causais durante execução. Resultado verde ainda exige evidência
+sanitizada e auditoria independente da aplicação no Chrome, não GO global.
+
 Atualização 2026-09-25: DIRECT-EVENT foi aprovado focalmente no código do
 candidato `2357887e2e2c419c3f2e152638400fb977898b90` (parent único
 `44342793c30573f38952e58a2c2ab0721065996e`), sem findings. A auditoria foi

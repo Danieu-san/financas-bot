@@ -356,6 +356,57 @@ test('N02G:DIRECT-REFERENCE-001 consumed reference scalars are validated; cohere
     }
 });
 
+test('N02G:SIMILAR-EVENT-003 generated kernel populations preserve guards, reference identity and irrelevant-field invariance', () => {
+    // Kernel handles only, not admitted graph mutants. Expected IDs derive from
+    // the constructed eligibility classes, never from observations/actual.
+    let cases = 0;
+    for (const size of [0, 1, 7, 14]) for (const reverse of [false, true]) for (const variant of [0, 1, 2]) {
+        const merchantId = `merchant-${variant}`; const observations = []; const rows = []; const links = [];
+        const roster = []; const expected = []; const present = []; const oldVersion = `sha256:${'b'.repeat(64)}`;
+        const targets = [['scope', merchantId, version], ['foreign', `other-${variant}`, version], ['old', merchantId, oldVersion]];
+        for (const [alias, id, v] of targets) rows.push([alias, 'merchant_identity', { id }, v]);
+        for (let i = 0; i < size; i++) {
+            const alias = `row-${variant}-${i}`; const cls = i % 7; roster.push(alias);
+            const value = { id: `event-${variant}-${i}`, date: cls === 3 ? '2042-07-01' : '2042-06-15',
+                state: cls === 2 ? 'projected' : 'confirmed', person_id: `unused-person-${variant}`,
+                category_id: `unused-category-${variant}`, amount_minor: (variant - 1) * 981 };
+            if (cls !== 1) {
+                const target = cls === 4 ? 'foreign' : cls === 5 ? 'old' : 'scope';
+                value.merchant_key = targets.find(t => t[0] === target)[1]; present.push(alias);
+                links.push({ id: `ref-${variant}-${i}`, source: alias, field: 'merchant_key', target, type: 'ref' });
+            }
+            if (cls === 0 || cls === 6) expected.push(value.id);
+            rows.push([alias, 'event', value, version]);
+        }
+        if (reverse) { roster.reverse(); expected.reverse(); }
+        const bindings = rows.map(([alias, kind, value, v]) => ({ alias, role: 'events', value,
+            identity: { kind, ref_id: value.id, version: v }, shape: { type: 'record', fields: {
+                ...Object.fromEntries(Object.keys(value).map(k => [k, scalar])), ...(kind === 'event' ? { merchant_key: scalar } : {}) } } }));
+        const access = createNodeSetAccess({ bindings, links, roster, role: 'events', emit: e => observations.push(e) });
+        const target = instrument([['query', 'merchant_identity', { id: merchantId }]]);
+        const args = { events: access.handle, merchant: target.access.handle('query'),
+            context: context({ kind: 'merchant', ref_id: merchantId }, { kind: 'month', value: '2042-06' }, 'event_date') };
+        try {
+            assert.deepEqual(evaluateDirectMetric(args, 'similar_event_ids'), expected);
+            assert.deepEqual(observations.filter(e => e[1] === 'has' && e[4][0] === 'merchant_key').map(e => e[2]).sort(), [...roster].sort());
+            assert.deepEqual(observations.filter(e => e[1] === 'get' && e[4][0] === 'merchant_key').map(e => e[2]).sort(), [...present].sort());
+            assert.equal(observations.filter(e => e[1] === 'traverse').length, present.length);
+            assert.equal(observations.some(e => e[1] === 'get' && ['person_id', 'category_id', 'amount_minor'].includes(e[4][0])), false);
+            assertResolvedReferenceReads(observations);
+            for (const targetAlias of new Set(links.map(l => l.target)))
+                assert.ok(observations.some(e => e[1] === 'get' && e[2] === targetAlias && e[4][0] === 'id'));
+            for (const [subject, period, basis, error] of [
+                [{ kind: 'merchant', ref_id: 'wrong' }, { kind: 'month', value: '2042-06' }, 'event_date', /direct_metric_scope/],
+                [{ kind: 'person', ref_id: merchantId }, { kind: 'month', value: '2042-06' }, 'event_date', /direct_metric_scope/],
+                [{ kind: 'merchant', ref_id: merchantId }, { kind: 'date', value: '2042-06-15' }, 'event_date', /direct_metric_period/],
+                [{ kind: 'merchant', ref_id: merchantId }, { kind: 'month', value: '2042-06' }, 'due_date', /direct_metric_basis/]
+            ]) assert.throws(() => evaluateDirectMetric({ ...args, context: context(subject, period, basis) }, 'similar_event_ids'), error);
+            access.assertHealthy(); target.access.assertHealthy(); cases++;
+        } finally { access.revoke(); target.access.revoke(); }
+    }
+    assert.equal(cases, 24);
+});
+
 test('N02G:DIRECT-REFERENCE-002 similar events bind merchant scalar and identity, including excluded rows', () => {
     const rows = [['match', 'm1'], ['foreign', 'm2']];
     for (const reverse of [false, true]) {
