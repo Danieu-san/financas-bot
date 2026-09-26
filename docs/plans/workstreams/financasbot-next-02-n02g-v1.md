@@ -18,9 +18,10 @@ referência opcional e identidade transitiva; não novo remendo por fact_key.
 Proposta publicada em a7d1422d7d2051a23cc15c5115a2bb4f43ec09c9; visualização
 auxiliar original em bebbde44526a2b72d13bd285e127d752f6e7d178 (não integrar).
 Próxima ação: auditoria da suficiência normativa, antes de qualquer aplicação.
-Envio pendente de autenticação do ChatGPT por e-mail; prompt pronto em
-`docs/audit-evidence/n02g-causal-authoring-profile/similar-event-audit-request.md`.
-Sem parecer e sem aplicação enquanto esse gate permanecer pendente.
+Parecer APTO DOCUMENTAL PARA IMPLEMENTAR recebido em 2026-09-26, confrontado
+e ratificado em `similar-event-independent-review.md` na pasta de evidências.
+Próximo passo: RED e aplicação fechada; sem nova auditoria documental do hash.
+Daniel autorizou Chrome e a sessão foi confirmada conectada para futura revisão.
 A sonda não é aceitação nem autoriza copiar actual para expected. Após APTO
 documental confrontado: REDs, afetados, uma ampla estável e auditoria da aplicação.
 Preservar `.codex-temp`; sem GO global, NEXT-03, deploy, produção ou dados reais.

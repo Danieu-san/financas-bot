@@ -1,12 +1,29 @@
 # N02-G — checkpoint
 
-Atualização: 2026-09-26. Estado: SIMILAR-EVENT PROPOSTA DOCUMENTAL NÃO APLICADA; PAYMENT-REFERENCE e DIRECT-EVENT APROVADOS FOCALMENTE; SEM GO GLOBAL/EXECUTÁVEL N02-G.
+Atualização: 2026-09-26. Estado: SIMILAR-EVENT APTO DOCUMENTAL RATIFICADO; aplicação pendente; SEM GO GLOBAL/EXECUTÁVEL N02-G.
 Base: `aea4ac31e358ed8d8907e78f6002c8bb80233bc8`.
 Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação — auditoria documental de SIMILAR-EVENT / login pendente
+## Próxima ação — RED e aplicação fechada de SIMILAR-EVENT
+
+Parecer APTO DOCUMENTAL PARA IMPLEMENTAR recebido em anexo por Daniel e
+confrontado com Git/helper/fontes locais. Aprova expressamente a suficiência
+normativa do perfil de a7d1422, não somente o helper. Zero bloqueantes/altos/
+médios; revisão estática sem execução externa de testes. Recibo:
+`docs/audit-evidence/n02g-causal-authoring-profile/similar-event-independent-review.md`.
+Não reenviar esse hash para revisão documental. Chrome autorizado e sessão
+ChatGPT conectada confirmada; usar Chrome para a futura auditoria da aplicação.
+
+Próximo passo: REDs antes de mudar o corpus, aplicar exclusivamente os cinco
+inventários congelados de M-16#1#2, preservar proof/demais campos/75 grafos e
+runtime. Validar expected congelado antes da execução, controles negativos de
+trace e kernels gerados. Depois: afetados, uma ampla estável, commit sanitizado
+e auditoria independente de código. Modelos/kernel não são grafos admitidos.
+Sem GO global, NEXT-03, deploy ou dados reais.
+
+### Histórico — proposta publicada e bloqueio anterior de login
 
 Candidato publicado: `a7d1422d7d2051a23cc15c5115a2bb4f43ec09c9`, pai único
 `c3db3ecb8ffe4af681ec2547df6abb13896e9c40`; cinco arquivos documentais.
