@@ -6,7 +6,22 @@ Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação — auditoria documental de SIMILAR-EVENT
+## Próxima ação — auditoria documental de SIMILAR-EVENT / login pendente
+
+Candidato publicado: `a7d1422d7d2051a23cc15c5115a2bb4f43ec09c9`, pai único
+`c3db3ecb8ffe4af681ec2547df6abb13896e9c40`; cinco arquivos documentais.
+Visualização auxiliar publicada: `bebbde44526a2b72d13bd285e127d752f6e7d178`,
+pai exato a7d1422, apenas whitespace no objeto original M-16#1#2 de graphs-v2.
+Corpus integral deepEqual e conteúdo fora do objeto idêntico. Não integrar
+`codex/n02g-similar-event-source-view-20260926`.
+
+ChatGPT pediu verificação de login por e-mail; prompt NÃO enviado e nenhum
+parecer recebido. Nenhum código de autenticação ou credencial foi lido/copiadо.
+Prompt imutável e recibo de acesso preparados em
+`docs/audit-evidence/n02g-causal-authoring-profile/similar-event-audit-request.md`.
+Após o usuário autenticar, abrir conversa limpa no projeto vigente e enviar
+uma única vez para revisão normativa. Não alterar o corpus enquanto isso.
+Essa é lacuna de autenticação, não finding técnico nem filtro de segurança.
 
 Daniel autorizou continuidade autônoma em 2026-09-26. Proposta de perfil causal
 completo preparada sobre `c3db3ecb8ffe4af681ec2547df6abb13896e9c40`, sem
@@ -27,8 +42,12 @@ A aplicação posterior exige RED/afetados, ampla estável e auditoria própria.
 Sem GO global, NEXT-03, deploy, produção ou dados reais.
 
 Telemetria: coletor local estava parado; iniciado saudável, sem alteração de
-configuração ou ampliação de coleta. Objetivo N02G-SIMILAR-PROPOSAL-20260926;
-ausência de métricas nativas deve permanecer NAO_DISPONIVEL, nunca zero.
+configuração ou ampliação de coleta. Objetivo N02G-SIMILAR-PROPOSAL-20260926
+encerrado na fronteira de auditoria: 455 eventos atribuídos (15 logs, 440
+métricas, 42 token_metrics, 46 tool_events); 22 eventos não atribuídos no resumo
+do coletor. Esses contadores não são total de tokens, custo ou objetivo aceito.
+Totais de uso/custo não estabelecidos permanecem NAO_DISPONIVEL. Só metadados
+agregados neste checkpoint; arquivos de telemetria permanecem fora do Git.
 
 ## Histórico — retomada 2026-09-25 / diagnóstico-only concluído
 
