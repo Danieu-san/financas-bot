@@ -94,6 +94,46 @@ buscar `origin`, comparar a branch registrada com o remoto e materializar uma
 worktree isolada se houver commit posterior; não usar `pull`, `reset` ou a pasta
 antiga como fonte vigente.
 
+### Cadência de entrega autorizada em 2026-09-27
+
+Daniel autorizou reduzir atrasos desnecessários. As regras abaixo refinam a
+cadência operacional e prevalecem sobre orientações genéricas de pausa ou
+delegação deste arquivo e das skills; não removem gates técnicos do roadmap.
+
+- Definir um recorte funcional coeso, seus riscos e critérios de saída antes
+  de implementar. Agrupar alterações relacionadas e auditar o recorte estável
+  uma vez; não criar auditoria separada por arquivo, helper ou microcommit.
+- Auditoria documental prévia só é necessária quando uma decisão normativa ou
+  arquitetural precisa ser resolvida antes da implementação. Quando o contrato
+  já estiver aprovado, reunir implementação, testes e documentação na revisão
+  final do recorte. Não reinterpretar aprovação documental como aprovação de código.
+- Correções materiais continuam exigindo revisão independente antes do
+  fechamento. Identidade, autorização, escrita financeira, isolamento, contratos
+  financeiros e validade dos gates exigem cobertura explícita. Agrupamento não
+  permite esconder dependências, reduzir cobertura ou antecipar GO global.
+- Checkpoints, recibos, links, formatação e registros mecânicos sem mudança de
+  contrato ou comportamento recebem diff/check local; não geram auditoria nem
+  suíte ampla própria. Esta atualização operacional, autorizada pelo usuário,
+  é verificada localmente e não abre um ciclo recursivo de auditoria do processo.
+- Reauditar somente o delta corretivo e as invariantes que ele pode afetar.
+  Reutilizar evidência vinculada a conteúdo inalterado. Dividir uma revisão
+  grande por fronteiras causais apenas quando necessário ao contexto, com
+  cobertura consolidada e uma conclusão de integração.
+- Continuar automaticamente dentro do escopo autorizado entre implementação,
+  testes e preparação da auditoria. Parar somente em bloqueio real, decisão
+  material não autorizada, auditoria necessária ou pausa pedida por Daniel.
+- Não delegar análise rotineira ao Chat apenas porque ela pode ser feita lá.
+  Delegar quando a independência for exigida ou houver benefício concreto maior
+  que o custo de transferência e espera.
+- Não abrir limpeza, refatoração, abstração, documentação ou endurecimento
+  lateral sem relação causal com o critério de saída. Registrar melhorias não
+  bloqueantes na fila; corrigir defeitos que ameaçam a correção do recorte.
+- Manter um checkpoint curto no topo com próxima ação e links; atualizar nas
+  fronteiras materiais, sem duplicar a mesma narrativa em vários documentos.
+- Manter no máximo um monitor por auditoria, silencioso sem mudança, encerrado
+  após conclusão. Não reenviar prompt por ausência de confirmação de transporte;
+  conferir a conversa primeiro. Preservar a pausa solicitada durante suíte ampla.
+
 ### Trava obrigatória de auditoria no Chat
 
 Toda correção material do FinançasBot deve passar por auditoria independente no
@@ -176,6 +216,19 @@ equivalência estiver comprovada. Uma resposta autoriza somente as ocorrências
 que foram efetivamente apresentadas com esse contexto.
 
 ## Controle de Esforco
+Régua GPT-6 recalibrada em 2026-09-27: Luna/Baixo para status, extração e
+rotinas mecânicas; Sol/Médio para implementação e diagnóstico delimitados;
+Sol/Alto para integração e testes adversariais; Astra/Alto para causalidade
+difícil, contratos complexos e classes de falhas recorrentes. Extra Alto só
+quando a dificuldade demonstrada exigir. Considerar custo até aprovação,
+incluindo retrabalho; preços de API não medem consumo da assinatura Codex.
+Referência: https://developers.openai.com/api/docs/guides/latest-model .
+
+Recomendar capacidade por bloco de trabalho, não por comando. Na sequência
+autônoma autorizada, uma consulta ou edição mecânica incidental não exige
+interromper o bloco para trocar modelo. Não alterar a seleção automaticamente;
+solicitar troca quando houver necessidade material de capacidade diferente.
+
 Antes de iniciar cada nova tarefa de implementacao, diagnostico, teste, deploy ou revisao substancial, informar a proxima acao e o nivel de esforco recomendado. O Codex determina tecnicamente a recomendacao; nao pede ao usuario que escolha modelo ou esforco. O usuario apenas aplica a configuracao indicada quando ela diferir da atual.
 
 Recomendar sempre a menor capacidade que preserve eficiencia e qualidade para a proxima acao material, sem dimensionar pela extensao total do projeto:

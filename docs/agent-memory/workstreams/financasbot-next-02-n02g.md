@@ -8,6 +8,16 @@ Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
 ## Próxima ação — confrontar a auditoria da aplicação SIMILAR-EVENT
 
+Diretriz operacional de Daniel em 2026-09-27: reduzir atrasos desnecessários.
+Aplicar a seção `Cadência de entrega autorizada em 2026-09-27` de AGENTS.md:
+auditoria por recorte coeso, sem ciclos próprios para checkpoints/helpers,
+documental prévia somente diante de decisão normativa necessária, testes
+proporcionais e continuidade autônoma. Revisão SIMILAR-EVENT já enviada
+permanece válida e pendente; não cancelar, reenviar ou presumir aprovação.
+Reavaliar agrupamento dos próximos recortes após esse parecer, preservando
+as dependências normativas e o gate global N02-G. Régua Luna/Sol/Astra no
+mesmo AGENTS.md; nenhuma alteração de runtime ou de contrato financeiro.
+
 Candidato imutável `030c9e07578d66ec6da8993bef9a002a3f7b172b`, parent único
 `133e919834ee53ddee3b51e47916331665716734`; sete arquivos no delta,
 remoto e worktree coincidentes. Retomada portátil em 2026-09-27 confirmou
