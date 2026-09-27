@@ -8,6 +8,16 @@ Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
 ## Próxima ação — confrontar a auditoria da aplicação SIMILAR-EVENT
 
+Parecer focal de 2026-09-27: `REVISÃO INCOMPLETA`, sem defeito causal de
+código demonstrado; o auditor não conseguiu ler o blob integral de 4,96 MB
+de `graphs-v2.json`. Monitor encerrado. Preparada evidência compacta
+`similar-event-corpus-witness.json` com verificador reproduzível que lê os
+dois commits imutáveis, reconstrói o corpus integral, exige 76 IDs únicos e
+confirma que só a derivation de M-16#1#2 difere. A auditoria complementar
+deve julgar apenas essa lacuna de leitura; não repetir testes nem reabrir
+achados já examinados. O candidato 030c9e0 permanece sem aprovação focal
+até parecer independente completo.
+
 Diretriz operacional de Daniel em 2026-09-27: reduzir atrasos desnecessários.
 Aplicar a seção `Cadência de entrega autorizada em 2026-09-27` de AGENTS.md:
 auditoria por recorte coeso, sem ciclos próprios para checkpoints/helpers,
