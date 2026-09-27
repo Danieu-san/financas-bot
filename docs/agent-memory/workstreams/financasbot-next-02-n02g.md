@@ -33,6 +33,19 @@ causal e três evaluators; tratar como um recorte integrado com REDs próprios,
 não como três auditorias de exemplo. Capacidade recomendada para implementar:
 Codex → Sol → Alto. Nenhuma alteração causal foi feita nesta triagem.
 
+Diagnóstico aprofundado após a aprovação focal: `graphCompiler` e
+`operandBindings` validam apenas identidade estática/DAG/roles dos pais;
+`proofAcceptance` declara explicitamente que não emite recibos nem aceita
+grafos. Não há `executionHost` atual. O contrato §5 exige recibo interno
+validado na mesma `execution_id`, preimage fechado de `result_hash`, payload
+derived_claim instrumentado e separação R/I/M/L/T. Portanto, implementar só
+as três fórmulas com objetos de pais fornecidos pelo chamador criaria uma
+rota de falso verde. A próxima entrega coesa precisa iniciar pela fronteira
+do host/recibo e seus REDs (pai ausente, mesma quantia com pai/versão trocados,
+execução cruzada, hash inválido, ordem de roles e ausência de observação),
+depois ligar ranking e as duas subtrações. Nenhum código funcional foi alterado
+nesta triagem; não há aprovação executável para essas três métricas.
+
 Parecer focal de 2026-09-27: `REVISÃO INCOMPLETA`, sem defeito causal de
 código demonstrado; o auditor não conseguiu ler o blob integral de 4,96 MB
 de `graphs-v2.json`. Monitor encerrado. Preparada evidência compacta
