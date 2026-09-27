@@ -6,6 +6,19 @@ Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
+## Capacidade vigente para retomar
+
+Revisão de 2026-09-27: retirada a recomendação anterior de Astra/Extra Alto.
+`executionHost.js` e `claimBinding.js` já constam no charter aprovado, e o
+contrato de pais/`result_hash` fixa a autoridade e o preimage. A ausência atual
+desses módulos é trabalho de implementação, não evidência de arquitetura nova.
+Próximo bloco: **Codex → Sol → Alto → definir REDs causais e implementar a
+fronteira parental conforme os contratos ratificados**. Se a integração real
+de prova, trace e identidade mostrar dificuldade transversal não resolvida
+neste esforço, reavaliar Astra/Alto com a evidência concreta. Extra Alto só
+após identificar decisão normativa nova ou outro critério excepcional da
+política versionada. Nenhum código foi alterado nesta revisão de capacidade.
+
 ## Próxima ação — diagnosticar as métricas derivadas restantes
 
 O auditor independente atualizou o veredito focal para APROVÁVEL na mesma

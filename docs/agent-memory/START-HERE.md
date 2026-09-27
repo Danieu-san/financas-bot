@@ -20,9 +20,10 @@ disponíveis.
 3. executar `scripts/agent/resumePortableWork.ps1`;
 4. conferir `resume_target` em `last-resume-check.json`;
 5. somente quando `matches_current_worktree=true`, ler
-   `docs/agent-memory/README.md`, `docs/agent-memory/current.md` e
-   `docs/plans/current-gate.md`;
-6. o checkpoint específico apontado pelo `current.md` do hash-alvo;
+   `docs/agent-memory/README.md` e `docs/agent-memory/workstreams/index.md`;
+6. para o gate raiz, ler `docs/agent-memory/current.md` e
+   `docs/plans/current-gate.md`; para uma worktree paralela, ler seu checkpoint
+   específico no hash-alvo;
 7. somente os workstreams, runbooks, código e testes citados por essas fontes.
 
 Se o último handoff apontar outra branch ou outro hash, o checkpoint da
@@ -103,3 +104,8 @@ chaves referenciadas.
 Depois, retomar a próxima ação exata de `current.md`/`current-gate.md`, usando a
 capacidade ali recomendada. Não acessar produção ou fazer deploy sem a
 autorização correspondente.
+
+Quando o `resume_target` pertencer a uma worktree de assunto paralelo, consultar
+`docs/agent-memory/workstreams/index.md` e usar o checkpoint próprio da worktree
+para a próxima ação e capacidade. `current.md`/`current-gate.md` descrevem o gate
+raiz e não substituem o estado específico de N02-G ou de outro workstream.

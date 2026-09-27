@@ -16,6 +16,11 @@ description: Executar ou retomar um gate, fatia, correção ou objetivo longo do
    manter esforço excessivo por inércia. Se a recomendação diferir da seleção
    atual, informar a configuração exata e parar antes da ação para permitir o
    ajuste; nunca perguntar ao usuário qual capacidade escolher.
+   Um componente ainda ausente, mas já especificado no charter e nos contratos,
+   é implementação de arquitetura ratificada; sua ausência isolada não pede
+   Extra Alto. Começar em Sol/Alto para recorte delimitado; elevar a Astra/Alto
+   diante de causalidade difícil demonstrada. Registrar qual decisão nova ou
+   risco concreto exigiria Extra Alto antes de interromper a continuidade.
 3. Confirmar raiz Git, branch, HEAD completo e `git status` sem alterar a árvore.
 4. Identificar o workstream. Para o gate raiz, ler `AGENTS.md`, `docs/agent-memory/README.md`, `docs/agent-memory/current.md` e `docs/plans/current-gate.md`. Para assunto diferente, consultar `docs/agent-memory/workstreams/index.md` e usar o checkpoint/plano próprios.
 5. Se não houver checkpoint do workstream, criar um sem sobrescrever o gate raiz; usar branch/worktree separada quando outra conversa puder escrever em paralelo.

@@ -224,6 +224,17 @@ quando a dificuldade demonstrada exigir. Considerar custo até aprovação,
 incluindo retrabalho; preços de API não medem consumo da assinatura Codex.
 Referência: https://developers.openai.com/api/docs/guides/latest-model .
 
+Regra para recortes arquiteturais já ratificados: "módulo ainda inexistente"
+não equivale a "arquitetura nova". Conferir primeiro se o plano e os contratos
+já fixam as autoridades, interfaces e critérios de prova. Nessa situação,
+começar em Sol/Alto para implementação e REDs delimitados; usar Astra/Alto
+quando a integração de identidade, trace e prova exigir causalidade difícil.
+Extra Alto requer uma decisão arquitetural material ainda aberta, concorrência
+crítica, segurança de alto risco, irreversibilidade ou auditoria final
+exaustiva, com motivo concreto registrado no checkpoint. Não pausar por
+escalada hipotética. A política pessoal portátil em
+`docs/agent-workflow/global-AGENTS.md` segue a mesma distinção.
+
 Recomendar capacidade por bloco de trabalho, não por comando. Na sequência
 autônoma autorizada, uma consulta ou edição mecânica incidental não exige
 interromper o bloco para trocar modelo. Não alterar a seleção automaticamente;

@@ -27,6 +27,18 @@ exceção, nunca padrão preventivo. Reavaliar quando a próxima ação material
 mudar; se o mesmo nível continuar adequado e houver sequência autorizada,
 prosseguir sem nova pausa.
 
+Antes de recomendar `Extra Alto` por "arquitetura nova", distinguir decisão
+arquitetural ainda não ratificada de implementação de componente previsto num
+contrato aprovado. A ausência do arquivo ou da implementação não cria, por si,
+uma arquitetura nova. Para executar interfaces já definidas, começar em
+`Sol / Alto` quando o recorte e os testes causais forem delimitados; recomendar
+`Astra / Alto` se a integração exigir raciocínio causal difícil entre contratos,
+identidade e múltiplos módulos. Reservar `Extra Alto` para uma escolha normativa
+nova e material, concorrência crítica, segurança de alto risco, ação
+irreversível ou auditoria final exaustiva, identificando a dificuldade concreta.
+Não interromper um bloco autorizado apenas por antecipar que ele talvez venha
+a precisar de capacidade maior; reavaliar ao encontrar a dificuldade real.
+
 ## Contexto e escopo
 
 - confirmar workspace, Git, branch, HEAD e árvore antes de editar;
