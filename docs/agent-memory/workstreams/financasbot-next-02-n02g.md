@@ -1,12 +1,30 @@
 # N02-G — checkpoint
 
-Atualização: 2026-09-26. Estado: SIMILAR-EVENT validação local verde, candidato para auditoria; SEM GO GLOBAL/EXECUTÁVEL N02-G.
+Atualização: 2026-09-27. Estado: SIMILAR-EVENT publicado, auditoria independente de aplicação em andamento; SEM GO GLOBAL/EXECUTÁVEL N02-G.
 Base: `aea4ac31e358ed8d8907e78f6002c8bb80233bc8`.
 Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação — publicar e auditar a aplicação SIMILAR-EVENT
+## Próxima ação — confrontar a auditoria da aplicação SIMILAR-EVENT
+
+Candidato imutável `030c9e07578d66ec6da8993bef9a002a3f7b172b`, parent único
+`133e919834ee53ddee3b51e47916331665716734`; sete arquivos no delta,
+remoto e worktree coincidentes. Retomada portátil em 2026-09-27 confirmou
+`resume_target.matches_current_worktree=true`; alterações locais prévias
+limitadas a `.codex-temp/`, preservada. O helper
+`prepare-similar-event-validation.cjs --check` passou nesta retomada.
+Nenhuma suíte foi repetida.
+
+Uma auditoria independente focal de aplicação foi enviada uma única vez em
+conversa limpa do projeto FinançasBot; o prompt persistiu e o auditor iniciou
+a revisão. Conversa:
+https://chatgpt.com/g/g-p-6ab5c3870a30819187d0d634619231c5-financasbot/c/6ab8fbbc-84e0-83e9-b6de-4ba0c6c9b6f6
+Monitor de cinco minutos `acompanhar-auditoria-similar-event` ativo e
+silencioso enquanto a resposta não for acionável. Não reenviar este SHA.
+Quando houver veredito final, confrontá-lo com Git, helper e evidência local;
+finding confirmado exige correção e novo candidato. Somente aprovação focal
+permite abrir o próximo recorte N02-G. O parecer não fecha o gate global.
 
 Ampla única CONCLUÍDA em 2026-09-26T18:08:19.888Z: 2.414 testes,
 2.404 PASS/0 FAIL/10 SKIP/0 TODO, exit_status=0, valid=true,
@@ -16,9 +34,9 @@ Helper prepare-similar-event-validation.cjs --write-new e --check PASS:
 reconstrução integral exata, 75 grafos/proof/demais campos intactos, 11 fontes
 protegidas inalteradas e hashes LF dos três arquivos testados coincidentes.
 Evidência sanitizada: `similar-event-validation.json` na pasta de evidências.
-Próximo passo imediato: commit/publicação sanitizados e auditoria independente
-de aplicação pelo Chrome autorizado; somente depois ratificar o recorte e
-diagnosticar o seguinte. Não confundir APTO documental com GO da aplicação.
+Histórico anterior ao envio: commit/publicação sanitizados e auditoria
+independente de aplicação eram as ações pendentes. O APTO documental não é GO
+da aplicação.
 
 ### Histórico — execução da ampla e pausa
 
