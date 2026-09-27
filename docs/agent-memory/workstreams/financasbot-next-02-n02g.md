@@ -1,12 +1,37 @@
 # N02-G — checkpoint
 
-Atualização: 2026-09-27. Estado: SIMILAR-EVENT publicado, auditoria independente de aplicação em andamento; SEM GO GLOBAL/EXECUTÁVEL N02-G.
+Atualização: 2026-09-27. Estado: SIMILAR-EVENT APROVADO focalmente; SEM GO GLOBAL/EXECUTÁVEL N02-G.
 Base: `aea4ac31e358ed8d8907e78f6002c8bb80233bc8`.
 Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
 Worktree: `.codex-worktrees/financasbot-n02g-provenance-engine`.
 Plano: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
 
-## Próxima ação — confrontar a auditoria da aplicação SIMILAR-EVENT
+## Próxima ação — diagnosticar as métricas derivadas restantes
+
+O auditor independente atualizou o veredito focal para APROVÁVEL na mesma
+conversa após ler integralmente o witness/verificador do commit de evidência
+`76d2cbee65068525d7d4a72504044ffa1d4fd008`. O objeto aprovado é somente
+o candidato de aplicação `030c9e07578d66ec6da8993bef9a002a3f7b172b`;
+zero finding de código bloqueante. O auditor não reexecutou testes nem leu
+diretamente os 4,96 MB do blob; julgou suficiente a reconstrução integral
+reproduzível e o diff imutável. `verify-similar-event-corpus-witness.cjs --check`
+foi repetido localmente com `valid=true`, 76 grafos e apenas M-16#1#2 alterado.
+Monitor encerrado. Não reenviar nem repetir a ampla verde deste candidato.
+
+Próximo diagnóstico somente leitura: as três métricas derivadas indicadas
+abaixo (`ranking_winner`, `consumption_difference`, `income_minus_open_bills`).
+Confrontar contratos, grafos, bindings e observações causais; agrupar a
+decisão/implementação em um recorte coeso se compartilharem a mesma classe.
+Não aplicar mudança sem identificar a regra normativa e os REDs pertinentes.
+
+Triagem inicial: os três contratos estão em `stage: authoring`, apontam para
+comportamento de referência que ainda requer adaptação instrumentada e dependem
+de resultados de pais validados. Os três grafos declaram `validated_parent_binding`;
+duas fórmulas preservam sinal e ordem dos roles, enquanto ranking exige população
+e desempate lexical. A próxima mudança atravessa registry, bindings, observação
+causal e três evaluators; tratar como um recorte integrado com REDs próprios,
+não como três auditorias de exemplo. Capacidade recomendada para implementar:
+Codex → Sol → Alto. Nenhuma alteração causal foi feita nesta triagem.
 
 Parecer focal de 2026-09-27: `REVISÃO INCOMPLETA`, sem defeito causal de
 código demonstrado; o auditor não conseguiu ler o blob integral de 4,96 MB
