@@ -1,6 +1,6 @@
 # N02-G — alinhamento normativo de observações métricas
 
-Estado: PROPOSTA REVISADA NÃO APLICADA; auditoria documental independente pendente.
+Estado: PROPOSTA REVISADA NÃO APLICADA; segunda reauditoria documental incompleta, correção focal de evidência em preparação.
 Base documental: `207ca56b87381d69a922224332fcdda3a629d822`.
 Escopo: os onze claims abaixo, sem modificar registry, contract hashes,
 snapshots, proof, oracle, freeze ou qualquer execução produtiva.
@@ -126,11 +126,20 @@ Produz as onze `proposed_derivation` completas no JSON homônimo,
 confronta seleção, roles, referência nominal/versionada, arestas e
 unicidade, e simula a substituição em memória. A simulação exige que os
 outros 65 grafos e os 76 proofs permaneçam integralmente iguais; o corpus
-real continua intacto. Nove negativos/controles exercitam aresta ausente
+real continua intacto. Onze negativos/controles exercitam aresta ausente
 ou duplicada, alias inválido, seleção divergente, membro/link ausente,
 membro ausente da população, predicado de seleção ausente ou alterado,
 e independência das antigas listas de reads/edges. Onze negativos/controles
 passam; o modo `--check` exige byte-a-byte a saída publicada.
+O segundo parecer sobre `629a6871ffbdaa581fb64bd59165589bae04c92a`
+foi `INCOMPLETA / NÃO APTO`. Confirmou o vínculo normativo das selections
+à derivation e não encontrou contradição funcional na revisão, mas identificou
+uma lacuna real: o witness ignorava classes de argumento que não conhecia.
+Também não conseguiu ler o JSON minificado de 75 KB nem executar o helper.
+A correção focal torna a gramática do witness fechada, lê a proposta do
+commit imutável `629a687...`, e publica o witness em linhas legíveis e um
+resumo curto por grafo com hashes e totais. A execução local continua
+identificada como evidência do candidato, não como execução do auditor.
 O witness focal `account-installment-selection-witness.json`, gerado pelo
 helper homônimo diretamente do blob imutável do parent, publica as onze
 `selections`, seus predicados referenciados, digest integral de cada registro
