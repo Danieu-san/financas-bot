@@ -153,7 +153,8 @@ function composer(claim, graph) {
             for (const operation of ['iterator', 'cardinality', 'order']) add('required_structural',
                 { node: planAlias, operation, segments: ['members'] });
             unique(plan.payload.members, 'duplicate_plan_member');
-            assert.ok(plan.payload.members.length <= plan.payload.installment_total);
+            assert.equal(plan.payload.members.length, plan.payload.installment_total,
+                'plan_roster_total_mismatch');
             const memberAliases = new Map();
             for (const ref of plan.payload.members) {
                 const found = graph.edges.filter(e => e.source === planAlias && e.field === 'members' &&
@@ -239,6 +240,80 @@ function composer(claim, graph) {
             for (let i = 1; i < list.length; i++) assert.ok(list[i - 1].date < list[i].date, 'date_order');
         }
     }
+    // A node_set binding assigns the complete authored selection to derivation
+    // as well as proof (graph-binding-contract-v1, selection-by-phase). Its
+    // predicates are an independent normative input, not legacy trace. Cover
+    // every observation they require, including exclusions. Never learn this
+    // closure from the evaluator, an oracle, or an observed trace.
+    assert.deepEqual(graph.trace_contract.derivation.required_selections,
+        [{ candidate_set: 'candidates', selected_set: 'selected' }]);
+    assert.equal(graph.selections.length, 1, 'selection_inventory');
+    const selection = graph.selections[0];
+    assert.equal(selection.candidate_set, 'candidates');
+    assert.equal(selection.selected_set, 'selected');
+    const candidateSet = graph.sets[selection.candidate_set];
+    assert.deepEqual(candidateSet, events.aliases, 'selection_candidate_roster');
+    const selectedSet = graph.sets[selection.selected_set];
+    assert.deepEqual([...selectedSet].sort(), [...d.selected_nodes].sort(), 'selection_selected_roster');
+    const excluded = selection.excluded.flatMap(item => item.predicates);
+    const predicateIds = unique([...selection.selected_predicates, ...excluded],
+        'duplicate_selection_predicate');
+    for (const predicateId of predicateIds) {
+        const matches = graph.predicates.filter(item => item.id === predicateId);
+        assert.equal(matches.length, 1, `selection_predicate:${predicateId}`);
+        const predicate = matches[0];
+        let setRef, templateBinding;
+        for (const arg of predicate.args) {
+            const forms = Object.keys(arg);
+            assert.ok(forms.length === 1 ||
+                (forms.length === 2 && forms.includes('template') && forms.includes('bindings')),
+            `selection_arg_form:${predicateId}`);
+            for (const form of forms) {
+            const value = arg[form];
+            if (form === 'field' || form === 'presence') {
+                assert.equal(value.segments.length, 1);
+                if (form === 'field') get(value.node, value.segments[0]);
+                else has(value.node, value.segments[0]);
+            } else if (form === 'claim') {
+                // The selection references the period record. Its admitted
+                // leaf reads are already authored above; the record handle
+                // itself is access metadata, not a new scalar read.
+                assert.deepEqual(value.segments, ['period']);
+            } else if (form === 'edge') {
+                assert.ok(graph.edges.some(edge => edge.id === value), `selection_edge:${value}`);
+                add('required_edges', value);
+            } else if (form === 'set') {
+                assert.ok(Array.isArray(graph.sets[value]), `selection_set:${value}`);
+                setRef = value;
+            } else if (form === 'bindings') {
+                templateBinding = value;
+            } else if (form === 'literal' || form === 'period_ref' || form === 'template') {
+                // A period_ref names the already-authored window, not a read.
+                if (form === 'period_ref')
+                    assert.ok(graph.windows[value], `selection_window:${value}`);
+            } else {
+                assert.fail(`unsupported_selection_arg:${predicateId}:${form}`);
+            }
+            }
+        }
+        if (templateBinding) {
+            assert.ok(['all_match', 'none_match'].includes(predicate.op));
+            assert.ok(setRef, `template_without_set:${predicateId}`);
+            const bindings = Object.keys(templateBinding).sort();
+            assert.deepEqual(bindings, ['field', 'period']);
+            const field = templateBinding.field.selector;
+            assert.equal(field.kind, 'event');
+            assert.equal(field.segments.length, 1);
+            if (templateBinding.period.claim) {
+                assert.deepEqual(templateBinding.period.claim.segments, ['period']);
+                assert.ok(['through', 'range'].includes(claim.period.kind));
+            } else {
+                assert.equal(templateBinding.period.period_ref, 'selection_window');
+                assert.ok(graph.windows.selection_window);
+            }
+            for (const alias of graph.sets[setRef]) get(alias, field.segments[0]);
+        }
+    }
     for (const field of dimensions) d[field] = sort(unique(d[field], `duplicate_${field}`));
     d.selected_nodes = [...new Set(d.selected_nodes)].sort();
     assert.deepEqual(d.selected_nodes, [...graph.trace_contract.derivation.selected_nodes].sort(),
@@ -299,6 +374,17 @@ red('plan_member_missing_from_population', planClaim, planGraph, c => {
     c.operand_bindings.events.aliases = c.operand_bindings.events.aliases.filter(
         alias => alias !== 'evt_installment_1');
 });
+red('plan_selection_predicate_missing', planClaim, planGraph, (_, g) => {
+    g.predicates = g.predicates.filter(predicate => predicate.id !== 'r0001_absent_installment_plan');
+});
+const changedSelection = structuredClone(planGraph);
+const absence = changedSelection.predicates.find(predicate =>
+    predicate.id === 'r0001_absent_installment_plan');
+assert.ok(absence);
+absence.args[0].presence.segments = ['card_id'];
+assert.notDeepEqual(composer(planClaim, changedSelection), planBaseline,
+    'selection_predicate_change_must_change_derivation');
+adversarial.push('selection_predicate_changes_obligation');
 const staleAccount = structuredClone(accountGraph);
 staleAccount.trace_contract.derivation.required_reads = [];
 staleAccount.trace_contract.derivation.required_edges = [];
@@ -322,7 +408,7 @@ for (let i = 0; i < 76; i++) {
         assert.deepEqual(reconstructed, original);
     }
 }
-const proposal = { schema: 'n02g_account_installment_observation_proposal_v1', base,
+const proposal = { schema: 'n02g_account_installment_observation_proposal_v2', base,
     status: 'not_applied', graph_accepted: false, source_corpus_sha256_lf:
         documents[prefix + 'graphs-v2.json'].sha256_lf, documents, records,
     checks: { graphs: 76, changed_derivations: 11, other_graphs_preserved: 65,

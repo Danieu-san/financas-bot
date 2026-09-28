@@ -1,6 +1,6 @@
 # N02-G — alinhamento normativo de observações métricas
 
-Estado: PROPOSTA NÃO APLICADA; auditoria documental independente pendente.
+Estado: PROPOSTA REVISADA NÃO APLICADA; auditoria documental independente pendente.
 Base documental: `207ca56b87381d69a922224332fcdda3a629d822`.
 Escopo: os onze claims abaixo, sem modificar registry, contract hashes,
 snapshots, proof, oracle, freeze ou qualquer execução produtiva.
@@ -25,9 +25,14 @@ writer de L/T; o comparator atual não decide M e nenhuma aprovação de grafo
 
 A nova `trace_contract.derivation` de cada um desses onze grafos deve ser
 composta **antes de executar o evaluator** a partir do claim, roles do registry,
-snapshot admitido e regras abaixo. O corpus atual não é o template das
-obrigações: listas antigas de reads/edges não devem ser preservadas só porque
-já constam nele. Ao mesmo tempo, a proposta não autoriza gerar expected a
+snapshot admitido, regras abaixo e `selections`/predicados autorados. O
+corpus atual não é o template das obrigações: listas antigas de reads/edges
+não devem ser preservadas só porque já constam nele. A seleção vigente é
+uma autoridade normativa separada dessas listas: como o role `events` é o
+`node_set` do candidate_set, a seção “Seleção por fase” do binding contract
+exige executar também na derivation todos os predicados dos selecionados e
+excluídos. Seus `field`, `presence`, `edge` e templates expandidos geram
+obrigações I mesmo quando não alteram R. A proposta não autoriza gerar expected a
 partir de actual, de R, do oracle ou do log do recorder.
 
 `required_nodes` contém cada nó cujo payload/identidade a fórmula examina,
@@ -72,10 +77,14 @@ O plano revisado fornece `members`, `installment_total`, identidade e
 revisão. A lista de membros, com cardinalidade, ordem, unicidade e arestas
 admitidas, é a autoridade para decidir **quais eventos são candidatos a
 parcela daquele plano**. Todos os eventos da população ainda têm a identidade
-material observada para comprovar unicidade e detectar membro ausente; um
-evento não listado não requer leitura de data, state, pessoa, categoria ou
-campo `installment_plan` apenas para ser descartado. Não se faz
-`has(installment_plan)` sobre toda a população.
+material observada para comprovar unicidade e detectar membro ausente. O
+evento não listado não é membro funcional do plano, mas sua exclusão continua
+submetida aos predicados de `selections` já autorados. Na derivation, casos
+`absent_installment_plan` exigem `has(installment_plan)` e casos
+`exclude_state` exigem leitura de `state`, mesmo em não membros. Templates
+de janela são expandidos para os membros de seu set e exigem as leituras
+de `date` correspondentes. Isso não autoriza incluir categoria, cartão ou
+conta por closure de proof: são observações da seleção, não cópia de actual.
 
 Para cada membro listado, a fórmula lê e resolve `installment_plan`, exige
 o mesmo plano/revisão, lê número, total, data civil e state, exige sequência
@@ -102,6 +111,13 @@ do evaluator; esta proposta não a introduz por inferência.
 
 ## Artefato de composição e aplicação futura
 
+O primeiro parecer sobre `399918ccf7ea209cd4ee0255d8c4e690635a2d03`
+foi `INCOMPLETA / NÃO APTO`: o auditor não pôde ler o corpus-base grande.
+Inspeção local do parent constatou ainda que a versão inicial removia
+obrigações de predicados de seleção em oito grafos de parcelas, embora
+preservasse `required_selections`. A revisão não aplica essa composição
+incompleta; fecha a classe pelo contrato de seleção, sem afrouxar o comparador.
+
 O helper offline
 `docs/audit-evidence/n02g-causal-authoring-profile/prepare-account-installment-observation-proposal.cjs`
 lê o corpus, claims, registry, contratos e manifest do SHA-base imutável.
@@ -112,12 +128,21 @@ unicidade, e simula a substituição em memória. A simulação exige que os
 outros 65 grafos e os 76 proofs permaneçam integralmente iguais; o corpus
 real continua intacto. Nove negativos/controles exercitam aresta ausente
 ou duplicada, alias inválido, seleção divergente, membro/link ausente,
-membro ausente da população e independência das antigas listas de
-reads/edges. O modo `--check` exige byte-a-byte a saída já publicada.
+membro ausente da população, predicado de seleção ausente ou alterado,
+e independência das antigas listas de reads/edges. Onze negativos/controles
+passam; o modo `--check` exige byte-a-byte a saída publicada.
+O witness focal `account-installment-selection-witness.json`, gerado pelo
+helper homônimo diretamente do blob imutável do parent, publica as onze
+`selections`, seus predicados referenciados, digest integral de cada registro
+e a comparação de dependências `field`/`presence`/`edge` e templates
+expandidos com a proposta revisada. O verificador exige igualdade integral
+entre cada `current_derivation` e a do corpus original; isso não é leitura
+independente do Chat nem aprovação sem auditoria.
 
-O delta calculado contém seis nós lidos adicionais de contas alternativas,
-48 observações estruturais `has(account_id)`, seis reads de identidade
-desses targets e a remoção de 583 reads e 373 arestas derivacionais
+O delta revisado contém seis nós lidos adicionais de contas alternativas,
+84 observações estruturais adicionais (incluindo `has(account_id)` e
+`has(installment_plan)` da seleção), seis reads de identidade desses
+targets e a remoção de 515 reads e 373 arestas derivacionais
 excedentes nos onze grafos. Não altera required_claim_reads, seleção nem
 proof. Esses totais descrevem o **perfil proposto**, não sua aprovação.
 Uma alteração tão ampla deve ser julgada semanticamente, em especial a
@@ -141,8 +166,10 @@ R quando proof é analisado separadamente. Testes devem exigir eventos I
 visíveis e cobertura exata, não apenas valor financeiro correto.
 
 Somente após parecer documental explícito, aplicar a composição completa,
-ajustar `metricInstallments.js` para seleção por roster e retirar leituras
-funcionais excedentes, preservar `metricDirectReads.js` quando sua
+ajustar `metricInstallments.js` para usar o roster na elegibilidade e executar
+os predicados de seleção autorados, inclusive observações de exclusão em
+não membros, sem copiar trace nem fazer reads adicionais de categoria,
+cartão ou conta; preservar `metricDirectReads.js` quando sua
 observação de presença/ref é causal, executar REDs/afetados e uma suíte
 hermética ampla estável, e publicar commit de código para auditoria
 independente. Esta proposta não aprova esses passos nem autoriza GO global

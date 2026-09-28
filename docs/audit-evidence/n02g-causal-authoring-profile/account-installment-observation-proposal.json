@@ -1,5 +1,5 @@
 {
-  "schema": "n02g_account_installment_observation_proposal_v1",
+  "schema": "n02g_account_installment_observation_proposal_v2",
   "base": "207ca56b87381d69a922224332fcdda3a629d822",
   "status": "not_applied",
   "graph_accepted": false,
@@ -4243,6 +4243,12 @@
             ]
           },
           {
+            "node": "evt_bill_projected",
+            "segments": [
+              "state"
+            ]
+          },
+          {
             "node": "evt_cinema_b",
             "segments": [
               "id"
@@ -4482,6 +4488,90 @@
         ],
         "required_structural": [
           {
+            "node": "evt_cinema_b",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_fuel_a",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_gift_b",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_market_a",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_refund_b",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_rent_a",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_restaurant_b",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_salary_a",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_snack_a",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
             "node": "plan_01",
             "operation": "cardinality",
             "segments": [
@@ -4538,12 +4628,6 @@
               "node": "evt_bill_projected",
               "segments": [
                 "category_id"
-              ]
-            },
-            {
-              "node": "evt_bill_projected",
-              "segments": [
-                "state"
               ]
             },
             {
@@ -4914,7 +4998,92 @@
           ]
         },
         "required_structural": {
-          "added": [],
+          "added": [
+            {
+              "node": "evt_cinema_b",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_fuel_a",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_gift_b",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_invoice_payment",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_market_a",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_rent_a",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_restaurant_b",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_salary_a",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_snack_a",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_transfer_in",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_transfer_out",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            }
+          ],
           "removed": []
         }
       },
@@ -5645,6 +5814,12 @@
           {
             "node": "evt_bill_projected",
             "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_bill_projected",
+            "segments": [
               "id"
             ]
           },
@@ -5655,7 +5830,25 @@
             ]
           },
           {
+            "node": "evt_cinema_b",
+            "segments": [
+              "state"
+            ]
+          },
+          {
             "node": "evt_fuel_a",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_fuel_a",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_gift_b",
             "segments": [
               "id"
             ]
@@ -5663,7 +5856,7 @@
           {
             "node": "evt_gift_b",
             "segments": [
-              "id"
+              "state"
             ]
           },
           {
@@ -5781,9 +5974,21 @@
             ]
           },
           {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "state"
+            ]
+          },
+          {
             "node": "evt_market_a",
             "segments": [
               "id"
+            ]
+          },
+          {
+            "node": "evt_market_a",
+            "segments": [
+              "state"
             ]
           },
           {
@@ -5793,9 +5998,21 @@
             ]
           },
           {
+            "node": "evt_refund_b",
+            "segments": [
+              "state"
+            ]
+          },
+          {
             "node": "evt_rent_a",
             "segments": [
               "id"
+            ]
+          },
+          {
+            "node": "evt_rent_a",
+            "segments": [
+              "state"
             ]
           },
           {
@@ -5805,9 +6022,21 @@
             ]
           },
           {
+            "node": "evt_restaurant_b",
+            "segments": [
+              "state"
+            ]
+          },
+          {
             "node": "evt_salary_a",
             "segments": [
               "id"
+            ]
+          },
+          {
+            "node": "evt_salary_a",
+            "segments": [
+              "state"
             ]
           },
           {
@@ -5817,7 +6046,25 @@
             ]
           },
           {
+            "node": "evt_snack_a",
+            "segments": [
+              "state"
+            ]
+          },
+          {
             "node": "evt_transfer_in",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
             "segments": [
               "id"
             ]
@@ -5825,7 +6072,7 @@
           {
             "node": "evt_transfer_out",
             "segments": [
-              "id"
+              "state"
             ]
           },
           {
@@ -5950,12 +6197,6 @@
             {
               "node": "evt_bill_projected",
               "segments": [
-                "date"
-              ]
-            },
-            {
-              "node": "evt_bill_projected",
-              "segments": [
                 "person_id"
               ]
             },
@@ -5990,12 +6231,6 @@
               ]
             },
             {
-              "node": "evt_cinema_b",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_fuel_a",
               "segments": [
                 "date"
@@ -6014,12 +6249,6 @@
               ]
             },
             {
-              "node": "evt_fuel_a",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_gift_b",
               "segments": [
                 "date"
@@ -6035,12 +6264,6 @@
               "node": "evt_gift_b",
               "segments": [
                 "category_id"
-              ]
-            },
-            {
-              "node": "evt_gift_b",
-              "segments": [
-                "state"
               ]
             },
             {
@@ -6098,12 +6321,6 @@
               ]
             },
             {
-              "node": "evt_invoice_payment",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_market_a",
               "segments": [
                 "date"
@@ -6119,12 +6336,6 @@
               "node": "evt_market_a",
               "segments": [
                 "category_id"
-              ]
-            },
-            {
-              "node": "evt_market_a",
-              "segments": [
-                "state"
               ]
             },
             {
@@ -6146,12 +6357,6 @@
               ]
             },
             {
-              "node": "evt_refund_b",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_rent_a",
               "segments": [
                 "date"
@@ -6167,12 +6372,6 @@
               "node": "evt_rent_a",
               "segments": [
                 "category_id"
-              ]
-            },
-            {
-              "node": "evt_rent_a",
-              "segments": [
-                "state"
               ]
             },
             {
@@ -6194,12 +6393,6 @@
               ]
             },
             {
-              "node": "evt_restaurant_b",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_salary_a",
               "segments": [
                 "date"
@@ -6215,12 +6408,6 @@
               "node": "evt_salary_a",
               "segments": [
                 "category_id"
-              ]
-            },
-            {
-              "node": "evt_salary_a",
-              "segments": [
-                "state"
               ]
             },
             {
@@ -6242,12 +6429,6 @@
               ]
             },
             {
-              "node": "evt_snack_a",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_transfer_in",
               "segments": [
                 "date"
@@ -6266,12 +6447,6 @@
               ]
             },
             {
-              "node": "evt_transfer_in",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_transfer_out",
               "segments": [
                 "date"
@@ -6287,12 +6462,6 @@
               "node": "evt_transfer_out",
               "segments": [
                 "category_id"
-              ]
-            },
-            {
-              "node": "evt_transfer_out",
-              "segments": [
-                "state"
               ]
             }
           ]
@@ -7082,6 +7251,12 @@
           {
             "node": "evt_bill_projected",
             "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_bill_projected",
+            "segments": [
               "id"
             ]
           },
@@ -7092,7 +7267,25 @@
             ]
           },
           {
+            "node": "evt_cinema_b",
+            "segments": [
+              "state"
+            ]
+          },
+          {
             "node": "evt_fuel_a",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_fuel_a",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_gift_b",
             "segments": [
               "id"
             ]
@@ -7100,7 +7293,7 @@
           {
             "node": "evt_gift_b",
             "segments": [
-              "id"
+              "state"
             ]
           },
           {
@@ -7230,9 +7423,21 @@
             ]
           },
           {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "state"
+            ]
+          },
+          {
             "node": "evt_market_a",
             "segments": [
               "id"
+            ]
+          },
+          {
+            "node": "evt_market_a",
+            "segments": [
+              "state"
             ]
           },
           {
@@ -7242,9 +7447,21 @@
             ]
           },
           {
+            "node": "evt_refund_b",
+            "segments": [
+              "state"
+            ]
+          },
+          {
             "node": "evt_rent_a",
             "segments": [
               "id"
+            ]
+          },
+          {
+            "node": "evt_rent_a",
+            "segments": [
+              "state"
             ]
           },
           {
@@ -7254,9 +7471,21 @@
             ]
           },
           {
+            "node": "evt_restaurant_b",
+            "segments": [
+              "state"
+            ]
+          },
+          {
             "node": "evt_salary_a",
             "segments": [
               "id"
+            ]
+          },
+          {
+            "node": "evt_salary_a",
+            "segments": [
+              "state"
             ]
           },
           {
@@ -7266,7 +7495,25 @@
             ]
           },
           {
+            "node": "evt_snack_a",
+            "segments": [
+              "state"
+            ]
+          },
+          {
             "node": "evt_transfer_in",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
             "segments": [
               "id"
             ]
@@ -7274,7 +7521,7 @@
           {
             "node": "evt_transfer_out",
             "segments": [
-              "id"
+              "state"
             ]
           },
           {
@@ -7399,12 +7646,6 @@
             {
               "node": "evt_bill_projected",
               "segments": [
-                "date"
-              ]
-            },
-            {
-              "node": "evt_bill_projected",
-              "segments": [
                 "person_id"
               ]
             },
@@ -7439,12 +7680,6 @@
               ]
             },
             {
-              "node": "evt_cinema_b",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_fuel_a",
               "segments": [
                 "date"
@@ -7463,12 +7698,6 @@
               ]
             },
             {
-              "node": "evt_fuel_a",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_gift_b",
               "segments": [
                 "date"
@@ -7484,12 +7713,6 @@
               "node": "evt_gift_b",
               "segments": [
                 "category_id"
-              ]
-            },
-            {
-              "node": "evt_gift_b",
-              "segments": [
-                "state"
               ]
             },
             {
@@ -7547,12 +7770,6 @@
               ]
             },
             {
-              "node": "evt_invoice_payment",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_market_a",
               "segments": [
                 "date"
@@ -7568,12 +7785,6 @@
               "node": "evt_market_a",
               "segments": [
                 "category_id"
-              ]
-            },
-            {
-              "node": "evt_market_a",
-              "segments": [
-                "state"
               ]
             },
             {
@@ -7595,12 +7806,6 @@
               ]
             },
             {
-              "node": "evt_refund_b",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_rent_a",
               "segments": [
                 "date"
@@ -7616,12 +7821,6 @@
               "node": "evt_rent_a",
               "segments": [
                 "category_id"
-              ]
-            },
-            {
-              "node": "evt_rent_a",
-              "segments": [
-                "state"
               ]
             },
             {
@@ -7643,12 +7842,6 @@
               ]
             },
             {
-              "node": "evt_restaurant_b",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_salary_a",
               "segments": [
                 "date"
@@ -7664,12 +7857,6 @@
               "node": "evt_salary_a",
               "segments": [
                 "category_id"
-              ]
-            },
-            {
-              "node": "evt_salary_a",
-              "segments": [
-                "state"
               ]
             },
             {
@@ -7691,12 +7878,6 @@
               ]
             },
             {
-              "node": "evt_snack_a",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_transfer_in",
               "segments": [
                 "date"
@@ -7715,12 +7896,6 @@
               ]
             },
             {
-              "node": "evt_transfer_in",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_transfer_out",
               "segments": [
                 "date"
@@ -7736,12 +7911,6 @@
               "node": "evt_transfer_out",
               "segments": [
                 "category_id"
-              ]
-            },
-            {
-              "node": "evt_transfer_out",
-              "segments": [
-                "state"
               ]
             }
           ]
@@ -10267,6 +10436,12 @@
           {
             "node": "evt_bill_projected",
             "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_bill_projected",
+            "segments": [
               "id"
             ]
           },
@@ -10277,7 +10452,25 @@
             ]
           },
           {
+            "node": "evt_cinema_b",
+            "segments": [
+              "state"
+            ]
+          },
+          {
             "node": "evt_fuel_a",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_fuel_a",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_gift_b",
             "segments": [
               "id"
             ]
@@ -10285,7 +10478,7 @@
           {
             "node": "evt_gift_b",
             "segments": [
-              "id"
+              "state"
             ]
           },
           {
@@ -10433,9 +10626,21 @@
             ]
           },
           {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "state"
+            ]
+          },
+          {
             "node": "evt_market_a",
             "segments": [
               "id"
+            ]
+          },
+          {
+            "node": "evt_market_a",
+            "segments": [
+              "state"
             ]
           },
           {
@@ -10445,9 +10650,21 @@
             ]
           },
           {
+            "node": "evt_refund_b",
+            "segments": [
+              "state"
+            ]
+          },
+          {
             "node": "evt_rent_a",
             "segments": [
               "id"
+            ]
+          },
+          {
+            "node": "evt_rent_a",
+            "segments": [
+              "state"
             ]
           },
           {
@@ -10457,9 +10674,21 @@
             ]
           },
           {
+            "node": "evt_restaurant_b",
+            "segments": [
+              "state"
+            ]
+          },
+          {
             "node": "evt_salary_a",
             "segments": [
               "id"
+            ]
+          },
+          {
+            "node": "evt_salary_a",
+            "segments": [
+              "state"
             ]
           },
           {
@@ -10469,7 +10698,25 @@
             ]
           },
           {
+            "node": "evt_snack_a",
+            "segments": [
+              "state"
+            ]
+          },
+          {
             "node": "evt_transfer_in",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
             "segments": [
               "id"
             ]
@@ -10477,7 +10724,7 @@
           {
             "node": "evt_transfer_out",
             "segments": [
-              "id"
+              "state"
             ]
           },
           {
@@ -10640,12 +10887,6 @@
             {
               "node": "evt_bill_projected",
               "segments": [
-                "date"
-              ]
-            },
-            {
-              "node": "evt_bill_projected",
-              "segments": [
                 "person_id"
               ]
             },
@@ -10680,12 +10921,6 @@
               ]
             },
             {
-              "node": "evt_cinema_b",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_fuel_a",
               "segments": [
                 "date"
@@ -10704,12 +10939,6 @@
               ]
             },
             {
-              "node": "evt_fuel_a",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_gift_b",
               "segments": [
                 "date"
@@ -10725,12 +10954,6 @@
               "node": "evt_gift_b",
               "segments": [
                 "category_id"
-              ]
-            },
-            {
-              "node": "evt_gift_b",
-              "segments": [
-                "state"
               ]
             },
             {
@@ -10770,12 +10993,6 @@
               ]
             },
             {
-              "node": "evt_invoice_payment",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_market_a",
               "segments": [
                 "date"
@@ -10791,12 +11008,6 @@
               "node": "evt_market_a",
               "segments": [
                 "category_id"
-              ]
-            },
-            {
-              "node": "evt_market_a",
-              "segments": [
-                "state"
               ]
             },
             {
@@ -10818,12 +11029,6 @@
               ]
             },
             {
-              "node": "evt_refund_b",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_rent_a",
               "segments": [
                 "date"
@@ -10839,12 +11044,6 @@
               "node": "evt_rent_a",
               "segments": [
                 "category_id"
-              ]
-            },
-            {
-              "node": "evt_rent_a",
-              "segments": [
-                "state"
               ]
             },
             {
@@ -10866,12 +11065,6 @@
               ]
             },
             {
-              "node": "evt_restaurant_b",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_salary_a",
               "segments": [
                 "date"
@@ -10887,12 +11080,6 @@
               "node": "evt_salary_a",
               "segments": [
                 "category_id"
-              ]
-            },
-            {
-              "node": "evt_salary_a",
-              "segments": [
-                "state"
               ]
             },
             {
@@ -10914,12 +11101,6 @@
               ]
             },
             {
-              "node": "evt_snack_a",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_transfer_in",
               "segments": [
                 "date"
@@ -10938,12 +11119,6 @@
               ]
             },
             {
-              "node": "evt_transfer_in",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_transfer_out",
               "segments": [
                 "date"
@@ -10959,12 +11134,6 @@
               "node": "evt_transfer_out",
               "segments": [
                 "category_id"
-              ]
-            },
-            {
-              "node": "evt_transfer_out",
-              "segments": [
-                "state"
               ]
             }
           ]
@@ -11724,6 +11893,12 @@
             ]
           },
           {
+            "node": "evt_bill_projected",
+            "segments": [
+              "state"
+            ]
+          },
+          {
             "node": "evt_cinema_b",
             "segments": [
               "id"
@@ -11963,6 +12138,90 @@
         ],
         "required_structural": [
           {
+            "node": "evt_cinema_b",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_fuel_a",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_gift_b",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_market_a",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_refund_b",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_rent_a",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_restaurant_b",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_salary_a",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_snack_a",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
             "node": "plan_01",
             "operation": "cardinality",
             "segments": [
@@ -12019,12 +12278,6 @@
               "node": "evt_bill_projected",
               "segments": [
                 "category_id"
-              ]
-            },
-            {
-              "node": "evt_bill_projected",
-              "segments": [
-                "state"
               ]
             },
             {
@@ -12395,7 +12648,92 @@
           ]
         },
         "required_structural": {
-          "added": [],
+          "added": [
+            {
+              "node": "evt_cinema_b",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_fuel_a",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_gift_b",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_invoice_payment",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_market_a",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_rent_a",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_restaurant_b",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_salary_a",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_snack_a",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_transfer_in",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_transfer_out",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            }
+          ],
           "removed": []
         }
       },
@@ -13117,6 +13455,12 @@
             ]
           },
           {
+            "node": "evt_bill_projected",
+            "segments": [
+              "state"
+            ]
+          },
+          {
             "node": "evt_cinema_b",
             "segments": [
               "id"
@@ -13362,6 +13706,90 @@
         ],
         "required_structural": [
           {
+            "node": "evt_cinema_b",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_fuel_a",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_gift_b",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_invoice_payment",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_market_a",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_refund_b",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_rent_a",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_restaurant_b",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_salary_a",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_snack_a",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
+            "operation": "has",
+            "segments": [
+              "installment_plan"
+            ]
+          },
+          {
             "node": "plan_01",
             "operation": "cardinality",
             "segments": [
@@ -13418,12 +13846,6 @@
               "node": "evt_bill_projected",
               "segments": [
                 "category_id"
-              ]
-            },
-            {
-              "node": "evt_bill_projected",
-              "segments": [
-                "state"
               ]
             },
             {
@@ -13794,7 +14216,92 @@
           ]
         },
         "required_structural": {
-          "added": [],
+          "added": [
+            {
+              "node": "evt_cinema_b",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_fuel_a",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_gift_b",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_invoice_payment",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_market_a",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_rent_a",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_restaurant_b",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_salary_a",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_snack_a",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_transfer_in",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_transfer_out",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            }
+          ],
           "removed": []
         }
       },
@@ -14525,6 +15032,12 @@
           {
             "node": "evt_bill_projected",
             "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_bill_projected",
+            "segments": [
               "id"
             ]
           },
@@ -14535,7 +15048,25 @@
             ]
           },
           {
+            "node": "evt_cinema_b",
+            "segments": [
+              "state"
+            ]
+          },
+          {
             "node": "evt_fuel_a",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_fuel_a",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_gift_b",
             "segments": [
               "id"
             ]
@@ -14543,7 +15074,7 @@
           {
             "node": "evt_gift_b",
             "segments": [
-              "id"
+              "state"
             ]
           },
           {
@@ -14661,9 +15192,21 @@
             ]
           },
           {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "state"
+            ]
+          },
+          {
             "node": "evt_market_a",
             "segments": [
               "id"
+            ]
+          },
+          {
+            "node": "evt_market_a",
+            "segments": [
+              "state"
             ]
           },
           {
@@ -14673,9 +15216,21 @@
             ]
           },
           {
+            "node": "evt_refund_b",
+            "segments": [
+              "state"
+            ]
+          },
+          {
             "node": "evt_rent_a",
             "segments": [
               "id"
+            ]
+          },
+          {
+            "node": "evt_rent_a",
+            "segments": [
+              "state"
             ]
           },
           {
@@ -14685,9 +15240,21 @@
             ]
           },
           {
+            "node": "evt_restaurant_b",
+            "segments": [
+              "state"
+            ]
+          },
+          {
             "node": "evt_salary_a",
             "segments": [
               "id"
+            ]
+          },
+          {
+            "node": "evt_salary_a",
+            "segments": [
+              "state"
             ]
           },
           {
@@ -14697,7 +15264,25 @@
             ]
           },
           {
+            "node": "evt_snack_a",
+            "segments": [
+              "state"
+            ]
+          },
+          {
             "node": "evt_transfer_in",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
             "segments": [
               "id"
             ]
@@ -14705,7 +15290,7 @@
           {
             "node": "evt_transfer_out",
             "segments": [
-              "id"
+              "state"
             ]
           },
           {
@@ -14830,12 +15415,6 @@
             {
               "node": "evt_bill_projected",
               "segments": [
-                "date"
-              ]
-            },
-            {
-              "node": "evt_bill_projected",
-              "segments": [
                 "person_id"
               ]
             },
@@ -14870,12 +15449,6 @@
               ]
             },
             {
-              "node": "evt_cinema_b",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_fuel_a",
               "segments": [
                 "date"
@@ -14894,12 +15467,6 @@
               ]
             },
             {
-              "node": "evt_fuel_a",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_gift_b",
               "segments": [
                 "date"
@@ -14915,12 +15482,6 @@
               "node": "evt_gift_b",
               "segments": [
                 "category_id"
-              ]
-            },
-            {
-              "node": "evt_gift_b",
-              "segments": [
-                "state"
               ]
             },
             {
@@ -14978,12 +15539,6 @@
               ]
             },
             {
-              "node": "evt_invoice_payment",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_market_a",
               "segments": [
                 "date"
@@ -14999,12 +15554,6 @@
               "node": "evt_market_a",
               "segments": [
                 "category_id"
-              ]
-            },
-            {
-              "node": "evt_market_a",
-              "segments": [
-                "state"
               ]
             },
             {
@@ -15026,12 +15575,6 @@
               ]
             },
             {
-              "node": "evt_refund_b",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_rent_a",
               "segments": [
                 "date"
@@ -15047,12 +15590,6 @@
               "node": "evt_rent_a",
               "segments": [
                 "category_id"
-              ]
-            },
-            {
-              "node": "evt_rent_a",
-              "segments": [
-                "state"
               ]
             },
             {
@@ -15074,12 +15611,6 @@
               ]
             },
             {
-              "node": "evt_restaurant_b",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_salary_a",
               "segments": [
                 "date"
@@ -15095,12 +15626,6 @@
               "node": "evt_salary_a",
               "segments": [
                 "category_id"
-              ]
-            },
-            {
-              "node": "evt_salary_a",
-              "segments": [
-                "state"
               ]
             },
             {
@@ -15122,12 +15647,6 @@
               ]
             },
             {
-              "node": "evt_snack_a",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_transfer_in",
               "segments": [
                 "date"
@@ -15146,12 +15665,6 @@
               ]
             },
             {
-              "node": "evt_transfer_in",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_transfer_out",
               "segments": [
                 "date"
@@ -15167,12 +15680,6 @@
               "node": "evt_transfer_out",
               "segments": [
                 "category_id"
-              ]
-            },
-            {
-              "node": "evt_transfer_out",
-              "segments": [
-                "state"
               ]
             }
           ]
@@ -15962,6 +16469,12 @@
           {
             "node": "evt_bill_projected",
             "segments": [
+              "date"
+            ]
+          },
+          {
+            "node": "evt_bill_projected",
+            "segments": [
               "id"
             ]
           },
@@ -15972,7 +16485,25 @@
             ]
           },
           {
+            "node": "evt_cinema_b",
+            "segments": [
+              "state"
+            ]
+          },
+          {
             "node": "evt_fuel_a",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_fuel_a",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_gift_b",
             "segments": [
               "id"
             ]
@@ -15980,7 +16511,7 @@
           {
             "node": "evt_gift_b",
             "segments": [
-              "id"
+              "state"
             ]
           },
           {
@@ -16110,9 +16641,21 @@
             ]
           },
           {
+            "node": "evt_invoice_payment",
+            "segments": [
+              "state"
+            ]
+          },
+          {
             "node": "evt_market_a",
             "segments": [
               "id"
+            ]
+          },
+          {
+            "node": "evt_market_a",
+            "segments": [
+              "state"
             ]
           },
           {
@@ -16122,9 +16665,21 @@
             ]
           },
           {
+            "node": "evt_refund_b",
+            "segments": [
+              "state"
+            ]
+          },
+          {
             "node": "evt_rent_a",
             "segments": [
               "id"
+            ]
+          },
+          {
+            "node": "evt_rent_a",
+            "segments": [
+              "state"
             ]
           },
           {
@@ -16134,9 +16689,21 @@
             ]
           },
           {
+            "node": "evt_restaurant_b",
+            "segments": [
+              "state"
+            ]
+          },
+          {
             "node": "evt_salary_a",
             "segments": [
               "id"
+            ]
+          },
+          {
+            "node": "evt_salary_a",
+            "segments": [
+              "state"
             ]
           },
           {
@@ -16146,7 +16713,25 @@
             ]
           },
           {
+            "node": "evt_snack_a",
+            "segments": [
+              "state"
+            ]
+          },
+          {
             "node": "evt_transfer_in",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "evt_transfer_in",
+            "segments": [
+              "state"
+            ]
+          },
+          {
+            "node": "evt_transfer_out",
             "segments": [
               "id"
             ]
@@ -16154,7 +16739,7 @@
           {
             "node": "evt_transfer_out",
             "segments": [
-              "id"
+              "state"
             ]
           },
           {
@@ -16279,12 +16864,6 @@
             {
               "node": "evt_bill_projected",
               "segments": [
-                "date"
-              ]
-            },
-            {
-              "node": "evt_bill_projected",
-              "segments": [
                 "person_id"
               ]
             },
@@ -16319,12 +16898,6 @@
               ]
             },
             {
-              "node": "evt_cinema_b",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_fuel_a",
               "segments": [
                 "date"
@@ -16343,12 +16916,6 @@
               ]
             },
             {
-              "node": "evt_fuel_a",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_gift_b",
               "segments": [
                 "date"
@@ -16364,12 +16931,6 @@
               "node": "evt_gift_b",
               "segments": [
                 "category_id"
-              ]
-            },
-            {
-              "node": "evt_gift_b",
-              "segments": [
-                "state"
               ]
             },
             {
@@ -16427,12 +16988,6 @@
               ]
             },
             {
-              "node": "evt_invoice_payment",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_market_a",
               "segments": [
                 "date"
@@ -16448,12 +17003,6 @@
               "node": "evt_market_a",
               "segments": [
                 "category_id"
-              ]
-            },
-            {
-              "node": "evt_market_a",
-              "segments": [
-                "state"
               ]
             },
             {
@@ -16475,12 +17024,6 @@
               ]
             },
             {
-              "node": "evt_refund_b",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_rent_a",
               "segments": [
                 "date"
@@ -16496,12 +17039,6 @@
               "node": "evt_rent_a",
               "segments": [
                 "category_id"
-              ]
-            },
-            {
-              "node": "evt_rent_a",
-              "segments": [
-                "state"
               ]
             },
             {
@@ -16523,12 +17060,6 @@
               ]
             },
             {
-              "node": "evt_restaurant_b",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_salary_a",
               "segments": [
                 "date"
@@ -16544,12 +17075,6 @@
               "node": "evt_salary_a",
               "segments": [
                 "category_id"
-              ]
-            },
-            {
-              "node": "evt_salary_a",
-              "segments": [
-                "state"
               ]
             },
             {
@@ -16571,12 +17096,6 @@
               ]
             },
             {
-              "node": "evt_snack_a",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_transfer_in",
               "segments": [
                 "date"
@@ -16595,12 +17114,6 @@
               ]
             },
             {
-              "node": "evt_transfer_in",
-              "segments": [
-                "state"
-              ]
-            },
-            {
               "node": "evt_transfer_out",
               "segments": [
                 "date"
@@ -16616,12 +17129,6 @@
               "node": "evt_transfer_out",
               "segments": [
                 "category_id"
-              ]
-            },
-            {
-              "node": "evt_transfer_out",
-              "segments": [
-                "state"
               ]
             }
           ]
@@ -16689,6 +17196,8 @@
       "plan_member_relation_missing",
       "plan_link_relation_missing",
       "plan_member_missing_from_population",
+      "plan_selection_predicate_missing",
+      "selection_predicate_changes_obligation",
       "stale_account_obligations_ignored",
       "stale_plan_obligations_ignored"
     ]
