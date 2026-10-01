@@ -2,7 +2,24 @@
 
 ## Retomada e aprovação focal — 2026-10-01
 
-### Proposta publicada; envio ainda não realizado
+### Proposta publicada; auditoria enviada — 2026-10-01
+
+Acesso ao projeto NEXT restaurado pelo usuário. High (3 de 3, máximo do
+seletor) confirmado antes do envio; a UI não expôs identificador de versão do
+modelo, portanto não registrar versão presumida para o Chat.
+Uma única mensagem com ZIP foi submetida e persistida nesta conversa:
+`https://chatgpt.com/g/g-p-6aa305ab1f8c8191a3f89baff00cc701-next/c/6abe795a-7eb0-83e9-9894-b4f1a4a46b20`.
+Anexo visível, prompt completo publicado e estado "ChatGPT está respondendo"
+confirmados. Não reenviar nem criar outra auditoria deste hash.
+
+Monitor `acompanhar-observa-o-parental-n02-g` ACTIVE a cada cinco minutos,
+silencioso sem mudança acionável. Ao concluir/bloquear, pausar e confrontar
+o parecer com candidato/contratos. Próxima ação: aguardar somente esse parecer;
+APTO DOCUMENTAL PARA IMPLEMENTAR explícito é necessário antes de aplicar a
+proposta. Findings confirmados devem ser tratados primeiro. Nenhum novo teste
+ou suíte ampla foi executado para o envio; candidato permanece inalterado.
+
+O relato de impedimento abaixo é histórico e está resolvido.
 
 Candidato documental `5c3940f7e9e464bb52838f7b50157d6f60508274`, parent
 único `37c7e0ced88eb5f9899bddfb31e8f63e2ae82d80`, confirmado no remoto na
@@ -21,7 +38,7 @@ redirecionou para `https://chatgpt.com/`; a sessão exibiu o projeto anterior
 conta autorizada nem enviar ao projeto errado. Nenhuma mensagem foi submetida,
 nenhum bot acionado e nenhum monitor específico novo criado.
 
-Próxima ação única: restaurar acesso ao projeto autorizado e confirmar Alta
+Próxima ação anterior: restaurar acesso ao projeto autorizado e confirmar Alta
 efetiva no Chat; enviar uma vez o ZIP + prompt local
 `.codex-temp/parent-observation-audit-prompt.md`, então acompanhar a resposta.
 Não aplicar a proposta sem APTO DOCUMENTAL PARA IMPLEMENTAR confrontado.
