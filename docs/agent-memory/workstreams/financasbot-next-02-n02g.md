@@ -2,6 +2,32 @@
 
 ## Retomada e aprovação focal — 2026-10-01
 
+### Proposta publicada; envio ainda não realizado
+
+Candidato documental `5c3940f7e9e464bb52838f7b50157d6f60508274`, parent
+único `37c7e0ced88eb5f9899bddfb31e8f63e2ae82d80`, confirmado no remoto na
+branch `codex/n02g-host-parent-reconcile-20261001`. Sete arquivos delimitados;
+runtime, schemas, corpus publicado e dependências inalterados.
+
+Pacote local `.codex-temp/parent-observation-pJbvSn.zip`, 725391 bytes,
+SHA-256 `85a370583f82e56778054f13d0b0686fa3537510a49cd3c8c0994e1c30dc9763`.
+Reprodução do transporte PASS (9 arquivos/26 objetos), helper check PASS e
+4 testes PASS, zero FAIL/SKIP/TODO. Workflow OK. Conteúdo temporário não publicado.
+
+Auditoria NÃO enviada: o link do projeto autorizado
+`https://chatgpt.com/g/g-p-6aa305ab1f8c8191a3f89baff00cc701/project`
+redirecionou para `https://chatgpt.com/`; a sessão exibiu o projeto anterior
+`g-p-6ab5c3870a30819187d0d634619231c5`. Não inferir que essa sessão é a nova
+conta autorizada nem enviar ao projeto errado. Nenhuma mensagem foi submetida,
+nenhum bot acionado e nenhum monitor específico novo criado.
+
+Próxima ação única: restaurar acesso ao projeto autorizado e confirmar Alta
+efetiva no Chat; enviar uma vez o ZIP + prompt local
+`.codex-temp/parent-observation-audit-prompt.md`, então acompanhar a resposta.
+Não aplicar a proposta sem APTO DOCUMENTAL PARA IMPLEMENTAR confrontado.
+Capacidades: Chat → modelo mais capaz disponível confirmado no seletor → Alto;
+Codex → GPT-6.1 Sol → Alto → confrontar a norma e retomar o recorte host/pais.
+
 Raiz de trabalho deste bloco: `.codex-worktrees/n02g-host-parent-reconcile-20261001`,
 branch `codex/n02g-host-parent-reconcile-20261001`, base publicada
 `37c7e0ced88eb5f9899bddfb31e8f63e2ae82d80`. Criada após a rotina portátil
