@@ -278,6 +278,130 @@ function compileSnapshotAccess(admitted, validators) {
     }
     return Object.freeze({ stage: 'snapshot_access_plan_only', executable: false,
         snapshot_count: snapshots.size,
+        // TCB-only local composition of functional operands and the authored
+        // derivation selection. Never endow the controller/scope into a guest.
+        // This does not admit execution artifacts, proof or a financial graph.
+        openMetricInvocation(raw, emit) {
+            let input;
+            try { input = copyData(raw); } catch { reject('metric_selector'); }
+            if (!input || Object.keys(input).join(',') !== 'fact_key'
+                || !identifier(input.fact_key) || typeof emit !== 'function') reject('metric_selector');
+            const graph = graphs.get(input.fact_key); const roles = bindings.get(input.fact_key);
+            if (!graph || !roles) reject('metric_graph');
+            const ir = lowerAuthoringIR(context).graphs.find(row => row.fact_key === input.fact_key);
+            const operators = context.documents.find(doc => doc.value?.registry_id === 'operator_registry').value.operators;
+            const { evaluateObservedSelectionOperator } = require('./proofOperators');
+            const controls = []; const operands = {}; const nodes = new Map(); const sets = new Map();
+            const selected = new Map(); const selections = [];
+            let failed = false; let revoked = false; let verified = false;
+            const invalid = code => { failed = true; reject(code); };
+            const healthy = () => {
+                if (failed || revoked) reject('metric_closed');
+                for (const control of controls) control.assertHealthy();
+            };
+            const observe = event => { healthy(); emit(event); healthy(); };
+            let claimHandle;
+            try {
+                for (const [role, binding] of roles) {
+                    if (binding.kind === 'claim_context') {
+                        const control = createInstrumentedAccess({ bindings: [{ alias: 'claim/context', role,
+                            ...contexts.get(input.fact_key) }], emit: observe });
+                        controls.push(control); claimHandle = control.handle('claim/context'); operands[role] = claimHandle;
+                    } else if (['node', 'node_set'].includes(binding.kind)) {
+                        const aliases = binding.kind === 'node' ? [binding.alias] : binding.aliases;
+                        const group = reachable(input.fact_key, role, aliases);
+                        const access = createInstrumentedAccess({ ...group, emit: observe }); controls.push(access);
+                        for (const node of group.bindings) if (!nodes.has(node.alias)) nodes.set(node.alias, access.handle(node.alias));
+                        if (binding.kind === 'node') operands[role] = access.handle(binding.alias);
+                        else {
+                            const control = createNodeSetAccess({ ...group, role, roster: aliases, emit: observe }); controls.push(control);
+                            const matches = graph.selections.filter(selection =>
+                                JSON.stringify(graph.sets[selection.candidate_set]) === JSON.stringify(aliases));
+                            // No selected set is supplied from expected or authored membership.
+                            // It becomes accessible only from a real handle.select computation.
+                            operands[role] = Object.freeze(Object.create(control.handle, { select: { value: predicate => {
+                                healthy();
+                                if (matches.some(selection => selected.has(selection.selected_set))) invalid('metric_selection_replay');
+                                const result = control.handle.select(predicate); healthy();
+                                for (const selection of matches) selected.set(selection.selected_set, result);
+                                return result;
+                            } } }));
+                            for (const selection of matches) {
+                                sets.set(selection.candidate_set, control.handle);
+                                selections.push(selection);
+                            }
+                        }
+                    } else invalid('metric_parent_pending');
+                }
+                if (new Set(selections.map(selection => selection.selected_set)).size !== selections.length)
+                    invalid('metric_selection_binding');
+            } catch (error) { failed = true; for (const control of controls) control.revoke(); throw error; }
+            const scope = Object.freeze({
+                node(alias) { healthy(); if (!nodes.has(alias)) invalid('metric_predicate_node'); return nodes.get(alias); },
+                claim() { healthy(); if (!claimHandle) invalid('metric_predicate_claim'); return claimHandle; },
+                set(name) {
+                    healthy();
+                    if (selected.has(name)) return selected.get(name);
+                    if (selections.some(selection => selection.selected_set === name)) invalid('metric_selection_pending');
+                    if (sets.has(name)) return sets.get(name);
+                    // Non-selected authored sets are static input populations,
+                    // not an expected result. Only already reachable handles.
+                    if (!Object.hasOwn(graph.sets, name)) invalid('metric_predicate_set');
+                    const members = graph.sets[name].map(alias => {
+                        if (!nodes.has(alias)) invalid('metric_predicate_set'); return nodes.get(alias);
+                    });
+                    return Object.freeze({ length: () => members.length, at: index => {
+                        if (!Number.isSafeInteger(index) || index < 0 || index >= members.length) invalid('metric_predicate_index');
+                        return members[index];
+                    } });
+                },
+                window(name) { healthy(); if (!Object.hasOwn(ir.windows, name)) invalid('metric_predicate_window'); return ir.windows[name]; },
+                operator(id) { healthy(); const op = operators.find(row => row.id === id); if (!op) invalid('metric_predicate_operator'); return op; },
+                fieldDescriptor(kind, segments) {
+                    healthy(); const fields = context.materialRegistry.kinds[kind]?.fields;
+                    if (!Array.isArray(segments) || segments.length !== 1 || !fields
+                        || !Object.hasOwn(fields, segments[0]) || fields[segments[0]].class === 'non_material') invalid('metric_predicate_field');
+                    return fields[segments[0]];
+                },
+                edge(id) {
+                    healthy(); const edge = graph.edges.find(row => row.id === id && row.relation === 'material_ref');
+                    if (!edge || !nodes.has(edge.source)) invalid('metric_predicate_edge');
+                    return nodes.get(edge.source).traverse(id);
+                },
+                edgeTargetInSet(id, name) {
+                    healthy();
+                    const edge = graph.edges.find(row => row.id === id && row.relation === 'material_ref');
+                    if (!edge || !nodes.has(edge.source) || !Object.hasOwn(graph.sets, name)
+                        || graph.selections.some(selection => selection.selected_set === name)) invalid('metric_nominal_membership');
+                    // Admission binds this exact edge to its versioned target;
+                    // static input-set aliases have unique admitted identities.
+                    // Merely resolving a relation does not consume its target.
+                    nodes.get(edge.source).traverse(id); healthy();
+                    return graph.sets[name].includes(edge.target);
+                }
+            });
+            return Object.freeze({ operands: Object.freeze(operands),
+                observeSelectionPredicates() {
+                    healthy(); if (verified) invalid('metric_selection_replay');
+                    try {
+                        for (const selection of selections) {
+                            if (!selected.has(selection.selected_set)) invalid('metric_selection_pending');
+                            const ids = [...selection.selected_predicates, ...selection.excluded.flatMap(row => row.predicates)];
+                            // Do not short-circuit: each authored predicate has a causal observation obligation.
+                            for (const id of new Set(ids)) {
+                                const predicate = ir.predicates.find(row => row.id === id);
+                                if (!predicate || !evaluateObservedSelectionOperator(scope.operator(predicate.op), predicate.operands, scope))
+                                    invalid('metric_selection_predicate');
+                            }
+                        }
+                        verified = true;
+                        return Object.freeze({ stage: 'observed_derivation_selection_only', graph_accepted: false });
+                    } catch (error) { failed = true; throw error; }
+                },
+                assertHealthy: healthy,
+                revoke() { revoked = true; for (const control of controls) control.revoke(); }
+            });
+        },
         observationMetadata(selector) {
             let input;
             try { input = copyData(selector); } catch { reject('metadata_selector'); }

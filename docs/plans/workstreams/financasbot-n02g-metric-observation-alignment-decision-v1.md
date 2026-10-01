@@ -1,9 +1,55 @@
 # N02-G — alinhamento normativo de observações métricas
 
-Estado: PROPOSTA REVISADA NÃO APLICADA; segunda reauditoria documental incompleta, correção focal de evidência em preparação.
+Estado: APTO DOCUMENTAL recebido em 2026-09-30; implementação isolada em preparação, ainda não aprovada.
 Base documental: `207ca56b87381d69a922224332fcdda3a629d822`.
 Escopo: os onze claims abaixo, sem modificar registry, contract hashes,
 snapshots, proof, oracle, freeze ou qualquer execução produtiva.
+
+Recibo: `../../audit-evidence/n02g-causal-authoring-profile/account-installment-independent-review.md`.
+Base de implementação: `42a16c8516373d1c5fc49a3836f0eba54e61d4c5`,
+branch `codex/n02g-account-installment-20260930`, worktree no SSD.
+Preservar integralmente a integração parcial de host/pais na worktree anterior.
+Não produzir reads artificiais para fechar seleção: os predicados autorados
+precisam de execução real, distinta da elegibilidade funcional pelo roster.
+
+### Fronteira operacional entre predicado de seleção e proof
+
+A integração rejeitou a reutilização indiscriminada dos operadores de proof:
+enumerar keys do período e medir identidades de alvos familiares acrescenta
+observações que não são dependências do perfil derivacional aprovado.
+Não alegar que todo operador de proof tem a mesma closure em derivation.
+O controlador TCB de invocação compõe os roles admitidos, captura o selected
+view exclusivamente do select real e executa os predicados do IR tipado.
+Período usa seus campos finitos, pois a forma já foi admitida pelo schema;
+proof conserva enumeração estrita. Membership nominal de input-set executa
+traverse na aresta material admitida e confronta o target versionado com o
+set estático admitido, sem medir payload/identidade do alvo. Selected sets
+não podem ser substituídos por esse mecanismo estático. Ambos os caminhos
+precisam de negativos de forma, relação, conjunto e lifecycle; nenhum aceita
+expected, aliases fornecidos pelo guest ou observação autodeclarada.
+Esse controlador local ainda não é um host medido nem aceitação de grafo.
+
+### Reconciliação do harness e limite legado — 2026-10-01
+
+A primeira ampla terminou RED (2398 PASS/17 FAIL/10 SKIP), com inputs intactos.
+Quatorze testes não conseguiram ler a base Git do novo helper: `git show`
+não pertence à gramática de subprocessos herméticos. O helper agora usa
+`cat-file blob` com commit completo e caminho relativo; o tripwire admite
+somente esse read cru no executável Git e na raiz auditados. Não há diff,
+textconv, filtros, revisão simbólica, opções adicionais, rede ou escrita.
+Negativos cobrem traversal, raiz externa, ref mutável, config e comandos;
+o runner continua bloqueando os demais subprocessos. Focais herméticos:
+14 correções PASS + 1 controle novo PASS; runner afetado: 16 PASS.
+
+As três falhas restantes são do cálculo LEGADO de ciclo mensal, não de Next.
+Foram reproduzidas em uma worktree limpa/detached da base 42a16c8516373d1c5fc49a3836f0eba54e61d4c5:
+3 FAIL/0 PASS em `freeBudgetCardEligibility.test.js`. O período representado
+pelo dia 15 não acompanha o ciclo corrente depois do dia 28. Não editar ou
+mascarar esse runtime/teste nesta fatia; registrar a dependência de decisão
+antes de qualquer correção financeira fora do recorte. A nova ampla final
+deve permanecer RED se esses três defeitos persistirem; não converter esse
+resultado em verde ou em GO global. Um eventual parecer focal de código deve
+examinar explicitamente essa limitação e não autoriza fechamento global.
 
 ## Motivo e fronteira
 

@@ -142,6 +142,7 @@ function reviewedSimilarEventProposal() {
     return JSON.parse(text);
 }
 function undoReviewedSimilarEvent(corpus) {
+    undoReviewedAccountInstallment(corpus);
     const proposal = reviewedSimilarEventProposal(); assert.equal(proposal.records.length, 1);
     for (const r of proposal.records) {
         const matches = corpus.graphs.filter(g => g.fact_key === r.fact_key); assert.equal(matches.length, 1);
@@ -149,6 +150,155 @@ function undoReviewedSimilarEvent(corpus) {
         matches[0].trace_contract.derivation = structuredClone(r.current_derivation);
     }
 }
+function undoReviewedAccountInstallment(corpus) {
+    const { reviewedCorpus } = require('../../../docs/audit-evidence/n02g-causal-authoring-profile/prepare-account-installment-application.cjs');
+    const { proposal } = reviewedCorpus();
+    for (const record of proposal.records) {
+        const graph = corpus.graphs.find(row => row.fact_key === record.fact_key);
+        assert.ok(graph); assert.deepEqual(graph.trace_contract.derivation, record.proposed_derivation);
+        graph.trace_contract.derivation = structuredClone(record.current_derivation);
+    }
+}
+
+test('N02G:ACCOUNT-INSTALLMENT-001 exactly eleven frozen derivations preserve all other corpus content', () => {
+    const { reviewedCorpus } = require('../../../docs/audit-evidence/n02g-causal-authoring-profile/prepare-account-installment-application.cjs');
+    const { original, expected } = reviewedCorpus();
+    const actual = JSON.parse(fs.readFileSync(path.join(root, graphPath), 'utf8'));
+    assert.deepEqual(actual, expected);
+    undoReviewedAccountInstallment(actual); assert.deepEqual(actual, original);
+});
+
+test('N02G:ACCOUNT-INSTALLMENT-002 functional selection plus real authored predicates covers eleven frozen profiles', async () => {
+    const { freezeDeep } = require('../../../src/next/kernel/canonicalValue');
+    const { evaluateDirectMetric } = require('../../../src/next/provenance/metricDirectReads');
+    const { evaluateInstallments } = require('../../../src/next/provenance/metricInstallments');
+    const { reviewedCorpus } = require('../../../docs/audit-evidence/n02g-causal-authoring-profile/prepare-account-installment-application.cjs');
+    const { proposal } = reviewedCorpus();
+    const { plan, claims, graphs } = await snapshotAccessFixture();
+    // Freeze the authored expectation before opening handles or executing any formula.
+    const cases = freezeDeep(proposal.records.map(record => {
+        const claim = claims.find(row => row.fact_key === record.fact_key);
+        const graph = graphs.find(row => row.fact_key === record.fact_key);
+        assert.deepEqual(graph.trace_contract.derivation, record.proposed_derivation);
+        const { evidence_set_mode, ...expected } = graph.trace_contract.derivation;
+        return { claim, graph, expected: structuredClone(expected), historical: record.current_derivation };
+    }));
+    const oracle = JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/financasbot-next/golden-claim-oracles-v1.json'), 'utf8'));
+    for (const { claim, graph, expected, historical } of cases) {
+        const executionId = 'account-installment-frozen';
+        const input = selectionInput(claim, graph, executionId);
+        const recorder = createCausalRecorder({ executionId, maxEvents: 20000 });
+        const phase = recorder.open({ invocationId: claim.fact_key, phase: 'derivation' });
+        const invocation = plan.openMetricInvocation({ fact_key: claim.fact_key }, phase.observe);
+        try {
+            const evaluate = ['account_balance', 'movement_ids'].includes(claim.metric) ? evaluateDirectMetric : evaluateInstallments;
+            const result = evaluate(invocation.operands, claim.metric);
+            assert.equal(invocation.observeSelectionPredicates().graph_accepted, false);
+            invocation.assertHealthy(); phase.seal(); const trace = recorder.finish();
+            const args = { ...input, expected, trace,
+                accessBindings: plan.observationMetadata({ fact_key: claim.fact_key, phase: 'derivation' }),
+                operandSets: Object.entries(claim.operand_bindings).filter(([, binding]) => binding.kind === 'node_set')
+                    .map(([role, binding]) => ({ role, aliases: binding.aliases })) };
+            const coverage = comparePhaseCoverage(args);
+            assert.equal(coverage.matched, true, `${claim.fact_key}: ${JSON.stringify(coverage.components)}`);
+            assert.equal(coverage.graph_accepted, false);
+            const { evidence_set_mode, ...oldExpected } = historical;
+            assert.equal(comparePhaseCoverage({ ...args, expected: oldExpected }).matched, false, claim.fact_key);
+            // Actual observations cannot rewrite expected. Remove one causal ID read.
+            const idRead = trace.derivation_trace.find(row => row.operation === 'get' && row.path[0] === 'id');
+            assert.ok(idRead);
+            const trimmed = { ...trace, derivation_trace: trace.derivation_trace.filter(row =>
+                !(row.operation === 'get' && row.alias === idRead.alias && row.path[0] === 'id'))
+                .map((row, sequence) => ({ ...row, sequence })) };
+            const negative = comparePhaseCoverage({ ...args, trace: trimmed });
+            assert.equal(negative.matched, false, claim.fact_key);
+            assert.ok(negative.components.read_edges.mismatches.some(row => row.missing.length), claim.fact_key);
+            // Exclusion observations must also survive removal independently of R.
+            const excluded = new Set(graph.selections.flatMap(selection => selection.excluded.map(row => row.node)));
+            const exclusion = trace.derivation_trace.find(row => excluded.has(row.alias)
+                && (row.operation === 'has' || row.operation === 'get' && row.path[0] === 'state'));
+            assert.ok(exclusion, claim.fact_key);
+            const exclusionTrimmed = { ...trace, derivation_trace: trace.derivation_trace.filter(row =>
+                !(row.alias === exclusion.alias && row.operation === exclusion.operation
+                    && JSON.stringify(row.path) === JSON.stringify(exclusion.path)))
+                .map((row, sequence) => ({ ...row, sequence })) };
+            const missingExclusion = comparePhaseCoverage({ ...args, trace: exclusionTrimmed });
+            assert.equal(missingExclusion.matched, false, claim.fact_key);
+            assert.ok(missingExclusion.components.read_edges.mismatches.some(row => row.missing.length), claim.fact_key);
+            const split = claim.fact_key.lastIndexOf('#');
+            const functional = oracle.turns[claim.fact_key.slice(0, split)].facts[Number(claim.fact_key.slice(split + 1)) - 1];
+            assert.deepEqual(result, functional.value, claim.fact_key);
+        } finally { invocation.revoke(); }
+    }
+});
+
+test('N02G:ACCOUNT-INSTALLMENT-003 selection observation requires real computation and cannot be replayed after failure', async () => {
+    const { plan } = await snapshotAccessFixture();
+    const invocation = plan.openMetricInvocation({ fact_key: 'S-11#1#2' }, () => {});
+    try {
+        assert.throws(() => invocation.observeSelectionPredicates(), /metric_selection_pending/);
+        assert.throws(() => invocation.assertHealthy(), /metric_closed/);
+    } finally { invocation.revoke(); }
+    assert.throws(() => plan.openMetricInvocation({ fact_key: 'S-11#1#2', expected: {} }, () => {}), /metric_selector/);
+});
+
+test('N02G:ACCOUNT-INSTALLMENT-004 computed views cannot be replayed or survive controller revocation', async () => {
+    const { evaluateInstallments } = require('../../../src/next/provenance/metricInstallments');
+    const { plan } = await snapshotAccessFixture();
+    const invocation = plan.openMetricInvocation({ fact_key: 'S-11#1#2' }, () => {});
+    try {
+        evaluateInstallments(invocation.operands, 'installments_projected');
+        assert.equal(invocation.observeSelectionPredicates().stage, 'observed_derivation_selection_only');
+        assert.throws(() => invocation.operands.events.select(() => true), /metric_selection_replay/);
+        assert.throws(() => invocation.assertHealthy(), /metric_closed/);
+    } finally { invocation.revoke(); }
+    assert.throws(() => invocation.operands.events.length(), /access_/);
+});
+
+test('N02G:ACCOUNT-INSTALLMENT-006 predicate observation cannot authorize fabricated selected views', async () => {
+    const { freezeDeep } = require('../../../src/next/kernel/canonicalValue');
+    const { plan, graphs, claims } = await snapshotAccessFixture();
+    const graph = graphs.find(row => row.fact_key === 'S-11#1#2');
+    const claim = claims.find(row => row.fact_key === graph.fact_key);
+    const executionId = 'fabricated-view';
+    const input = freezeDeep(selectionInput(claim, graph, executionId));
+    for (const choose of [() => true, () => false]) {
+        const recorder = createCausalRecorder({ executionId, maxEvents: 20000 });
+        const phase = recorder.open({ invocationId: claim.fact_key, phase: 'derivation' });
+        const invocation = plan.openMetricInvocation({ fact_key: claim.fact_key }, phase.observe);
+        try {
+            invocation.operands.events.select(choose);
+            // These predicates name admitted nodes: their truth does not prove
+            // the caller computed the correct view. The coverage boundary does.
+            assert.equal(invocation.observeSelectionPredicates().graph_accepted, false);
+            phase.seal();
+            const coverage = compareSelectionCoverage({ ...input, trace: recorder.finish() });
+            assert.equal(coverage.matched, false);
+            assert.equal(coverage.graph_accepted, false);
+        } finally { invocation.revoke(); }
+    }
+});
+
+test('N02G:ACCOUNT-INSTALLMENT-005 nominal selection primitive validates identity types and rejects shape substitution', () => {
+    const { evaluateObservedSelectionOperator } = require('../../../src/next/provenance/proofOperators');
+    const operator = { id: 'edge_target_in_set', args: ['edge_ref:K', 'set:node:K'], semantics: 'resolved_target_member' };
+    const operands = [
+        { type: { form: 'edge', target: 'person' }, expression: { kind: 'edge_ref', id: 'member-edge' } },
+        { type: { form: 'set', item: { form: 'node', kind: 'person' } }, expression: { kind: 'set_ref', name: 'members' } }
+    ];
+    let calls = 0;
+    const scope = { edgeTargetInSet(edge, set) { assert.equal(edge, 'member-edge'); assert.equal(set, 'members'); calls++; return true; } };
+    assert.equal(evaluateObservedSelectionOperator(operator, operands, scope), true);
+    for (const mutate of [args => { args[1].type.item.kind = 'account'; },
+        args => { args[0].expression.alias = 'caller-alias'; }, args => { args[1].expression.kind = 'literal'; }]) {
+        const bad = structuredClone(operands); mutate(bad);
+        assert.throws(() => evaluateObservedSelectionOperator(operator, bad, scope), /operator_|proof_expression_/);
+    }
+    const hostile = {};
+    Object.defineProperty(hostile, 'id', { enumerable: true, get() { calls++; return operator.id; } });
+    assert.throws(() => evaluateObservedSelectionOperator(hostile, operands, scope));
+    assert.equal(calls, 1);
+});
 function reviewedDirectEventProposal() {
     const text = fs.readFileSync(path.join(root, 'docs/audit-evidence/n02g-causal-authoring-profile/direct-event-proposal-v2.json'), 'utf8').replaceAll('\r\n', '\n');
     assert.equal(hash(text), 'sha256:6d315f09056d13e0f0f68873c158c9e48567b7c28dac6a90036e31085083d490');
@@ -1829,7 +1979,18 @@ test('N02G:TRACE-COMPAT-001 required edge remains independent from derivation no
     // DIRECT-EVENT-004/005 separately prove the successor's five derivations.
     const beforeDirectEvent = { graphs: structuredClone(graphs) }; undoReviewedDirectEvent(beforeDirectEvent);
     const report = inspectTraversalCoverage(beforeDirectEvent.graphs);
-    const currentReport = inspectTraversalCoverage(graphs); assert.equal(currentReport.compatible, true);
+    const beforeAccountInstallment = { graphs: structuredClone(graphs) }; undoReviewedAccountInstallment(beforeAccountInstallment);
+    const currentReport = inspectTraversalCoverage(beforeAccountInstallment.graphs); assert.equal(currentReport.compatible, true);
+    const appliedReport = inspectTraversalCoverage(graphs);
+    const profileKeys = new Set(require('../../../docs/audit-evidence/n02g-causal-authoring-profile/prepare-account-installment-application.cjs')
+        .reviewedCorpus().proposal.records.map(row => row.fact_key));
+    assert.equal(appliedReport.compatible, true);
+    assert.deepEqual(appliedReport.edge_only.filter(row => !profileKeys.has(row.fact_key)),
+        currentReport.edge_only.filter(row => !profileKeys.has(row.fact_key)));
+    // The reviewed closure removes irrelevant obligations or supplies missing
+    // endpoints; it must not invent a new edge-only diagnostic in these profiles.
+    const priorDiagnostics = new Set(currentReport.edge_only.map(row => JSON.stringify(row)));
+    assert.ok(appliedReport.edge_only.every(row => priorDiagnostics.has(JSON.stringify(row))));
     // Reconcile SIMILAR-EVENT separately, without weakening the historical pin:
     // exactly the reviewed 32 noncausal derivation edges disappear.
     const beforeSimilar = { graphs: structuredClone(graphs) }; undoReviewedSimilarEvent(beforeSimilar);
@@ -1955,7 +2116,7 @@ test('N02G:SNAPSHOT-ACCESS-001 handles resolve exact admitted fact/role/alias id
     assert.equal(plan.stage, 'snapshot_access_plan_only');
     assert.equal(plan.executable, false);
     assert.equal(plan.snapshot_count, 115);
-    assert.deepEqual(Object.keys(plan).sort(), ['executable', 'observationMetadata', 'open', 'openContext', 'openProof', 'openSet', 'snapshot_count', 'stage']);
+    assert.deepEqual(Object.keys(plan).sort(), ['executable', 'observationMetadata', 'open', 'openContext', 'openMetricInvocation', 'openProof', 'openSet', 'snapshot_count', 'stage']);
     let opened = 0;
     for (const claim of claims) {
         const graph = graphs.find(g => g.fact_key === claim.fact_key);

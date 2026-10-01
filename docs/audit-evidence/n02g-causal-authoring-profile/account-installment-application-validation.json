@@ -1,0 +1,476 @@
+{
+  "format": "financasbot.n02g.account-installment-validation",
+  "version": 1,
+  "provenance": "locally_executed_not_external_verdict",
+  "base": "42a16c8516373d1c5fc49a3836f0eba54e61d4c5",
+  "normative_review": "041da0dfefe8602b85d0168582da722cf74f9a53",
+  "status": "candidate_awaiting_independent_code_review_with_global_wide_red",
+  "graph_accepted": false,
+  "releaseEligible": false,
+  "global_go": false,
+  "phases": {
+    "red": {
+      "file": "account-installment-red-v2.log",
+      "sha256": "sha256:e762aa2992e29a50a559e47757b25cfbf7ad8edb03f93a1ccc68873eed9672eb",
+      "tap": {
+        "tests": 4,
+        "pass": 2,
+        "fail": 2,
+        "skipped": 0,
+        "cancelled": 0
+      }
+    },
+    "green": {
+      "file": "account-installment-green.log",
+      "sha256": "sha256:313738523abcf54737ca8e6bbb67545f2f8dce26709ab3adebbd4f9775805719",
+      "tap": {
+        "tests": 4,
+        "pass": 4,
+        "fail": 0,
+        "skipped": 0,
+        "cancelled": 0
+      }
+    },
+    "affected": {
+      "file": "account-installment-affected-v2.log",
+      "sha256": "sha256:7e3a7235da5bf2e0d46b7ea0034e5cb2e05f09f37a7def5eccd8da14d704052f",
+      "tap": {
+        "tests": 424,
+        "pass": 424,
+        "fail": 0,
+        "skipped": 0,
+        "cancelled": 0
+      }
+    },
+    "final_focals": {
+      "file": "account-installment-adversarial-v11.log",
+      "sha256": "sha256:4efc3de87dbc876d3762282aea9fa1731f492064cb4ae63deebb864c0e355d69",
+      "tap": {
+        "tests": 3,
+        "pass": 3,
+        "fail": 0,
+        "skipped": 0,
+        "cancelled": 0
+      }
+    },
+    "hermetic_reproduction_red": {
+      "file": "wide-failures-focal-v1.log",
+      "sha256": "sha256:d55a557587bea902420e852548f882d54364363ef438c769e29739bc06292a03",
+      "tap": {
+        "tests": 17,
+        "pass": 0,
+        "fail": 17,
+        "skipped": 0,
+        "cancelled": 0
+      }
+    },
+    "hermetic_reproduction_after": {
+      "file": "wide-failures-focal-v2.log",
+      "sha256": "sha256:b31ba5b3f25e171991f1ef7630589e124fc81c7036ccfc62a0187e1ad2bb289c",
+      "tap": {
+        "tests": 18,
+        "pass": 15,
+        "fail": 3,
+        "skipped": 0,
+        "cancelled": 0
+      }
+    },
+    "tripwire_affected": {
+      "file": "account-installment-tripwire-affected.log",
+      "sha256": "sha256:1e307a0d53aa1ca79766b7d3c63cfee69100e9a7aa4ff7b867a8ee25f0044811",
+      "tap": {
+        "tests": 16,
+        "pass": 16,
+        "fail": 0,
+        "skipped": 0,
+        "cancelled": 0
+      }
+    }
+  },
+  "wide_initial": {
+    "format": "financasbot.n02g.local-wide-start",
+    "provenance": "locally_executed_not_external_verdict",
+    "started_at": "2026-10-01T00:16:13.208Z",
+    "pid": 15824,
+    "branch": "codex/n02g-account-installment-20260930",
+    "base": "42a16c8516373d1c5fc49a3836f0eba54e61d4c5",
+    "node": "22.17.0",
+    "runtime_sha256": "sha256:39d45b5933f339d3ebdebd76474893dab5d7da1038920f65cf5bbcf0f20f3636",
+    "tested_hashes": {
+      "docs/contracts/next/provenance-v2/graphs-v2.json": {
+        "raw_sha256": "sha256:a4938977a205d2d9fe9bee3560f0f247a005992c9b8506a03ba56c152c21c1ce",
+        "lf_sha256": "sha256:a4938977a205d2d9fe9bee3560f0f247a005992c9b8506a03ba56c152c21c1ce"
+      },
+      "src/next/provenance/graphCompiler.js": {
+        "raw_sha256": "sha256:6fff280cf5478f006b95ecfd2df3dcd4332aaa5f49b3f2a0676e708ebdb008bf",
+        "lf_sha256": "sha256:d465ed8df9f8c0cb74277ca1e5f41082e4ff8fbae7a889e08daf6f395f9eacee"
+      },
+      "src/next/provenance/metricInstallments.js": {
+        "raw_sha256": "sha256:58e4b23b7259602fc51e36f20e0852df464aa9a866e8e72e001b5d0f536aa01b",
+        "lf_sha256": "sha256:559dae3a98d3dd90670e15d35ca93824bf89d478c974dcd07d9da17abcac7a09"
+      },
+      "src/next/provenance/proofOperators.js": {
+        "raw_sha256": "sha256:e5a8ad118fbcb12a6024135c8f4683ce76390a53e4a8c2e90355a04ec7341413",
+        "lf_sha256": "sha256:61209d8c34aa5a9254b5d4332599f957fa0923424269b21be23030912eb809c5"
+      },
+      "tests/next/provenance/authoringIndex.cases.js": {
+        "raw_sha256": "sha256:b4f324824706bd83691ef6b62184a836eb73a50e09ff89403c519f8cc596d14a",
+        "lf_sha256": "sha256:6d416c2a03fec79b2cdc63d667d698a560de903fa90ceaac08a7dfb277ded182"
+      },
+      "tests/next/provenance/metricInstallments.cases.js": {
+        "raw_sha256": "sha256:03a88fc19357ef3bbbe50a515f499f992de8628f1e0e25074334aa8b2996f3a5",
+        "lf_sha256": "sha256:161f24d420171c1d85d2ea3fa1be250bd96fa710adb6e6835847f4e0a2837144"
+      },
+      "docs/audit-evidence/n02g-causal-authoring-profile/prepare-account-installment-application.cjs": {
+        "raw_sha256": "sha256:7fae2117cbe38b64cc5940ccd78ca881862a7c7a6591e6bf25fa0f846a955065",
+        "lf_sha256": "sha256:7fae2117cbe38b64cc5940ccd78ca881862a7c7a6591e6bf25fa0f846a955065"
+      },
+      "docs/audit-evidence/n02g-causal-authoring-profile/run-account-installment-wide.cjs": {
+        "raw_sha256": "sha256:3e06d054f44df3e966f5aaa12c55ec8a9658af848da173251c06dabd5663f22d",
+        "lf_sha256": "sha256:3e06d054f44df3e966f5aaa12c55ec8a9658af848da173251c06dabd5663f22d"
+      }
+    },
+    "graph_accepted": false,
+    "releaseEligible": false,
+    "finished_at": "2026-10-01T00:26:56.574Z",
+    "head_after": "42a16c8516373d1c5fc49a3836f0eba54e61d4c5",
+    "hashes_after": {
+      "docs/contracts/next/provenance-v2/graphs-v2.json": {
+        "raw_sha256": "sha256:a4938977a205d2d9fe9bee3560f0f247a005992c9b8506a03ba56c152c21c1ce",
+        "lf_sha256": "sha256:a4938977a205d2d9fe9bee3560f0f247a005992c9b8506a03ba56c152c21c1ce"
+      },
+      "src/next/provenance/graphCompiler.js": {
+        "raw_sha256": "sha256:6fff280cf5478f006b95ecfd2df3dcd4332aaa5f49b3f2a0676e708ebdb008bf",
+        "lf_sha256": "sha256:d465ed8df9f8c0cb74277ca1e5f41082e4ff8fbae7a889e08daf6f395f9eacee"
+      },
+      "src/next/provenance/metricInstallments.js": {
+        "raw_sha256": "sha256:58e4b23b7259602fc51e36f20e0852df464aa9a866e8e72e001b5d0f536aa01b",
+        "lf_sha256": "sha256:559dae3a98d3dd90670e15d35ca93824bf89d478c974dcd07d9da17abcac7a09"
+      },
+      "src/next/provenance/proofOperators.js": {
+        "raw_sha256": "sha256:e5a8ad118fbcb12a6024135c8f4683ce76390a53e4a8c2e90355a04ec7341413",
+        "lf_sha256": "sha256:61209d8c34aa5a9254b5d4332599f957fa0923424269b21be23030912eb809c5"
+      },
+      "tests/next/provenance/authoringIndex.cases.js": {
+        "raw_sha256": "sha256:b4f324824706bd83691ef6b62184a836eb73a50e09ff89403c519f8cc596d14a",
+        "lf_sha256": "sha256:6d416c2a03fec79b2cdc63d667d698a560de903fa90ceaac08a7dfb277ded182"
+      },
+      "tests/next/provenance/metricInstallments.cases.js": {
+        "raw_sha256": "sha256:03a88fc19357ef3bbbe50a515f499f992de8628f1e0e25074334aa8b2996f3a5",
+        "lf_sha256": "sha256:161f24d420171c1d85d2ea3fa1be250bd96fa710adb6e6835847f4e0a2837144"
+      },
+      "docs/audit-evidence/n02g-causal-authoring-profile/prepare-account-installment-application.cjs": {
+        "raw_sha256": "sha256:7fae2117cbe38b64cc5940ccd78ca881862a7c7a6591e6bf25fa0f846a955065",
+        "lf_sha256": "sha256:7fae2117cbe38b64cc5940ccd78ca881862a7c7a6591e6bf25fa0f846a955065"
+      },
+      "docs/audit-evidence/n02g-causal-authoring-profile/run-account-installment-wide.cjs": {
+        "raw_sha256": "sha256:3e06d054f44df3e966f5aaa12c55ec8a9658af848da173251c06dabd5663f22d",
+        "lf_sha256": "sha256:3e06d054f44df3e966f5aaa12c55ec8a9658af848da173251c06dabd5663f22d"
+      }
+    },
+    "causal_inputs_unchanged": true,
+    "result": {
+      "schema_version": 1,
+      "local_only": true,
+      "network_guard_scope": [
+        "fetch",
+        "http",
+        "https",
+        "net",
+        "node_descendants",
+        "non_node_subprocesses_except_audited_local_git_and_tar"
+      ],
+      "discovered_test_files": 183,
+      "test_files": 165,
+      "nested_test_entries": [
+        "tests/acknowledgeOpenFinanceAlertDelivery.test.js",
+        "tests/openFinanceAlertOutbox.test.js",
+        "tests/openFinanceBaseline.test.js",
+        "tests/openFinanceCanaryRuntime.test.js",
+        "tests/openFinanceConsentLifecycle.test.js",
+        "tests/openFinanceLifecycle.test.js",
+        "tests/openFinanceOperationalBackupGate.test.js",
+        "tests/openFinanceOutboxStatsReport.test.js",
+        "tests/openFinancePluggyReadOnly.test.js",
+        "tests/openFinanceRevocationJournal.test.js",
+        "tests/openFinanceRolloutPolicy.test.js",
+        "tests/openFinanceSandboxPolling.test.js",
+        "tests/openFinanceSandboxWebhook.test.js",
+        "tests/openFinanceSandboxWebhookInbox.test.js",
+        "tests/openFinanceShadowReconciliation.test.js",
+        "tests/openFinanceStateBackup.test.js",
+        "tests/openFinanceUnconfirmedReport.test.js",
+        "tests/openFinanceWhatsappCanaryDelivery.test.js"
+      ],
+      "excluded": [
+        {
+          "file": "tests/whatsapp-real-e2e.test.js",
+          "reason": "controls a real signed-in WhatsApp session"
+        }
+      ],
+      "duration_ms": 642919,
+      "exit_status": 1,
+      "signal": null,
+      "valid": true,
+      "validation_reasons": [],
+      "tap": {
+        "tests": 2425,
+        "suites": 0,
+        "pass": 2398,
+        "fail": 17,
+        "cancelled": 0,
+        "skipped": 10,
+        "todo": 0
+      },
+      "coverage": {
+        "line_percent": 92.35,
+        "branch_percent": 78.96,
+        "function_percent": 92.61,
+        "uncovered_lines": ""
+      },
+      "failures": [
+        "not ok 769 - dashboard monthly free budget excludes registered bills paid by card",
+        "not ok 770 - family dashboard excludes a registered bill paid on the other family member card",
+        "not ok 771 - financial query monthly free budget excludes registered bills paid by card",
+        "not ok 969 - N02G:ACCOUNT-INSTALLMENT-001 exactly eleven frozen derivations preserve all other corpus content",
+        "not ok 970 - N02G:ACCOUNT-INSTALLMENT-002 functional selection plus real authored predicates covers eleven frozen profiles",
+        "not ok 975 - N02G:TRANSFER-SCOPE-001 optional scope delta preserves the complete remaining corpus",
+        "not ok 978 - N02G:OWNED-CARDS-001 owner identity delta preserves every other corpus field",
+        "not ok 981 - N02G:DUE-BILL-IDS-001 only one noncausal derivation read is removed; proof and total preserved",
+        "not ok 983 - N02G:COLLECTION-KIND-001 three domain reads preserve all other graph fields",
+        "not ok 987 - N02G:SOURCE-PRESENCE-001 three authored presence observations preserve every other graph field",
+        "not ok 990 - N02G:BUDGET-CLASS-001 exact effective-category reads preserve all other graph fields",
+        "not ok 993 - N02G:EVIDENCE-STATE-001 only two reviewed claim reads extend the immutable corpus",
+        "not ok 999 - N02G:COUNT-PHASE-001 effective-category dependency changes only the approved derivation fields",
+        "not ok 1003 - N02G:AUTHOR-NORMATIVE-001 reviewed six-graph delta equals independent authoring and preserves the remaining corpus",
+        "not ok 1008 - N02G:SIMILAR-EVENT-001 frozen proposal changes only focal inventories; all other corpus content is preserved",
+        "not ok 1010 - N02G:DIRECT-EVENT-004 exact frozen proposal changes only five derivations and preserves complete source corpus",
+        "not ok 1016 - N02G:TRACE-COMPAT-001 required edge remains independent from derivation node and read coverage"
+      ],
+      "skipped_tests": [
+        "instalador executa install e uninstall restaurando bytes preexistentes",
+        "install adota bloco existente e preserva integralmente os bytes atuais",
+        "install recusa adocao quando backup diverge apenas por BOM sem mutar config",
+        "uninstall recusa configuracao alterada e preserva o arquivo atual",
+        "uninstall recusa divergencia somente de BOM e preserva bytes atuais",
+        "functional: consent, onboarding, settings and dashboard",
+        "functional: expenses, income and credit card installments",
+        "functional: goals, debts, payments and reminders",
+        "functional: analytics, deletion, admin and fallback",
+        "functional: complex analytics handles typos, counts, duplicates and min/max"
+      ]
+    },
+    "exception": null,
+    "valid": false
+  },
+  "wide_final": {
+    "format": "financasbot.n02g.local-wide-start",
+    "provenance": "locally_executed_not_external_verdict",
+    "started_at": "2026-10-01T00:51:22.703Z",
+    "pid": 10516,
+    "branch": "codex/n02g-account-installment-20260930",
+    "base": "42a16c8516373d1c5fc49a3836f0eba54e61d4c5",
+    "node": "22.17.0",
+    "runtime_sha256": "sha256:39d45b5933f339d3ebdebd76474893dab5d7da1038920f65cf5bbcf0f20f3636",
+    "tested_hashes": {
+      "docs/contracts/next/provenance-v2/graphs-v2.json": {
+        "raw_sha256": "sha256:a4938977a205d2d9fe9bee3560f0f247a005992c9b8506a03ba56c152c21c1ce",
+        "lf_sha256": "sha256:a4938977a205d2d9fe9bee3560f0f247a005992c9b8506a03ba56c152c21c1ce"
+      },
+      "src/next/provenance/graphCompiler.js": {
+        "raw_sha256": "sha256:6fff280cf5478f006b95ecfd2df3dcd4332aaa5f49b3f2a0676e708ebdb008bf",
+        "lf_sha256": "sha256:d465ed8df9f8c0cb74277ca1e5f41082e4ff8fbae7a889e08daf6f395f9eacee"
+      },
+      "src/next/provenance/metricInstallments.js": {
+        "raw_sha256": "sha256:58e4b23b7259602fc51e36f20e0852df464aa9a866e8e72e001b5d0f536aa01b",
+        "lf_sha256": "sha256:559dae3a98d3dd90670e15d35ca93824bf89d478c974dcd07d9da17abcac7a09"
+      },
+      "src/next/provenance/proofOperators.js": {
+        "raw_sha256": "sha256:e5a8ad118fbcb12a6024135c8f4683ce76390a53e4a8c2e90355a04ec7341413",
+        "lf_sha256": "sha256:61209d8c34aa5a9254b5d4332599f957fa0923424269b21be23030912eb809c5"
+      },
+      "tests/next/provenance/authoringIndex.cases.js": {
+        "raw_sha256": "sha256:b4f324824706bd83691ef6b62184a836eb73a50e09ff89403c519f8cc596d14a",
+        "lf_sha256": "sha256:6d416c2a03fec79b2cdc63d667d698a560de903fa90ceaac08a7dfb277ded182"
+      },
+      "tests/next/provenance/metricInstallments.cases.js": {
+        "raw_sha256": "sha256:03a88fc19357ef3bbbe50a515f499f992de8628f1e0e25074334aa8b2996f3a5",
+        "lf_sha256": "sha256:161f24d420171c1d85d2ea3fa1be250bd96fa710adb6e6835847f4e0a2837144"
+      },
+      "tests/helpers/exhaustiveNetworkTripwire.js": {
+        "raw_sha256": "sha256:1c5702a6115acfb297541fabba079518b825f2b887092aa897a0c70ca6b76c1c",
+        "lf_sha256": "sha256:9c4eb34b883f9d4a2dd2326ee60f9626d946a35d72afd622d22246aae96f0c2a"
+      },
+      "tests/exhaustiveLocalTestCoverageRunner.test.js": {
+        "raw_sha256": "sha256:ec62961e432dde15d091691a624f55497d205f7f40852191640d524ecb27de43",
+        "lf_sha256": "sha256:835660fc46d1d9c838a882c9abc358c1c809b51a9b565c0efa33063f493b73e6"
+      },
+      "docs/audit-evidence/n02g-causal-authoring-profile/prepare-account-installment-application.cjs": {
+        "raw_sha256": "sha256:a192ad9a7a1a9a57877b3e741085d7b72f648c45fab0f66169fb59e48cfbe1d5",
+        "lf_sha256": "sha256:a192ad9a7a1a9a57877b3e741085d7b72f648c45fab0f66169fb59e48cfbe1d5"
+      },
+      "docs/audit-evidence/n02g-causal-authoring-profile/run-account-installment-wide.cjs": {
+        "raw_sha256": "sha256:0f33e3d52d53bbf23cb1065b56c29e5fcc0eef83c963c3982fd3e706ef351aa3",
+        "lf_sha256": "sha256:0f33e3d52d53bbf23cb1065b56c29e5fcc0eef83c963c3982fd3e706ef351aa3"
+      }
+    },
+    "graph_accepted": false,
+    "releaseEligible": false,
+    "finished_at": "2026-10-01T01:00:32.720Z",
+    "head_after": "42a16c8516373d1c5fc49a3836f0eba54e61d4c5",
+    "hashes_after": {
+      "docs/contracts/next/provenance-v2/graphs-v2.json": {
+        "raw_sha256": "sha256:a4938977a205d2d9fe9bee3560f0f247a005992c9b8506a03ba56c152c21c1ce",
+        "lf_sha256": "sha256:a4938977a205d2d9fe9bee3560f0f247a005992c9b8506a03ba56c152c21c1ce"
+      },
+      "src/next/provenance/graphCompiler.js": {
+        "raw_sha256": "sha256:6fff280cf5478f006b95ecfd2df3dcd4332aaa5f49b3f2a0676e708ebdb008bf",
+        "lf_sha256": "sha256:d465ed8df9f8c0cb74277ca1e5f41082e4ff8fbae7a889e08daf6f395f9eacee"
+      },
+      "src/next/provenance/metricInstallments.js": {
+        "raw_sha256": "sha256:58e4b23b7259602fc51e36f20e0852df464aa9a866e8e72e001b5d0f536aa01b",
+        "lf_sha256": "sha256:559dae3a98d3dd90670e15d35ca93824bf89d478c974dcd07d9da17abcac7a09"
+      },
+      "src/next/provenance/proofOperators.js": {
+        "raw_sha256": "sha256:e5a8ad118fbcb12a6024135c8f4683ce76390a53e4a8c2e90355a04ec7341413",
+        "lf_sha256": "sha256:61209d8c34aa5a9254b5d4332599f957fa0923424269b21be23030912eb809c5"
+      },
+      "tests/next/provenance/authoringIndex.cases.js": {
+        "raw_sha256": "sha256:b4f324824706bd83691ef6b62184a836eb73a50e09ff89403c519f8cc596d14a",
+        "lf_sha256": "sha256:6d416c2a03fec79b2cdc63d667d698a560de903fa90ceaac08a7dfb277ded182"
+      },
+      "tests/next/provenance/metricInstallments.cases.js": {
+        "raw_sha256": "sha256:03a88fc19357ef3bbbe50a515f499f992de8628f1e0e25074334aa8b2996f3a5",
+        "lf_sha256": "sha256:161f24d420171c1d85d2ea3fa1be250bd96fa710adb6e6835847f4e0a2837144"
+      },
+      "tests/helpers/exhaustiveNetworkTripwire.js": {
+        "raw_sha256": "sha256:1c5702a6115acfb297541fabba079518b825f2b887092aa897a0c70ca6b76c1c",
+        "lf_sha256": "sha256:9c4eb34b883f9d4a2dd2326ee60f9626d946a35d72afd622d22246aae96f0c2a"
+      },
+      "tests/exhaustiveLocalTestCoverageRunner.test.js": {
+        "raw_sha256": "sha256:ec62961e432dde15d091691a624f55497d205f7f40852191640d524ecb27de43",
+        "lf_sha256": "sha256:835660fc46d1d9c838a882c9abc358c1c809b51a9b565c0efa33063f493b73e6"
+      },
+      "docs/audit-evidence/n02g-causal-authoring-profile/prepare-account-installment-application.cjs": {
+        "raw_sha256": "sha256:a192ad9a7a1a9a57877b3e741085d7b72f648c45fab0f66169fb59e48cfbe1d5",
+        "lf_sha256": "sha256:a192ad9a7a1a9a57877b3e741085d7b72f648c45fab0f66169fb59e48cfbe1d5"
+      },
+      "docs/audit-evidence/n02g-causal-authoring-profile/run-account-installment-wide.cjs": {
+        "raw_sha256": "sha256:0f33e3d52d53bbf23cb1065b56c29e5fcc0eef83c963c3982fd3e706ef351aa3",
+        "lf_sha256": "sha256:0f33e3d52d53bbf23cb1065b56c29e5fcc0eef83c963c3982fd3e706ef351aa3"
+      }
+    },
+    "causal_inputs_unchanged": true,
+    "result": {
+      "schema_version": 1,
+      "local_only": true,
+      "network_guard_scope": [
+        "fetch",
+        "http",
+        "https",
+        "net",
+        "node_descendants",
+        "non_node_subprocesses_except_audited_local_git_and_tar"
+      ],
+      "discovered_test_files": 183,
+      "test_files": 165,
+      "nested_test_entries": [
+        "tests/acknowledgeOpenFinanceAlertDelivery.test.js",
+        "tests/openFinanceAlertOutbox.test.js",
+        "tests/openFinanceBaseline.test.js",
+        "tests/openFinanceCanaryRuntime.test.js",
+        "tests/openFinanceConsentLifecycle.test.js",
+        "tests/openFinanceLifecycle.test.js",
+        "tests/openFinanceOperationalBackupGate.test.js",
+        "tests/openFinanceOutboxStatsReport.test.js",
+        "tests/openFinancePluggyReadOnly.test.js",
+        "tests/openFinanceRevocationJournal.test.js",
+        "tests/openFinanceRolloutPolicy.test.js",
+        "tests/openFinanceSandboxPolling.test.js",
+        "tests/openFinanceSandboxWebhook.test.js",
+        "tests/openFinanceSandboxWebhookInbox.test.js",
+        "tests/openFinanceShadowReconciliation.test.js",
+        "tests/openFinanceStateBackup.test.js",
+        "tests/openFinanceUnconfirmedReport.test.js",
+        "tests/openFinanceWhatsappCanaryDelivery.test.js"
+      ],
+      "excluded": [
+        {
+          "file": "tests/whatsapp-real-e2e.test.js",
+          "reason": "controls a real signed-in WhatsApp session"
+        }
+      ],
+      "duration_ms": 549593,
+      "exit_status": 1,
+      "signal": null,
+      "valid": true,
+      "validation_reasons": [],
+      "tap": {
+        "tests": 2426,
+        "suites": 0,
+        "pass": 2413,
+        "fail": 3,
+        "cancelled": 0,
+        "skipped": 10,
+        "todo": 0
+      },
+      "coverage": {
+        "line_percent": 92.47,
+        "branch_percent": 79.17,
+        "function_percent": 93.03,
+        "uncovered_lines": ""
+      },
+      "failures": [
+        "not ok 770 - dashboard monthly free budget excludes registered bills paid by card",
+        "not ok 771 - family dashboard excludes a registered bill paid on the other family member card",
+        "not ok 772 - financial query monthly free budget excludes registered bills paid by card"
+      ],
+      "skipped_tests": [
+        "instalador executa install e uninstall restaurando bytes preexistentes",
+        "install adota bloco existente e preserva integralmente os bytes atuais",
+        "install recusa adocao quando backup diverge apenas por BOM sem mutar config",
+        "uninstall recusa configuracao alterada e preserva o arquivo atual",
+        "uninstall recusa divergencia somente de BOM e preserva bytes atuais",
+        "functional: consent, onboarding, settings and dashboard",
+        "functional: expenses, income and credit card installments",
+        "functional: goals, debts, payments and reminders",
+        "functional: analytics, deletion, admin and fallback",
+        "functional: complex analytics handles typos, counts, duplicates and min/max"
+      ]
+    },
+    "exception": null,
+    "valid": false
+  },
+  "legacy_baseline": {
+    "provenance": "locally_executed_not_external_verdict",
+    "baseline": "42a16c8516373d1c5fc49a3836f0eba54e61d4c5",
+    "executed_at": "2026-10-01T00:46:52.603Z",
+    "node": "22.17.0",
+    "local_only": true,
+    "exit_status": 1,
+    "tap": {
+      "tests": 3,
+      "suites": 0,
+      "pass": 0,
+      "fail": 3,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "failures": [
+      "not ok 1 - dashboard monthly free budget excludes registered bills paid by card",
+      "not ok 2 - family dashboard excludes a registered bill paid on the other family member card",
+      "not ok 3 - financial query monthly free budget excludes registered bills paid by card"
+    ],
+    "graph_accepted": false,
+    "releaseEligible": false
+  },
+  "limits": [
+    "wide remains RED; three legacy failures were reproduced on the unchanged base",
+    "no legacy runtime/test changes, no forced clock or newly skipped tests",
+    "local invocation/predicate observations are not measured-host or graph acceptance",
+    "synthetic/kernel variants are not admitted graph mutations",
+    "initial RED/GREEN logs did not record the runtime; final affected/wide use pinned Node 22.17.0",
+    "--check validates stored records, current hashes and corpus equality; it does not rerun tests"
+  ]
+}

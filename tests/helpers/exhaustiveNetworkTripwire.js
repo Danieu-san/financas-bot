@@ -91,6 +91,16 @@ function isCommitObject(value) {
         COMMIT_PATTERN.test(value.replace(/\^\{commit\}$/, ''));
 }
 
+// Raw local object reads only: no revision expressions, path traversal,
+// textconv/filters, diff drivers, mutable refs, shell or network commands.
+function isImmutableBlobObject(value) {
+    if (typeof value !== 'string') return false;
+    if (COMMIT_PATTERN.test(value)) return true;
+    const match = /^([a-f0-9]{40}):([A-Za-z0-9._/-]+)$/.exec(value);
+    if (!match || match[2].startsWith('/')) return false;
+    return match[2].split('/').every(segment => segment && segment !== '.' && segment !== '..');
+}
+
 function resolvedCwd(options) {
     const source = options && typeof options === 'object' ? options : {};
     return canonicalExistingPath(
@@ -191,6 +201,8 @@ function isAuditedLocalGitCommand(command, args, options) {
         isCommitObject(args[2])) return true;
     if (args.length === 3 && args[0] === 'cat-file' && args[1] === '-e' &&
         isCommitObject(args[2])) return true;
+    if (directoryKind === 'audited_repo' && args.length === 3 &&
+        args[0] === 'cat-file' && args[1] === 'blob' && isImmutableBlobObject(args[2])) return true;
     if (args.length === 4 && args[0] === 'merge-base' &&
         args[1] === '--is-ancestor' && COMMIT_PATTERN.test(args[2]) &&
         COMMIT_PATTERN.test(args[3])) return true;

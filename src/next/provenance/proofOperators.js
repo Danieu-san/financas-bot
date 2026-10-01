@@ -43,21 +43,23 @@ function scalar(value, descriptor) {
     if (type === 'enum' && (!Array.isArray(descriptor.values) || !descriptor.values.includes(value))) fail();
     return value;
 }
-function record(handle, fields) {
-    const names = observedKeys(handle);
-    if (names.length !== Object.keys(fields).length || names.some(name => !Object.hasOwn(fields, name))) fail();
+function record(handle, fields, enumerate = true) {
+    if (enumerate) {
+        const names = observedKeys(handle);
+        if (names.length !== Object.keys(fields).length || names.some(name => !Object.hasOwn(fields, name))) fail();
+    }
     return Object.fromEntries(Object.entries(fields).map(([name, type]) => [name, scalar(handle.get(name), { type })]));
 }
-function period(handle) {
+function period(handle, enumerate = true) {
     const kind = handle.get('kind');
-    if (['date', 'as_of', 'through', 'statement_due'].includes(kind)) return record(handle, { kind: 'text', value: 'date' });
-    if (['month', 'statement_competence', 'budget_cycle'].includes(kind)) return record(handle, { kind: 'text', value: 'month' });
+    if (['date', 'as_of', 'through', 'statement_due'].includes(kind)) return record(handle, { kind: 'text', value: 'date' }, enumerate);
+    if (['month', 'statement_competence', 'budget_cycle'].includes(kind)) return record(handle, { kind: 'text', value: 'month' }, enumerate);
     if (kind === 'range') {
-        const value = record(handle, { kind: 'text', start: 'date', end: 'date', start_inclusive: 'boolean', end_inclusive: 'boolean' });
+        const value = record(handle, { kind: 'text', start: 'date', end: 'date', start_inclusive: 'boolean', end_inclusive: 'boolean' }, enumerate);
         if (value.start > value.end) fail(); return value;
     }
-    if (kind === 'registry_snapshot') return record(handle, { kind: 'text', snapshot_version: 'id' });
-    if (kind === 'request_execution') return record(handle, { kind: 'text', turn_id: 'id' });
+    if (kind === 'registry_snapshot') return record(handle, { kind: 'text', snapshot_version: 'id' }, enumerate);
+    if (kind === 'request_execution') return record(handle, { kind: 'text', turn_id: 'id' }, enumerate);
     fail();
 }
 function typedResult(handle) {
@@ -128,7 +130,7 @@ function readPath(handle, segments, presence = false) {
 // Internal closed-program dispatch. scope is TCB-owned; it is never accepted
 // from an evaluator. Expressions are compiler products, not an expression DSL
 // supplied by the model. No expected_trace, graph payload or R is an input.
-function evaluateObservedOperator(rawOperator, rawOperands, scope) {
+function evaluateObservedOperatorWithPeriod(rawOperator, rawOperands, scope, readPeriod) {
     const operator = copyData(rawOperator); const operands = copyData(rawOperands);
     if (!Array.isArray(operands)) throw new Error('proof_expression_operands');
     for (const operand of operands) expressionShape(operand, ['type', 'expression']);
@@ -255,7 +257,7 @@ function evaluateObservedOperator(rawOperator, rawOperands, scope) {
         }
         default: throw new Error('proof_expression_pending');
         }
-        if (['period', 'range'].includes(type.form)) return period(value);
+        if (['period', 'range'].includes(type.form)) return readPeriod(value);
         if (['set', 'sequence'].includes(type.form)) return sequence(value, item => item);
         return value;
     }
@@ -382,4 +384,30 @@ function evaluateObservedOperator(rawOperator, rawOperands, scope) {
         value: resolve(operand.expression, operand.type) })));
 }
 
-module.exports = { readObservedIdentity, measureMaterialFingerprint, evaluateObservedOperator };
+function evaluateObservedOperator(operator, operands, scope) {
+    return evaluateObservedOperatorWithPeriod(operator, operands, scope, period);
+}
+// TCB-only selection over an already schema-admitted claim context. Its
+// functional temporal dependency is the finite period's observed fields;
+// whole-record key enumeration belongs to proof/fingerprint validation.
+// No acceptance API is added, and the proof entry retains strict enumeration.
+function evaluateObservedSelectionOperator(operator, operands, scope) {
+    operator = copyData(operator); operands = copyData(operands);
+    if (operator.id === 'edge_target_in_set') {
+        if (Object.keys(operator).sort().join(',') !== 'args,id,semantics'
+            || operator.semantics !== 'resolved_target_member'
+            || JSON.stringify(operator.args) !== JSON.stringify(['edge_ref:K', 'set:node:K']))
+            throw new Error('proof_operator_contract');
+        unifyOperatorTypes(operator, operands.map(operand => operand.type));
+        expressionShape(operands[0].expression, ['kind', 'id']);
+        expressionShape(operands[1].expression, ['kind', 'name']);
+        if (operands[0].expression.kind !== 'edge_ref' || operands[1].expression.kind !== 'set_ref')
+            throw new Error('proof_expression_membership');
+        // Unlike proof identity measurement, this uses a nominal relation/set
+        // already admitted by the compiler. The traversal is still performed
+        // on a live handle. No caller-provided target ID or boolean is trusted.
+        return scope.edgeTargetInSet(operands[0].expression.id, operands[1].expression.name);
+    }
+    return evaluateObservedOperatorWithPeriod(operator, operands, scope, handle => period(handle, false));
+}
+module.exports = { readObservedIdentity, measureMaterialFingerprint, evaluateObservedOperator, evaluateObservedSelectionOperator };

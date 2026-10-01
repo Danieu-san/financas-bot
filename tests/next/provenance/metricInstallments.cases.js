@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const { createInstrumentedAccess, createNodeSetAccess } = require('../../../src/next/provenance/instrumentedAccess');
 const { evaluateInstallments } = require('../../../src/next/provenance/metricInstallments');
 const scalar = { type: 'scalar' }; const version = `sha256:${'b'.repeat(64)}`;
-function fixture(change = () => {}, omitLink) {
+function fixture(change = () => {}, omitLink, roster = ['third', 'plain', 'first', 'second'], linkedVersion) {
     const rows = [
         ['plan', 'installment_plan', { id: 'plan', members: ['first', 'second', 'third'], installment_total: 3 }],
         ['first', 'event', { id: 'first', date: '2042-06-14', state: 'confirmed', installment_plan: 'plan', installment_number: 1, installment_total: 3, person_id: 'p', card_id: 'c', category_id: 'cat', amount_minor: -101 }],
@@ -20,14 +20,16 @@ function fixture(change = () => {}, omitLink) {
         identity: { kind, ref_id: value.id, version }, shape: { type: 'record', fields: {
             ...Object.fromEntries(Object.keys(value).map(k => [k, k === 'members' ? { type: 'sequence', item: scalar } : scalar])),
             ...(kind === 'event' ? { installment_plan: scalar, account_id: scalar, card_id: scalar } : {}) } } }));
-    const links = [...['first', 'second', 'third'].flatMap(source => [{ id: source, source, target: 'plan', field: 'installment_plan', type: 'ref' },
-        { id: `person-${source}`, source, target: 'p', field: 'person_id', type: 'ref' },
-        { id: `category-${source}`, source, target: 'cat', field: 'category_id', type: 'ref' },
-        ...['card_id', 'account_id'].filter(field => Object.hasOwn(rows.find(row => row[0] === source)[2], field)).map(field => ({
-            id: `${field}-${source}`, source, field, target: field === 'card_id' ? 'c' : 'a', type: 'ref' }))]),
+    const referenceKinds = { installment_plan: 'installment_plan', person_id: 'person', category_id: 'category', card_id: 'card', account_id: 'account' };
+    const links = [...rows.filter(row => row[1] === 'event').flatMap(([source, , value]) =>
+        Object.entries(referenceKinds).filter(([field]) => Object.hasOwn(value, field)).map(([field, kind]) => ({
+            id: field === 'installment_plan' ? source : `${field === 'person_id' ? 'person' : field === 'category_id' ? 'category' : field}-${source}`,
+            source, field, target: rows.find(row => row[1] === kind && row[2].id === value[field])?.[0] || 'missing-reference', type: 'ref' }))),
     ...['plan', 'family'].flatMap(source => [...new Set(rows.find(row => row[0] === source)[2].members)].map(target => ({
         id: `member-${source}-${target}`, source, target, field: 'members', type: 'ref_list' })))].filter(link => link.id !== omitLink);
-    const set = createNodeSetAccess({ bindings, links, role: 'events', roster: ['third', 'plain', 'first', 'second'], emit: e => observations.push(e) });
+    const setBindings = linkedVersion ? bindings.map(binding => binding.alias === 'plan'
+        ? { ...binding, identity: { ...binding.identity, version: linkedVersion } } : binding) : bindings;
+    const set = createNodeSetAccess({ bindings: setBindings, links, role: 'events', roster, emit: e => observations.push(e) });
     const nodes = createInstrumentedAccess({ bindings, links, emit: e => observations.push(e) });
     const contexts = [];
     const ctx = (period, family) => { const control = createInstrumentedAccess({ bindings: [{ alias: 'ctx', role: 'context',
@@ -43,7 +45,70 @@ function fixture(change = () => {}, omitLink) {
 const through = { kind: 'through', value: '2042-06-14' };
 const range = { kind: 'range', start: '2042-07-14', end: '2042-08-14', start_inclusive: true, end_inclusive: true };
 
-test('N02G:INSTALLMENT-REFERENCE-001 comparing optional dimension IDs does not consume unrelated account or card targets', () => {
+// Kernel handles only: these variants are not admitted graph mutations.
+test('N02G:INSTALLMENT-ROSTER-001 an unlisted event cannot become a member through its scalar plan reference', () => {
+    const f = fixture(rows => Object.assign(rows[4][2], {
+        installment_plan: 'plan', installment_number: 99, installment_total: 3
+    }));
+    try {
+        assert.equal(evaluateInstallments(f.operands(range), 'installments_projected'), 2);
+        assert.equal(f.observations.some(e => e[2] === 'plain' &&
+            (e[1] === 'get' || e[1] === 'traverse') && e[4][0] === 'installment_plan'), false);
+    } finally { f.revoke(); }
+});
+
+test('N02G:INSTALLMENT-ROSTER-002 unrelated dimension variation does not change R or add observations', () => {
+    for (const metric of ['installments_projected', 'installments_projected_amount', 'projected_installments']) {
+        for (const field of ['category_id', 'card_id', 'account_id']) {
+            const f = fixture(rows => {
+                const kind = field === 'category_id' ? 'category' : field === 'card_id' ? 'card' : 'account';
+                rows.push(['different', kind, { id: 'different' }]); rows[2][2][field] = 'different';
+            });
+            try {
+                assert.equal(evaluateInstallments(f.operands(range, metric === 'projected_installments'), metric),
+                    metric === 'installments_projected' ? 2 : 205);
+                assert.equal(f.observations.some(e => ['category_id', 'card_id', 'account_id'].includes(e[4]?.[0])), false);
+                if (metric !== 'projected_installments')
+                    assert.equal(f.observations.some(e => e[4]?.[0] === 'person_id'), false);
+            } finally { f.revoke(); }
+        }
+    }
+});
+
+test('N02G:INSTALLMENT-ROSTER-003 missing members and wrong linked revisions fail closed', () => {
+    for (const f of [fixture(() => {}, undefined, ['third', 'plain', 'second']),
+        fixture(() => {}, undefined, undefined, `sha256:${'c'.repeat(64)}`),
+        fixture(rows => { rows[4][2].id = 'first'; })]) {
+        try { assert.throws(() => evaluateInstallments(f.operands(range), 'installments_projected'),
+            /installment_metric_members|metric_reference_duplicate|access_set_predicate_threw/); }
+        finally { f.revoke(); }
+    }
+});
+
+test('N02G:INSTALLMENT-ROSTER-004 counts are invariant to member amounts; monetary metrics observe only selected amounts', () => {
+    for (const [a, b] of [[-1, -2], [-700, -3], [-11, -991]]) {
+        for (const metric of ['installments_projected', 'installments_projected_amount']) {
+            const f = fixture(rows => { rows[2][2].amount_minor = a; rows[3][2].amount_minor = b; });
+            try {
+                assert.equal(evaluateInstallments(f.operands(range), metric),
+                    metric === 'installments_projected' ? 2 : -a - b);
+                const reads = f.observations.filter(e => e[1] === 'get' && e[4][0] === 'amount_minor');
+                assert.deepEqual(reads.map(e => e[2]).sort(), metric === 'installments_projected' ? [] : ['second', 'third']);
+            } finally { f.revoke(); }
+        }
+    }
+});
+
+test('N02G:INSTALLMENT-ROSTER-005 listed membership cannot be redirected to another plan', () => {
+    const f = fixture(rows => {
+        rows.push(['other-plan', 'installment_plan', { id: 'other-plan' }]);
+        rows[2][2].installment_plan = 'other-plan';
+    });
+    try { assert.throws(() => evaluateInstallments(f.operands(range), 'installments_projected'), /access_set_predicate_threw/); }
+    finally { f.revoke(); }
+});
+
+test('N02G:INSTALLMENT-REFERENCE-001 optional account or card dimensions are outside the functional formula', () => {
     for (const field of ['card_id', 'account_id']) {
         const mutate = rows => { for (const row of rows.slice(1, 4)) { delete row[2].card_id; row[2][field] = field === 'card_id' ? 'c' : 'a'; } };
         for (const [metric, period, family, expected] of [
@@ -52,12 +117,12 @@ test('N02G:INSTALLMENT-REFERENCE-001 comparing optional dimension IDs does not c
             const f = fixture(mutate);
             try {
                 assert.equal(evaluateInstallments(f.operands(period, family), metric), expected);
-                for (const source of ['first', 'second', 'third']) assert.ok(f.observations.some(e => e[1] === 'get' && e[2] === source && e[4][0] === field));
+                assert.equal(f.observations.some(e => e[1] === 'get' && e[4][0] === field), false);
                 assert.equal(f.observations.some(e => e[1] === 'traverse' && e[4][0] === field), false);
                 assert.equal(f.observations.some(e => e[2] === 'c' || e[2] === 'a'), false);
             } finally { f.revoke(); }
             // Test handle boundary only, not whole-package admission: the
-            // formula compares the scalar and never asks to resolve its target.
+            // formula does not consume this scalar or resolve its target.
             const scalarOnly = fixture(mutate, `${field}-second`);
             try { assert.equal(evaluateInstallments(scalarOnly.operands(period, family), metric), expected); }
             finally { scalarOnly.revoke(); }
@@ -75,8 +140,9 @@ test('N02G:INSTALLMENT-REFERENCES-001 plans and family resolve their complete po
                 assert.ok(f.observations.some(e => e[1] === 'length' && e[2] === source && e[4][0] === 'members'));
             }
             for (const field of ['person_id', 'category_id', 'installment_plan']) {
-                assert.equal(f.observations.filter(e => e[1] === 'get' && e[4][0] === field).length, 3);
-                assert.equal(f.observations.filter(e => e[1] === 'traverse' && e[4][0] === field).length, 3);
+                const count = field === 'installment_plan' || field === 'person_id' && family ? 3 : 0;
+                assert.equal(f.observations.filter(e => e[1] === 'get' && e[4][0] === field).length, count);
+                assert.equal(f.observations.filter(e => e[1] === 'traverse' && e[4][0] === field).length, count);
             }
             assert.equal(f.observations.some(e => ['p', 'no-events', 'cat'].includes(e[2])), false);
         } finally { f.revoke(); }
@@ -84,7 +150,7 @@ test('N02G:INSTALLMENT-REFERENCES-001 plans and family resolve their complete po
 });
 
 test('N02G:INSTALLMENT-REFERENCES-002 an unresolved member or source relation cannot hide behind a financial exclusion', () => {
-    for (const omitLink of ['member-plan-first', 'member-family-no-events', 'person-first', 'category-first']) {
+    for (const omitLink of ['member-plan-first', 'member-family-no-events', 'person-first']) {
         const f = fixture(rows => rows[6][2].members.push('no-events'), omitLink);
         try { assert.throws(() => evaluateInstallments(f.operands(range, true), 'projected_installments'), /access_/); }
         finally { f.revoke(); }
@@ -101,7 +167,7 @@ test('N02G:INSTALLMENT-METRIC-001 realized and projected states have independent
     assert.ok(f.observations.some(e => e[1] === 'traverse'));
 });
 
-test('N02G:INSTALLMENT-METRIC-002 inconsistent plan membership, index, dates and dimensions fail before a result', () => {
+test('N02G:INSTALLMENT-METRIC-002 inconsistent plan membership, index and dates fail before a result', () => {
     const mutations = [rows => rows[0][2].members.pop(), rows => rows[0][2].members.push('second'),
         rows => rows[2][2].installment_number = 1, rows => rows[2][2].installment_total = 4,
         rows => rows[2][2].person_id = 'foreign', rows => rows[2][2].date = '2042-05-14'];

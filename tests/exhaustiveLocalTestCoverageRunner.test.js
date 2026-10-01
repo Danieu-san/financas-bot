@@ -26,6 +26,37 @@ const {
     restoreFileSnapshot
 } = require('../scripts/runExhaustiveLocalTestCoverage');
 
+test('hermetic Git blob reads require immutable objects and the audited root; commands and escapes remain denied', () => {
+    const environment = buildHermeticTestEnvironment(process.env);
+    const child = spawnSync(process.execPath, ['-e', `
+        const assert = require('node:assert/strict');
+        const { execFileSync } = require('node:child_process');
+        const { isAuditedLocalGitCommand: allowed } = require(${JSON.stringify(path.join(ROOT, 'tests/helpers/exhaustiveNetworkTripwire.js'))});
+        const git = process.env.EXHAUSTIVE_LOCAL_GIT_PATH;
+        const cwd = ${JSON.stringify(ROOT)};
+        const commit = '42a16c8516373d1c5fc49a3836f0eba54e61d4c5';
+        const file = 'src/utils/budgetCycle.js';
+        const object = commit + ':' + file;
+        for (const spec of [commit, object, commit + ':.github/workflows/a.yml']) {
+            assert.equal(allowed(git, ['cat-file', 'blob', spec], { cwd }), true);
+            assert.equal(allowed(git, ['cat-file', 'blob', spec], { cwd: require('node:os').tmpdir() }), false);
+        }
+        for (const spec of ['HEAD:' + file, commit + '^:' + file, commit + ':/absolute',
+            commit + ':../escape', commit + ':a/../b', commit + ':a//b', commit + ':./b',
+            commit + ':a\\\\b', commit + ':a:b', commit + ':a;echo', commit + ':', '--help']) {
+            assert.equal(allowed(git, ['cat-file', 'blob', spec], { cwd }), false, spec);
+        }
+        for (const args of [['cat-file', '--filters', object], ['cat-file', '--textconv', object],
+            ['cat-file', 'blob', object, '--help'], ['show', object], ['fetch'], ['reset', '--hard'],
+            ['-c', 'core.sshCommand=anything', 'cat-file', 'blob', object]]) {
+            assert.equal(allowed(git, args, { cwd }), false, JSON.stringify(args));
+        }
+        const text = execFileSync(git, ['cat-file', 'blob', object], { cwd, encoding: 'utf8' });
+        assert.equal(text.replaceAll('\\r\\n', '\\n'), require('node:fs').readFileSync(require('node:path').join(cwd, file), 'utf8').replaceAll('\\r\\n', '\\n'));
+    `], { cwd: ROOT, env: environment, encoding: 'utf8' });
+    assert.strictEqual(child.status, 0, `${child.stdout || ''}\n${child.stderr || ''}`);
+});
+
 test('local coverage runner excludes the real WhatsApp controller and nested duplicate entries', () => {
     const files = listLocalTestFiles().map(file => file.replace(/\\/g, '/'));
     assert.strictEqual(Object.keys(EXCLUDED).length, 1);

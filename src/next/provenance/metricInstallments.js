@@ -12,8 +12,8 @@ function readPlan(node) {
     const plan = identity(node, 'installment_plan');
     const total = integer(node.get('installment_total')); if (total < 1) fail('total');
     const members = readReferenceIds(node, 'members');
-    if (members.size > total) fail('total');
-    return { ...plan, total, members, examined: new Set(), numbers: new Set(), ordered: [], dimensions: null };
+    if (members.size !== total) fail('total');
+    return { ...plan, total, members, examined: new Set(), numbers: new Set(), ordered: [] };
 }
 
 // Functional metric behavior over observed handles. No schedule synthesis,
@@ -49,24 +49,23 @@ function evaluateInstallments(operands, metric) {
     const candidates = createUniqueNodeReader('event');
     const selected = operands.events.select(event => {
         const eventIdentity = candidates.read(event);
-        if (!event.has('installment_plan')) return false;
+        // The reviewed roster, not an optional reference on an arbitrary
+        // population row, defines membership. Authored exclusion predicates
+        // are a separate observed obligation of the derivation phase.
+        const owners = [...plans.values()].filter(plan => plan.members.includes(eventIdentity.ref));
+        if (owners.length > 1) fail('members');
+        if (!owners.length) return false;
+        const plan = owners[0];
         const linked = readReference(event, 'installment_plan', 'installment_plan');
-        const plan = plans.get(linked.ref);
-        if (!plan) { if (familyMode) fail('unknown_plan'); return false; }
         const { total, members, examined, numbers, ordered } = plan;
-        if (linked.version !== plan.version || !members.includes(eventIdentity.ref) || examined.has(eventIdentity.ref)) fail('members');
+        if (linked.ref !== plan.ref || linked.version !== plan.version || examined.has(eventIdentity.ref)) fail('members');
         examined.add(eventIdentity.ref);
         const number = integer(event.get('installment_number'));
         if (number < 1 || number > total || numbers.has(number) || integer(event.get('installment_total')) !== total) fail('number');
         numbers.add(number);
         const date = event.get('date'); parseDate(date); ordered.push({ number, date });
         const state = event.get('state'); if (!['confirmed', 'projected'].includes(state)) fail('state');
-        const current = [readReferenceId(event, 'person_id'), readReferenceId(event, 'category_id'),
-            event.has('card_id') ? id(event.get('card_id')) : null,
-            event.has('account_id') ? id(event.get('account_id')) : null];
-        if (plan.dimensions && plan.dimensions.some((value, i) => value !== current[i])) fail('dimensions');
-        plan.dimensions = current;
-        const inScope = !familyMode || familyMembers.includes(current[0]);
+        const inScope = !familyMode || familyMembers.includes(readReferenceId(event, 'person_id'));
         return state === (realized ? 'confirmed' : 'projected') && contains(date) && inScope;
     });
     for (const { examined, members, ordered } of plans.values()) {

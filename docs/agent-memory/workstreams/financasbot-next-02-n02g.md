@@ -1,5 +1,126 @@
 # N02-G — checkpoint
 
+## Estado vigente — 2026-09-30, aplicação contas/parcelas isolada
+
+### Próxima ação imediata — candidato para revisão focal; ampla integral RED
+
+Ampla v2 concluída `2026-10-01T01:00:32Z`: **2413 PASS/3 FAIL/10 SKIP**.
+Dez hashes e HEAD permaneceram intactos. Falhas normalizadas coincidem
+exatamente com os três testes legados reproduzidos na base limpa; zero
+nova falha focal observada na ampla. Não há verde integral nem GO global.
+Monitor de 20 minutos PAUSADO; retomada de cinco horas preservada.
+Evidência sanitizada: `../../audit-evidence/n02g-causal-authoring-profile/account-installment-application-validation.json`;
+helper `prepare-account-installment-validation.cjs --write-new` PASS. Seu
+`--check` NÃO executa testes: verifica registros, hashes e corpus corrente.
+Pedido da auditoria: `account-installment-code-review-request.md` na mesma pasta.
+Próximo passo: diff/sanitização/check/workflow, commit explícito/publicação e
+uma auditoria focal de código em conversa limpa no projeto Chat autorizado,
+com ZIP parcial Git verificável e Alta EFETIVA conferida antes de enviar.
+Não pedir dispensa do RED legado nem correção financeira fora do escopo.
+Depois confrontar o parecer, ainda sem fechar N02-G/global/host/produção.
+
+### Registro da ampla v2 (encerrada)
+
+Iniciada `2026-10-01T00:51:22.703Z`, PID `10516`, Node 22.17.0, base 42a16c8.
+Resultado: `.codex-temp/wide-n02g-account-installment-20260930-v2.json`;
+marcador homônimo `-start.json`. Dez arquivos causais pinados; não editar
+esses arquivos nem HEAD enquanto executar. Syntax delta (4 arquivos), diff,
+workflow e aplicação exata PASS. Monitor `retomar-n02-g-contas-parcelas-ap-s-a-ampla`
+reativado durante a execução; agora PAUSADO após terminar.
+Consultar v2 uma vez; não confundir com RED v1. Se restarem somente os três
+REDs legados abaixo, manter RED integral e a pendência financeira separada;
+nenhum GO global. Caso diferente, investigar focais antes de novo candidato.
+
+### Retomada em 2026-10-01T00:36Z — ampla RED, diagnóstico fechado
+
+Primeira ampla: 2398 PASS/17 FAIL/10 SKIP, hashes e HEAD intactos.
+Monitor de 20 minutos PAUSADO após conclusão; cinco horas preservado.
+Reprodução hermética v1: 17 FAIL. Classe 1: quatorze bloqueios do helper
+por `git show` não permitido. Corrigidos para leitura raw `cat-file blob`
+na raiz/executável auditados, com gramática imutável e negativos de comandos,
+refs, filtros, traversal e escape. Reprodução v2: 15 PASS/3 FAIL (14 focais
+recuperados + controle novo). Bateria runner afetada: 16 PASS/0 FAIL.
+
+Classe 2: três falhas de ciclo mensal LEGADO reproduzidas numa base limpa
+42a16c8 em `.codex-worktrees/n02g-baseline-42a16c-20261001` (detached, árvore
+sem alterações). Evidência: `.codex-temp/legacy-baseline-42a16c.json` e log.
+Não corrigir fora do escopo nem fixar data para ocultar defeito. A ampla não
+é verde. Não conceder GO global nem reinterpretar essas falhas como SKIP.
+
+Próxima ação: syntax/diff/workflow após correção do harness, depois uma única
+nova ampla final, necessária por mudança causal no helper/tripwire. Runner
+`run-account-installment-wide.cjs` agora grava o stem
+`.codex-temp/wide-n02g-account-installment-20260930-v2` e pina dez arquivos.
+Após resultado, distinguir a correção focal de qualquer pendência legado;
+preparar evidência transparente e candidato para auditoria focal, nunca alegar
+verde integral/fechamento. A correção legado exige decisão de escopo separada.
+Detalhes do desenho/limite no plano ativo. Não repetir ampla verde ou auditar
+041da0df novamente. Nenhum commit novo nem nova auditoria de código até aqui.
+
+---
+Registro da implementação e da primeira ampla abaixo.
+
+Raiz efetiva deste bloco: `.codex-worktrees/n02g-account-installment-20260930`.
+Branch: `codex/n02g-account-installment-20260930`.
+Base/HEAD antes da ampla: `42a16c8516373d1c5fc49a3836f0eba54e61d4c5`.
+Plano ativo: `../../plans/workstreams/financasbot-n02g-metric-observation-alignment-decision-v1.md`.
+Charter N02-G: `../../plans/workstreams/financasbot-next-02-n02g-v1.md`.
+SEM GO GLOBAL/EXECUTÁVEL N02-G. Sem NEXT-03, deploy, produção ou dados reais.
+
+Daniel forneceu APTO DOCUMENTAL de `041da0dfefe8602b85d0168582da722cf74f9a53`:
+reprodução independente do pacote/composição/witness e reconstrução Python.
+Recibo: `../../audit-evidence/n02g-causal-authoring-profile/account-installment-independent-review.md`.
+O envio anterior ficou em Instantânea; o reenvio em Alta foi feito por Daniel.
+Verificar Alta efetiva imediatamente antes de qualquer futuro envio ao Chat.
+Auditoria de código posterior ainda obrigatória; não repetir a documental aprovada.
+
+Árvore anterior de host/pais e `.codex-temp` preservadas na worktree
+`financasbot-n02g-provenance-engine`, sem copiar ou publicar seu código parcial.
+Aplicação isolada: apenas onze `trace_contract.derivation`, preservados os
+demais 65 grafos, todos os 76 proofs, seleções e dez fontes protegidas.
+Helper `prepare-account-installment-application.cjs --check`: PASS.
+Corpus LF novo: `sha256:a4938977a205d2d9fe9bee3560f0f247a005992c9b8506a03ba56c152c21c1ce`.
+
+Código: evaluator de parcelas usa roster completo, identidade versionada e
+somente dependências funcionais; controlador TCB local captura select real e
+executa predicados autorados. Operadores derivacionais usam período admitido
+e membership nominal em input-set; proof mantém sua medição/enumeracão estrita.
+Controller não é host medido, não aceita grafo e não aprova seleção por si só.
+Expected congelado antes de execução; oracle apenas confronta R depois.
+
+Evidência local preservada em `.codex-temp/account-installment-*`:
+RED v2: 2 FAIL/2 PASS; GREEN inicial: 4 PASS; kernel inicial: 10 PASS;
+integração v7: três testes, onze perfis com cobertura exata.
+Bateria causal v1: 409 PASS/15 FAIL (14 falhas de Node não pinado e uma
+expectativa de interface antiga). Nada foi relaxado no pin de timezone.
+Node correto existente: worktree anterior `.codex-temp/runtimes/node-v22.17.0-win-x64/node.exe`.
+Bateria causal v2 com esse Node: 424 PASS/0 FAIL/0 SKIP.
+Focais finais v11: 3 PASS (seleção fabricada rejeitada na cobertura, composição
+histórica preservada, interface exata). RED adversarial v10 preservado:
+o teste confundia verdade de predicados estáticos com aprovação da seleção;
+corrigido o controle para exigir rejeição no comparator, não um novo gate paralelo.
+Nenhuma mudança de produto após a bateria v2; somente esses controles de testes.
+
+Syntax (7 arquivos), diff check e workflow: PASS.
+Ampla final iniciada em `2026-10-01T00:16Z` (30/09 no fuso local), PID `15824`,
+via `run-account-installment-wide.cjs`; Node pinado 22.17.0, base 42a16c85. JSON
+`.codex-temp/wide-n02g-account-installment-20260930.json` e marcador `-start.json`.
+Não editar os arquivos pinados nem HEAD durante a ampla. Acompanhamento
+`retomar-n02-g-contas-parcelas-ap-s-a-ampla` ACTIVE a cada 20 minutos, sem
+acompanhamento ativo. Próxima ação: consultar somente o resultado em uma
+execução agendada e pausar esse monitor quando terminar. Depois do verde,
+confrontar hashes, preparar evidência sanitizada, commit/publicação e uma única
+auditoria de código em conversa limpa no projeto Chat, capacidade Alta efetiva.
+Ao ratificar, reconciliar a integração de host/pais preservada sem sobrescrita.
+Não declarar GO global nem encerrar N02-G por este recorte.
+
+Telemetria de calibração: NAO_DISPONIVEL; coletor configurado mas não saudável.
+Monitor de auditoria a cada oito minutos PAUSADO; retomada separada a cada cinco
+horas mantida. Capacidade: Codex → Sol 6.1 → Alto para integração/negativos.
+
+---
+Histórico anterior abaixo; não usar branch/base antigas como raiz deste bloco.
+
 Atualização: 2026-09-27. Estado: SIMILAR-EVENT APROVADO focalmente; SEM GO GLOBAL/EXECUTÁVEL N02-G.
 Base: `aea4ac31e358ed8d8907e78f6002c8bb80233bc8`.
 Branch: `codex/financasbot-n02g-provenance-engine-20260911`.
