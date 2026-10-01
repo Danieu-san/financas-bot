@@ -1,0 +1,46 @@
+{
+  "schema": "n02g_account_installment_integrated_closure_evidence_v1",
+  "scope": "audit_transport_and_focal_reproduction_only",
+  "candidate": "6baf88dc8b33326f8e05245e38f9682cc722c0be",
+  "candidate_parent": "42a16c8516373d1c5fc49a3836f0eba54e61d4c5",
+  "transport": {
+    "zip_sha256": "60ff874d12f940c11e3832048d21a16e8f75df6032b55a93d850147488e445cc",
+    "zip_bytes": 2831634,
+    "git_referenced_files": 149,
+    "git_objects": 185,
+    "fixture_document_paths": 52,
+    "verify_packet": "PASS",
+    "application_check": "PASS: 11 derivations applied, 65 other graphs and 76 proofs preserved",
+    "validation_check": "PASS: evidence checked; global_go=false"
+  },
+  "local_integrated_test": {
+    "command": "node --test --test-name-pattern=ACCOUNT-INSTALLMENT tests/next/provenance/authoringIndex.cases.js",
+    "runtime": "Node.js v22.17.0",
+    "dependencies": {
+      "ajv": "8.17.1",
+      "ajv-formats": "3.0.1",
+      "acorn": "8.15.0"
+    },
+    "dependency_method": "temporary local junction to existing node_modules with versions checked against candidate package-lock.json; junction removed after execution; not included in ZIP",
+    "tests": 6,
+    "pass": 6,
+    "fail": 0,
+    "skip": 0,
+    "todo": 0,
+    "independent_auditor_execution": false
+  },
+  "wide_suite_preexisting_evidence": {
+    "pass": 2413,
+    "fail": 3,
+    "skip": 10,
+    "wide_is_green": false,
+    "three_failures_reproduced_on_clean_parent": true,
+    "rerun_for_this_transport_change": false
+  },
+  "limits": [
+    "The candidate code and its unique parent have not changed.",
+    "The ZIP is a partial immutable Git transport, not a complete repository or an independent verdict.",
+    "The six focal passes are local reported evidence, not independent auditor execution.",
+    "No N02-G or NEXT-02 global GO; no NEXT-03, deploy, production or real financial data."
+  ]
+}

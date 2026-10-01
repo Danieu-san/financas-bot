@@ -26,9 +26,17 @@ Pacote parcial Git autenticado por OIDs disponível via
 Não contém sessões, remotes, autenticação, dados reais ou node_modules.
 Após extrair, verificar `node verify-packet.cjs`, aplicação `--check`, evidência
 `--check` e `node --test tests/next/provenance/metricInstallments.cases.js`.
+O pacote de evidência complementar inclui a closure documental dos seis testes
+`ACCOUNT-INSTALLMENT` em `authoringIndex.cases.js`, os seis schemas, o builder de
+validadores e `package-lock.json`. Para executá-los, disponibilizar localmente
+apenas `ajv@8.17.1`, `ajv-formats@3.0.1` e `acorn@8.15.0` e usar
+`node --test --test-name-pattern=ACCOUNT-INSTALLMENT tests/next/provenance/authoringIndex.cases.js`.
+Não executar `npm ci` do produto inteiro para esse recorte. Conferir o SHA do ZIP
+e os resultados locais em `account-installment-integrated-closure-evidence.json`;
+o auditor deve distinguir esse relato da execução própria.
 O kernel standalone é sintético, não mutação admitida de grafo. Node local
 pinado: 22.17.0. Informar runtime efetivo e limites se o auditor usar outro.
-O pacote não suporta a suíte completa sem suas dependências; não presumir execução.
+O pacote não suporta a suíte completa; não presumir sua execução independente.
 
 ## Perguntas causais
 

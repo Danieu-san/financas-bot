@@ -1,5 +1,27 @@
 # N02-G — checkpoint
 
+## Evidência complementar de auditoria — 2026-10-01
+
+O candidato de código continua `6baf88dc8b33326f8e05245e38f9682cc722c0be`
+(pai único `42a16c8516373d1c5fc49a3836f0eba54e61d4c5`); este acréscimo
+de transporte/evidência não é novo candidato de produto. O parecer anterior
+permanece **INCOMPLETO**, não APTO. O pacote Git parcial complementar agora
+materializa os 52 caminhos documentais usados pela fixture integrada, os seis
+schemas, o builder de validadores, três versões de dependências fixadas no
+lockfile e o golden oracle. ZIP local em `.codex-temp/ai-code-6baf88d-opOpAA.zip`,
+SHA-256 `60ff874d12f940c11e3832048d21a16e8f75df6032b55a93d850147488e445cc`.
+Seu verificador autenticou 149 referências de arquivo/185 objetos e os checks
+de aplicação/evidência passaram. Os seis testes integrados `ACCOUNT-INSTALLMENT`
+passaram localmente (6 PASS/0 FAIL/0 SKIP/0 TODO) com Node 22.17.0 e módulos
+locais nas versões conferidas contra `package-lock.json`; o vínculo temporário
+foi removido e não está no ZIP. Detalhes em
+`docs/audit-evidence/n02g-causal-authoring-profile/account-installment-integrated-closure-evidence.json`.
+A ampla não foi repetida: segue 2413 PASS/3 FAIL/10 SKIP, três FAIL legados
+reproduzidos na base limpa. Próxima ação: publicar somente este complemento
+sanitizado e solicitar uma reauditoria focal da lacuna integrada na nova conta
+Chat do projeto, sem repetir auditoria do restante do candidato. Sem resposta
+independente auditável, N02-G não recebe GO global.
+
 ## Estado vigente — 2026-09-30, aplicação contas/parcelas isolada
 
 ### Parecer recuperado — 2026-10-01

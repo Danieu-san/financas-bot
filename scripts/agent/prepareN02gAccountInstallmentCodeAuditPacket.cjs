@@ -54,6 +54,28 @@ function addFile(commit, file, materialize) {
 }
 for (const file of Object.keys(proposal.documents)) { addFile(corpusBase, file, false); addFile(candidate, file, true); }
 addFile(proposalCommit, proposalPath, false);
+// Reconstruct the integrated test fixture from the candidate's immutable
+// documents, not from whichever checkout happens to build this packet.
+const provenancePrefix = 'docs/contracts/next/provenance-v2/';
+const fixturePaths = new Set([graphPath, provenancePrefix + 'predicate-templates-v1.json',
+    provenancePrefix + 'claim-contract.schema.json', provenancePrefix + 'evidence-snapshot.schema.json']);
+const candidateJson = file => JSON.parse(git('cat-file', 'blob', `${candidate}:${file}`));
+const graphs = candidateJson(graphPath);
+for (const field of ['claim_contract', 'snapshot_manifest', 'material_registry',
+    'operator_registry', 'metric_evaluator_registry']) fixturePaths.add(graphs[field].path);
+for (const source of candidateJson(graphs.snapshot_manifest.path).sources) fixturePaths.add(source.path);
+for (const entry of candidateJson(graphs.metric_evaluator_registry.path).entries) fixturePaths.add(entry.contract_path);
+for (const graph of graphs.graphs) for (const source of graph.authoring_sources) fixturePaths.add(source.path);
+assert.equal(graphs.graphs.length, 76);
+assert.equal(fixturePaths.size, 52);
+assert.ok([...fixturePaths].every(file =>
+    (file.startsWith(provenancePrefix) || file.startsWith('tests/fixtures/financasbot-next/'))
+    && file.endsWith('.json')));
+for (const file of fixturePaths) addFile(candidate, file, true);
+for (const stem of ['claim-contract', 'evaluator-contract', 'evaluator-witness-contracts',
+    'evidence-snapshot', 'metric-evaluator-registry', 'provenance-graph']) {
+    addFile(candidate, `${provenancePrefix}${stem}.schema.json`, true);
+}
 const sources = git('ls-tree', '-r', '--name-only', candidate, 'src/next').toString().trim().split(/\r?\n/);
 assert.ok(sources.length > 20 && sources.every(file => /^src\/next\/[A-Za-z0-9_./-]+\.js$/.test(file)));
 for (const file of sources) addFile(candidate, file, true);
@@ -61,7 +83,9 @@ for (const file of [
     'tests/next/provenance/metricInstallments.cases.js', 'tests/next/provenance/authoringIndex.cases.js',
     'tests/helpers/exhaustiveNetworkTripwire.js', 'tests/helpers/exhaustiveNodeOptions.js',
     'tests/exhaustiveLocalTestCoverageRunner.test.js', 'scripts/runExhaustiveLocalTestCoverage.js',
-    'tests/exhaustiveLocalTestAggregates.json', 'scripts/agent/prepareN02gAccountInstallmentCodeAuditPacket.cjs',
+    'tests/exhaustiveLocalTestAggregates.json',
+    'scripts/agent/buildNextProvenanceArtifacts.mjs', 'scripts/agent/nextProvenanceGuestProfile.js',
+    'tests/fixtures/financasbot-next/golden-claim-oracles-v1.json', 'package.json', 'package-lock.json',
     'docs/contracts/next/provenance-v2/graph-binding-contract-v1.md',
     'docs/contracts/next/provenance-v2/predicate-templates-v1.json',
     'docs/contracts/next/provenance-v2/claim-contract.schema.json',
@@ -106,10 +130,15 @@ fs.writeFileSync(path.join(packet, 'README.md'), [
     'node verify-packet.cjs', `node ${evidence}prepare-account-installment-application.cjs --check`,
     `node ${evidence}prepare-account-installment-validation.cjs --check`,
     'node --test tests/next/provenance/metricInstallments.cases.js',
+    'Para os seis testes integrados, disponibilize ajv@8.17.1, ajv-formats@3.0.1 e acorn@8.15.0',
+    'em node_modules local. Instale só essas dependências em diretório vazio, se necessário;',
+    'não rode npm ci do projeto completo: ele inclui dependências de produto fora deste recorte.',
+    'node --test --test-name-pattern=ACCOUNT-INSTALLMENT tests/next/provenance/authoringIndex.cases.js',
     `Leia ${evidence}account-installment-code-review-request.md para limites e perguntas.`,
     'Os checks validam bytes/corpus/registros; não reexecutam a ampla. Só o comando kernel executa seus testes.',
     'Ampla integral permanece RED: 2413 PASS/3 FAIL/10 SKIP, três defeitos LEGADOS reproduzidos na base limpa.',
-    'A suíte completa exige dependências não incluídas; não infira sua execução.',
+    'Dependências npm não são transportadas: instalar com package-lock do candidato; registrar runtime e resultado.',
+    'O recorte filtrado não é a suíte completa; testes fora do padrão aparecem SKIP por filtro, não por falha.',
     'Nenhum GO global, aceitação de grafo/host, deploy ou produção.'
 ].join('\n') + '\n');
 const replay = ['verify-packet.cjs', evidence + 'prepare-account-installment-application.cjs',
