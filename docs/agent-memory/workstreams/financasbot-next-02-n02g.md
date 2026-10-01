@@ -1,6 +1,49 @@
 # N02-G — checkpoint
 
+## Retomada e aprovação focal — 2026-10-01
+
+Raiz de trabalho deste bloco: `.codex-worktrees/n02g-host-parent-reconcile-20261001`,
+branch `codex/n02g-host-parent-reconcile-20261001`, base publicada
+`37c7e0ced88eb5f9899bddfb31e8f63e2ae82d80`. Criada após a rotina portátil
+confirmar remoto/resume_target na raiz `financas-bot-handoff-32e69be41f60`.
+Essa cópia e a worktree antiga de host/pais permanecem preservadas.
+
+Reauditoria focal contas/parcelas concluída na conversa já indicada abaixo:
+**APROVÁVEL**, C/H/M/L = 0, para o código
+`6baf88dc8b33326f8e05245e38f9682cc722c0be`, parent único
+`42a16c8516373d1c5fc49a3836f0eba54e61d4c5`, com complemento
+`488825d697e1a5e157e1b1b140fd994eaedeb786`. Parecer confrontado com Git,
+checkpoint e closure local; recibo em
+`../../audit-evidence/n02g-causal-authoring-profile/account-installment-code-independent-review.md`.
+O monitor específico foi excluído após a conclusão. Não reenviar essa auditoria.
+A ampla permanece RED: 2413 PASS / 3 FAIL / 10 SKIP, com os três FAIL legados
+reproduzidos na base limpa. O parecer focal não fecha N02-G ou NEXT-02.
+
+Proposta v2 preparada e testada, ainda NÃO APLICADA: seis reads parentais em
+derivation, 30 em proof, 54 obrigações estruturais, e ancestrais de claim
+154/230 em derivation/proof nos 76 grafos. O helper lê cinco fontes do Git
+imutável em `6baf88d...`, sem trace observado, oracle ou runtime. Quatro testes
+causais PASS, zero FAIL/SKIP/TODO; check reproduzível PASS. Não houve nova ampla.
+
+Próxima ação: publicar esta proposta sanitizada e enviar uma revisão normativa
+focal, com pacote Git parcial reproduzível em conversa limpa. Exigir APTO
+DOCUMENTAL PARA IMPLEMENTAR antes de aplicar a autoria; depois reconciliar os
+incrementos preservados de host/pais, com REDs e auditoria de código do recorte.
+Não copiar a árvore suja integralmente nem reabrir contas/parcelas já aprovado.
+Paths deste recorte:
+`docs/plans/workstreams/financasbot-n02g-parent-result-observation-decision-v2.md`,
+`docs/audit-evidence/n02g-parent-observation/prepare-parent-observation.cjs`,
+`docs/audit-evidence/n02g-parent-observation/parent-observation-proposal.json`,
+`tests/next/provenance/parentObservationAuthoring.cases.js`,
+`scripts/agent/prepareN02gParentObservationAuditPacket.cjs` e este checkpoint.
+Outros fontes de host/registry permanecem preservados na
+origem até reconciliar a autoridade de aceitação/freeze.
+Capacidade: Codex → GPT-6.1 Sol → Alto. Sem GO global, NEXT-03, deploy,
+produção, correção lateral de legado ou dados reais.
+
 ## Evidência complementar de auditoria — 2026-10-01
+
+Registro histórico da submissão, superado pelo resultado no início deste arquivo.
 
 Complemento publicado no commit `488825d697e1a5e157e1b1b140fd994eaedeb786`.
 Uma única reauditoria focal com o ZIP de SHA-256 abaixo foi enviada em uma
