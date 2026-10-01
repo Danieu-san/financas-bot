@@ -28,5 +28,7 @@ Cada conversa/worktree trabalha em um objetivo e preserva seu próprio estado.
 | `financasbot-next-02-n02f` | PREPARAÇÃO DOCUMENTAL APROVADA; A+B+C em a094824 | `financasbot-next-02-n02f.md` | `../../plans/workstreams/financasbot-next-02-n02f-v1.md` | 76 grafos revisados; próxima fatia executável a delimitar; NEXT-02 global aberto |
 | `financasbot-next-02-n02g` | contas/parcelas aguardando auditoria de código; ampla RED por três falhas legadas de base | `financasbot-next-02-n02g.md` | `../../plans/workstreams/financasbot-next-02-n02g-v1.md` | alvo isolado `codex/n02g-account-installment-20260930` em `.codex-worktrees/n02g-account-installment-20260930`; host/pais anteriores preservados; sem GO global |
 
+| `n02g-phase-composition` | PROPOSTA DOCUMENTAL; decisão de guards por fase pendente | `n02g-phase-composition.md` | `../../plans/workstreams/financasbot-next-02-n02g-phase-composition-v1.md` | worktree isolada; código WIP preservado; sem GO global |
+
 Se dois workstreams puderem escrever simultaneamente, usar branches/worktrees
 distintas. Atualizar somente a própria linha e seus arquivos.

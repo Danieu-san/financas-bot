@@ -1,0 +1,1330 @@
+{
+  "schema_version": 1,
+  "stage": "normative_phase_composition_proposal_only",
+  "source_sha": "6baf88dc8b33326f8e05245e38f9682cc722c0be",
+  "graph_count": 76,
+  "distinct_fact_keys": 76,
+  "registry_entry_count": 39,
+  "source_documents": {
+    "docs/contracts/next/provenance-v2/graphs-v2.json": {
+      "source_sha": "6baf88dc8b33326f8e05245e38f9682cc722c0be",
+      "git_blob": "bebec06ef03da316d7479dcf727216ea49fec51f",
+      "sha256_utf8_lf": "sha256:a4938977a205d2d9fe9bee3560f0f247a005992c9b8506a03ba56c152c21c1ce",
+      "bytes_utf8_lf": 4939463
+    },
+    "docs/contracts/next/provenance-v2/claims-v2.json": {
+      "source_sha": "6baf88dc8b33326f8e05245e38f9682cc722c0be",
+      "git_blob": "0f0ade4e0f174966ae9f2660df97cc0b29d2d775",
+      "sha256_utf8_lf": "sha256:4810612761ea7f232e4445c0d192ae53ebf0761f0ba8752da758efb826b30494",
+      "bytes_utf8_lf": 64240
+    },
+    "docs/contracts/next/provenance-v2/metric-evaluator-registry-v1.json": {
+      "source_sha": "6baf88dc8b33326f8e05245e38f9682cc722c0be",
+      "git_blob": "2050944ba328605b743413ead44abe54456cc119",
+      "sha256_utf8_lf": "sha256:577fe16b3d5a1dc2e24505de150001afd889408f5294a6834486de338d40a3a0",
+      "bytes_utf8_lf": 45195
+    },
+    "docs/contracts/next/provenance-v2/evaluator-contracts/installments_realized.json": {
+      "source_sha": "6baf88dc8b33326f8e05245e38f9682cc722c0be",
+      "git_blob": "4887dc14746e92ac401e631476401c1080533b2e",
+      "sha256_utf8_lf": "sha256:0115cf8a9d922e43b6b393cecc521a9659a41f75b68591b579eed01490c5d3f7",
+      "bytes_utf8_lf": 1162
+    },
+    "docs/contracts/next/provenance-v2/evaluator-contracts/budget_class_consumption.json": {
+      "source_sha": "6baf88dc8b33326f8e05245e38f9682cc722c0be",
+      "git_blob": "3753c5a9e78172a34130efe7e7bbdc402a5dd1e3",
+      "sha256_utf8_lf": "sha256:e336d72e581c06401fd6ef3cc5b041b6c2b7ad56745fe25ff5980ca763ed8561",
+      "bytes_utf8_lf": 1274
+    }
+  },
+  "ratified_account_installment_scope": {
+    "graph_count": 11,
+    "fact_keys_for_evidence_only": [
+      "F-07#1#1",
+      "F-07#1#2",
+      "F-07#2#1",
+      "F-07#2#2",
+      "M-07#1#2",
+      "S-04#1#1",
+      "S-06#1#1",
+      "S-11#1#1",
+      "S-11#1#2",
+      "S-11#1#3",
+      "S-12#1#1"
+    ],
+    "metric_signatures": [
+      "movement_ids",
+      "account_balance",
+      "installments_realized",
+      "installments_realized_amount",
+      "installments_projected",
+      "installments_projected_amount",
+      "projected_installments"
+    ]
+  },
+  "proposed_profile_inventory": [
+    {
+      "evaluator_id": "account_balance",
+      "evaluator_version": 1,
+      "metric": "account_balance",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/account_balance.json",
+      "evaluator_contract_hash": "sha256:b509b72bf341c36f60cc7fda7030602a0fdfcc1dae24a0687cb899d4b15a35ed",
+      "proposed_derivation_mode": "formula_plus_selection_guards"
+    },
+    {
+      "evaluator_id": "balance_delta",
+      "evaluator_version": 1,
+      "metric": "balance_delta",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/balance_delta.json",
+      "evaluator_contract_hash": "sha256:39a1a87663a54e5d37c8e1a35f02596330d48b71e70a431fa27fe58193339a1e",
+      "proposed_derivation_mode": "formula_only"
+    },
+    {
+      "evaluator_id": "bills_open",
+      "evaluator_version": 1,
+      "metric": "bills_open",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/bills_open.json",
+      "evaluator_contract_hash": "sha256:9fed67d44d48c3965043964769ce6481b876a793decf16901e7e666261593faf",
+      "proposed_derivation_mode": "formula_only"
+    },
+    {
+      "evaluator_id": "budget_class_consumption",
+      "evaluator_version": 1,
+      "metric": "budget_class_consumption",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/budget_class_consumption.json",
+      "evaluator_contract_hash": "sha256:e336d72e581c06401fd6ef3cc5b041b6c2b7ad56745fe25ff5980ca763ed8561",
+      "proposed_derivation_mode": "formula_only"
+    },
+    {
+      "evaluator_id": "calendar_event_count",
+      "evaluator_version": 1,
+      "metric": "calendar_event_count",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/calendar_event_count.json",
+      "evaluator_contract_hash": "sha256:fa3f00c0a019ab0702f94b2c97f2e575509c308343d2208c992ac677e98097b8",
+      "proposed_derivation_mode": "formula_only"
+    },
+    {
+      "evaluator_id": "category_budget_remaining",
+      "evaluator_version": 1,
+      "metric": "category_budget_remaining",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/category_budget_remaining.json",
+      "evaluator_contract_hash": "sha256:4e4f9e38d7495397799578d1f73366d067ef5a5a7ca47879071dacd3669436c5",
+      "proposed_derivation_mode": "formula_only"
+    },
+    {
+      "evaluator_id": "category_consumption",
+      "evaluator_version": 1,
+      "metric": "category_consumption",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/category_consumption.json",
+      "evaluator_contract_hash": "sha256:b6e8edf05cb8acc7155bea56d84c4827c4fa9c97b54cacdc13805602468564a3",
+      "proposed_derivation_mode": "formula_only"
+    },
+    {
+      "evaluator_id": "category_spent",
+      "evaluator_version": 1,
+      "metric": "category_spent",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/category_spent.json",
+      "evaluator_contract_hash": "sha256:f168ac80d9ac17abf516e76729105c03a6efcf1743bdd4459e94f0c75f851baa",
+      "proposed_derivation_mode": "formula_only"
+    },
+    {
+      "evaluator_id": "consumption_by_instrument",
+      "evaluator_version": 1,
+      "metric": "consumption_by_instrument",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_by_instrument.json",
+      "evaluator_contract_hash": "sha256:e32bc36ae9642c1db0d0eb6dce05c3861a80d967b974613eafc8fc6a341dbd37",
+      "proposed_derivation_mode": "formula_only"
+    },
+    {
+      "evaluator_id": "consumption_difference",
+      "evaluator_version": 1,
+      "metric": "consumption_difference",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_difference.json",
+      "evaluator_contract_hash": "sha256:f5d8eda523ba66305010fed07ca6c657b76c486774eac052c3151ddcc85546f7",
+      "proposed_derivation_mode": "formula_only"
+    },
+    {
+      "evaluator_id": "consumption_effect",
+      "evaluator_version": 1,
+      "metric": "consumption_effect",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_effect.json",
+      "evaluator_contract_hash": "sha256:7dd62b47dcc336828376d44ed54c996f4ef21d27f9f21cfa142cd3722e24eab1",
+      "proposed_derivation_mode": "formula_only"
+    },
+    {
+      "evaluator_id": "consumption_total",
+      "evaluator_version": 1,
+      "metric": "consumption_total",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_total.json",
+      "evaluator_contract_hash": "sha256:4e07fd44f09a99168cd92d6a9caa664ef5c847146aae64905b859c4cf313be3a",
+      "proposed_derivation_mode": "formula_only"
+    },
+    {
+      "evaluator_id": "due_bill_ids",
+      "evaluator_version": 1,
+      "metric": "due_bill_ids",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/due_bill_ids.json",
+      "evaluator_contract_hash": "sha256:a9ddce797a0f90184dad2e3fd50cb20d6534648485ed9f27592cbfe03782ebf4",
+      "proposed_derivation_mode": "formula_only"
+    },
+    {
+      "evaluator_id": "due_bills_total",
+      "evaluator_version": 1,
+      "metric": "due_bills_total",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/due_bills_total.json",
+      "evaluator_contract_hash": "sha256:aaa1e469986731240f28f22ffe4559c4a663b13d2a01718f61e866c3e1f62e86",
+      "proposed_derivation_mode": "formula_only"
+    },
+    {
+      "evaluator_id": "eligible_event_count",
+      "evaluator_version": 1,
+      "metric": "eligible_event_count",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/eligible_event_count.json",
+      "evaluator_contract_hash": "sha256:bf2a5e70c7cf661c8b983a2598ae4142567ce9e1b97e34985851b77dcf0e7937",
+      "proposed_derivation_mode": "formula_only"
+    },
+    {
+      "evaluator_id": "gross_consumption",
+      "evaluator_version": 1,
+      "metric": "gross_consumption",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/gross_consumption.json",
+      "evaluator_contract_hash": "sha256:787b125062623e9ffaea8d248ef0554a93e23458275566390c88e88b5e3d00d6",
+      "proposed_derivation_mode": "formula_only"
+    },
+    {
+      "evaluator_id": "income_minus_open_bills",
+      "evaluator_version": 1,
+      "metric": "income_minus_open_bills",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/income_minus_open_bills.json",
+      "evaluator_contract_hash": "sha256:1d87b903b2e41e0bdfa4edc5ec1708c1e10e81dfa9cff30560dd5206b4637b86",
+      "proposed_derivation_mode": "formula_only"
+    },
+    {
+      "evaluator_id": "income_realized",
+      "evaluator_version": 1,
+      "metric": "income_realized",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/income_realized.json",
+      "evaluator_contract_hash": "sha256:3098c37340e1c22e6137691c498c1e1b3756a8319f2187eb17fa0c16e8abedea",
+      "proposed_derivation_mode": "formula_only"
+    },
+    {
+      "evaluator_id": "installments_projected",
+      "evaluator_version": 1,
+      "metric": "installments_projected",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/installments_projected.json",
+      "evaluator_contract_hash": "sha256:924d883d776a5f0da128ee931d96ff27aa1f9effa5ca86d3c81f21af35bf4988",
+      "proposed_derivation_mode": "formula_plus_selection_guards"
+    },
+    {
+      "evaluator_id": "installments_projected_amount",
+      "evaluator_version": 1,
+      "metric": "installments_projected_amount",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/installments_projected_amount.json",
+      "evaluator_contract_hash": "sha256:6cd3f810f260c6fa94b4509c1d8e043866accc8a0314446fde59d51b28763f0a",
+      "proposed_derivation_mode": "formula_plus_selection_guards"
+    },
+    {
+      "evaluator_id": "installments_realized",
+      "evaluator_version": 1,
+      "metric": "installments_realized",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/installments_realized.json",
+      "evaluator_contract_hash": "sha256:0115cf8a9d922e43b6b393cecc521a9659a41f75b68591b579eed01490c5d3f7",
+      "proposed_derivation_mode": "formula_plus_selection_guards"
+    },
+    {
+      "evaluator_id": "installments_realized_amount",
+      "evaluator_version": 1,
+      "metric": "installments_realized_amount",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/installments_realized_amount.json",
+      "evaluator_contract_hash": "sha256:8987257b8976651b8e82c7e414fda6472ba5aa60ce58befaef3a5661956eb8a7",
+      "proposed_derivation_mode": "formula_plus_selection_guards"
+    },
+    {
+      "evaluator_id": "invoice_payment_amount",
+      "evaluator_version": 1,
+      "metric": "invoice_payment_amount",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/invoice_payment_amount.json",
+      "evaluator_contract_hash": "sha256:8b0b104d9d9623fc65847611532eb69810464f2869b5f9421557f07441562928",
+      "proposed_derivation_mode": "formula_only"
+    },
+    {
+      "evaluator_id": "invoice_payment_consumption_effect",
+      "evaluator_version": 1,
+      "metric": "invoice_payment_consumption_effect",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/invoice_payment_consumption_effect.json",
+      "evaluator_contract_hash": "sha256:613b290689de669c2e5ab437fe12ce6f495bdfb766ed848d7716ea50f6b9c7c6",
+      "proposed_derivation_mode": "formula_only"
+    },
+    {
+      "evaluator_id": "invoice_payment_target_card",
+      "evaluator_version": 1,
+      "metric": "invoice_payment_target_card",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/invoice_payment_target_card.json",
+      "evaluator_contract_hash": "sha256:a58d6ee1480662230142a532903facd36cbbe3b7f67705dc01345574a324acfa",
+      "proposed_derivation_mode": "formula_only"
+    },
+    {
+      "evaluator_id": "merchant_rule_ids",
+      "evaluator_version": 1,
+      "metric": "merchant_rule_ids",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/merchant_rule_ids.json",
+      "evaluator_contract_hash": "sha256:b3ec5d6c4003258cd25431a709197c37a1cf7f70e10125b2f0c8d15bba95abbe",
+      "proposed_derivation_mode": "formula_only"
+    },
+    {
+      "evaluator_id": "movement_ids",
+      "evaluator_version": 1,
+      "metric": "movement_ids",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/movement_ids.json",
+      "evaluator_contract_hash": "sha256:4c41b92c8bcf511536461ec676441babe401ef3906144beb960150605a786b96",
+      "proposed_derivation_mode": "formula_plus_selection_guards"
+    },
+    {
+      "evaluator_id": "net_consumption",
+      "evaluator_version": 1,
+      "metric": "net_consumption",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/net_consumption.json",
+      "evaluator_contract_hash": "sha256:1bbf9d81f52b9766156ab60ddd4d8da961b958440e32df12dc0ce315c76fe891",
+      "proposed_derivation_mode": "formula_only"
+    },
+    {
+      "evaluator_id": "owned_cards",
+      "evaluator_version": 1,
+      "metric": "owned_cards",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/owned_cards.json",
+      "evaluator_contract_hash": "sha256:67b68e3e0d27a0973127411a960953345eeff0c8adc001ea25001fa2ddbbfc3a",
+      "proposed_derivation_mode": "formula_only"
+    },
+    {
+      "evaluator_id": "projected_installments",
+      "evaluator_version": 1,
+      "metric": "projected_installments",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/projected_installments.json",
+      "evaluator_contract_hash": "sha256:d5c649bcaf00627f23d1930ac78de03dfb41f2fb5e0c11cb26d1e177f57feaee",
+      "proposed_derivation_mode": "formula_plus_selection_guards"
+    },
+    {
+      "evaluator_id": "ranking_winner",
+      "evaluator_version": 1,
+      "metric": "ranking_winner",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/ranking_winner.json",
+      "evaluator_contract_hash": "sha256:aabe7e1423046863612c8d0ca4816bdc91e98d02c0f1cd2ce1a8a0e4f2b51889",
+      "proposed_derivation_mode": "formula_only"
+    },
+    {
+      "evaluator_id": "refund_amount",
+      "evaluator_version": 1,
+      "metric": "refund_amount",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/refund_amount.json",
+      "evaluator_contract_hash": "sha256:2dafc200e53dfa069e3b7e12d42c0ead14db1f2b020768ec5fd2a6fcda4c515c",
+      "proposed_derivation_mode": "formula_only"
+    },
+    {
+      "evaluator_id": "reminder_count",
+      "evaluator_version": 1,
+      "metric": "reminder_count",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/reminder_count.json",
+      "evaluator_contract_hash": "sha256:16b84262decf1b92536ed697b09844e0c76f5153f4570e8ec49bc550010f8514",
+      "proposed_derivation_mode": "formula_only"
+    },
+    {
+      "evaluator_id": "safe_daily_pace",
+      "evaluator_version": 1,
+      "metric": "safe_daily_pace",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/safe_daily_pace.json",
+      "evaluator_contract_hash": "sha256:195e3968cc2f7f7dd2e46fdcb2619c19892b5c56a27d0e3c62f76fe08ba9a14d",
+      "proposed_derivation_mode": "formula_only"
+    },
+    {
+      "evaluator_id": "side_effect_count",
+      "evaluator_version": 1,
+      "metric": "side_effect_count",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/side_effect_count.json",
+      "evaluator_contract_hash": "sha256:7813782950888e8af5c51403d313fc9b950c463e7109681e9cf30d4cd97345a2",
+      "proposed_derivation_mode": "formula_only"
+    },
+    {
+      "evaluator_id": "similar_event_ids",
+      "evaluator_version": 1,
+      "metric": "similar_event_ids",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/similar_event_ids.json",
+      "evaluator_contract_hash": "sha256:1f994c3caaea2a7c7fa968a49f872bb2b3f4d8ce0b959fc25bf26bbe5dac6817",
+      "proposed_derivation_mode": "formula_only"
+    },
+    {
+      "evaluator_id": "source_coverage",
+      "evaluator_version": 1,
+      "metric": "source_coverage",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/source_coverage.json",
+      "evaluator_contract_hash": "sha256:9a80ff7de3d119bb6f598db2af660c33095b64c82802741c01ed119ae95d38d8",
+      "proposed_derivation_mode": "formula_only"
+    },
+    {
+      "evaluator_id": "statement_payment_correspondence",
+      "evaluator_version": 1,
+      "metric": "statement_payment_correspondence",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/statement_payment_correspondence.json",
+      "evaluator_contract_hash": "sha256:3ffc3131e77bc4ead3248a3a5b49108093d16ddbbcb94635d49d7fc59d1171ec",
+      "proposed_derivation_mode": "formula_only"
+    },
+    {
+      "evaluator_id": "statement_total",
+      "evaluator_version": 1,
+      "metric": "statement_total",
+      "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/statement_total.json",
+      "evaluator_contract_hash": "sha256:cca2c51e9d89ef572d069eb019d30924fc41409724c1d07abc7d2a215ce1d002",
+      "proposed_derivation_mode": "formula_only"
+    }
+  ],
+  "focal_records": [
+    {
+      "fact_key": "S-11#1#1",
+      "metric": "installments_realized",
+      "claim_id": "claim-S-11#1#1",
+      "evaluator_contract": {
+        "schema_version": 1,
+        "contract_id": "installments_realized_v1",
+        "metric": "installments_realized",
+        "unit": "count",
+        "stage": "authoring",
+        "signature": {
+          "context": "explicit_versioned_instrumented_claim",
+          "operands": "resolve_roles_from_metric_evaluator_registry",
+          "output": {
+            "kind": "nonnegative_integer"
+          }
+        },
+        "semantics": [
+          "Contar membros confirmed do plano revisado no escopo through inclusivo; exigir número/total, plano, datas e sujeito coerentes."
+        ],
+        "algebraic_properties": [
+          "Adicionar um membro elegível aumenta a contagem em um; remover diminui em um."
+        ],
+        "reuse": {
+          "path": "scripts/agent/validateFinancasBotNextFacts.mjs",
+          "locator": "derive.installments_realized",
+          "status": "behavior_reference_requires_instrumented_adaptation"
+        },
+        "limitations": [
+          "Assinatura de autoria; executável instrumentado e seu closure ainda não foram construídos/revisados.",
+          "A fórmula opera somente sobre handles e roles resolvidos do registry, com escopo/período comprovados pelo grafo.",
+          "Não usar oracle como input, autodeclarar trace ou aceitar campo non_material."
+        ]
+      },
+      "selection_bindings": [
+        {
+          "candidate_set": "candidates",
+          "selected_set": "selected",
+          "candidate_count": 16,
+          "matching_node_set_roles": [
+            "events"
+          ]
+        }
+      ],
+      "complete_authored_selection_guard_count": 18,
+      "relevant_selection_guards": [
+        {
+          "id": "r0001_absent_installment_plan",
+          "obligation": "subject_scope",
+          "atom": "subject",
+          "op": "eq",
+          "args": [
+            {
+              "presence": {
+                "node": "evt_salary_a",
+                "segments": [
+                  "installment_plan"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "boolean",
+                "value": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "r0002_absent_installment_plan",
+          "obligation": "subject_scope",
+          "atom": "subject",
+          "op": "eq",
+          "args": [
+            {
+              "presence": {
+                "node": "evt_market_a",
+                "segments": [
+                  "installment_plan"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "boolean",
+                "value": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "r0003_absent_installment_plan",
+          "obligation": "subject_scope",
+          "atom": "subject",
+          "op": "eq",
+          "args": [
+            {
+              "presence": {
+                "node": "evt_snack_a",
+                "segments": [
+                  "installment_plan"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "boolean",
+                "value": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "r0004_absent_installment_plan",
+          "obligation": "subject_scope",
+          "atom": "subject",
+          "op": "eq",
+          "args": [
+            {
+              "presence": {
+                "node": "evt_fuel_a",
+                "segments": [
+                  "installment_plan"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "boolean",
+                "value": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "r0005_absent_installment_plan",
+          "obligation": "subject_scope",
+          "atom": "subject",
+          "op": "eq",
+          "args": [
+            {
+              "presence": {
+                "node": "evt_restaurant_b",
+                "segments": [
+                  "installment_plan"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "boolean",
+                "value": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "r0006_absent_installment_plan",
+          "obligation": "subject_scope",
+          "atom": "subject",
+          "op": "eq",
+          "args": [
+            {
+              "presence": {
+                "node": "evt_refund_b",
+                "segments": [
+                  "installment_plan"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "boolean",
+                "value": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "r0007_absent_installment_plan",
+          "obligation": "subject_scope",
+          "atom": "subject",
+          "op": "eq",
+          "args": [
+            {
+              "presence": {
+                "node": "evt_cinema_b",
+                "segments": [
+                  "installment_plan"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "boolean",
+                "value": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "r0008_absent_installment_plan",
+          "obligation": "subject_scope",
+          "atom": "subject",
+          "op": "eq",
+          "args": [
+            {
+              "presence": {
+                "node": "evt_gift_b",
+                "segments": [
+                  "installment_plan"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "boolean",
+                "value": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "r0009_absent_installment_plan",
+          "obligation": "subject_scope",
+          "atom": "subject",
+          "op": "eq",
+          "args": [
+            {
+              "presence": {
+                "node": "evt_transfer_out",
+                "segments": [
+                  "installment_plan"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "boolean",
+                "value": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "r0010_absent_installment_plan",
+          "obligation": "subject_scope",
+          "atom": "subject",
+          "op": "eq",
+          "args": [
+            {
+              "presence": {
+                "node": "evt_transfer_in",
+                "segments": [
+                  "installment_plan"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "boolean",
+                "value": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "r0011_absent_installment_plan",
+          "obligation": "subject_scope",
+          "atom": "subject",
+          "op": "eq",
+          "args": [
+            {
+              "presence": {
+                "node": "evt_invoice_payment",
+                "segments": [
+                  "installment_plan"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "boolean",
+                "value": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "r0012_absent_installment_plan",
+          "obligation": "subject_scope",
+          "atom": "subject",
+          "op": "eq",
+          "args": [
+            {
+              "presence": {
+                "node": "evt_rent_a",
+                "segments": [
+                  "installment_plan"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "boolean",
+                "value": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "r0015_exclude_state",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "not_eq",
+          "args": [
+            {
+              "field": {
+                "node": "evt_bill_projected",
+                "segments": [
+                  "state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        }
+      ],
+      "relevant_phase_obligations": {
+        "derivation": {
+          "required_reads": [
+            {
+              "node": "evt_bill_projected",
+              "segments": [
+                "state"
+              ]
+            },
+            {
+              "node": "evt_installment_1",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_installment_2",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_installment_3",
+              "segments": [
+                "installment_plan"
+              ]
+            }
+          ],
+          "required_structural": [
+            {
+              "node": "evt_cinema_b",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_fuel_a",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_gift_b",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_invoice_payment",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_market_a",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_rent_a",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_restaurant_b",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_salary_a",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_snack_a",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_transfer_in",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_transfer_out",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            }
+          ],
+          "required_selections": [
+            {
+              "candidate_set": "candidates",
+              "selected_set": "selected"
+            }
+          ]
+        },
+        "proof": {
+          "required_reads": [
+            {
+              "node": "evt_bill_projected",
+              "segments": [
+                "state"
+              ]
+            },
+            {
+              "node": "evt_installment_1",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_installment_2",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_installment_3",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "food_market",
+              "segments": [
+                "budget_class"
+              ]
+            },
+            {
+              "node": "food_restaurant",
+              "segments": [
+                "budget_class"
+              ]
+            },
+            {
+              "node": "food_snack",
+              "segments": [
+                "budget_class"
+              ]
+            },
+            {
+              "node": "gifts",
+              "segments": [
+                "budget_class"
+              ]
+            },
+            {
+              "node": "housing_rent",
+              "segments": [
+                "budget_class"
+              ]
+            },
+            {
+              "node": "leisure_cinema",
+              "segments": [
+                "budget_class"
+              ]
+            },
+            {
+              "node": "transport_fuel",
+              "segments": [
+                "budget_class"
+              ]
+            }
+          ],
+          "required_structural": [
+            {
+              "node": "evt_salary_a",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_market_a",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_snack_a",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_fuel_a",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_restaurant_b",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_refund_b",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_cinema_b",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_gift_b",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_transfer_out",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_transfer_in",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_invoice_payment",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_rent_a",
+              "operation": "has",
+              "segments": [
+                "installment_plan"
+              ]
+            }
+          ],
+          "required_selections": [
+            {
+              "candidate_set": "candidates",
+              "selected_set": "selected"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fact_key": "M-03#1#1",
+      "metric": "budget_class_consumption",
+      "claim_id": "claim-M-03#1#1",
+      "evaluator_contract": {
+        "schema_version": 1,
+        "contract_id": "budget_class_consumption_v1",
+        "metric": "budget_class_consumption",
+        "unit": "BRL_minor",
+        "stage": "authoring",
+        "signature": {
+          "context": "explicit_versioned_instrumented_claim",
+          "operands": "resolve_roles_from_metric_evaluator_registry",
+          "output": {
+            "kind": "money_minor"
+          }
+        },
+        "semantics": [
+          "Somar consumo confirmed do período e família quando a categoria efetiva tem budget_class igual ao filtro revisado essential/flexible. Compensation usa a categoria do alvo comprovado."
+        ],
+        "algebraic_properties": [
+          "Uma contribuição elegível adicional altera o total pela contribuição definida; evento fora do escopo não altera resultado."
+        ],
+        "reuse": {
+          "path": "scripts/agent/validateFinancasBotNextFacts.mjs",
+          "locator": "derive.budget_class_consumption",
+          "status": "behavior_reference_requires_instrumented_adaptation"
+        },
+        "limitations": [
+          "Assinatura de autoria; executável instrumentado e seu closure ainda não foram construídos/revisados.",
+          "A fórmula opera somente sobre handles e roles resolvidos do registry, com escopo/período comprovados pelo grafo.",
+          "Não usar oracle como input, autodeclarar trace ou aceitar campo non_material."
+        ]
+      },
+      "selection_bindings": [
+        {
+          "candidate_set": "candidates",
+          "selected_set": "selected",
+          "candidate_count": 16,
+          "matching_node_set_roles": [
+            "events"
+          ]
+        }
+      ],
+      "complete_authored_selection_guard_count": 40,
+      "relevant_selection_guards": [
+        {
+          "id": "r0001_absent_budget_class",
+          "obligation": "subject_scope",
+          "atom": "subject",
+          "op": "eq",
+          "args": [
+            {
+              "presence": {
+                "node": "income_salary",
+                "segments": [
+                  "budget_class"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "boolean",
+                "value": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "r0004_absent_budget_class",
+          "obligation": "subject_scope",
+          "atom": "subject",
+          "op": "eq",
+          "args": [
+            {
+              "presence": {
+                "node": "neutral_transfer",
+                "segments": [
+                  "budget_class"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "boolean",
+                "value": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "r0005_absent_budget_class",
+          "obligation": "subject_scope",
+          "atom": "subject",
+          "op": "eq",
+          "args": [
+            {
+              "presence": {
+                "node": "neutral_transfer",
+                "segments": [
+                  "budget_class"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "boolean",
+                "value": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "r0006_absent_budget_class",
+          "obligation": "subject_scope",
+          "atom": "subject",
+          "op": "eq",
+          "args": [
+            {
+              "presence": {
+                "node": "neutral_invoice_payment",
+                "segments": [
+                  "budget_class"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "boolean",
+                "value": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "r0010_exclude_state",
+          "obligation": "evidence_state",
+          "atom": "evidence_state",
+          "op": "not_eq",
+          "args": [
+            {
+              "field": {
+                "node": "evt_bill_projected",
+                "segments": [
+                  "state"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "confirmed"
+              }
+            }
+          ]
+        }
+      ],
+      "relevant_phase_obligations": {
+        "derivation": {
+          "required_reads": [
+            {
+              "node": "evt_bill_projected",
+              "segments": [
+                "state"
+              ]
+            },
+            {
+              "node": "food_market",
+              "segments": [
+                "budget_class"
+              ]
+            },
+            {
+              "node": "food_restaurant",
+              "segments": [
+                "budget_class"
+              ]
+            },
+            {
+              "node": "food_snack",
+              "segments": [
+                "budget_class"
+              ]
+            },
+            {
+              "node": "gifts",
+              "segments": [
+                "budget_class"
+              ]
+            },
+            {
+              "node": "housing_rent",
+              "segments": [
+                "budget_class"
+              ]
+            },
+            {
+              "node": "leisure_cinema",
+              "segments": [
+                "budget_class"
+              ]
+            },
+            {
+              "node": "transport_fuel",
+              "segments": [
+                "budget_class"
+              ]
+            }
+          ],
+          "required_structural": [],
+          "required_selections": [
+            {
+              "candidate_set": "candidates",
+              "selected_set": "selected"
+            }
+          ]
+        },
+        "proof": {
+          "required_reads": [
+            {
+              "node": "evt_bill_projected",
+              "segments": [
+                "state"
+              ]
+            },
+            {
+              "node": "evt_installment_1",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_installment_2",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "evt_installment_3",
+              "segments": [
+                "installment_plan"
+              ]
+            },
+            {
+              "node": "food_market",
+              "segments": [
+                "budget_class"
+              ]
+            },
+            {
+              "node": "food_restaurant",
+              "segments": [
+                "budget_class"
+              ]
+            },
+            {
+              "node": "food_snack",
+              "segments": [
+                "budget_class"
+              ]
+            },
+            {
+              "node": "gifts",
+              "segments": [
+                "budget_class"
+              ]
+            },
+            {
+              "node": "health_general",
+              "segments": [
+                "budget_class"
+              ]
+            },
+            {
+              "node": "housing_rent",
+              "segments": [
+                "budget_class"
+              ]
+            },
+            {
+              "node": "leisure_cinema",
+              "segments": [
+                "budget_class"
+              ]
+            },
+            {
+              "node": "transport_fuel",
+              "segments": [
+                "budget_class"
+              ]
+            }
+          ],
+          "required_structural": [
+            {
+              "node": "income_salary",
+              "operation": "has",
+              "segments": [
+                "budget_class"
+              ]
+            },
+            {
+              "node": "neutral_transfer",
+              "operation": "has",
+              "segments": [
+                "budget_class"
+              ]
+            },
+            {
+              "node": "neutral_invoice_payment",
+              "operation": "has",
+              "segments": [
+                "budget_class"
+              ]
+            }
+          ],
+          "required_selections": [
+            {
+              "candidate_set": "candidates",
+              "selected_set": "selected"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "limitations": [
+    "authoring extraction, not evaluator execution",
+    "only relevant fields of two records are projected; not a full graph audit",
+    "proposed policy is not ratified",
+    "source hashes normalize only CRLF to LF",
+    "no runtime/recorder/oracle/expected trace is used to build this witness"
+  ]
+}
