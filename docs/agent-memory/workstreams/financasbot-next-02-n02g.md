@@ -2,7 +2,99 @@
 
 ## Estado vigente — 2026-09-30, aplicação contas/parcelas isolada
 
-### Próxima ação imediata — candidato para revisão focal; ampla integral RED
+### Handoff portátil — 2026-10-01
+
+Daniel pediu transferência para outro Codex. Trabalho parado em fronteira
+documental consistente; não há suíte em execução nem nova mudança causal.
+Commit de partida/candidato de código: `6baf88dc8b33326f8e05245e38f9682cc722c0be`,
+pai `42a16c8516373d1c5fc49a3836f0eba54e61d4c5`.
+O commit de handoff é descendente somente documental: NÃO substitui o hash
+auditado e NÃO é novo candidato para repetir auditoria. Consultar HEAD publicado
+da branch `codex/n02g-account-installment-20260930` e `OPEN-THIS.json` para
+obter a cópia limpa identificada por hash, sem atualizar por cima de main suja.
+Entrada do SSD: `../Trabalho Codex no outro PC/OPEN-THIS.json`, relativo à raiz
+canônica original `financas-bot`; o script de sync publica o caminho efetivo.
+Na cópia limpa, ler AGENTS/START-HERE, executar resumePortableWork.ps1 e
+seguir somente resume_target/repo_root efetivos, depois este checkpoint/plano.
+
+Na origem, os três monitores estão PAUSADOS: retomada de cinco horas,
+auditoria de oito minutos e ampla de vinte minutos. Não transportar configurações
+de conta nem reativar o escritor antigo. Automação na nova conversa exige
+pedido/autorização correspondente do usuário.
+
+Preservados fisicamente no SSD, fora do novo clone limpo:
+- `financas-bot/.codex-worktrees/n02g-account-installment-20260930/.codex-temp/`:
+  logs RED/GREEN, ampla v1/v2, baseline, ZIP auditável e screenshots do timeout;
+- `financas-bot/.codex-worktrees/financasbot-n02g-provenance-engine`, HEAD
+  `42a16c8516373d1c5fc49a3836f0eba54e61d4c5`: 16 arquivos rastreados alterados
+  e 12 entradas não rastreadas, incluindo .codex-temp; host/pais PARCIAIS,
+  não publicados/aprovados. NÃO copiar, integrar ou sobrescrever automaticamente;
+- `financas-bot/.codex-worktrees/n02g-baseline-42a16c-20261001`: reprodução
+  limpa/detached do legado; main e demais worktrees alheias permanecem intactas.
+As worktrees antigas dependem da .git canônica original; não remover nem tratar
+o novo clone como substituto dos incrementos parciais. Se a letra do SSD mudar,
+resolver as localizações pelo novo mount, preservando conteúdo.
+
+Última evidência confiável: afetados 424 PASS; focais finais 3 PASS; runner
+afetado 16 PASS; ampla v2 2413 PASS/3 FAIL/10 SKIP. As três falhas são as mesmas
+reproduzidas na base limpa. Evidência sanitizada está versionada; --check verifica
+registros/hashes/corpus, NÃO reexecuta suítes. Não repetir ampla para transferir.
+Ambiente dos testes: Node 22.17.0 pinado em
+`financas-bot/.codex-worktrees/financasbot-n02g-provenance-engine/.codex-temp/runtimes/node-v22.17.0-win-x64/node.exe`;
+node_modules locais são dependências da origem, não parte do clone publicado.
+Telemetria de uso indisponível (NAO_DISPONIVEL), nunca zero; sem ampliar coleta.
+
+Próxima ação EXATA: recuperar/confrontar o parecer de código da conversa abaixo
+somente mediante resposta existente, nova evidência ou autorização expressa de
+recuperação. A tentativa automática terminou em timeout, NÃO em APTO/NO-GO.
+Não clicar retry nem criar nova tentativa automática do mesmo hash por inércia.
+Após parecer suficiente, ratificar focalmente; antes de retomar host/pais,
+reconciliar os incrementos antigos e o plano, sem copiar expected de actual/oracle.
+Capacidade para confronto causal: Codex → Sol 6.1 → Alto; Alta EFETIVA no Chat
+deve ser conferida imediatamente antes de qualquer envio autorizado.
+Autorizações mantidas: commits/push sanitizados e continuidade dentro do recorte.
+Fora do escopo: correção financeira legado sem decisão, NEXT-03, grafo/host/global
+GO, deploy, produção e dados reais. N02-G continua SEM GO global.
+
+### Próxima ação imediata — auditoria interrompida sem parecer; ampla integral RED
+
+Em `2026-10-01T02:12Z`, a conversa terminou com **Message delivery timed out**
+e botão `Tentar novamente`, sem parecer final. Nas três checagens anteriores
+mostrou conexão interrompida; uma recarga da mesma conversa em 01:56Z não
+recuperou o parecer. NÃO clicar retry, reenviar, abrir outra auditoria do mesmo
+hash ou gerar hash artificial para repetir a tentativa automática.
+Monitor de oito minutos PAUSADO por falha terminal; cinco horas preservado.
+Comprovação: `.codex-temp/audit-code-delivery-timeout.png`.
+O Chat relatou autenticação do ZIP, ambos --check e kernel 11/11 em Node
+22.16.0, mas sem conclusão esses registros parciais NÃO constituem APTO.
+Estado máximo: candidato aguardando auditoria; não ratificar nem integrar
+como aprovado. Nenhum teste repetido, código alterado ou falha legado ocultada.
+Próximo passo: Daniel pode recuperar manualmente o parecer nesta conversa
+ou fornecer nova evidência/autorização de recuperação. Pedido defensivo pronto
+em `../../audit-evidence/n02g-causal-authoring-profile/account-installment-code-review-request.md`.
+A retomada de cinco horas deve reconhecer esta falha terminal e manter silêncio
+sem novo parecer/evidência/ação possível; não reativar o monitor por inércia.
+
+Candidato publicado: `6baf88dc8b33326f8e05245e38f9682cc722c0be`;
+pai único `42a16c8516373d1c5fc49a3836f0eba54e61d4c5`, branch
+`codex/n02g-account-installment-20260930`. Dezoito arquivos explícitos,
+sem incrementos parciais de host/pais ou logs privados. Parecer PENDENTE.
+Uma única solicitação enviada na conversa limpa:
+https://chatgpt.com/g/g-p-6ab5c3870a30819187d0d634619231c5-financasbot/c/6abdb74b-c9b0-83e9-b73f-0e2e64988d7b
+Alta EFETIVA (3/3), GPT-5.6 Sol, conferida imediatamente antes de enviar;
+comprovações locais `.codex-temp/audit-code-high-before-send.png` e
+`.codex-temp/audit-code-sent.png`. Último estado: timeout de entrega acima.
+ZIP verificável `.codex-temp/ai-code-6baf88d-6b7XRm.zip`, 103 arquivos,
+137 objetos Git, SHA256
+`f65d42d72f0bded07761196bb2fe1317b76aef8615db7636d96149774ad4101c`.
+Checks locais do pacote/aplicação/evidência PASS; kernel offline 11 PASS.
+Isso não é execução independente nem transforma a ampla RED em verde.
+Monitor `verificar-auditoria-n02-g-em-8-minutos` PAUSADO após falha terminal.
+Antes da falha, consultou uma vez por execução, sem espera ativa. Não reenviar/pollar.
+Ao receber parecer, pausar somente esse monitor, confrontar fontes/limites
+e ratificar ou investigar achado focal antes de prosseguir. Retomada de cinco
+horas preservada; monitor da ampla PAUSADO. Este registro pós-envio é local;
+o objeto imutável auditado continua o candidato acima.
 
 Ampla v2 concluída `2026-10-01T01:00:32Z`: **2413 PASS/3 FAIL/10 SKIP**.
 Dez hashes e HEAD permaneceram intactos. Falhas normalizadas coincidem
@@ -13,9 +105,8 @@ Evidência sanitizada: `../../audit-evidence/n02g-causal-authoring-profile/accou
 helper `prepare-account-installment-validation.cjs --write-new` PASS. Seu
 `--check` NÃO executa testes: verifica registros, hashes e corpus corrente.
 Pedido da auditoria: `account-installment-code-review-request.md` na mesma pasta.
-Próximo passo: diff/sanitização/check/workflow, commit explícito/publicação e
-uma auditoria focal de código em conversa limpa no projeto Chat autorizado,
-com ZIP parcial Git verificável e Alta EFETIVA conferida antes de enviar.
+Diff/sanitização/check/workflow, commit explícito/publicação e envio da
+auditoria focal de código concluídos conforme registro acima.
 Não pedir dispensa do RED legado nem correção financeira fora do escopo.
 Depois confrontar o parecer, ainda sem fechar N02-G/global/host/produção.
 

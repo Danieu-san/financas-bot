@@ -1,6 +1,11 @@
 # N02-G — alinhamento normativo de observações métricas
 
-Estado: APTO DOCUMENTAL recebido em 2026-09-30; implementação isolada em preparação, ainda não aprovada.
+Estado: APTO DOCUMENTAL recebido em 2026-09-30; código publicado em
+`6baf88dc8b33326f8e05245e38f9682cc722c0be`, ainda NÃO aprovado. Ampla v2 RED
+2413 PASS/3 FAIL/10 SKIP; mesmos três defeitos legados na base limpa. Auditoria
+de código terminou em timeout sem parecer. Handoff solicitado em 2026-10-01;
+monitores da origem pausados, nenhum teste/código repetido para transferir.
+Próxima ação e preservação das árvores: checkpoint `financasbot-next-02-n02g.md`.
 Base documental: `207ca56b87381d69a922224332fcdda3a629d822`.
 Escopo: os onze claims abaixo, sem modificar registry, contract hashes,
 snapshots, proof, oracle, freeze ou qualquer execução produtiva.
