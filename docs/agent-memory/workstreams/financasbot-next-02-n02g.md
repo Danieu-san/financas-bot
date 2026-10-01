@@ -2,6 +2,23 @@
 
 ## Estado vigente — 2026-09-30, aplicação contas/parcelas isolada
 
+### Parecer recuperado — 2026-10-01
+
+A conversa da auditoria do candidato `6baf88dc8b33326f8e05245e38f9682cc722c0be`
+terminou após o handoff com veredito **INCOMPLETO**, não APTO. O auditor
+autenticou o ZIP, commit/pai, reconstrução 11/76 do corpus, 76 proofs e
+executou o kernel standalone (11 PASS). Não encontrou defeito causal de código
+confirmado. A reprodução integrada TCB/predicados/comparator ficou impedida:
+quatro casos focais exigem 38 fontes ausentes do transporte parcial e
+`scripts/agent/buildNextProvenanceArtifacts.mjs`; dois casos integrados passaram.
+Os 72 FAIL obtidos ao tentar a suíte com o pacote incompleto são ausências de
+fonte, não regressões atribuídas ao candidato. Node do auditor foi 22.16.0,
+versus 22.17.0 local. A ampla local permanece 2413 PASS/3 FAIL/10 SKIP,
+sem verde integral nem GO. Próxima ação: preparar prova material nova com a
+closure exata dos testes integrados, sem alterar o candidato nem reenviar a
+mesma auditoria sem essa nova evidência. Preservar os incrementos parciais
+de host/pais na origem e `.codex-temp`; sem NEXT-03, deploy ou produção.
+
 ### Handoff portátil — 2026-10-01
 
 Daniel pediu transferência para outro Codex. Trabalho parado em fronteira
