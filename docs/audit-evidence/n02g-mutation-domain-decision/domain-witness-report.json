@@ -1,0 +1,105 @@
+{
+  "format": "financasbot.mutation-domain-evidence",
+  "version": 1,
+  "source_base_sha": "ecc57203bbd5b50087f2cd7fa9af8c96ee03ae1d",
+  "stage": "normative_domain_conflict_evidence_only",
+  "gate_approval": false,
+  "source_hash_mode": "immutable_git_blob_bytes",
+  "sources": {
+    "design": {
+      "path": "docs/plans/workstreams/financasbot-next-00-provenance-graph-design-v1.md",
+      "sha256": "sha256:9d52544fd5f262ada129bf98682e12aa1e243dae0760cc2fd6f7e3c1323686f8"
+    },
+    "registry": {
+      "path": "docs/contracts/next/provenance-v2/material-field-registry-v1.json",
+      "sha256": "sha256:ee7ef3eff146bc2e9cea2cc986c398371acbff3cf35d858ced8386a9758a4d62"
+    },
+    "schema": {
+      "path": "docs/contracts/next/provenance-v2/evidence-snapshot.schema.json",
+      "sha256": "sha256:054a48930a5f25760f201e8b401f0f34f5a83672366acad6c9c09bdc0ce0b5ef"
+    },
+    "graphs": {
+      "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+      "sha256": "sha256:a4938977a205d2d9fe9bee3560f0f247a005992c9b8506a03ba56c152c21c1ce"
+    }
+  },
+  "graph_count": 76,
+  "singleton_fields": [
+    {
+      "kind": "budget",
+      "field": "evidence_state",
+      "domain": [
+        "confirmed"
+      ],
+      "required": true,
+      "target_count": 6,
+      "affected_graph_count": 6
+    },
+    {
+      "kind": "evaluation_policy",
+      "field": "calendar",
+      "domain": [
+        "proleptic_gregorian"
+      ],
+      "required": true,
+      "target_count": 6,
+      "affected_graph_count": 6
+    },
+    {
+      "kind": "evaluation_policy",
+      "field": "ranking_key",
+      "domain": [
+        "validated_consumption_minor"
+      ],
+      "required": true,
+      "target_count": 6,
+      "affected_graph_count": 6
+    },
+    {
+      "kind": "evaluation_policy",
+      "field": "ranking_tie_break",
+      "domain": [
+        "lexical_internal_id"
+      ],
+      "required": true,
+      "target_count": 6,
+      "affected_graph_count": 6
+    },
+    {
+      "kind": "evaluation_policy",
+      "field": "timezone",
+      "domain": [
+        "America/Sao_Paulo"
+      ],
+      "required": true,
+      "target_count": 6,
+      "affected_graph_count": 6
+    },
+    {
+      "kind": "fixture",
+      "field": "currency",
+      "domain": [
+        "BRL"
+      ],
+      "required": true,
+      "target_count": 76,
+      "affected_graph_count": 76
+    },
+    {
+      "kind": "merchant_rule",
+      "field": "evidence_state",
+      "domain": [
+        "confirmed"
+      ],
+      "required": true,
+      "target_count": 1,
+      "affected_graph_count": 1
+    }
+  ],
+  "singleton_target_count": 107,
+  "affected_graph_count": 76,
+  "target_index_sha256": "sha256:8f67e65f9fc96e32d06321f62113215d4eae54634fff068ad15bd0de2d95f7b4",
+  "conclusion": "NO_DISTINCT_SCHEMA_VALID_VALUE_IN_SINGLETON_DOMAINS",
+  "semantic_witnesses_qualified": 0,
+  "normative_change_applied": false
+}
