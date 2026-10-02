@@ -1,0 +1,1557 @@
+{
+  "schema": "n02g-source-state-phase-witness-v1",
+  "base": "6ed3822a1a4c4e8836232d3a874faefbda9ff05c",
+  "manifest": {
+    "graphs": {
+      "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+      "blob": "bebec06ef03da316d7479dcf727216ea49fec51f",
+      "lf_sha256": "a4938977a205d2d9fe9bee3560f0f247a005992c9b8506a03ba56c152c21c1ce"
+    },
+    "claims": {
+      "path": "docs/contracts/next/provenance-v2/claims-v2.json",
+      "blob": "0f0ade4e0f174966ae9f2660df97cc0b29d2d775",
+      "lf_sha256": "4810612761ea7f232e4445c0d192ae53ebf0761f0ba8752da758efb826b30494"
+    },
+    "architecture": {
+      "path": "docs/plans/workstreams/financasbot-next-00-provenance-graph-design-v1.md",
+      "blob": "9484ca3f9b37e6914fe5b1903b43c1a15af6212b",
+      "lf_sha256": "9d52544fd5f262ada129bf98682e12aa1e243dae0760cc2fd6f7e3c1323686f8"
+    },
+    "binding": {
+      "path": "docs/contracts/next/provenance-v2/graph-binding-contract-v1.md",
+      "blob": "6556cd13008c7c4197a27d668755c5941b3644f7",
+      "lf_sha256": "da90befb1f526048cfe14122cd8522690292508bebf42d60ea4ecd5838513a40"
+    },
+    "count": {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/eligible_event_count.json",
+      "blob": "680830124808ae46ea8e15ea230cf26df5b3f610",
+      "lf_sha256": "bf2a5e70c7cf661c8b983a2598ae4142567ce9e1b97e34985851b77dcf0e7937"
+    },
+    "coverage": {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/source_coverage.json",
+      "blob": "165c9187cb4de56b593a9b893604856795480c33",
+      "lf_sha256": "9a80ff7de3d119bb6f598db2af660c33095b64c82802741c01ed119ae95d38d8"
+    }
+  },
+  "graph_count": 76,
+  "unique_fact_keys": 76,
+  "pending_predicate_count": 9,
+  "extraction_only": true,
+  "normative_approval": false,
+  "runtime_tests_executed": false,
+  "contracts": {
+    "eligible_event_count": {
+      "schema_version": 1,
+      "contract_id": "eligible_event_count_v1",
+      "metric": "eligible_event_count",
+      "unit": "count",
+      "stage": "authoring",
+      "signature": {
+        "context": "explicit_versioned_instrumented_claim",
+        "operands": "resolve_roles_from_metric_evaluator_registry",
+        "output": {
+          "kind": "nonnegative_integer"
+        }
+      },
+      "semantics": [
+        "Retornar event_count da fonte de contagem revisada somente após provar igualdade com a cardinalidade da seleção de eventos elegíveis por sujeito, categoria, estado e período.",
+        "Ausência de event_count ou fonte parcial não pode ser convertida silenciosamente em zero."
+      ],
+      "algebraic_properties": [
+        "Fonte com zero e população elegível não vazia deve falhar a prova em vez de retornar zero aceito."
+      ],
+      "reuse": {
+        "path": "scripts/agent/validateFinancasBotNextFacts.mjs",
+        "locator": "derive.eligible_event_count",
+        "status": "behavior_reference_requires_instrumented_adaptation"
+      },
+      "limitations": [
+        "Assinatura de autoria; executável instrumentado e seu closure ainda não foram construídos/revisados.",
+        "A fórmula opera somente sobre handles e roles resolvidos do registry, com escopo/período comprovados pelo grafo.",
+        "Não usar oracle como input, autodeclarar trace ou aceitar campo non_material."
+      ]
+    },
+    "source_coverage": {
+      "schema_version": 1,
+      "contract_id": "source_coverage_v1",
+      "metric": "source_coverage",
+      "unit": "state",
+      "stage": "authoring",
+      "signature": {
+        "context": "explicit_versioned_instrumented_claim",
+        "operands": "resolve_roles_from_metric_evaluator_registry",
+        "output": {
+          "kind": "enum",
+          "enum_values": [
+            "complete",
+            "partial",
+            "unavailable"
+          ]
+        }
+      },
+      "semantics": [
+        "Retornar coverage literal da source_state consultada depois de comprovar período e escopo aplicáveis. Não converter unavailable/partial para complete."
+      ],
+      "algebraic_properties": [
+        "Estado diferente e válido deve ser preservado, sem coerção para complete."
+      ],
+      "reuse": {
+        "path": "scripts/agent/validateFinancasBotNextFacts.mjs",
+        "locator": "derive.source_coverage",
+        "status": "behavior_reference_requires_instrumented_adaptation"
+      },
+      "limitations": [
+        "Assinatura de autoria; executável instrumentado e seu closure ainda não foram construídos/revisados.",
+        "A fórmula opera somente sobre handles e roles resolvidos do registry, com escopo/período comprovados pelo grafo.",
+        "Não usar oracle como input, autodeclarar trace ou aceitar campo non_material."
+      ]
+    }
+  },
+  "norms": {
+    "obligations": "## 7. Obrigações de prova\n\nTodo fato materializado precisa satisfazer estas obrigações, com IDs estáveis:\n\n1. `claim_semantics`: metric e unit coincidem; evaluator id/versão resolvem no\n   registry canônico; hashes e roles observados coincidem com essa resolução;\n2. `node_identity`: kind, ID e versão de todos os nós;\n3. `semantic_integrity`: fingerprint dos campos materiais;\n4. `subject_scope`: sujeito do claim ligado aos nós usados;\n5. `period`: período do claim ligado às datas/períodos das evidências;\n6. `time_basis`: campo temporal efetivamente usado no trace;\n7. `coverage`: completude ligada à fonte e ao conjunto selecionado;\n8. `evidence_state`: estado compatível em todas as evidências materiais;\n9. `evidence_set`: conjunto exato dos inputs materiais;\n10. `economic_links`: toda aresta material presente é provada;\n11. `derivation_trace`: leituras e arestas efetivamente usadas coincidem com o\n    contrato.\n\nNão existe `not_applicable` escrito livremente. O compilador determina ausência\nde obrigação somente quando o schema prova que não há campo, aresta ou fonte\ncorrespondente. Se houver campo material, ele precisa ser consumido.",
+    "acceptance": "## 4. Modelo formal\n\nPara cada fato `F`, existe um grafo dirigido e tipado `G(F) = (N, E, P, T)`:\n\n- `N`: nós de evidência resolvidos por identidade imutável;\n- `E`: arestas econômicas, temporais, de escopo ou ownership;\n- `P`: predicados declarativos sobre claim, nós, arestas e conjuntos;\n- `T`: trace de observação produzido exclusivamente pelo recorder externo a\n  partir da execução determinística instrumentada. Nenhum metric evaluator,\n  graph evaluator ou operator implementation emite, fornece, completa ou\n  autodeclara metadados de trace.\n- `R`: resultado funcional tipado produzido exclusivamente pelo metric evaluator\n  conforme sua assinatura registrada. `R` não pertence ao log interno do\n  recorder, a `derivation_trace`, a `proof_trace` nem a qualquer estrutura de\n  metadado causal.\n\nO resultado numérico pode ser produzido pelo metric evaluator, mas toda\nevidência causal sobre leituras, seleção, iteração, estrutura, traversal e uso\nde operandos pertence exclusivamente ao recorder externo. `derivation_trace` e\n`proof_trace` são projeções do mesmo log de observação, separadas apenas pelo\ncampo `phase`.\n\nA validação recebe `R` e `T` como objetos independentes. Nenhuma etapa pode\ninserir `R`, seus campos ou seus outputs intermediários em `T`, no log interno do\nrecorder ou em qualquer projeção de trace.\n\nUm fato recebe verde somente se:\n\n```text\nschema_valid(F, G)\nAND nodes_resolve_exactly(N)\nAND semantic_fingerprints_match(N)\nAND all_required_obligations_are_proved(P)\nAND every_predicate_is_true(P)\nAND material_edges_are_consumed(E)\nAND derivation_trace_matches_contract(T, G)\nAND evidence_set_is_exact(T, N)\nAND value_matches_oracle(R)\n```\n\nQualquer operador, path, tipo, nó, versão ou aresta desconhecido resulta em\nfalha. Não há coerção permissiva nem fallback silencioso.",
+    "phase_result_separation": "## 8. Trace determinístico de derivação\n\nCada metric evaluator continua responsável pelo valor financeiro e possui\nexatamente uma autoridade de saída: retornar o resultado funcional tipado e,\nquando previstos pela assinatura revisada, outputs funcionais intermediários\nexplicitamente tipados. Nenhum outro output é autorizado. Durante a execução, o\nproxy apenas instrumenta acessos e o recorder produz as observações externas\nestruturadas.\n\nO exemplo abaixo representa saída produzida exclusivamente pelo recorder após\na execução, a partir dos acessos instrumentados pelo proxy e das medições\nfornecidas internamente pelo loader. Ele não é um objeto retornado pelo metric\nevaluator. O campo\n`evaluator_id` também é associado externamente à execução resolvida pelo\nregistry; não é aceito como declaração de identidade proveniente do código\nevaluator.\n\n```yaml\nevaluator_id: category_consumption@1\nobserved_evaluator_contract_hash: sha256:<reviewed-contract>\nobserved_evaluator_artifact_root: sha256:<executed-closure>\nselected_nodes: [evt-snack-a]\nreads:\n  - {node: evt-snack-a, path: amount_minor}\n  - {node: evt-snack-a, path: date}\n  - {node: evt-snack-a, path: person_id}\n  - {node: evt-snack-a, path: category_id}\ntraversed_edges: []\noperations:\n  - {op: sum, inputs: [evt-snack-a.amount_minor], output: -1200}\n```\n\nSeparadamente do objeto de trace, a interface funcional retorna:\n\n```yaml\nfunctional_result: 1200\n```\n\nEsse objeto é `R`, retornado pelo metric evaluator. Ele não pertence ao recorder,\nao log interno ou a qualquer trace. O `output` de operação mostrado no trace é\numa observação causal recebida pelo canal instrumentado, não uma cópia de `R` ou\nde seus intermediários funcionais.\n\nO trace decorre causalmente da execução instrumentada, mas é produzido\nexclusivamente pelo recorder externo, nunca pelo código executado. O proxy expõe\nsomente handles instrumentados e o recorder registra as observações\ncorrespondentes.\nO graph evaluator confronta o trace com `trace_contract`:\n\n- leitura usada e não declarada: erro;\n- leitura declarada e nunca usada: erro;\n- nó extra ou ausente: erro;\n- aresta material ignorada: erro;\n- evaluator id/versão divergente: erro.\n\nO trace validator confronta `T` com o contrato de provenance. Um result validator\nseparado confronta `R` com o value oracle. A aceitação do fato exige ambos, sem\nfundir `R` e `T` ou construir envelope comum denominado trace.\n\nO sistema conserva duas views do mesmo log externo de observação:\n\n- `derivation_trace`, produzido pelo recorder a partir dos acessos instrumentados\n  pelo proxy durante o cálculo;\n- `proof_trace`, produzido pelo mesmo recorder a partir dos acessos\n  instrumentados pelo proxy durante predicados, fingerprints e obrigações.\n\nA fronteira de autoridade é absoluta: evaluators e operators não possuem API\npara escrever em `reads`, `selected_nodes`, `traversed_edges`, operações\nestruturais, roles observados ou qualquer outro metadado causal. Esses campos\nexistem somente como saída do recorder externo.\n\nO metric evaluator pode retornar apenas seu resultado funcional tipado e,\nquando necessário pela assinatura revisada, valores intermediários\nexplicitamente definidos como outputs funcionais. Esses outputs não constituem\ntrace e não podem substituir observações do recorder.\n\nO graph evaluator e os operators também não fornecem `proof_trace`; eles\nexecutam contra handles instrumentados, e o recorder observa externamente os\nacessos realizados durante `phase: proof`.\n\nQualquer estrutura de trace recebida de código evaluator/operator é entrada\ninválida e causa falha fechada.\n\nQualquer `read`, `selected_node`, `traversed_edge`, operação observada, role\nobservado, evaluator identity observada, hash/root observado ou outro metadado\nque descreva como a execução chegou ao resultado é metadado causal. Metric\nevaluator, graph evaluator e operator implementation não podem criar, retornar,\nfornecer, completar, sugerir ou influenciar diretamente esses campos. Se código\nexecutado retornar estrutura desse tipo, a execução falha fechada.\n\nOutputs funcionais autorizados pertencem exclusivamente à assinatura funcional\nregistrada. Nenhum output funcional pode possuir tipo, campo ou estrutura cuja\nfinalidade seja comunicar `read`, `selected_node`, `traversed_edge`, observação\nestrutural, `phase`, role observado, evaluator identity observada, hash/root\nobservado ou outro fato sobre como a execução chegou ao resultado. Intermediários\nfuncionais não são canal de evidência e não podem substituir observação\ninstrumentada.",
+    "source_coverage": "### 9.1 Source coverage\n\n`source-complete-june` precisa provar simultaneamente:\n\n- período da fonte igual ao período do claim;\n- cobertura da fonte igual ao estado do claim;\n- entidade/categoria, quando presentes, iguais ao escopo do claim;\n- fingerprint semântico íntegro.\n\nMudar junho para julho mantendo o ID deve falhar por fingerprint e por\n`period_eq`.",
+    "g11": "## 10. Propriedades e mutações geradas\n\nA bateria não enumera exemplos. Ela deriva mutações do schema, do registry de\ncampos materiais e de cada grafo.\n\n### 10.0 Átomos de prova e ortogonalidade\n\nCompiler e registries decompõem a validade em átomos identificáveis:\n\n`claim`, `identity`, `fingerprint`, `subject`, `period`, `time_basis`,\n`coverage`, `evidence_state`, `evidence_set`, `edge`, `trace`, `evaluator`.\n\nCada mutant declara `expected_violations`. O harness compara o conjunto exato\nde violações observado, não apenas `RED` global.\n\nToda classe precisa de mutant isolado em que as demais barreiras relevantes\npermaneçam válidas:\n\n- fingerprint: alterar somente o fingerprint esperado, mantendo conteúdo e\n  predicados;\n- predicado: alterar o conteúdo, recalcular fingerprint e manter estrutura,\n  para que apenas a relação semântica rejeite;\n- aresta: retargetar a relação, recalcular fingerprint e reparar representações\n  auxiliares sem mudar o claim;\n- trace: remover/trocar leitura com snapshots e predicados intactos;\n- evaluator: trocar artefato, hash, papel de operando ou fórmula usando witness\n  discriminante.\n\nGrupos atômicos são proibidos. Cada átomo precisa de witness ortogonal próprio.\nSe a arquitetura não conseguir isolar um átomo, o resultado é\n`UNSATISFIED_MUTATION_WITNESS` e o gate falha; não se reduz a granularidade de\n`expected_violations` para acomodar a limitação.\n\n### 10.1 Nós\n\nPara cada nó:\n\n- substituir por outro ID válido do mesmo kind;\n- alterar versão/fingerprint;\n- remover, duplicar ou acrescentar nó;\n- alterar cada campo material por outro valor válido do mesmo tipo.\n\n### 10.2 Predicados\n\nPara cada predicado:\n\n- remover o predicado;\n- trocar um operando por path válido mas errado;\n- inverter ou retargetar a relação;\n- alterar operador por outro compatível em tipo, porém semanticamente errado;\n- inserir operador/path desconhecido.\n\n### 10.3 Arestas\n\nPara cada campo de aresta presente:\n\n- remover a aresta;\n- retargetar para nó válido do mesmo kind;\n- quebrar apenas uma ponta de par;\n- manter os valores finais iguais e mudar a identidade econômica.\n\n### 10.4 Trace\n\nPara cada leitura e aresta do trace:\n\n- omitir;\n- acrescentar leitura não declarada;\n- mudar path para campo do mesmo tipo;\n- mudar conjunto selecionado preservando o total;\n- mudar evaluator id ou versão.\n\n### 10.5 Cardinalidade\n\nAs contagens esperadas são calculadas do próprio schema compilado:\n\n```text\nmutations_expected =\n  material_node_fields\n  + predicates\n  + material_edges\n  + trace_reads\n  + trace_edges\n  + structural_mutations\n```\n\nNão existe número hardcoded que possa continuar verde após inclusão de novo\nnó, campo, aresta ou fato.\n\n### 10.6 Witness obrigatório e fail-closed\n\nCada mutação enumerada precisa produzir um witness schema-valid e\ndiscriminante. O gerador segue esta ordem:\n\n1. reutilizar alternativa válida do closed world;\n2. sintetizar alternativa mínima a partir do schema do kind;\n3. comprovar que somente os átomos declarados foram invalidados;\n4. executar o mutant e confrontar `expected_violations`.\n\nSe não conseguir materializar witness, o resultado é\n`UNSATISFIED_MUTATION_WITNESS` e o gate falha. Nunca há `skip`, redução da\ncardinalidade esperada ou aceitação por ausência de alternativa.\n\nO relatório registra `expected`, `generated`, `executed` e `matched`; os quatro\ntotais precisam ser iguais.",
+    "phase_selection": "### Seleção por fase — correção normativa N02G-SB-001\n\n`selections` continua sendo a autoria completa da escolha financeira, inclusive\npredicados dos selecionados e exclusões. Proof deve executar **todas** essas\nseleções e cobrir todos os candidatos, seus campos e estruturas causais. Essa\nobrigação não pode ser removida porque a derivation usa um operando já ligado.\n\nAntes da execução, cada par é classificado pelos operand_bindings do claim:\n\n- Havendo exatamente um role `node_set` cujo roster coincide, inclusive ordem,\n  com o candidate_set, a seleção é obrigatória também em derivation.\n- Sem esse role, somente é admitido o caso prebound: selected_set não vazio e\n  cada membro explicitamente ligado por um role `node`. Essa seleção pertence\n  apenas a proof. A derivation consome esses operandos e mantém seus\n  required_nodes/required_reads, sem afirmar uma seleção que não executa.\n- Mais de um role candidato, ou ausência de um dos dois bindings acima, falha\n  fechado. Não escolher role por resultado, nome de métrica ou fact_key.\n\nrequired_selections de cada fase deve ser exatamente a lista classificada;\nselected_nodes é sua união, vazia se não há operação de seleção nessa fase.\nNão confundir ausência de seleção com uma seleção executada cujo resultado é\nvazio: a segunda ainda exige eventos e cobertura dos candidatos examinados.\nToda fase com seleção cobre todos os candidatos em required_nodes e reads,\nincluindo excluídos. O binding prebound não dispensa a prova da escolha e não\nautoriza preencher derivation com eventos de proof ou de resolução estática.\n\nA regra é declaração de obrigação anterior à execução, nunca comparação\npreenchida a partir do actual. A aceitação final continua exigindo ambas as\nfases e todos os demais gates; ausência de seleção derivacional não concede\naceitação parcial. Esta correção foi autorizada por Daniel em 2026-09-18 e\npermanece candidata à auditoria focal antes de ratificação/GO.\n\nFingerprint exige os campos materiais completos do nó. Esses acessos pertencem\nà fase proof e devem aparecer em seu contrato, mesmo quando a fórmula lê apenas\nalguns deles. A representação de trace de leituras compostas deve preservar as\noperações sobre estrutura; uma leitura do container não substitui observação\ndos campos realmente usados. O schema não afirma implementar instrumentação."
+  },
+  "focal_graphs": [
+    {
+      "fact_key": "S-13#1#1",
+      "graph_json_sha256": "b8234ec0f1094de18cc151b0a67b2933243d2c2879ab50d8f8f662e5beb021ab",
+      "claim": {
+        "claim_id": "claim-S-13#1#1",
+        "fact_key": "S-13#1#1",
+        "metric": "eligible_event_count",
+        "unit": "count",
+        "subject": {
+          "kind": "family_category",
+          "family_id": "family-example",
+          "category_id": "health.general"
+        },
+        "period": {
+          "kind": "month",
+          "value": "2042-06"
+        },
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evaluator_ref": {
+          "evaluator_id": "eligible_event_count",
+          "evaluator_version": 1
+        },
+        "operand_bindings": {
+          "context": {
+            "kind": "claim_context"
+          },
+          "source": {
+            "kind": "node",
+            "alias": "source_empty_health"
+          },
+          "events": {
+            "kind": "node_set",
+            "aliases": [
+              "evt_salary_a",
+              "evt_market_a",
+              "evt_snack_a",
+              "evt_fuel_a",
+              "evt_restaurant_b",
+              "evt_refund_b",
+              "evt_cinema_b",
+              "evt_gift_b",
+              "evt_transfer_out",
+              "evt_transfer_in",
+              "evt_invoice_payment",
+              "evt_rent_a",
+              "evt_installment_1",
+              "evt_installment_2",
+              "evt_installment_3",
+              "evt_bill_projected"
+            ]
+          },
+          "categories": {
+            "kind": "node_set",
+            "aliases": [
+              "food_snack",
+              "food_market",
+              "food_restaurant",
+              "transport_fuel",
+              "housing_rent",
+              "leisure_cinema",
+              "gifts",
+              "income_salary",
+              "neutral_transfer",
+              "neutral_invoice_payment",
+              "neutral_refund",
+              "health_general"
+            ]
+          },
+          "family": {
+            "kind": "node",
+            "alias": "family_example"
+          }
+        }
+      },
+      "source_node": "source_empty_health",
+      "predicates": [
+        {
+          "id": "binding_13",
+          "obligation": "coverage",
+          "atom": "coverage",
+          "op": "eq",
+          "args": [
+            {
+              "field": {
+                "node": "source_empty_health",
+                "segments": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "complete"
+              }
+            }
+          ]
+        },
+        {
+          "id": "binding_14",
+          "obligation": "period",
+          "atom": "period",
+          "op": "eq",
+          "args": [
+            {
+              "field": {
+                "node": "source_empty_health",
+                "segments": [
+                  "period"
+                ]
+              }
+            },
+            {
+              "claim": {
+                "segments": [
+                  "period",
+                  "value"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "sets": {
+        "candidates": {
+          "count": 16,
+          "json_sha256": "dc304ab6e64f5ae47c097037bd7817187fd1d016d52daec108e8cabab0c9466e"
+        },
+        "selected": {
+          "count": 0,
+          "json_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "pair_transfer_01": {
+          "count": 2,
+          "json_sha256": "dd843b560b518a7ef83d0631e28e4d98c80539e6962f1a0f1ed5a38385613620"
+        }
+      },
+      "selections": [
+        {
+          "candidate_set": "candidates",
+          "selected_set": "selected",
+          "selected_predicates": [],
+          "excluded_count": 16,
+          "full_selection_json_sha256": "f471165ae5b5915fcf5eae6bba5b05a2184f8374c532a51881d375d474fa0ec2"
+        }
+      ],
+      "derivation": {
+        "full_phase_json_sha256": "36544260ffdd82eea112f041d090ab3abe9e4c74a260bc972c8770fc3b84b86e",
+        "required_nodes_count": 30,
+        "source_node_required": true,
+        "source_reads": [
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "period"
+            ]
+          },
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "coverage"
+            ]
+          },
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "event_count"
+            ]
+          }
+        ],
+        "required_claim_reads": [
+          {
+            "segments": [
+              "subject",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "family_id"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "category_id"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "value"
+            ]
+          },
+          {
+            "segments": [
+              "time_basis"
+            ]
+          }
+        ],
+        "required_edges_count": 36,
+        "required_structural_count": 4,
+        "required_selections": [
+          {
+            "candidate_set": "candidates",
+            "selected_set": "selected"
+          }
+        ]
+      },
+      "proof": {
+        "full_phase_json_sha256": "8a3494876a99a414a7c4e1eae8e1f98847dca5465e51ea5b362b7548e5fb0cf8",
+        "required_nodes_count": 43,
+        "source_node_required": true,
+        "source_reads": [
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "source"
+            ]
+          },
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "period"
+            ]
+          },
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "coverage"
+            ]
+          },
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "event_count"
+            ]
+          }
+        ],
+        "required_claim_reads": [
+          {
+            "segments": [
+              "claim_id"
+            ]
+          },
+          {
+            "segments": [
+              "fact_key"
+            ]
+          },
+          {
+            "segments": [
+              "metric"
+            ]
+          },
+          {
+            "segments": [
+              "unit"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "family_id"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "category_id"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "value"
+            ]
+          },
+          {
+            "segments": [
+              "time_basis"
+            ]
+          },
+          {
+            "segments": [
+              "coverage"
+            ]
+          },
+          {
+            "segments": [
+              "evidence_state"
+            ]
+          },
+          {
+            "segments": [
+              "evaluator_ref",
+              "evaluator_id"
+            ]
+          },
+          {
+            "segments": [
+              "evaluator_ref",
+              "evaluator_version"
+            ]
+          }
+        ],
+        "required_edges_count": 91,
+        "required_structural_count": 55,
+        "required_selections": [
+          {
+            "candidate_set": "candidates",
+            "selected_set": "selected"
+          }
+        ]
+      }
+    },
+    {
+      "fact_key": "M-09#1#1",
+      "graph_json_sha256": "34991ae7cc5c63671f101e0eab9d92ac3f23c0c226e21f9682fcdc86c1358d73",
+      "claim": {
+        "claim_id": "claim-M-09#1#1",
+        "fact_key": "M-09#1#1",
+        "metric": "eligible_event_count",
+        "unit": "count",
+        "subject": {
+          "kind": "family_category",
+          "family_id": "family-example",
+          "category_id": "health.general"
+        },
+        "period": {
+          "kind": "month",
+          "value": "2042-06"
+        },
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evaluator_ref": {
+          "evaluator_id": "eligible_event_count",
+          "evaluator_version": 1
+        },
+        "operand_bindings": {
+          "context": {
+            "kind": "claim_context"
+          },
+          "source": {
+            "kind": "node",
+            "alias": "source_empty_health"
+          },
+          "events": {
+            "kind": "node_set",
+            "aliases": [
+              "evt_salary_a",
+              "evt_market_a",
+              "evt_snack_a",
+              "evt_fuel_a",
+              "evt_restaurant_b",
+              "evt_refund_b",
+              "evt_cinema_b",
+              "evt_gift_b",
+              "evt_transfer_out",
+              "evt_transfer_in",
+              "evt_invoice_payment",
+              "evt_rent_a",
+              "evt_installment_1",
+              "evt_installment_2",
+              "evt_installment_3",
+              "evt_bill_projected"
+            ]
+          },
+          "categories": {
+            "kind": "node_set",
+            "aliases": [
+              "food_snack",
+              "food_market",
+              "food_restaurant",
+              "transport_fuel",
+              "housing_rent",
+              "leisure_cinema",
+              "gifts",
+              "income_salary",
+              "neutral_transfer",
+              "neutral_invoice_payment",
+              "neutral_refund",
+              "health_general"
+            ]
+          },
+          "family": {
+            "kind": "node",
+            "alias": "family_example"
+          }
+        }
+      },
+      "source_node": "source_empty_health",
+      "predicates": [
+        {
+          "id": "binding_13",
+          "obligation": "coverage",
+          "atom": "coverage",
+          "op": "eq",
+          "args": [
+            {
+              "field": {
+                "node": "source_empty_health",
+                "segments": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "complete"
+              }
+            }
+          ]
+        },
+        {
+          "id": "binding_14",
+          "obligation": "period",
+          "atom": "period",
+          "op": "eq",
+          "args": [
+            {
+              "field": {
+                "node": "source_empty_health",
+                "segments": [
+                  "period"
+                ]
+              }
+            },
+            {
+              "claim": {
+                "segments": [
+                  "period",
+                  "value"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "sets": {
+        "candidates": {
+          "count": 16,
+          "json_sha256": "dc304ab6e64f5ae47c097037bd7817187fd1d016d52daec108e8cabab0c9466e"
+        },
+        "selected": {
+          "count": 0,
+          "json_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "pair_transfer_01": {
+          "count": 2,
+          "json_sha256": "dd843b560b518a7ef83d0631e28e4d98c80539e6962f1a0f1ed5a38385613620"
+        }
+      },
+      "selections": [
+        {
+          "candidate_set": "candidates",
+          "selected_set": "selected",
+          "selected_predicates": [],
+          "excluded_count": 16,
+          "full_selection_json_sha256": "f471165ae5b5915fcf5eae6bba5b05a2184f8374c532a51881d375d474fa0ec2"
+        }
+      ],
+      "derivation": {
+        "full_phase_json_sha256": "36544260ffdd82eea112f041d090ab3abe9e4c74a260bc972c8770fc3b84b86e",
+        "required_nodes_count": 30,
+        "source_node_required": true,
+        "source_reads": [
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "period"
+            ]
+          },
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "coverage"
+            ]
+          },
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "event_count"
+            ]
+          }
+        ],
+        "required_claim_reads": [
+          {
+            "segments": [
+              "subject",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "family_id"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "category_id"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "value"
+            ]
+          },
+          {
+            "segments": [
+              "time_basis"
+            ]
+          }
+        ],
+        "required_edges_count": 36,
+        "required_structural_count": 4,
+        "required_selections": [
+          {
+            "candidate_set": "candidates",
+            "selected_set": "selected"
+          }
+        ]
+      },
+      "proof": {
+        "full_phase_json_sha256": "8a3494876a99a414a7c4e1eae8e1f98847dca5465e51ea5b362b7548e5fb0cf8",
+        "required_nodes_count": 43,
+        "source_node_required": true,
+        "source_reads": [
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "source"
+            ]
+          },
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "period"
+            ]
+          },
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "coverage"
+            ]
+          },
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "event_count"
+            ]
+          }
+        ],
+        "required_claim_reads": [
+          {
+            "segments": [
+              "claim_id"
+            ]
+          },
+          {
+            "segments": [
+              "fact_key"
+            ]
+          },
+          {
+            "segments": [
+              "metric"
+            ]
+          },
+          {
+            "segments": [
+              "unit"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "family_id"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "category_id"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "value"
+            ]
+          },
+          {
+            "segments": [
+              "time_basis"
+            ]
+          },
+          {
+            "segments": [
+              "coverage"
+            ]
+          },
+          {
+            "segments": [
+              "evidence_state"
+            ]
+          },
+          {
+            "segments": [
+              "evaluator_ref",
+              "evaluator_id"
+            ]
+          },
+          {
+            "segments": [
+              "evaluator_ref",
+              "evaluator_version"
+            ]
+          }
+        ],
+        "required_edges_count": 91,
+        "required_structural_count": 55,
+        "required_selections": [
+          {
+            "candidate_set": "candidates",
+            "selected_set": "selected"
+          }
+        ]
+      }
+    },
+    {
+      "fact_key": "N-04#1#1",
+      "graph_json_sha256": "e3cc8311508f6307895d8dabc6c5137b51d8feb3c0ec97f78da5e133444db6f2",
+      "claim": {
+        "claim_id": "claim-N-04#1#1",
+        "fact_key": "N-04#1#1",
+        "metric": "eligible_event_count",
+        "unit": "count",
+        "subject": {
+          "kind": "family_category",
+          "family_id": "family-example",
+          "category_id": "health.general"
+        },
+        "period": {
+          "kind": "month",
+          "value": "2042-06"
+        },
+        "time_basis": "event_date",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evaluator_ref": {
+          "evaluator_id": "eligible_event_count",
+          "evaluator_version": 1
+        },
+        "operand_bindings": {
+          "context": {
+            "kind": "claim_context"
+          },
+          "source": {
+            "kind": "node",
+            "alias": "source_empty_health"
+          },
+          "events": {
+            "kind": "node_set",
+            "aliases": [
+              "evt_salary_a",
+              "evt_market_a",
+              "evt_snack_a",
+              "evt_fuel_a",
+              "evt_restaurant_b",
+              "evt_refund_b",
+              "evt_cinema_b",
+              "evt_gift_b",
+              "evt_transfer_out",
+              "evt_transfer_in",
+              "evt_invoice_payment",
+              "evt_rent_a",
+              "evt_installment_1",
+              "evt_installment_2",
+              "evt_installment_3",
+              "evt_bill_projected"
+            ]
+          },
+          "categories": {
+            "kind": "node_set",
+            "aliases": [
+              "food_snack",
+              "food_market",
+              "food_restaurant",
+              "transport_fuel",
+              "housing_rent",
+              "leisure_cinema",
+              "gifts",
+              "income_salary",
+              "neutral_transfer",
+              "neutral_invoice_payment",
+              "neutral_refund",
+              "health_general"
+            ]
+          },
+          "family": {
+            "kind": "node",
+            "alias": "family_example"
+          }
+        }
+      },
+      "source_node": "source_empty_health",
+      "predicates": [
+        {
+          "id": "binding_13",
+          "obligation": "coverage",
+          "atom": "coverage",
+          "op": "eq",
+          "args": [
+            {
+              "field": {
+                "node": "source_empty_health",
+                "segments": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "complete"
+              }
+            }
+          ]
+        },
+        {
+          "id": "binding_14",
+          "obligation": "period",
+          "atom": "period",
+          "op": "eq",
+          "args": [
+            {
+              "field": {
+                "node": "source_empty_health",
+                "segments": [
+                  "period"
+                ]
+              }
+            },
+            {
+              "claim": {
+                "segments": [
+                  "period",
+                  "value"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "sets": {
+        "candidates": {
+          "count": 16,
+          "json_sha256": "dc304ab6e64f5ae47c097037bd7817187fd1d016d52daec108e8cabab0c9466e"
+        },
+        "selected": {
+          "count": 0,
+          "json_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "pair_transfer_01": {
+          "count": 2,
+          "json_sha256": "dd843b560b518a7ef83d0631e28e4d98c80539e6962f1a0f1ed5a38385613620"
+        }
+      },
+      "selections": [
+        {
+          "candidate_set": "candidates",
+          "selected_set": "selected",
+          "selected_predicates": [],
+          "excluded_count": 16,
+          "full_selection_json_sha256": "f471165ae5b5915fcf5eae6bba5b05a2184f8374c532a51881d375d474fa0ec2"
+        }
+      ],
+      "derivation": {
+        "full_phase_json_sha256": "36544260ffdd82eea112f041d090ab3abe9e4c74a260bc972c8770fc3b84b86e",
+        "required_nodes_count": 30,
+        "source_node_required": true,
+        "source_reads": [
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "period"
+            ]
+          },
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "coverage"
+            ]
+          },
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "event_count"
+            ]
+          }
+        ],
+        "required_claim_reads": [
+          {
+            "segments": [
+              "subject",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "family_id"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "category_id"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "value"
+            ]
+          },
+          {
+            "segments": [
+              "time_basis"
+            ]
+          }
+        ],
+        "required_edges_count": 36,
+        "required_structural_count": 4,
+        "required_selections": [
+          {
+            "candidate_set": "candidates",
+            "selected_set": "selected"
+          }
+        ]
+      },
+      "proof": {
+        "full_phase_json_sha256": "8a3494876a99a414a7c4e1eae8e1f98847dca5465e51ea5b362b7548e5fb0cf8",
+        "required_nodes_count": 43,
+        "source_node_required": true,
+        "source_reads": [
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "source"
+            ]
+          },
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "period"
+            ]
+          },
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "category_id"
+            ]
+          },
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "coverage"
+            ]
+          },
+          {
+            "node": "source_empty_health",
+            "segments": [
+              "event_count"
+            ]
+          }
+        ],
+        "required_claim_reads": [
+          {
+            "segments": [
+              "claim_id"
+            ]
+          },
+          {
+            "segments": [
+              "fact_key"
+            ]
+          },
+          {
+            "segments": [
+              "metric"
+            ]
+          },
+          {
+            "segments": [
+              "unit"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "family_id"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "category_id"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "value"
+            ]
+          },
+          {
+            "segments": [
+              "time_basis"
+            ]
+          },
+          {
+            "segments": [
+              "coverage"
+            ]
+          },
+          {
+            "segments": [
+              "evidence_state"
+            ]
+          },
+          {
+            "segments": [
+              "evaluator_ref",
+              "evaluator_id"
+            ]
+          },
+          {
+            "segments": [
+              "evaluator_ref",
+              "evaluator_version"
+            ]
+          }
+        ],
+        "required_edges_count": 91,
+        "required_structural_count": 55,
+        "required_selections": [
+          {
+            "candidate_set": "candidates",
+            "selected_set": "selected"
+          }
+        ]
+      }
+    },
+    {
+      "fact_key": "S-16#1#1",
+      "graph_json_sha256": "e54dbb43a000cca66e0314279f1a920a05fce52a0f9981e3112ba3268c7210ea",
+      "claim": {
+        "claim_id": "claim-S-16#1#1",
+        "fact_key": "S-16#1#1",
+        "metric": "source_coverage",
+        "unit": "state",
+        "subject": {
+          "kind": "source",
+          "ref_id": "source-complete-june"
+        },
+        "period": {
+          "kind": "month",
+          "value": "2042-06"
+        },
+        "time_basis": "source_period",
+        "coverage": "complete",
+        "evidence_state": "confirmed",
+        "evaluator_ref": {
+          "evaluator_id": "source_coverage",
+          "evaluator_version": 1
+        },
+        "operand_bindings": {
+          "context": {
+            "kind": "claim_context"
+          },
+          "source": {
+            "kind": "node",
+            "alias": "source_complete_june"
+          }
+        }
+      },
+      "source_node": "source_complete_june",
+      "predicates": [
+        {
+          "id": "binding_11",
+          "obligation": "coverage",
+          "atom": "coverage",
+          "op": "eq",
+          "args": [
+            {
+              "field": {
+                "node": "source_complete_june",
+                "segments": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "complete"
+              }
+            }
+          ]
+        },
+        {
+          "id": "binding_12",
+          "obligation": "period",
+          "atom": "period",
+          "op": "eq",
+          "args": [
+            {
+              "field": {
+                "node": "source_complete_june",
+                "segments": [
+                  "period"
+                ]
+              }
+            },
+            {
+              "claim": {
+                "segments": [
+                  "period",
+                  "value"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "r0004_include_coverage",
+          "obligation": "coverage",
+          "atom": "coverage",
+          "op": "eq",
+          "args": [
+            {
+              "field": {
+                "node": "source_complete_june",
+                "segments": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "complete"
+              }
+            }
+          ]
+        }
+      ],
+      "sets": {
+        "candidates": [
+          "source_complete_june",
+          "source_partial_may",
+          "source_offline_card",
+          "source_empty_health"
+        ],
+        "selected": [
+          "source_complete_june"
+        ]
+      },
+      "selections": [
+        {
+          "candidate_set": "candidates",
+          "selected_set": "selected",
+          "selected_predicates": [
+            "r0004_include_coverage"
+          ],
+          "excluded": [
+            {
+              "node": "source_partial_may",
+              "reason": "identity",
+              "predicates": [
+                "r0001_exclude_id"
+              ]
+            },
+            {
+              "node": "source_offline_card",
+              "reason": "identity",
+              "predicates": [
+                "r0002_exclude_id"
+              ]
+            },
+            {
+              "node": "source_empty_health",
+              "reason": "identity",
+              "predicates": [
+                "r0003_exclude_id"
+              ]
+            }
+          ]
+        }
+      ],
+      "derivation": {
+        "full_phase_json_sha256": "851d684f883548d2902dd06b4760f997cfbe94ba51a3c0470c6736c488bcd923",
+        "required_nodes_count": 1,
+        "source_node_required": true,
+        "source_reads": [
+          {
+            "node": "source_complete_june",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "source_complete_june",
+            "segments": [
+              "period"
+            ]
+          },
+          {
+            "node": "source_complete_june",
+            "segments": [
+              "coverage"
+            ]
+          }
+        ],
+        "required_claim_reads": [
+          {
+            "segments": [
+              "subject",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "ref_id"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "value"
+            ]
+          },
+          {
+            "segments": [
+              "time_basis"
+            ]
+          }
+        ],
+        "required_edges_count": 0,
+        "required_structural_count": 0,
+        "required_selections": []
+      },
+      "proof": {
+        "full_phase_json_sha256": "ec33eafe5867bb2af210a651090d9fadbff2a2d6d7baa39b8b574020a266c761",
+        "required_nodes_count": 13,
+        "source_node_required": true,
+        "source_reads": [
+          {
+            "node": "source_complete_june",
+            "segments": [
+              "id"
+            ]
+          },
+          {
+            "node": "source_complete_june",
+            "segments": [
+              "source"
+            ]
+          },
+          {
+            "node": "source_complete_june",
+            "segments": [
+              "period"
+            ]
+          },
+          {
+            "node": "source_complete_june",
+            "segments": [
+              "coverage"
+            ]
+          }
+        ],
+        "required_claim_reads": [
+          {
+            "segments": [
+              "claim_id"
+            ]
+          },
+          {
+            "segments": [
+              "fact_key"
+            ]
+          },
+          {
+            "segments": [
+              "metric"
+            ]
+          },
+          {
+            "segments": [
+              "unit"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "subject",
+              "ref_id"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "kind"
+            ]
+          },
+          {
+            "segments": [
+              "period",
+              "value"
+            ]
+          },
+          {
+            "segments": [
+              "time_basis"
+            ]
+          },
+          {
+            "segments": [
+              "coverage"
+            ]
+          },
+          {
+            "segments": [
+              "evidence_state"
+            ]
+          },
+          {
+            "segments": [
+              "evaluator_ref",
+              "evaluator_id"
+            ]
+          },
+          {
+            "segments": [
+              "evaluator_ref",
+              "evaluator_version"
+            ]
+          }
+        ],
+        "required_edges_count": 18,
+        "required_structural_count": 19,
+        "required_selections": [
+          {
+            "candidate_set": "candidates",
+            "selected_set": "selected"
+          }
+        ]
+      }
+    }
+  ],
+  "proposed_nominal_selector_existing_predicate": {
+    "id": "binding_7",
+    "obligation": "subject_scope",
+    "atom": "subject",
+    "op": "eq",
+    "args": [
+      {
+        "field": {
+          "node": "source_complete_june",
+          "segments": [
+            "id"
+          ]
+        }
+      },
+      {
+        "claim": {
+          "segments": [
+            "subject",
+            "ref_id"
+          ]
+        }
+      }
+    ]
+  },
+  "proposed_selection_change": {
+    "fact_key": "S-16#1#1",
+    "selection_index": 0,
+    "before": [
+      "r0004_include_coverage"
+    ],
+    "after": [
+      "binding_7"
+    ],
+    "applied": false
+  }
+}
