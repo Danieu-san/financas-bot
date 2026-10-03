@@ -1,0 +1,324 @@
+{
+  "format": "financasbot.predicate-strategy-boundary-witness.v1",
+  "immutable": {
+    "base_sha": "98e3d6a929541e3238362400504c884c34031f22",
+    "graph_count": 76,
+    "source_sha256_lf": {
+      "docs/plans/workstreams/financasbot-next-00-provenance-graph-design-v1.md": "9d52544fd5f262ada129bf98682e12aa1e243dae0760cc2fd6f7e3c1323686f8",
+      "docs/contracts/next/provenance-v2/graphs-v2.json": "a4938977a205d2d9fe9bee3560f0f247a005992c9b8506a03ba56c152c21c1ce",
+      "src/next/provenance/claimRequirements.js": "3ec6b93051eaec259f3f8431504163756d1dd4dbfb31edc15df23bc21894dac3",
+      "src/next/provenance/collectionRequirements.js": "250b181a8551d0f0d0ce80d177c193fa40164fc2d023e8660dda7fe644aeab80"
+    },
+    "section_10": "## 10. Propriedades e mutações geradas\n\nA bateria não enumera exemplos. Ela deriva mutações do schema, do registry de\ncampos materiais e de cada grafo.\n\n### 10.0 Átomos de prova e ortogonalidade\n\nCompiler e registries decompõem a validade em átomos identificáveis:\n\n`claim`, `identity`, `fingerprint`, `subject`, `period`, `time_basis`,\n`coverage`, `evidence_state`, `evidence_set`, `edge`, `trace`, `evaluator`.\n\nCada mutant declara `expected_violations`. O harness compara o conjunto exato\nde violações observado, não apenas `RED` global.\n\nToda classe precisa de mutant isolado em que as demais barreiras relevantes\npermaneçam válidas:\n\n- fingerprint: alterar somente o fingerprint esperado, mantendo conteúdo e\n  predicados;\n- predicado: alterar o conteúdo, recalcular fingerprint e manter estrutura,\n  para que apenas a relação semântica rejeite;\n- aresta: retargetar a relação, recalcular fingerprint e reparar representações\n  auxiliares sem mudar o claim;\n- trace: remover/trocar leitura com snapshots e predicados intactos;\n- evaluator: trocar artefato, hash, papel de operando ou fórmula usando witness\n  discriminante.\n\nGrupos atômicos são proibidos. Cada átomo precisa de witness ortogonal próprio.\nSe a arquitetura não conseguir isolar um átomo, o resultado é\n`UNSATISFIED_MUTATION_WITNESS` e o gate falha; não se reduz a granularidade de\n`expected_violations` para acomodar a limitação.\n\n### 10.1 Nós\n\nPara cada nó:\n\n- substituir por outro ID válido do mesmo kind;\n- alterar versão/fingerprint;\n- remover, duplicar ou acrescentar nó;\n- alterar cada campo material por outro valor válido do mesmo tipo.\n\n### 10.2 Predicados\n\nPara cada predicado:\n\n- remover o predicado;\n- trocar um operando por path válido mas errado;\n- inverter ou retargetar a relação;\n- alterar operador por outro compatível em tipo, porém semanticamente errado;\n- inserir operador/path desconhecido.\n\n### 10.3 Arestas\n\nPara cada campo de aresta presente:\n\n- remover a aresta;\n- retargetar para nó válido do mesmo kind;\n- quebrar apenas uma ponta de par;\n- manter os valores finais iguais e mudar a identidade econômica.\n\n### 10.4 Trace\n\nPara cada leitura e aresta do trace:\n\n- omitir;\n- acrescentar leitura não declarada;\n- mudar path para campo do mesmo tipo;\n- mudar conjunto selecionado preservando o total;\n- mudar evaluator id ou versão.\n\n### 10.5 Cardinalidade\n\nAs contagens esperadas são calculadas do próprio schema compilado:\n\n```text\nmutations_expected =\n  material_node_fields\n  + predicates\n  + material_edges\n  + trace_reads\n  + trace_edges\n  + structural_mutations\n```\n\nNão existe número hardcoded que possa continuar verde após inclusão de novo\nnó, campo, aresta ou fato.\n\n### 10.6 Witness obrigatório e fail-closed\n\nCada mutação enumerada precisa produzir um witness schema-valid e\ndiscriminante. O gerador segue esta ordem:\n\n1. reutilizar alternativa válida do closed world;\n2. sintetizar alternativa mínima a partir do schema do kind;\n3. comprovar que somente os átomos declarados foram invalidados;\n4. executar o mutant e confrontar `expected_violations`.\n\nSe não conseguir materializar witness, o resultado é\n`UNSATISFIED_MUTATION_WITNESS` e o gate falha. Nunca há `skip`, redução da\ncardinalidade esperada ou aceitação por ausência de alternativa.\n\nO relatório registra `expected`, `generated`, `executed` e `matched`; os quatro\ntotais precisam ser iguais.",
+    "claim_anchor": "        function literalBinding(segments, value, type) {\n            const candidates = graph.predicates.filter(predicate => predicate.op === 'eq'\n                && predicate.obligation === ROOT_OBLIGATION[segments[0]]\n                && predicate.args.some(arg => claimAt(arg, segments))\n                && predicate.args.some(arg => arg.literal));\n            if (!candidates.length) fail('missing');\n            for (const predicate of candidates) {\n                const literal = predicate.args.find(arg => arg.literal).literal;\n                if (literal.type !== type || !same(literal.value, value)) fail('value');\n            }\n        }",
+    "collection_anchor": "        function anchors(alias, field, type, value) {\n            const predicates = graph.predicates.filter(p => p.op === 'eq' && p.obligation === 'coverage'\n                && p.args.some(a => a.field?.node === alias && a.field.segments.length === 1 && a.field.segments[0] === field));\n            if (!predicates.length || predicates.some(p => !p.args.some(a => a.literal?.type === type && a.literal.value === value))) {\n                fail('fixture_anchor');\n            }\n        }",
+    "eq_coordinates": 974,
+    "samples": [
+      {
+        "fact_key": "S-01#1#1",
+        "predicate": {
+          "id": "binding_6",
+          "obligation": "subject_scope",
+          "atom": "subject",
+          "op": "eq",
+          "args": [
+            {
+              "claim": {
+                "segments": [
+                  "subject",
+                  "ref_id"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "id",
+                "value": "family-example"
+              }
+            }
+          ]
+        },
+        "parent_bindings": [],
+        "selection_uses": []
+      },
+      {
+        "fact_key": "S-01#1#1",
+        "predicate": {
+          "id": "binding_9",
+          "obligation": "coverage",
+          "atom": "coverage",
+          "op": "eq",
+          "args": [
+            {
+              "field": {
+                "node": "next_golden_financial_v1",
+                "segments": [
+                  "synthetic"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "boolean",
+                "value": true
+              }
+            }
+          ]
+        },
+        "parent_bindings": [],
+        "selection_uses": []
+      },
+      {
+        "fact_key": "S-01#1#1",
+        "predicate": {
+          "id": "r0012_include_kind",
+          "obligation": "subject_scope",
+          "atom": "subject",
+          "op": "eq",
+          "args": [
+            {
+              "field": {
+                "node": "food_market",
+                "segments": [
+                  "kind"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "enum",
+                "value": "expense"
+              }
+            }
+          ]
+        },
+        "parent_bindings": [],
+        "selection_uses": [
+          {
+            "candidate_set": "candidates",
+            "selected_set": "selected",
+            "mode": "selected"
+          }
+        ]
+      },
+      {
+        "fact_key": "S-04#1#1",
+        "predicate": {
+          "id": "r0002_absent_account_id",
+          "obligation": "subject_scope",
+          "atom": "subject",
+          "op": "eq",
+          "args": [
+            {
+              "presence": {
+                "node": "evt_fuel_a",
+                "segments": [
+                  "account_id"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "boolean",
+                "value": false
+              }
+            }
+          ]
+        },
+        "parent_bindings": [],
+        "selection_uses": [
+          {
+            "candidate_set": "candidates",
+            "selected_set": "selected",
+            "mode": "excluded",
+            "node": "evt_fuel_a",
+            "reason": "instrument"
+          }
+        ]
+      },
+      {
+        "fact_key": "M-01#1#3",
+        "predicate": {
+          "id": "p0034_parent_fact",
+          "obligation": "node_identity",
+          "atom": "identity",
+          "op": "eq",
+          "args": [
+            {
+              "field": {
+                "node": "parent_m_01_1_1",
+                "segments": [
+                  "fact_key"
+                ]
+              }
+            },
+            {
+              "literal": {
+                "type": "id",
+                "value": "M-01#1#1"
+              }
+            }
+          ]
+        },
+        "parent_bindings": [
+          {
+            "alias": "parent_m_01_1_1",
+            "node": {
+              "binding": "validated_parent",
+              "kind": "derived_claim",
+              "fact_key": "M-01#1#1",
+              "roles": [
+                "value_input"
+              ],
+              "identity_resolution": "same_execution_validated_parent_receipt"
+            }
+          },
+          {
+            "alias": "parent_m_01_1_2",
+            "node": {
+              "binding": "validated_parent",
+              "kind": "derived_claim",
+              "fact_key": "M-01#1#2",
+              "roles": [
+                "value_input"
+              ],
+              "identity_resolution": "same_execution_validated_parent_receipt"
+            }
+          }
+        ],
+        "selection_uses": []
+      }
+    ]
+  },
+  "limits": {
+    "extraction_only": true,
+    "normative_approval": false,
+    "runtime_tests_executed_by_this_verifier": false,
+    "original_report_published": false,
+    "reported_wip_is_not_immutable_code_candidate": true,
+    "global_g11": false
+  },
+  "reported_local": {
+    "git_head": "98e3d6a929541e3238362400504c884c34031f22",
+    "report_sha256": "351a19987b359aa0e5878567603647729882ca075a2424816767796544668d44",
+    "exit_code": 1,
+    "matrix_valid": false,
+    "accounting_complete": true,
+    "measured_sources_unchanged": true,
+    "measured_sources_sha256": "52d34eaf4c0478edb838bd318e80efb6b79b756da69e8b4db7254b2bf0ba98c5",
+    "mutations": {
+      "expected": 974,
+      "generated": 946,
+      "executed": 262,
+      "matched": 66
+    },
+    "baselines": 73,
+    "unsatisfied": 908,
+    "causes": {
+      "claim_requirements_missing": 464,
+      "collateral_or_missing_rejection": 196,
+      "collection_requirements_fixture_anchor": 146,
+      "host_child_evaluation": 74,
+      "parent_execution_required": 28
+    },
+    "samples": [
+      {
+        "mutation_id": "sha256:0783dfa6f6e85585abdc9a9e87eb1bdaa3323923f5ec4bc01fd1019b9bc34911",
+        "target": {
+          "fact_key": "S-01#1#1",
+          "predicate_id": "binding_6",
+          "obligation": "subject_scope",
+          "atom": "subject",
+          "operator": "eq",
+          "strategy": "compatible_wrong_operator"
+        },
+        "code": "UNSATISFIED_MUTATION_WITNESS",
+        "cause": "claim_requirements_missing"
+      },
+      {
+        "mutation_id": "sha256:1294b90eb67b65def5d42c330aa9caf02e30f54d5c8edf3f4272e226e472a64b",
+        "target": {
+          "fact_key": "S-01#1#1",
+          "predicate_id": "r0012_include_kind",
+          "obligation": "subject_scope",
+          "atom": "subject",
+          "operator": "eq",
+          "strategy": "compatible_wrong_operator"
+        },
+        "code": "UNSATISFIED_MUTATION_WITNESS",
+        "cause": "collateral_or_missing_rejection"
+      },
+      {
+        "mutation_id": "sha256:3bf5af79371ffd9c36dbd996b441b733d78e7464b1b6ef230d0b8f1d08580638",
+        "target": {
+          "fact_key": "S-01#1#1",
+          "predicate_id": "binding_9",
+          "obligation": "coverage",
+          "atom": "coverage",
+          "operator": "eq",
+          "strategy": "compatible_wrong_operator"
+        },
+        "code": "UNSATISFIED_MUTATION_WITNESS",
+        "cause": "collection_requirements_fixture_anchor"
+      },
+      {
+        "mutation_id": "sha256:34b4fe1d7f63bcaea036844a43c89926455dee2a20b10dcbdb10ab8d2d93ae72",
+        "target": {
+          "fact_key": "S-04#1#1",
+          "predicate_id": "r0002_absent_account_id",
+          "obligation": "subject_scope",
+          "atom": "subject",
+          "operator": "eq",
+          "strategy": "compatible_wrong_operator"
+        },
+        "code": "UNSATISFIED_MUTATION_WITNESS",
+        "cause": "host_child_evaluation"
+      },
+      {
+        "mutation_id": "sha256:02f02383bcae58c01b3f31f7452ff45c1e0c114a41a6a2f30f8c2f9541d34a4c",
+        "target": {
+          "fact_key": "M-01#1#3",
+          "predicate_id": "p0034_parent_fact",
+          "obligation": "node_identity",
+          "atom": "identity",
+          "operator": "eq",
+          "strategy": "compatible_wrong_operator"
+        },
+        "code": "UNSATISFIED_MUTATION_WITNESS",
+        "cause": "parent_execution_required"
+      }
+    ],
+    "executed_example": {
+      "mutation_id": "sha256:1294b90eb67b65def5d42c330aa9caf02e30f54d5c8edf3f4272e226e472a64b",
+      "execution_id": "ps-1294b90eb67b65def5d42c330aa9caf02e30f54d5c8edf3f4272e226e472a64b",
+      "false_predicates": [
+        {
+          "id": "r0012_include_kind",
+          "obligation": "subject_scope",
+          "atom": "subject",
+          "satisfied": false
+        }
+      ],
+      "rejected_coverage_components": [
+        { "phase": "proof", "component": "selection" }
+      ],
+      "outside_target_preserved": true,
+      "positive_oracle_matched": true,
+      "proof_satisfied": false,
+      "phases_covered": false,
+      "matched": false,
+      "graph_accepted": false,
+      "financial_receipt": false
+    },
+    "host_static_crosscheck": {
+      "host_errors": 74,
+      "target_is_selection_predicate": 74,
+      "formula_plus_selection_guards": 74,
+      "does_not_prove_each_throw_cause": true
+    },
+    "derivation_projection": {
+      "source_sha256_lf": "8b8510f073879bb491b150f2da388e21a412d170cc3aa7eb842322084dde8f1a",
+      "excerpt": "        projectDerivationProgram(raw, phaseProfileReceipt) {\n            const projected = plan.projectProofProgram(raw);\n            const selector = copyData(raw); const graph = graphs.get(selector.fact_key);\n            const claim = claims.get(selector.fact_key);\n            const registry = context.documents.find(document => document.value?.registry_id === 'metric_evaluator_registry').value;\n            const mode = resolvePhaseCompositionMode(phaseProfileReceipt, registry, claim.evaluator_ref, claim.metric);\n            const associations = plan.projectDerivationBindings(raw).selections;\n            const ids = new Set((mode === 'formula_plus_selection_guards' ? graph.selections : []).filter(selection => associations.some(row =>\n                row.candidate_set === selection.candidate_set && row.selected_set === selection.selected_set)).flatMap(selection =>\n                [...selection.selected_predicates, ...selection.excluded.flatMap(row => row.predicates)]));\n            const input = copyData({ ...projected.input, selections: [],\n                predicates: projected.input.predicates.filter(predicate => ids.has(predicate.id)) });\n            if (input.predicates.length !== ids.size) reject('derivation_build_predicate');\n            return copyData({ stage: 'derivation_build_input_only', graph_accepted: false, input });\n        },"
+    }
+  }
+}
