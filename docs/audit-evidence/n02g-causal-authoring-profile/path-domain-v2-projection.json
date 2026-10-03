@@ -1,0 +1,208 @@
+{
+  "extraction_only": true,
+  "normative_approval": false,
+  "runtime_tests_executed": false,
+  "product_inventory_migrated": false,
+  "immutable_base": "0b2fa642bda2737381d74b9e4baa205ea333a5e3",
+  "corpus_lf_sha256": "sha256:a4938977a205d2d9fe9bee3560f0f247a005992c9b8506a03ba56c152c21c1ce",
+  "schema_lf_sha256": "sha256:9e3c148c95d6fecd3d93f019ad5a5967126f8bf1cb9bde9d152c70c057a1740b",
+  "graph_count": 76,
+  "predicate_count": 11456,
+  "old_inventory_ids": 45988,
+  "old_unknown_path_ids_sha256": "sha256:7cbcf629f83ab12cd7e9b5b38146b33a4d537212e8061c6eb540df9ae1fbb35f",
+  "old_inventory_ids_sha256": "sha256:912b05d08189e81ef6559cec099ede56131a3e24964f431178ff905420487263",
+  "proposed_requirements": {
+    "predicate_path_admission": 3092,
+    "predicate_path_semantic": 2419,
+    "predicate_reference_admission": 16077
+  },
+  "proposed_inventory_ids_sha256": "sha256:3504114fb0ed6cc0bd0a1ecf39cd415b7c21cfdb5a21a6724ae47b52bbe19a51",
+  "migration_dispositions": {
+    "remapped_admission_sites": 16815,
+    "remapped_semantic_predicate": 3087,
+    "superseded_literal_outside_path_domain": 12358,
+    "superseded_unratified_semantic_reference": 13728
+  },
+  "migration_rows_sha256": "sha256:81d939b80ae97a30c8aa600787b7c855848e4f5436da158db07acfce10099d4a",
+  "predicate_applicability_sha256": "sha256:2bc04eedf36ffbb694d682b1e303ac8c40942e08de9692fc3366810c9e62be7b",
+  "predicates_without_path": 9037,
+  "authored_sites": 19169,
+  "authored_sites_sha256": "sha256:d9474a3286b4988415b1e34f511ac1879e0ce6d81fbc6c00722d9765fbbb3406",
+  "all_old_ids_disposed": true,
+  "no_orphan_new_requirement": true,
+  "property_probes_passed": [
+    "literal_id_is_data",
+    "unknown_arg_rejected",
+    "duplicate_graph_rejected",
+    "recursive_bindings_no_dedup",
+    "all_v1_unknown_ids_match_prior_witness",
+    "unresolved_namespace_rejected",
+    "migration_duplicate_forgery_orphan_rejected",
+    "new_predicate_grows_expected_without_rewriting_history"
+  ],
+  "migration_examples": {
+    "remapped_semantic_predicate": {
+      "old_id": "sha256:000020a5133573f256a9804092d1b27ad09b5315509c66ca6e2ebffb7e75cdb1",
+      "old_target": {
+        "fact_key": "M-08#1#2",
+        "predicate_id": "r0003_exclude_person_id",
+        "operand_index": 0,
+        "strategy": "same_type_wrong_path"
+      },
+      "operand_form": "field",
+      "disposition": "remapped_semantic_predicate",
+      "new_ids": [
+        "sha256:c9ec2d05c0358cc346c34a399365df4f6d892bfe79949beae77c3fabe5ffdb8c"
+      ]
+    },
+    "remapped_admission_sites": {
+      "old_id": "sha256:0002ab2e87141e2cf182b2e0a00af683a4354ff326f685db0f221f02cab0812b",
+      "old_target": {
+        "fact_key": "M-13#1#6",
+        "predicate_id": "binding_9",
+        "operand_index": 0,
+        "strategy": "unknown_path"
+      },
+      "operand_form": "field",
+      "disposition": "remapped_admission_sites",
+      "new_ids": [
+        "sha256:3b1fa0175dfb4b26e214030d2607767c36c12deda138e5a4d224ee5c5ae6503f",
+        "sha256:a029adc1957b5f8a63366a65040f7904e63c5612c9e88628a29fbccdd431c12c"
+      ]
+    },
+    "superseded_literal_outside_path_domain": {
+      "old_id": "sha256:0003c2bc6bd40988b98451d7577b68b6ba9dff1d2d8c30fc6892b29e41c607f1",
+      "old_target": {
+        "fact_key": "S-13#1#1",
+        "predicate_id": "r0009_exclude_id",
+        "operand_index": 1,
+        "strategy": "same_type_wrong_path"
+      },
+      "operand_form": "literal",
+      "disposition": "superseded_literal_outside_path_domain",
+      "new_ids": []
+    },
+    "superseded_unratified_semantic_reference": {
+      "old_id": "sha256:000fc4b850246ccba985ed5861dfcda3ba1c03c006ad1bf562696f34d5eeb9a6",
+      "old_target": {
+        "fact_key": "N-04#1#1",
+        "predicate_id": "p0269_fingerprint",
+        "operand_index": 0,
+        "strategy": "same_type_wrong_path"
+      },
+      "operand_form": "node",
+      "disposition": "superseded_unratified_semantic_reference",
+      "new_ids": []
+    }
+  },
+  "site_examples": {
+    "reference:nodes": {
+      "class": "reference",
+      "site_path": [
+        "args",
+        0,
+        "node"
+      ],
+      "definition": "id",
+      "namespace": "nodes",
+      "fact_key": "S-01#1#1",
+      "predicate_id": "p0001_kind",
+      "mutation_id": "sha256:a688754c5df3b2a32ea143e94252f2c3ae7cf941fcedc28efa772300732f4029"
+    },
+    "reference:edges": {
+      "class": "reference",
+      "site_path": [
+        "args",
+        0,
+        "edge"
+      ],
+      "definition": "id",
+      "namespace": "edges",
+      "fact_key": "S-01#1#1",
+      "predicate_id": "p0011_target",
+      "mutation_id": "sha256:f3f5fb80dd7dd959bc5cecea69a791eafa87920d9551c463f1eebead870b504c"
+    },
+    "path:fieldPath": {
+      "class": "path",
+      "site_path": [
+        "args",
+        0,
+        "field",
+        "segments"
+      ],
+      "definition": "fieldPath",
+      "namespace": null,
+      "fact_key": "S-01#1#1",
+      "predicate_id": "p0315_selected_period",
+      "mutation_id": "sha256:f83a40ac9aa19e91da587c244cc57701daa72a0ba2cf21b7beb1f3748545751e"
+    },
+    "path:claimPath": {
+      "class": "path",
+      "site_path": [
+        "args",
+        1,
+        "claim",
+        "segments"
+      ],
+      "definition": "claimPath",
+      "namespace": null,
+      "fact_key": "S-01#1#1",
+      "predicate_id": "p0315_selected_period",
+      "mutation_id": "sha256:8a0032c2f578e15e194af9af48738cc94dec3b1c6c24a9e436b52701b06b7fee"
+    },
+    "reference:sets": {
+      "class": "reference",
+      "site_path": [
+        "args",
+        1,
+        "set"
+      ],
+      "definition": "id",
+      "namespace": "sets",
+      "fact_key": "S-01#1#1",
+      "predicate_id": "r0013_family_membership",
+      "mutation_id": "sha256:8bc86ee159229b707e014ce9e730c7f0e59ffc182037765cc8f78f48b2c3dd2e"
+    },
+    "path:selector": {
+      "class": "path",
+      "site_path": [
+        "args",
+        1,
+        "selector",
+        "segments"
+      ],
+      "definition": "selector",
+      "namespace": null,
+      "fact_key": "S-01#1#1",
+      "predicate_id": "link_5_pair",
+      "mutation_id": "sha256:4c6eb933ebf03e24f009c0cd270011579ffcb1490f443f46995ae028c232ba01"
+    },
+    "reference:windows": {
+      "class": "reference",
+      "site_path": [
+        "args",
+        1,
+        "period_ref"
+      ],
+      "definition": "id",
+      "namespace": "windows",
+      "fact_key": "S-05#1#1",
+      "predicate_id": "p0318_selected_period",
+      "mutation_id": "sha256:70437c511d2f82e583362502f627ec167bdd5939be4cf9f52be4c105e10eb694"
+    },
+    "reference:predicate_templates": {
+      "class": "reference",
+      "site_path": [
+        "args",
+        1,
+        "template",
+        "id"
+      ],
+      "definition": "reference",
+      "namespace": "predicate_templates",
+      "fact_key": "S-05#1#1",
+      "predicate_id": "r0006_outside_window",
+      "mutation_id": "sha256:213de3769a71adefa7af63ba1292a35fd442588e35e87c714972fc4d8ace85fb"
+    }
+  }
+}
