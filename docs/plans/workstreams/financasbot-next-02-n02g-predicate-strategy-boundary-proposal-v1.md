@@ -1,8 +1,11 @@
 # N02-G — proposta focal de fronteira para predicate_strategy
 
-Data: 2026-10-03. Estado: PROPOSTA NÃO APLICADA; REVISÃO NORMATIVA PENDENTE.
+Data: 2026-10-03. Estado: PROPOSTA CORRIGIDA NÃO APLICADA; REAUDITORIA PENDENTE.
 Base documental imutável: `98e3d6a929541e3238362400504c884c34031f22`.
 Este delta não altera runtime, corpus, contratos vigentes ou resultado de gate.
+Revisão anterior de `6666c4ede22896034029b1bf018e6af97d125f8a`: NÃO APTO,
+por lacuna autoria→IR (ALTA) e ambiguidade de identity alvo (MÉDIA). Esta
+revisão fecha documentalmente essas duas lacunas; não aprova sua implementação.
 
 ## 1. Decisão solicitada e limite
 
@@ -66,12 +69,33 @@ e demais campos intactos. Executar admissão real e registrar seu resultado.
 Se houver recusa, exigir estágio/checker específico e ligação ao predicate
 alvo por dependências derivadas da autoria original, não allowlist de mensagens
 observadas nem aceitação de qualquer exception. Recusa imprevista fica pendente.
-Se a autoria for admitida, registrar admitted; isso não é aprovação financeira.
+Se a autoria for admitida, registrar admitted como resultado intermediário,
+NÃO como Canal A suficiente. Nesse ramo, compilar obrigatoriamente a autoria
+MUTADA em quarentena, sem executar release financeiro, criar receipt ou usar
+o negativo como validated_parent. Erro genérico ou compile não concluído deixa
+a coordenada UNSATISFIED; não se pode substituí-lo pelo compile do baseline.
+
+Antes desse compile, selar a expectativa autoria not_eq→IR not_eq, derivada
+independentemente da autoria mutada e do contrato de lowering: predicate_id,
+operands, tipo e os sites/cópias causais exigidos pelo contrato. Após o compile,
+um verificador separado do compiler/lowerer/emissor deve conferir o IR emitido
+e a cobertura exata desses sites contra essa expectativa. Não usar apenas o
+mapa autodeclarado pelo compiler, nem formar expected a partir do IR observado.
+Se o compiler aceitar not_eq mas normalizá-lo/baixá-lo para eq, omitir um site,
+trocar ID/operands/tipo ou não permitir provar a conformance, Canal A falha e
+não qualifica, mesmo que Canal B passe. Alterações colaterais em seleção/D
+decorrentes dessa autoria mutada não dão crédito semântico; ficam registradas
+separadamente. O teste P isolado continua exclusivamente no Canal B.
+
+Quando a autoria é recusada pelo checker específico comprovado, não se exige
+um IR inexistente; a recusa causal prevista e o Canal B suficiente continuam
+necessários. Não converter exception genérica em essa recusa específica.
 
 Nenhum resultado desse canal incrementa executed/matched SEMÂNTICOS, cobre
 predicate_atom ou autoriza emitir receipt. Tampouco sua recusa prova que P
-executou. O canal testa a proteção de autoria e não declara ter reproduzido
-um fluxo financeiro completo do grafo mutado.
+executou. O canal testa a proteção de autoria e, no ramo admitted, seu lowering
+quarentenado com conformance independente; não declara ter reproduzido um fluxo
+financeiro completo do grafo mutado.
 
 ### 3.3 Canal B — fault da estratégia na asserção P
 
@@ -132,9 +156,16 @@ exata, controles de restauração e de ausência de fault. O recorder já extern
 continua fonte do trace; não criar canal de causas/violações autodeclaradas pelo
 guest. A referência é expected independente, não prova isolada de execução.
 
-Classificar todas as barreiras recusadas. Somente o átomo do alvo poderá
-rejeitar; recusa de claim, identity, fingerprint, selection/evidence_set, trace,
-evaluator/root ou erro de execução não recebe crédito. As medições distinguem
+Classificar todas as barreiras recusadas por identidade do site e papel causal,
+não apenas pelo nome do átomo. A asserção P alvo deve rejeitar e recebe crédito
+mesmo quando target.atom === identity (por exemplo p0034_parent_fact); isso não
+autoriza recusa de uma barreira identity COLATERAL. ID/operands/tipo do site,
+identidade das fontes/claim/pais e demais asserções continuam preservados.
+Uma recusa fora da asserção alvo — inclusive claim, identity, fingerprint,
+selection/evidence_set, trace, evaluator/root ou erro de execução — não recebe
+crédito e impede qualificação, mesmo se seu rótulo de átomo coincidir com o do
+alvo. Não fabricar parent nem dispensar sua execução para qualificar identity.
+As medições distinguem
 identidade do artefato negativo da identidade positiva; essa identidade
 esperada NÃO relaxa freeze, root de release ou autorização financeira.
 
@@ -145,11 +176,17 @@ cobre duas coordenadas. expected deriva do corpus, não é fixado em 974.
 Publicar dois ledgers por ID: authoring_probe e semantic_assertion_fault.
 Cada ledger exige expected/generated/executed/matched completos, sem
 compensação entre canais. No primeiro, executed significa executar admissão,
-não D/P; no segundo, significa a execução real D/P do artefato negativo.
+não D/P; matched exige recusa específica comprovada OU, no ramo admitted,
+compile quarentenado concluído e conformance autoria→IR independente aprovada.
+Publicar separadamente admission_outcome, quarantine_compile_completed e
+authoring_ir_conformance_matched, distinguindo não aplicável por recusa causal
+de prova ausente após admitted. No segundo ledger, executed significa a
+execução real D/P do artefato negativo.
 
 Uma coordenada só se qualifica com AMBOS os canais suficientes. Recusa precoce
 não substitui o segundo; sucesso do segundo não oculta recusa de autoria não
-explicada. A família só fecha com todos os IDs qualificados, baselines íntegros
+explicada ou lowering admitido não demonstrado. A família só fecha com todos
+os IDs qualificados, baselines íntegros
 e zero UNSATISFIED. Um lote contabilizado mas vermelho continua vermelho.
 
 predicate_atom continua exigindo conteúdo mutado, fingerprint reparado e
@@ -161,6 +198,18 @@ O adendo source-state ratificado em 98e3d6a permanece restrito à sua construç�
 ## 5. REDs e controles obrigatórios antes de aprovação do código
 
 - Restore: reinstalar eq no MESMO site devolve P/coverage/oracle a PASS.
+- Admitted lowering: autoria not_eq admitida deve compilar em quarentena e
+  preservar not_eq em todos os sites causais exigidos, com ID/operands/tipo
+  exatos. Um compiler deliberadamente defeituoso que normalize not_eq→eq deve
+  reprovar Canal A e a coordenada, mesmo com Canal B semanticamente correto.
+  Site omitido/extra, mapa autodeclarado incorreto e conformance não executada
+  também reprovam. A expectativa existe antes de ler o IR emitido.
+- Rejected authoring: recusa pelo checker específico comprovado pode completar
+  Canal A sem compile; exception genérica, checker errado ou ligação inventada
+  ao alvo não podem fazê-lo. Nenhum ramo concede crédito semântico sozinho.
+- Identity target: mutar somente a asserção P identity alvo pode qualificar;
+  introduzir adicionalmente recusa de identity de fonte/claim/parent ou de outra
+  asserção deve reprovar, inclusive se a asserção alvo também rejeitar.
 - No-fault: artefato original marcado falsamente como mutado não qualifica.
 - Wrong coordinate/atom: descriptor de outro ID/átomo não recebe crédito.
 - Secondary fault: alterar outro site, mesmo do mesmo átomo, falha fechado.
@@ -184,16 +233,22 @@ allowlist dos exemplos S-01/S-04. Sem mapa e conformance verificáveis, o desenh
 
 ## 6. Candidato, revisão e próxima ação
 
-Paths deste delta documental:
+Artefatos de contexto do candidato documental original:
 
 1. este plano;
 2. `docs/audit-evidence/n02g-causal-authoring-profile/predicate-strategy-boundary-witness.json`;
 3. `docs/audit-evidence/n02g-causal-authoring-profile/verify-predicate-strategy-boundary-witness.cjs`.
 
+O delta corretivo sobre 6666c4e altera SOMENTE este plano. Witness e verifier
+permanecem idênticos e conservam seu limite de extração; não são evidência de
+execução dos novos controles nem uma conformance autoria→IR já implementada.
+
 O helper verifica EXTRAÇÃO/consistência documental, não suficiência normativa
 ou runtime. A auditoria deve julgar explicitamente se os dois canais e a
 fronteira de asserção P são uma cobertura adequada da família proposta, e se
-conformance + referência + captura externa + controles evitam falso verde.
+conformance de autoria admitida + conformance do fault P + referência + captura
+externa + controles evitam falso verde, inclusive o lowering not_eq→eq indevido
+e a distinção entre identity alvo e identity colateral.
 Se a classe proposta não satisfizer esse propósito, exigir NÃO APTO; não
 aprovar apenas porque o diagnóstico foi extraído corretamente.
 
