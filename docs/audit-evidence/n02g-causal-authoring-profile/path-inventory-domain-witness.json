@@ -1,0 +1,92 @@
+{
+  "extraction_only": true,
+  "normative_approval": false,
+  "runtime_tests_executed": false,
+  "immutable_base": "dbe72aa94894b7c4abf70c31fab8902f5e9236dc",
+  "corpus_path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+  "corpus_lf_sha256": "sha256:a4938977a205d2d9fe9bee3560f0f247a005992c9b8506a03ba56c152c21c1ce",
+  "graph_count": 76,
+  "predicate_count": 11456,
+  "all_operand_coordinates": 22994,
+  "all_unknown_path_ids_sha256": "sha256:7cbcf629f83ab12cd7e9b5b38146b33a4d537212e8061c6eb540df9ae1fbb35f",
+  "operand_forms": {
+    "bindings+template": 28,
+    "claim": 710,
+    "edge": 4469,
+    "field": 2145,
+    "literal": 6105,
+    "node": 9041,
+    "period_bound": 14,
+    "period_literal": 74,
+    "period_ref": 23,
+    "presence": 98,
+    "ref_set": 55,
+    "selector": 51,
+    "set": 181
+  },
+  "literal_coordinates_without_authored_path": 6179,
+  "examples": {
+    "literal": {
+      "mutation_id": "sha256:a7580c09b0ccc2fca092fe123188775e5490e572b2e181181cef6e4d2ebfdca9",
+      "target": {
+        "fact_key": "S-01#1#1",
+        "predicate_id": "p0001_kind",
+        "operand_index": 1,
+        "strategy": "unknown_path"
+      },
+      "operator": "kind_is",
+      "operand": {
+        "literal": {
+          "type": "kind",
+          "value": "fixture"
+        }
+      }
+    },
+    "period_literal": {
+      "mutation_id": "sha256:2e5cd814a7a19fd5920baec2a0a24a35d8798acbd09d9d00f30a50974ecf3389",
+      "target": {
+        "fact_key": "S-01#1#1",
+        "predicate_id": "binding_1",
+        "operand_index": 1,
+        "strategy": "unknown_path"
+      },
+      "operator": "period_eq",
+      "operand": {
+        "period_literal": {
+          "kind": "month",
+          "value": "2042-06"
+        }
+      }
+    },
+    "bindings+template": {
+      "mutation_id": "sha256:0bd358dddfccb35122eae06155f26efbccaf3297550a3ca215e3d8ff4ff1d289",
+      "target": {
+        "fact_key": "S-05#1#1",
+        "predicate_id": "r0006_outside_window",
+        "operand_index": 1,
+        "strategy": "unknown_path"
+      },
+      "operator": "none_match",
+      "operand": {
+        "template": {
+          "id": "date_within_period",
+          "version": 1,
+          "hash": "sha256:34e3de01f97da0b4f027255e4313258f201607adb8634a47f6892f82128fc61b"
+        },
+        "bindings": {
+          "field": {
+            "selector": {
+              "kind": "event",
+              "segments": [
+                "date"
+              ]
+            }
+          },
+          "period": {
+            "period_ref": "selection_window"
+          }
+        }
+      }
+    }
+  }
+}
