@@ -1,0 +1,232 @@
+{
+  "stage": "immutable_path_semantic_singleton_extraction",
+  "extraction_only": true,
+  "normative_approval": false,
+  "runtime_tests_executed": false,
+  "global_g11": false,
+  "immutable_base": "f892a35fce88fe21d474bd7ed408fe2697052ce7",
+  "sources": [
+    {
+      "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+      "sha256": "sha256:a4938977a205d2d9fe9bee3560f0f247a005992c9b8506a03ba56c152c21c1ce"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claims-v2.json",
+      "sha256": "sha256:4810612761ea7f232e4445c0d192ae53ebf0761f0ba8752da758efb826b30494"
+    },
+    {
+      "path": "src/next/provenance/predicateTypes.js",
+      "sha256": "sha256:b34048c85c1a4ab1afea3559dc526ddf39a8db16a5efd27dd6e0789acba8ec58"
+    }
+  ],
+  "target": {
+    "fact_key": "M-01#1#1",
+    "predicate_id": "binding_1",
+    "family": "predicate_path_semantic"
+  },
+  "predicate": {
+    "id": "binding_1",
+    "obligation": "period",
+    "atom": "period",
+    "op": "period_eq",
+    "args": [
+      {
+        "claim": {
+          "segments": [
+            "period"
+          ]
+        }
+      },
+      {
+        "period_literal": {
+          "kind": "month",
+          "value": "2042-06"
+        }
+      }
+    ]
+  },
+  "claim": {
+    "claim_id": "claim-M-01#1#1",
+    "fact_key": "M-01#1#1",
+    "metric": "consumption_total",
+    "unit": "BRL_minor",
+    "subject": {
+      "kind": "person",
+      "ref_id": "person-a"
+    },
+    "period": {
+      "kind": "month",
+      "value": "2042-06"
+    },
+    "time_basis": "event_date",
+    "coverage": "complete",
+    "evidence_state": "confirmed",
+    "evaluator_ref": {
+      "evaluator_id": "consumption_total",
+      "evaluator_version": 1
+    },
+    "operand_bindings": {
+      "context": {
+        "kind": "claim_context"
+      },
+      "events": {
+        "kind": "node_set",
+        "aliases": [
+          "evt_salary_a",
+          "evt_market_a",
+          "evt_snack_a",
+          "evt_fuel_a",
+          "evt_restaurant_b",
+          "evt_refund_b",
+          "evt_cinema_b",
+          "evt_gift_b",
+          "evt_transfer_out",
+          "evt_transfer_in",
+          "evt_invoice_payment",
+          "evt_rent_a",
+          "evt_installment_1",
+          "evt_installment_2",
+          "evt_installment_3",
+          "evt_bill_projected"
+        ]
+      },
+      "categories": {
+        "kind": "node_set",
+        "aliases": [
+          "food_snack",
+          "food_market",
+          "food_restaurant",
+          "transport_fuel",
+          "housing_rent",
+          "leisure_cinema",
+          "gifts",
+          "income_salary",
+          "neutral_transfer",
+          "neutral_invoice_payment",
+          "neutral_refund",
+          "health_general"
+        ]
+      },
+      "family": {
+        "kind": "node",
+        "alias": "family_example"
+      }
+    }
+  },
+  "all_object_key_claim_locations": [
+    [
+      "claim_id"
+    ],
+    [
+      "coverage"
+    ],
+    [
+      "evaluator_ref"
+    ],
+    [
+      "evaluator_ref",
+      "evaluator_id"
+    ],
+    [
+      "evaluator_ref",
+      "evaluator_version"
+    ],
+    [
+      "evidence_state"
+    ],
+    [
+      "fact_key"
+    ],
+    [
+      "metric"
+    ],
+    [
+      "operand_bindings"
+    ],
+    [
+      "operand_bindings",
+      "categories"
+    ],
+    [
+      "operand_bindings",
+      "categories",
+      "aliases"
+    ],
+    [
+      "operand_bindings",
+      "categories",
+      "kind"
+    ],
+    [
+      "operand_bindings",
+      "context"
+    ],
+    [
+      "operand_bindings",
+      "context",
+      "kind"
+    ],
+    [
+      "operand_bindings",
+      "events"
+    ],
+    [
+      "operand_bindings",
+      "events",
+      "aliases"
+    ],
+    [
+      "operand_bindings",
+      "events",
+      "kind"
+    ],
+    [
+      "operand_bindings",
+      "family"
+    ],
+    [
+      "operand_bindings",
+      "family",
+      "alias"
+    ],
+    [
+      "operand_bindings",
+      "family",
+      "kind"
+    ],
+    [
+      "period"
+    ],
+    [
+      "period",
+      "kind"
+    ],
+    [
+      "period",
+      "value"
+    ],
+    [
+      "subject"
+    ],
+    [
+      "subject",
+      "kind"
+    ],
+    [
+      "subject",
+      "ref_id"
+    ],
+    [
+      "time_basis"
+    ],
+    [
+      "unit"
+    ]
+  ],
+  "claim_type_function": "        function claimField(ref) {\n            const { schema, ref: schemaRef, value } = claimSchemaPath(claimSchema, claim, ref.segments);\n            const path = ref.segments.join('.');\n            let type;\n            if (path === 'period') type = { form: claim.period.kind === 'range' ? 'range' : 'period', periodKind: claim.period.kind };\n            else if (schemaRef === 'date' || schemaRef === 'month') type = scalar(schemaRef);\n            else if (schema.enum || own(schema, 'const')) type = enumType(schema.enum || [schema.const]);\n            else if (schemaRef === 'id') {\n                let kind;\n                if (path.startsWith('subject.')) kind = claimReferenceKind(claim, ref.segments);\n                else kind = `claim.${path}`;\n                type = scalar('id', { kind });\n            } else if (schema.type === 'integer') type = scalar(schema.minimum >= 1 ? 'positive_integer' : 'integer');\n            else if (schema.type === 'boolean') type = scalar('boolean');\n            else if (schema.type === 'object') type = { form: 'record' };\n            else if (schema.type === 'array') type = { form: 'sequence', item: scalar('id', { kind: claimReferenceKind(claim, ref.segments) }) };\n            else if (schema.type === 'string') type = scalar('text');\n            else fail('claim_type');\n            return { ...type, known: value };\n        }\n",
+  "type_rule_period_locator": [
+    "period"
+  ],
+  "same_class_distinct_period_locator_candidates": [],
+  "limitation": "Extraction and exact type-rule excerpt, not runtime proof, normative applicability or approval of all WIP pending causes."
+}
