@@ -1,0 +1,290 @@
+{
+  "stage": "documentary_claim_month_path_completion_construction",
+  "extraction_and_construction_only": true,
+  "normative_approval": false,
+  "runtime_tests_executed": false,
+  "original_corpus_witness_qualified": false,
+  "profile_witness_qualified": false,
+  "global_g11": false,
+  "immutable_base": "9f232674602e3b528cfd07e61b65537c01a9e784",
+  "profile_proposed": "claim-month-path-completion/v1",
+  "sources": [
+    {
+      "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+      "sha256": "sha256:a4938977a205d2d9fe9bee3560f0f247a005992c9b8506a03ba56c152c21c1ce"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claims-v2.json",
+      "sha256": "sha256:4810612761ea7f232e4445c0d192ae53ebf0761f0ba8752da758efb826b30494"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claim-contract.schema.json",
+      "sha256": "sha256:b69ef61b562061f057a9bf08f47623ae432c723f565e8775f3dbe6eb942ea998"
+    },
+    {
+      "path": "src/next/provenance/predicateTypes.js",
+      "sha256": "sha256:b34048c85c1a4ab1afea3559dc526ddf39a8db16a5efd27dd6e0789acba8ec58"
+    },
+    {
+      "path": "src/next/provenance/claimRequirements.js",
+      "sha256": "sha256:3ec6b93051eaec259f3f8431504163756d1dd4dbfb31edc15df23bc21894dac3"
+    },
+    {
+      "path": "src/next/provenance/claimContext.js",
+      "sha256": "sha256:908e44c14d3602fc06284a4e956e0e29fb68497b32f5321200672c6329efa4ae"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/operator-registry-v2.json",
+      "sha256": "sha256:d28eb3dfbf7ea6949c1ff696e9f9bc7aa572c3ab8433a06d316936092a2dcac7"
+    }
+  ],
+  "target": {
+    "fact_key": "M-01#1#1",
+    "predicate_id": "binding_1",
+    "family": "predicate_path_semantic",
+    "site": [
+      "args",
+      0,
+      "claim",
+      "segments"
+    ]
+  },
+  "original_claim": {
+    "claim_id": "claim-M-01#1#1",
+    "fact_key": "M-01#1#1",
+    "metric": "consumption_total",
+    "unit": "BRL_minor",
+    "subject": {
+      "kind": "person",
+      "ref_id": "person-a"
+    },
+    "period": {
+      "kind": "month",
+      "value": "2042-06"
+    },
+    "time_basis": "event_date",
+    "coverage": "complete",
+    "evidence_state": "confirmed",
+    "evaluator_ref": {
+      "evaluator_id": "consumption_total",
+      "evaluator_version": 1
+    },
+    "operand_bindings": {
+      "context": {
+        "kind": "claim_context"
+      },
+      "events": {
+        "kind": "node_set",
+        "aliases": [
+          "evt_salary_a",
+          "evt_market_a",
+          "evt_snack_a",
+          "evt_fuel_a",
+          "evt_restaurant_b",
+          "evt_refund_b",
+          "evt_cinema_b",
+          "evt_gift_b",
+          "evt_transfer_out",
+          "evt_transfer_in",
+          "evt_invoice_payment",
+          "evt_rent_a",
+          "evt_installment_1",
+          "evt_installment_2",
+          "evt_installment_3",
+          "evt_bill_projected"
+        ]
+      },
+      "categories": {
+        "kind": "node_set",
+        "aliases": [
+          "food_snack",
+          "food_market",
+          "food_restaurant",
+          "transport_fuel",
+          "housing_rent",
+          "leisure_cinema",
+          "gifts",
+          "income_salary",
+          "neutral_transfer",
+          "neutral_invoice_payment",
+          "neutral_refund",
+          "health_general"
+        ]
+      },
+      "family": {
+        "kind": "node",
+        "alias": "family_example"
+      }
+    }
+  },
+  "original_predicate": {
+    "id": "binding_1",
+    "obligation": "period",
+    "atom": "period",
+    "op": "period_eq",
+    "args": [
+      {
+        "claim": {
+          "segments": [
+            "period"
+          ]
+        }
+      },
+      {
+        "period_literal": {
+          "kind": "month",
+          "value": "2042-06"
+        }
+      }
+    ]
+  },
+  "proposed_mutant_predicate": {
+    "id": "binding_1",
+    "obligation": "period",
+    "atom": "period",
+    "op": "period_eq",
+    "args": [
+      {
+        "claim": {
+          "segments": [
+            "qualification",
+            "alternative_period"
+          ]
+        }
+      },
+      {
+        "period_literal": {
+          "kind": "month",
+          "value": "2042-06"
+        }
+      }
+    ]
+  },
+  "proposed_restore_predicate": {
+    "id": "binding_1",
+    "obligation": "period",
+    "atom": "period",
+    "op": "period_eq",
+    "args": [
+      {
+        "claim": {
+          "segments": [
+            "period"
+          ]
+        }
+      },
+      {
+        "period_literal": {
+          "kind": "month",
+          "value": "2042-06"
+        }
+      }
+    ]
+  },
+  "proposed_view": {
+    "claim_id": "claim-M-01#1#1",
+    "fact_key": "M-01#1#1",
+    "metric": "consumption_total",
+    "unit": "BRL_minor",
+    "subject": {
+      "kind": "person",
+      "ref_id": "person-a"
+    },
+    "period": {
+      "kind": "month",
+      "value": "2042-06"
+    },
+    "time_basis": "event_date",
+    "coverage": "complete",
+    "evidence_state": "confirmed",
+    "evaluator_ref": {
+      "evaluator_id": "consumption_total",
+      "evaluator_version": 1
+    },
+    "qualification": {
+      "alternative_period": {
+        "kind": "month",
+        "value": "2042-07"
+      }
+    }
+  },
+  "proposed_sidecar": {
+    "qualification": {
+      "alternative_period": {
+        "kind": "month",
+        "value": "2042-07"
+      }
+    }
+  },
+  "original_claim_sha256": "sha256:4da71770182885df39cb7216d488e4b2af1404155c9f5336b71675f56ba94509",
+  "core_context_sha256": "sha256:d576f7a204523fe75ec47bb376b78f44439b3524b753b2e88098fbe7b5e8632b",
+  "proposed_view_sha256": "sha256:78a63ecce484bd00dd93a435003525db4c4e8d2ab860ebfb6ebf4ffef01203af",
+  "proposed_sidecar_sha256": "sha256:ae134f9c8a8b0882021bdf082895b0e7f4089300bc2128f566260b63ac5672ea",
+  "original_graph_sha256": "sha256:967b61f57c95e4bba680295f4b8fd77c368facf68c85a2f6e2b5662b871aa1ef",
+  "projected_core_equals_original_context": true,
+  "one_authored_locator_change": true,
+  "proposed_nominal_rule": {
+    "locator": [
+      "qualification",
+      "alternative_period"
+    ],
+    "form": "period",
+    "periodKind": "month",
+    "authority": "ratified_profile_required_not_current_schema"
+  },
+  "reference_construction": {
+    "original": {
+      "kind": "month",
+      "value": "2042-06"
+    },
+    "alternative": {
+      "kind": "month",
+      "value": "2042-07"
+    },
+    "literal": {
+      "kind": "month",
+      "value": "2042-06"
+    },
+    "control": true,
+    "mutant": false,
+    "restore": true,
+    "reads_actual": false,
+    "computes_R": false
+  },
+  "property_probes": {
+    "exhaustive_valid_months": 119988,
+    "invalid_months_rejected": 7,
+    "perturbed_constructions_rejected": 5,
+    "last_month_alternative": "9999-11",
+    "runtime_credit": 0
+  },
+  "immutable_blockers": {
+    "original_schema_does_not_declare_extension": true,
+    "original_nominal_rule_only_top_level_period": true,
+    "original_claim_requirements_requires_direct_period_binding": true,
+    "original_context_projection_drops_extension": true,
+    "selection_consumers_extracted": [],
+    "claim_schema_hash": "sha256:b69ef61b562061f057a9bf08f47623ae432c723f565e8775f3dbe6eb942ea998",
+    "period_operator_signature": {
+      "id": "period_eq",
+      "args": [
+        "period",
+        "period"
+      ],
+      "semantics": "equal_period_kind_and_fields"
+    }
+  },
+  "required_future_controls": [
+    "full_mutated_authoring_quarantine_compile_not_post_IR_injection",
+    "private_ticket_bound_to_original_ID_core_oracle_parents_and_profile",
+    "independent_authorship_to_IR_locator_conformance",
+    "only_target_static_binding_transport_no_generic_checker_bypass",
+    "D_original_context_P_extended_view_isolation",
+    "external_recorder_core_exact_and_target_fringe_only",
+    "target_P_executed_false_other_predicates_and_barriers_valid",
+    "positive_original_oracle_unchanged_no_counterfactual_R",
+    "C_M_S_no_receipt_or_validated_parent",
+    "mandatory_ID_unchanged_unique_mutant_invocation"
+  ],
+  "limitation": "Pure documentary extraction/construction. No runtime typing, claim admission, compiler lowering, D/P, recorder, release or WIP conformance is tested; the new profile is not ratified."
+}
