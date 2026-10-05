@@ -29,10 +29,21 @@ test('N02G:PROOF-001 fingerprint measures material presence, falsy values and st
     assert.equal(measured, `sha256:${digest({ registry_version: 1, ...identity,
         payload: { id: 'event-a', amount: 0, active: false, refs: [] } })}`);
     assert.ok(events.some(e => e[1] === 'has' && e[4][0] === 'optional' && e[6][1] === false));
-    assert.ok(events.some(e => e[1] === 'length' && e[4][0] === 'refs'));
+    assert.ok(events.some(e => e[1] === 'iterate' && e[4][0] === 'refs'));
+    assert.ok(events.some(e => e[1] === 'next' && e[4][0] === 'refs' && e[6][0] === 'done'));
+    assert.ok(!events.some(e => e[1] === 'at' && e[4][0] === 'refs'));
     assert.ok(events.some(e => e[1] === 'get' && e[4][0] === 'amount' && e[6][1] === 0));
     assert.ok(!events.some(e => e[4].includes('label')));
     assert.ok(!events.some(e => e[4].includes('semantic_fingerprint')));
+});
+test('N02G:PROOF-FINGERPRINT-PROFILE-001 admitted snapshot enumeration preserves the same material fingerprint without redundant has', () => {
+    const events = [];
+    const snapshot = measureMaterialFingerprint(fixture(undefined, event => events.push(event)).handle('a'),
+        descriptor, 'enumerated_presence');
+    assert.equal(snapshot, measureMaterialFingerprint(fixture().handle('a'), descriptor));
+    assert.ok(events.some(event => event[1] === 'keys' && !event[6].includes('optional')));
+    assert.ok(!events.some(event => event[1] === 'has'));
+    assert.throws(() => measureMaterialFingerprint(fixture().handle('a'), descriptor, 'invented'), /proof_material/);
 });
 test('N02G:PROOF-002 fingerprint cannot omit a present field or read a non-material field', () => {
     const missing = structuredClone(descriptor); delete missing.fields.amount;
@@ -116,7 +127,9 @@ test('N02G:PROOF-007 quantifiers never short-circuit later observed members or i
         const f = quantifiedFixture(values);
         assert.equal(evaluateObservedOperator(operators.find(o => o.id === op), f.operands, f.scope), expected);
         assert.equal(f.events.filter(e => e[1] === 'get' && e[4][0] === 'amount').length, values.length);
-        assert.ok(f.events.some(e => e[1] === 'length'));
+        assert.ok(f.events.some(e => e[1] === 'iterate'));
+        assert.ok(f.events.some(e => e[1] === 'next' && e[6][0] === 'done'));
+        assert.equal(f.events.filter(e => e[1] === 'next' && e[6][0] !== 'done').length, values.length);
     }
 });
 test('N02G:PROOF-008 invalid template on empty set is rejected, never vacuously approved', () => {

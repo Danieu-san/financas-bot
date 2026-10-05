@@ -17,7 +17,9 @@
     }
   },
   "semantics": [
-    "Retornar coverage literal da source_state consultada depois de comprovar período e escopo aplicáveis. Não converter unavailable/partial para complete."
+    "Retornar coverage literal da source_state consultada depois de comprovar período e escopo aplicáveis. Não converter unavailable/partial para complete.",
+    "Retornar após provar refere-se ao resultado aceito pelo pipeline completo. D produz somente R tipado provisório sobre inputs admitidos; P comprova período e coverage exigida antes de aceitação, materialização, validated_parent ou resposta financeira.",
+    "D preserva resolução nominal, identidade, escopo e enum literal. R provisório partial/unavailable nunca vira complete ou receipt; P, identidade, fingerprints, seleção, traces e oracle positivo original continuam obrigatórios."
   ],
   "algebraic_properties": [
     "Estado diferente e válido deve ser preservado, sem coerção para complete."

@@ -33,7 +33,8 @@ function same(actual, expected, code) {
     if (actual.size !== expected.size || [...actual.keys()].some(key => !expected.has(key))) fail(code);
 }
 
-function validateGraphStructure({ graphs, claims, materialRegistry, operatorRegistry }) {
+function validateGraphStructureInternal({ graphs, claims, materialRegistry, operatorRegistry }, qualification) {
+    const graphMap = unique(graphs, graph => graph.fact_key);
     const claimMap = unique(claims, claim => claim.fact_key);
     const operators = unique(operatorRegistry.operators, operator => operator.id);
     let phases = 0;
@@ -59,7 +60,7 @@ function validateGraphStructure({ graphs, claims, materialRegistry, operatorRegi
             for (const id of ids.keys()) if (!predicates.has(id)) fail('predicate_missing');
             return ids;
         };
-        const field = (kind, segments, allowRoot = false) => {
+        const field = (kind, segments, allowRoot = false, parentalRead = false) => {
             if (!own(materialRegistry.kinds, kind)) fail('kind_missing');
             if (!Array.isArray(segments) || (!allowRoot && !segments.length)) fail('path_invalid');
             if (!segments.length) return { type: 'record' };
@@ -68,15 +69,34 @@ function validateGraphStructure({ graphs, claims, materialRegistry, operatorRegi
             const descriptor = fields[segments[0]];
             if (descriptor.class === 'non_material') fail('path_non_material');
             if (segments.length !== 1) {
+                // This finite profile admits only scalar money results of
+                // primary parents, not arbitrary traversal through typed JSON.
+                if (parentalRead && kind === 'derived_claim' && descriptor.type === 'typed_result'
+                    && segments.length === 2 && ['unit', 'kind', 'value'].includes(segments[1]))
+                    return { type: segments[1] === 'value' ? 'money_minor' : 'text' };
                 // Structured field traversal needs an explicit typed lowering;
                 // never let arbitrary JSON-property traversal reach execution.
                 if (['typed_period', 'typed_result', 'role_ref_list'].includes(descriptor.type)) fail('path_structured_unresolved');
                 fail('path_scalar_traversal');
             }
+            if (parentalRead && allowRoot && descriptor.type === 'typed_result') return { type: 'record' };
             return descriptor;
         };
-        const nodeField = (ref, allowRoot = false) => field(node(ref.node).kind, ref.segments, allowRoot);
+        const nodeField = (ref, allowRoot = false, phase = null) => {
+            const binding = node(ref.node);
+            const parentalRead = phase !== null && binding.binding === 'validated_parent';
+            if (parentalRead) {
+                const parent = graphMap.get(binding.fact_key); const parentClaim = claimMap.get(binding.fact_key);
+                if (!parent || !parentClaim || parentClaim.unit !== 'BRL_minor'
+                    || Object.values(parent.nodes).some(n => n.binding !== 'snapshot')
+                    || parent.edges.some(e => e.relation === 'derived_from')
+                    || Object.values(parentClaim.operand_bindings).some(b => b.kind === 'parent_claim')) fail('parent_profile');
+            }
+            return field(binding.kind, ref.segments, allowRoot, parentalRead);
+        };
         const claimPath = ref => {
+            if (qualification?.variant === 'M' && graph.fact_key === qualification.subobligation.fact_key
+                && JSON.stringify(ref.segments) === JSON.stringify(qualification.locator)) return;
             if (!Array.isArray(ref.segments) || !ref.segments.length) fail('claim_path');
             let value = claim;
             for (const key of ref.segments) {
@@ -197,7 +217,7 @@ function validateGraphStructure({ graphs, claims, materialRegistry, operatorRegi
             const reads = unique(trace.required_reads, read => JSON.stringify([read.node, read.segments]));
             const readNodes = new Set();
             for (const read of reads.values()) {
-                nodeField(read);
+                nodeField(read, false, phase);
                 if (!requiredNodes.has(read.node)) fail('read_not_required');
                 readNodes.add(read.node);
             }
@@ -206,7 +226,7 @@ function validateGraphStructure({ graphs, claims, materialRegistry, operatorRegi
             for (const id of unique(trace.required_edges).keys()) if (!edges.has(id)) fail('edge_missing');
             unique(trace.required_structural, entry => JSON.stringify([entry.node, entry.operation, entry.segments]));
             for (const entry of trace.required_structural) {
-                const descriptor = nodeField(entry, true);
+                const descriptor = nodeField(entry, true, phase);
                 if (!requiredNodes.has(entry.node)) fail('structural_not_required');
                 if (['iterator', 'cardinality', 'order'].includes(entry.operation)
                     && !['ref_list', 'role_ref_list'].includes(descriptor.type)) fail('structural_type');
@@ -232,4 +252,12 @@ function validateGraphStructure({ graphs, claims, materialRegistry, operatorRegi
     return Object.freeze({ stage: 'structure_checked_only', graphs: graphs.length, phases });
 }
 
-module.exports = { validateGraphStructure };
+function validateGraphStructure(input) {
+    return validateGraphStructureInternal(input, null);
+}
+function validateQualificationGraphStructure(input, transport, variant) {
+    const qualification = require('./claimMonthPathProfile').assertClaimMonthPathTransport({
+        graphs: input.graphs, claims: input.claims, transport, variant });
+    return validateGraphStructureInternal(input, qualification);
+}
+module.exports = { validateGraphStructure, validateQualificationGraphStructure };

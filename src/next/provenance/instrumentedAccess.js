@@ -90,6 +90,7 @@ function createInstrumentedAccess(options) {
         relations.set(link.id, link);
     }
     let revoked = false; let failed = false;
+    const rootHandles = new WeakMap();
     function fail(code) { failed = true; throw new Error(`access_${code}`); }
     function check() { if (failed) fail('failed'); if (revoked) fail('revoked'); }
     function event(op, b, path, projection, outcome) {
@@ -139,7 +140,7 @@ function createInstrumentedAccess(options) {
             });
             return result;
         }
-        return frozenInterface({
+        const surface = frozenInterface({
             civilDate: (...args) => {
                 check();
                 if (projection !== 'data' || args.length !== 3) fail('civil_arguments');
@@ -210,10 +211,15 @@ function createInstrumentedAccess(options) {
             },
             [Symbol.iterator]: iterator
         });
+        if (path.length === 0 && projection === 'data') rootHandles.set(surface, b.alias);
+        return surface;
     }
     return Object.freeze({
         handle: alias => { check(); if (typeof alias !== 'string' || !roots.has(alias)) fail('binding_invalid');
             const b = roots.get(alias); return handle(b.value, b.shape, b, [], 'data'); },
+        // TCB-only address/ownership lookup: no guest method or material field
+        // is inspected. Foreign/nested/proxied handles never match this map.
+        rootAliasIfOwned: handle => { check(); return rootHandles.get(handle); },
         revoke: () => { revoked = true; },
         assertHealthy: () => { if (failed) fail('failed'); }
     });
@@ -311,9 +317,60 @@ function createNodeSetAccess(options) {
         });
     }
     return Object.freeze({ handle: view(aliases),
+    rootAliasIfOwned: handle => { check(); return members?.rootAliasIfOwned(handle); },
     revoke: () => { revoked = true; members?.revoke(); },
     assertHealthy: () => { if (failed) fail('failed'); members?.assertHealthy(); }
     });
 }
 
-module.exports = { createInstrumentedAccess, createNodeSetAccess };
+// TCB transport only. A graph compiler supplies the already admitted relation;
+// this proxy has no ability to validate a parent or issue an acceptance receipt.
+function createDerivedParentAccess(options) {
+    if (!options || typeof options !== 'object' || types.isProxy(options)) failSetup();
+    const d = Object.getOwnPropertyDescriptors(options); const names = ['phase', 'bindings', 'edges', 'emit'];
+    if (Reflect.ownKeys(d).length !== names.length || names.some(name => !d[name]
+        || !Object.hasOwn(d[name], 'value') || !d[name].enumerable) || typeof d.emit.value !== 'function') failSetup();
+    const phase = d.phase.value; const emit = d.emit.value;
+    const bindings = copyData(d.bindings.value); const edges = copyData(d.edges.value);
+    if (!['derivation', 'proof'].includes(phase) || !Array.isArray(bindings) || !bindings.length
+        || !Array.isArray(edges) || edges.length !== bindings.length) failSetup();
+    const byAlias = new Map(bindings.map(b => [b.alias, b])); const byId = new Map();
+    const targets = new Set(); const roles = new Set();
+    if (byAlias.size !== bindings.length) failSetup();
+    for (const edge of edges) {
+        if (!edge || Object.keys(edge).sort().join(',') !== 'field,id,relation,source,target'
+            || edge.source !== 'claim' || edge.relation !== 'derived_from' || !identifier(edge.id)
+            || !field(edge.field) || !identifier(edge.target) || byId.has(edge.id)
+            || targets.has(edge.target) || roles.has(edge.field)) failSetup();
+        const binding = byAlias.get(edge.target);
+        if (!binding || binding.role !== (phase === 'derivation' ? edge.field : 'proof/snapshot')
+            || binding.identity?.kind !== 'derived_claim') failSetup();
+        byId.set(edge.id, edge); targets.add(edge.target); roles.add(edge.field);
+    }
+    const access = createInstrumentedAccess({ bindings, emit });
+    let failed = false; let revoked = false;
+    const invalid = () => { failed = true; access.revoke(); throw new Error('derived_parent_access_invalid'); };
+    const check = () => {
+        if (failed) throw new Error('derived_parent_access_failed');
+        if (revoked) { failed = true; throw new Error('derived_parent_access_revoked'); }
+        try { access.assertHealthy(); } catch { invalid(); }
+    };
+    return frozenInterface({
+        traverse(edgeId) {
+            check(); const edge = typeof edgeId === 'string' ? byId.get(edgeId) : undefined;
+            if (!edge) invalid();
+            try { emit(copyData(['I', 'traverse', 'claim', phase === 'derivation' ? edge.field : 'proof/snapshot',
+                [edge.field], 'data', ['edge', edge.id, edge.target]])); } catch { invalid(); }
+            check(); return access.handle(edge.target);
+        },
+        revoke() { revoked = true; access.revoke(); },
+        // A clean revocation closes use; it is not itself a causal fault.
+        // Any attempted use after revocation remains sticky and fails health.
+        assertHealthy() {
+            if (failed) throw new Error('derived_parent_access_failed');
+            access.assertHealthy();
+        }
+    });
+}
+
+module.exports = { createInstrumentedAccess, createNodeSetAccess, createDerivedParentAccess };

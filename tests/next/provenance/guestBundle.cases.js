@@ -73,3 +73,41 @@ test('N02G:GUEST-BUNDLE-004 evaluator bundles include the shared reference depen
             sources: sources.filter(s => s.path !== 'metricReferences.js') }), /guest_bundle_/);
     }
 });
+
+test('N02G:TCB-BUNDLE-001 trusted capture closes project imports and admits only explicit native externals', async () => {
+    const { buildTrustedCommonJsBundle, buildCommonJsGuestBundle } = await builder();
+    const fixture = { entry: 'main.js', exportName: 'run', sources: [
+        { path: 'main.js', source: "const { add } = require('./math'); const { createHash } = require('node:crypto'); module.exports = { run: () => createHash('sha256').update(String(add(2, 3))).digest('hex') };" },
+        { path: 'math.js', source: 'module.exports = { add: (a, b) => a + b };' }
+    ] };
+    const result = buildTrustedCommonJsBundle(fixture);
+    assert.equal(result.stage, 'trusted_bundle_candidate_only');
+    assert.equal(result.executable, false);
+    assert.deepEqual(result.nativeExternals, ['node:crypto']);
+    const { runInNewContext } = require('node:vm');
+    // Evaluation here checks emitted semantics, NOT confinement or freeze.
+    const run = runInNewContext(result.source)(name => {
+        assert.equal(name, 'node:crypto'); return require('node:crypto');
+    });
+    fixture.sources[1].source = 'module.exports = { add: () => 999 };';
+    assert.equal(run(), createHash('sha256').update('5').digest('hex'));
+    assert.notEqual(buildTrustedCommonJsBundle(fixture).source, result.source);
+    assert.throws(() => buildCommonJsGuestBundle(fixture), /guest_bundle_external_import/);
+    for (const forbidden of ["const x = require('node:fs');", "const x = require(name);",
+        "const x = require?.('node:crypto');", "const x = (() => require('node:child_process'))();",
+        "const alias = require;", "const x = import('./math.js');"]) {
+        const bad = structuredClone(fixture); bad.sources[0].source = forbidden;
+        assert.throws(() => buildTrustedCommonJsBundle(bad), /guest_bundle_/);
+    }
+    assert.throws(() => buildTrustedCommonJsBundle({ ...fixture,
+        sources: [...fixture.sources, { path: 'extra.js', source: '' }] }), /guest_bundle_unreachable_source/);
+});
+
+test('N02G:GUEST-BUNDLE-005 nested loader expressions cannot escape closure analysis', async () => {
+    const { buildCommonJsGuestBundle } = await builder();
+    for (const source of ["const x = require('node:fs');", "const x = (() => require(name))();",
+        "module.exports = { run: () => import('node:fs') };", "const x = require?.('./math');"]) {
+        const bad = input(); bad.sources[0].source = source;
+        assert.throws(() => buildCommonJsGuestBundle(bad), /guest_bundle_/);
+    }
+});

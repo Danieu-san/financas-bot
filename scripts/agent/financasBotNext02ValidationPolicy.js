@@ -28,17 +28,26 @@ const GOLDEN_IDS = Object.freeze(['BASELINE', 'CASES', 'REFUSALS', 'REFERENCES',
 // Adding a file requires an intentional inventory change; never discover the
 // expected set from the candidate tree or generate reviewed hashes from it.
 const PENDING_PROVENANCE_PATHS = Object.freeze([
-    'artifactLoader.js', 'authoringIR.js', 'causalRecorder.js', 'civilCalendar.js',
-    'claimContext.js', 'claimRequirements.js', 'collectionRequirements.js',
-    'executionProfile.js', 'graphCompiler.js', 'graphStructure.js',
+    'artifactLoader.js', 'authoringIR.js', 'capturedTcbLauncher.js', 'causalRecorder.js',
+    'civilCalendar.js', 'claimBinding.js', 'claimContext.js', 'claimMonthIsolatedProfile.js',
+    'claimMonthPathProfile.js', 'claimMonthProofConformance.js', 'claimMonthTraceContract.js',
+    'claimNominalTypes.js', 'claimRequirementCore.js', 'claimRequirements.js',
+    'collectionProofCore.js', 'collectionRequirements.js', 'executionHost.js',
+    'executionHostChild.cjs', 'executionProfile.js', 'executionRegistry.js',
+    'financialHost.js', 'freezeContract.js', 'graphCompiler.js', 'graphStructure.js',
     'instrumentedAccess.js', 'literalTypes.js', 'metricDirectReads.js',
-    'metricEffects.js', 'metricInstallments.js', 'metricReferences.js', 'metricSelection.js',
-    'obligationBindings.js', 'observationContract.js', 'operandBindings.js',
-    'operatorTypes.js', 'packageContract.js', 'pinnedCivilTimezone.js',
-    'predicateTypes.js', 'proofAcceptance.js', 'proofOperators.js',
-    'scalarProofOperators.js', 'schemaRegistryProjection.js',
-    'selectionBindings.js', 'templateReferences.js'
-].map(file => 'provenance/' + file).sort());
+    'materialFieldTypes.js', 'materialFingerprintCore.js', 'metricEffects.js',
+    'metricInstallments.js', 'metricParents.js', 'metricReferences.js', 'metricSelection.js',
+    'mutationWitnesses.js', 'nativeRuntime.js', 'obligationBindings.js', 'observationContract.js',
+    'observationScalars.js', 'operandBindings.js', 'operatorTypes.js', 'packageContract.js',
+    'pathMutationInventory.js', 'pathSemanticReference.js', 'phaseCompositionProfile.js',
+    'phaseProgramIdentity.js', 'pinnedCivilTimezone.js', 'predicateTypes.js',
+    'proofAcceptance.js', 'proofContextBinding.js', 'proofObservedValues.js',
+    'proofOperatorContracts.js', 'proofOperators.js', 'proofParentBinding.js',
+    'proofProgramData.js', 'proofSha256.js', 'scalarProofCore.js',
+    'scalarProofOperators.js', 'schemaRegistryProjection.js', 'selectionBindings.js',
+    'templateReferences.js', 'validationTcbEntry.js'
+].map(file => 'provenance/' + file).concat('kernel/canonicalJson.js').sort());
 
 function sliceContract(slice = 'N02-A') {
     if (!['N02-A', 'N02-B', 'N02-C', 'N02-D', 'N02-E'].includes(slice)) throw new Error('unknown_next02_slice');

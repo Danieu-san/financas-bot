@@ -1,6 +1,7 @@
 'use strict';
 const { copyData, identifier, field, decodeObservation, decodeMeasurement } = require('./observationContract');
 const { civilDateInPinnedTimezone } = require('./pinnedCivilTimezone');
+const { digest } = require('../kernel/canonicalValue');
 
 const fail = code => { throw new Error(`trace_coverage_${code}`); };
 function exactKeys(value, names) {
@@ -151,9 +152,16 @@ function compareReadEdgeCoverage(input) {
             add('edges', entry.outcome[1]);
         } else if (entry.operation === 'get' && entry.projection === 'data'
             && entry.path.length && entry.path.every(field)
-            && (['scalar', 'absent'].includes(entry.outcome[0]) || entry.outcome[0] === 'container' && entry.outcome[1] === 'sequence')) {
+            && (['scalar', 'absent'].includes(entry.outcome[0]) || entry.outcome[0] === 'container' && ['record', 'sequence'].includes(entry.outcome[1]))) {
             if (entry.alias === 'claim/context') add('claim_reads', entry.path);
             else { add('nodes', entry.alias); add('reads', [entry.alias, entry.path]); }
+            // Count the real record read in the exact set, but do not own its
+            // sequence here. Only access_metadata can validate its admitted
+            // shape/binding and the observed ancestor navigation.
+            if (entry.outcome[0] === 'container' && entry.outcome[1] === 'record') {
+                unclassified.push({ sequence: entry.sequence, operation: entry.operation });
+                continue;
+            }
             if (entry.outcome[0] === 'container') containers.add(containerKey(entry));
         } else if (entry.alias !== 'claim/context' && entry.projection === 'data' && entry.path.every(field)
             && ['has', 'keys'].includes(entry.operation)) {
@@ -351,7 +359,8 @@ function compareAccessMetadata(args) {
     const bindings = new Map();
     const key = (alias, role) => JSON.stringify([alias, role]);
     for (const binding of args.accessBindings) {
-        if (!exactKeys(binding, ['alias', 'role', 'identity', 'records']) || !identifier(binding.alias)
+        const hasClaimStructure = Object.hasOwn(binding, 'claim_structure');
+        if (!exactKeys(binding, ['alias', 'role', 'identity', 'records', ...(hasClaimStructure ? ['claim_structure'] : [])]) || !identifier(binding.alias)
             || !identifier(binding.role) || bindings.has(key(binding.alias, binding.role))) fail('access_bindings');
         if (binding.identity !== null) {
             if (!exactKeys(binding.identity, ['kind', 'ref_id', 'version'])) fail('access_identity');
@@ -365,19 +374,112 @@ function compareAccessMetadata(args) {
             return path;
         });
         if (!records.has('[]') || [...records.values()].some(path => path.length && !records.has(JSON.stringify(path.slice(0, -1))))) fail('access_records');
-        bindings.set(key(binding.alias, binding.role), { ...binding, records, opened: new Set(['[]']) });
+        let claim;
+        if (hasClaimStructure) {
+            if (binding.alias !== 'claim/context' || binding.identity !== null
+                || !exactKeys(binding.claim_structure, ['records', 'sequences'])) fail('claim_structure');
+            const recordRows = expectedSet(binding.claim_structure.records, row => {
+                if (!exactKeys(row, ['path', 'keys']) || !Array.isArray(row.path) || !row.path.every(field)
+                    || !Array.isArray(row.keys) || !row.keys.every(field) || new Set(row.keys).size !== row.keys.length) fail('claim_structure');
+                return [row.path, row.keys];
+            });
+            const recordKeys = new Map();
+            for (const [path, keys] of recordRows.values()) {
+                const id = JSON.stringify(path);
+                if (!records.has(id) || recordKeys.has(id)) fail('claim_structure');
+                recordKeys.set(id, keys);
+            }
+            if (recordKeys.size !== records.size) fail('claim_structure');
+            for (const path of records.values()) {
+                if (path.length && !recordKeys.get(JSON.stringify(path.slice(0, -1))).includes(path.at(-1))) fail('claim_structure');
+            }
+            const sequenceRows = expectedSet(binding.claim_structure.sequences, row => {
+                if (!exactKeys(row, ['path', 'item_hashes']) || !Array.isArray(row.path) || !row.path.length || !row.path.every(field)
+                    || !Array.isArray(row.item_hashes) || row.item_hashes.length > 65536
+                    || row.item_hashes.some(hash => typeof hash !== 'string' || !/^sha256:[a-f0-9]{64}$/.test(hash))) fail('claim_structure');
+                return [row.path, row.item_hashes];
+            });
+            const sequences = new Map();
+            for (const [path, hashes] of sequenceRows.values()) {
+                const id = JSON.stringify(path);
+                const parent = JSON.stringify(path.slice(0, -1));
+                if (records.has(id) || !records.has(parent) || !recordKeys.get(parent).includes(path.at(-1))
+                    || sequences.has(id)) fail('claim_structure');
+                sequences.set(id, hashes);
+            }
+            claim = { recordKeys, sequences, openedSequences: new Set(), keyViews: new Map(), iterators: new Map() };
+        }
+        bindings.set(key(binding.alias, binding.role), { ...binding, records, claim, opened: new Set(['[]']) });
     }
     const errors = []; const covered = [];
     const error = (entry, code) => errors.push({ sequence: entry.sequence, code });
+    function claimStructure(binding, entry) {
+        const state = binding.claim; const pathId = JSON.stringify(entry.path);
+        if (entry.operation === 'keys' && entry.projection === 'data') {
+            if (!binding.opened.has(pathId) || !state.recordKeys.has(pathId)) return false;
+            const names = state.recordKeys.get(pathId);
+            if (JSON.stringify(entry.outcome) !== JSON.stringify(['keys', ...names])) return false;
+            state.keyViews.set(pathId, names.map(name => 'sha256:' + digest(name)));
+            return true;
+        }
+        if (!['data', 'keys'].includes(entry.projection)) return false;
+        const indexed = ['at', 'next'].includes(entry.operation);
+        const path = indexed ? entry.path.slice(0, -1) : entry.path;
+        const id = JSON.stringify(path); const viewId = JSON.stringify([entry.projection, path]);
+        const hashes = entry.projection === 'keys' ? state.keyViews.get(id)
+            : state.openedSequences.has(id) ? state.sequences.get(id) : undefined;
+        if (!hashes) return false;
+        const same = value => JSON.stringify(entry.outcome) === JSON.stringify(value);
+        const scalarAt = index => index < hashes.length
+            ? entry.outcome[0] === 'scalar' && 'sha256:' + digest(entry.outcome[1]) === hashes[index]
+            : same(['absent']);
+        switch (entry.operation) {
+        case 'length': return same(['count', hashes.length]);
+        case 'at': return Number.isSafeInteger(entry.path.at(-1)) && entry.path.at(-1) >= 0 && scalarAt(entry.path.at(-1));
+        case 'includes': return same(['membership', entry.outcome[1], hashes.includes('sha256:' + digest(entry.outcome[1]))]);
+        case 'iterate': {
+            const old = state.iterators.get(viewId);
+            if (old && !old.closed || !same(['opened'])) return false;
+            state.iterators.set(viewId, { cursor: 0, closed: false }); return true;
+        }
+        case 'next': {
+            const iterator = state.iterators.get(viewId);
+            if (!iterator || entry.path.at(-1) !== iterator.cursor) return false;
+            if (iterator.closed || iterator.cursor === hashes.length) {
+                if (!same(['done'])) return false;
+                iterator.closed = true; return true;
+            }
+            if (!scalarAt(iterator.cursor)) return false;
+            iterator.cursor++; return true;
+        }
+        case 'return': {
+            const iterator = state.iterators.get(viewId);
+            if (!iterator || !same(['closed', iterator.cursor])) return false;
+            iterator.closed = true; return true;
+        }
+        case 'reuse_iterator': {
+            const iterator = state.iterators.get(viewId);
+            return !!iterator && same(['cursor', iterator.cursor, iterator.closed]);
+        }
+        default: return false;
+        }
+    }
     for (const entry of args.trace[`${args.phase}_trace`]) {
         const isIdentity = entry.projection === 'node_identity';
         const isRecordAccess = entry.projection === 'data' && ['get', 'has', 'keys'].includes(entry.operation) && entry.path.every(field);
-        if (!isIdentity && !isRecordAccess) continue;
+        const isClaimStructure = entry.alias === 'claim/context'
+            && ['keys', 'length', 'at', 'includes', 'iterate', 'next', 'return', 'reuse_iterator'].includes(entry.operation);
+        if (!isIdentity && !isRecordAccess && !isClaimStructure) continue;
         const binding = bindings.get(key(entry.alias, entry.role));
         if (!binding) { error(entry, 'unknown_access_binding'); continue; }
         if (isIdentity) {
             if (!binding.identity || binding.identity[entry.path[0]] !== entry.outcome[1]) error(entry, 'identity_mismatch');
             else if (!args.expected.required_nodes.includes(entry.alias)) error(entry, 'identity_node_not_required');
+            else covered.push(entry.sequence);
+            continue;
+        }
+        if (isClaimStructure) {
+            if (!binding.claim || !claimStructure(binding, entry)) error(entry, 'claim_structure_mismatch');
             else covered.push(entry.sequence);
             continue;
         }
@@ -389,14 +491,16 @@ function compareAccessMetadata(args) {
         const pathKey = JSON.stringify(entry.path);
         const isRecord = entry.outcome[0] === 'container' && entry.outcome[1] === 'record';
         if (isRecord !== binding.records.has(pathKey)) { error(entry, 'record_shape'); continue; }
-        if (!isRecord) continue; // The read/edge component owns the leaf/sequence event.
+        if (!isRecord) {
+            if (binding.claim && entry.outcome[0] === 'container' && entry.outcome[1] === 'sequence') {
+                if (!binding.claim.sequences.has(pathKey)) error(entry, 'claim_sequence_unknown');
+                else binding.claim.openedSequences.add(pathKey);
+            }
+            continue; // The read/edge component owns the leaf/sequence event.
+        }
         const required = entry.alias === 'claim/context' ? args.expected.required_claim_reads
             : args.expected.required_reads.filter(read => read.node === entry.alias);
-        const structural = args.expected.required_structural.filter(read => read.node === entry.alias);
-        const descends = read => read.segments.length > entry.path.length
-            && entry.path.every((segment, i) => segment === read.segments[i]);
-        if (!required.some(descends) && !structural.some(read => descends(read)
-            || read.operation === 'keys' && JSON.stringify(read.segments) === pathKey)) {
+        if (!required.some(read => JSON.stringify(read.segments) === pathKey)) {
             error(entry, 'record_not_required'); continue;
         }
         binding.opened.add(pathKey); covered.push(entry.sequence);
@@ -431,16 +535,44 @@ function compareCivilDates(args) {
         matched: errors.length === 0, errors, covered_sequences: covered });
 }
 
+// Roots are pre-bound by the host's admission, never copied from the actual
+// measurement. This checks observations only; caller-provided root expectations
+// cannot authenticate a freeze or mint financial/parent acceptance.
+function compareMeasurements(args) {
+    const expectations = expectedSet(args.measurements === undefined ? [] : args.measurements, value => {
+        if (!exactKeys(value, ['measurement', 'observed'])) fail('measurement_expected');
+        try { decodeMeasurement(['M', value.measurement, value.observed]); } catch { fail('measurement_expected'); }
+        return [value.measurement, value.observed];
+    });
+    const names = new Map();
+    for (const pair of expectations.values()) {
+        if (names.has(pair[0])) fail('measurement_duplicate');
+        names.set(pair[0], pair[1]);
+    }
+    const seen = new Set(); const errors = []; const covered = []; const unclassified = [];
+    for (const entry of scopedTrace(args.trace, args.executionId, args.invocationId).filter(row => row.phase === args.phase && row.measurement)) {
+        if (!names.has(entry.measurement)) { unclassified.push(entry.sequence); continue; }
+        if (seen.has(entry.measurement)) { errors.push({ sequence: entry.sequence, code: 'measurement_repeated' }); continue; }
+        seen.add(entry.measurement);
+        if (names.get(entry.measurement) !== entry.observed) errors.push({ sequence: entry.sequence, code: 'measurement_root' });
+        else covered.push(entry.sequence);
+    }
+    const missing = [...names.keys()].filter(name => !seen.has(name));
+    return copyData({ matched: !errors.length && !missing.length && !unclassified.length,
+        errors, missing, unclassified_sequences: unclassified, covered_sequences: covered });
+}
+
 // Compose only events actually checked by the components, never their ignored
 // projections or caller-supplied verdicts. A local phase match is NOT graph
-// acceptance: predicates, host identity, measurements and receipts remain out
+// acceptance: predicates, host identity, freeze authority and receipts remain out
 // of scope. Civil conversion checks the pinned runtime, not its binary root.
 // Roster consumption and metadata consistency are distinct from
 // payload structural coverage: it cannot discharge a snapshot's required reads.
 function comparePhaseCoverage(input) {
     let args;
     try { args = copyData(input); } catch { fail('input'); }
-    if (!exactKeys(args, ['trace', 'expected', 'executionId', 'invocationId', 'phase', 'sets', 'bindings', 'operandSets', 'accessBindings'])) fail('input');
+    const keys = ['trace', 'expected', 'executionId', 'invocationId', 'phase', 'sets', 'bindings', 'operandSets', 'accessBindings'];
+    if (!exactKeys(args, [...keys, ...(Object.hasOwn(args, 'measurements') ? ['measurements'] : [])])) fail('input');
     const readKeys = ['required_nodes', 'required_reads', 'required_claim_reads', 'required_edges', 'required_structural'];
     const selectionKeys = ['required_selections', 'selected_nodes'];
     if (!exactKeys(args.expected, [...readKeys, ...selectionKeys])) fail('expected');
@@ -451,7 +583,8 @@ function comparePhaseCoverage(input) {
     const operandSets = compareOperandConsumption(args, selection);
     const accessMetadata = compareAccessMetadata(args);
     const civilDates = compareCivilDates(args);
-    const components = { read_edges: readEdges, selection, operand_sets: operandSets, access_metadata: accessMetadata, civil_dates: civilDates };
+    const measurements = compareMeasurements(args);
+    const components = { read_edges: readEdges, selection, operand_sets: operandSets, access_metadata: accessMetadata, civil_dates: civilDates, measurements };
     const owners = Object.entries(components).map(([name, component]) => ({ name,
         covered: new Set(component.covered_sequences), invalid: new Set((component.errors || []).map(e => e.sequence)) }));
     // Both components have already admitted the complete, identical trace and
@@ -469,7 +602,7 @@ function comparePhaseCoverage(input) {
     // composition discharges those events only via an explicit second owner.
     // Its missing/extra requirements and selection errors remain binding.
     return copyData({ stage: 'phase_coverage_only', graph_accepted: false,
-        matched: readEdges.mismatches.length === 0 && selection.matched && operandSets.matched && accessMetadata.matched && civilDates.matched
+        matched: readEdges.mismatches.length === 0 && selection.matched && operandSets.matched && accessMetadata.matched && civilDates.matched && measurements.matched
             && eventCoverage.every(e => e.status === 'covered'),
         components, event_coverage: eventCoverage });
 }

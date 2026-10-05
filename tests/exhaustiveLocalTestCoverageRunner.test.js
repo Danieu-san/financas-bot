@@ -26,6 +26,53 @@ const {
     restoreFileSnapshot
 } = require('../scripts/runExhaustiveLocalTestCoverage');
 
+test('coverage evidence preserves raw diagnostics without overwriting an earlier invocation', t => {
+    const { persistCoverageOutput } = require('../scripts/runExhaustiveLocalTestCoverage');
+    const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'exhaustive-coverage-evidence-'));
+    t.after(() => fs.rmSync(temp, { recursive: true, force: true }));
+    const stdout = Buffer.from('not ok 1 - preserved failure\n  error: immutable_expected_mismatch\n');
+    const stderr = Buffer.from('raw stderr\n');
+    const evidence = persistCoverageOutput({ stdout, stderr, status: 1, signal: null }, temp);
+    assert.deepStrictEqual(fs.readFileSync(evidence.stdout.path), stdout);
+    assert.deepStrictEqual(fs.readFileSync(evidence.stderr.path), stderr);
+    const digest = bytes => require('node:crypto').createHash('sha256').update(bytes).digest('hex');
+    assert.strictEqual(evidence.stdout.sha256, digest(stdout));
+    assert.strictEqual(evidence.stderr.sha256, digest(stderr));
+    assert.strictEqual(evidence.capture_complete, true);
+    assert.throws(() => persistCoverageOutput({ stdout: 'overwrite', stderr: '' }, temp), /EEXIST/);
+    assert.deepStrictEqual(fs.readFileSync(evidence.stdout.path), stdout);
+});
+
+test('subprocess errors invalidate complete-looking summaries and remain in retained evidence', t => {
+    const { persistCoverageOutput } = require('../scripts/runExhaustiveLocalTestCoverage');
+    const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'exhaustive-coverage-partial-'));
+    t.after(() => fs.rmSync(temp, { recursive: true, force: true }));
+    const error = { code: 'ENOBUFS', message: 'not a qualification' };
+    const evidence = persistCoverageOutput({ stdout: 'partial TAP', stderr: '', status: 0, error }, temp);
+    assert.strictEqual(evidence.capture_complete, false);
+    assert.deepStrictEqual(evidence.subprocess_error, { code: 'ENOBUFS' });
+    const result = validateRunnerResult({ exitStatus: 0,
+        tap: { tests: 1, pass: 1, fail: 0, cancelled: 0, skipped: 0, todo: 0 },
+        coverage: { line_percent: 80, branch_percent: 80, function_percent: 80 },
+        subprocessError: evidence.subprocess_error });
+    assert.strictEqual(result.valid, false);
+    assert.ok(result.reasons.includes('child_subprocess_error'));
+});
+
+test('real subprocess buffer exhaustion retains diagnostics without claiming complete capture', t => {
+    const { persistCoverageOutput } = require('../scripts/runExhaustiveLocalTestCoverage');
+    const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'exhaustive-coverage-buffer-'));
+    t.after(() => fs.rmSync(temp, { recursive: true, force: true }));
+    const result = spawnSync(process.execPath, ['-e',
+        "process.stdout.write('# tests 1\\n# pass 1\\n# fail 0\\n' + 'x'.repeat(8192));"],
+        { cwd: ROOT, env: buildHermeticTestEnvironment(process.env), maxBuffer: 1024, windowsHide: true });
+    assert.strictEqual(result.error?.code, 'ENOBUFS');
+    const evidence = persistCoverageOutput(result, temp);
+    assert.strictEqual(evidence.capture_complete, false);
+    assert.strictEqual(evidence.subprocess_error.code, 'ENOBUFS');
+    assert.deepStrictEqual(fs.readFileSync(evidence.stdout.path), result.stdout);
+});
+
 test('hermetic Git blob reads require immutable objects and the audited root; commands and escapes remain denied', () => {
     const environment = buildHermeticTestEnvironment(process.env);
     const child = spawnSync(process.execPath, ['-e', `

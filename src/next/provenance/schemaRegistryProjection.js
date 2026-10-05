@@ -36,6 +36,33 @@ function closedRecord(properties) {
     return { type: 'object', additionalProperties: false, required: Object.keys(properties), properties };
 }
 
+// Shared descriptor grammar. Target membership remains a caller-owned check:
+// full registry admission supplies the actual closed-world kinds below.
+function validateMaterialFields(fields, isTargetKind) {
+    object(fields); stringSet(Object.keys(fields));
+    if (typeof isTargetKind !== 'function') fail('targets');
+    let count = 0;
+    for (const [name, field] of Object.entries(fields)) {
+        if (!/^[a-z][a-z0-9_]*$/.test(name)) fail('field');
+        keys(field, ['class', 'type', 'required'], ['values', 'targets', 'maximum', 'reason']);
+        if (!CLASSES.includes(field.class) || !TYPES.includes(field.type)
+            || typeof field.required !== 'boolean') fail('descriptor');
+        if (field.class === 'edge') {
+            if (!['ref', 'ref_list', 'role_ref_list'].includes(field.type)
+                || stringSet(field.targets).some(target => !isTargetKind(target))) fail('targets');
+        } else if (Object.hasOwn(field, 'targets') || ['ref', 'ref_list', 'role_ref_list'].includes(field.type)) fail('targets');
+        if (field.type === 'enum') stringSet(field.values);
+        else if (Object.hasOwn(field, 'values')) fail('enum');
+        if (Object.hasOwn(field, 'maximum') && (field.type !== 'positive_integer'
+            || !Number.isSafeInteger(field.maximum) || field.maximum < 1)) fail('maximum');
+        if (field.class === 'non_material') {
+            if (name !== 'label' || field.type !== 'text' || field.reason !== 'display_only') fail('non_material');
+        } else if (Object.hasOwn(field, 'reason')) fail('reason');
+        count++;
+    }
+    return count;
+}
+
 // A projection of the finite, reviewed registry grammar, not a JSON Schema
 // interpreter or semantic-equivalence solver. Unexpected schema forms fail;
 // even an equivalent rewrite needs review before changing this format.
@@ -58,26 +85,7 @@ function validateSchemaRegistryProjection({ registry, snapshotSchema, claimSchem
         if (!/^[a-z][a-z0-9_]*$/.test(kind)) fail('kind');
         keys(entry, ['origin', 'fields']);
         if (typeof entry.origin !== 'string' || !entry.origin.length) fail('origin');
-        object(entry.fields);
-        stringSet(Object.keys(entry.fields));
-        for (const [name, field] of Object.entries(entry.fields)) {
-            if (!/^[a-z][a-z0-9_]*$/.test(name)) fail('field');
-            keys(field, ['class', 'type', 'required'], ['values', 'targets', 'maximum', 'reason']);
-            if (!CLASSES.includes(field.class) || !TYPES.includes(field.type)
-                || typeof field.required !== 'boolean') fail('descriptor');
-            if (field.class === 'edge') {
-                if (!['ref', 'ref_list', 'role_ref_list'].includes(field.type)
-                    || stringSet(field.targets).some(target => !Object.hasOwn(kinds, target))) fail('targets');
-            } else if (Object.hasOwn(field, 'targets') || ['ref', 'ref_list', 'role_ref_list'].includes(field.type)) fail('targets');
-            if (field.type === 'enum') stringSet(field.values);
-            else if (Object.hasOwn(field, 'values')) fail('enum');
-            if (Object.hasOwn(field, 'maximum') && (field.type !== 'positive_integer'
-                || !Number.isSafeInteger(field.maximum) || field.maximum < 1)) fail('maximum');
-            if (field.class === 'non_material') {
-                if (name !== 'label' || field.type !== 'text' || field.reason !== 'display_only') fail('non_material');
-            } else if (Object.hasOwn(field, 'reason')) fail('reason');
-            fields++;
-        }
+        fields += validateMaterialFields(entry.fields, target => Object.hasOwn(kinds, target));
         same(entry.fields.id, envelope.ref_id, 'payload_identity');
     }
 
@@ -142,4 +150,4 @@ function validateSchemaRegistryProjection({ registry, snapshotSchema, claimSchem
     return Object.freeze({ kinds: branches.size, fields, stage: 'schema_registry_checked_only' });
 }
 
-module.exports = { validateSchemaRegistryProjection };
+module.exports = { validateSchemaRegistryProjection, validateMaterialFields };

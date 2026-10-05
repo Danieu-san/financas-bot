@@ -13,7 +13,9 @@
   },
   "semantics": [
     "Retornar event_count da fonte de contagem revisada somente após provar igualdade com a cardinalidade da seleção de eventos elegíveis por sujeito, categoria, estado e período.",
-    "Ausência de event_count ou fonte parcial não pode ser convertida silenciosamente em zero."
+    "Ausência de event_count ou fonte parcial não pode ser convertida silenciosamente em zero.",
+    "Retornar após provar refere-se ao resultado aceito pelo pipeline completo. D produz somente R tipado provisório sobre inputs admitidos; P comprova período e completude da fonte antes de aceitação, materialização, validated_parent ou resposta financeira.",
+    "D preserva seleção funcional por sujeito, categoria, estado e período do contexto e compara event_count com sua cardinalidade. R provisório não é zero aceito nem receipt; P, identidade, fingerprints, seleção, traces e oracle positivo original continuam obrigatórios."
   ],
   "algebraic_properties": [
     "Fonte com zero e população elegível não vazia deve falhar a prova em vez de retornar zero aceito."

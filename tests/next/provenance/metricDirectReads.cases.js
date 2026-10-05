@@ -54,14 +54,17 @@ test('N02G:DIRECT-METRIC-002 card link never becomes proof of a particular state
     f.access.revoke(); assert.throws(() => evaluateDirectMetric(f.operands, 'invoice_payment_amount'), /access_/);
 });
 
-test('N02G:DIRECT-METRIC-003 source coverage preserves each valid status and rejects period mismatch', () => {
+test('N02G:DIRECT-METRIC-003 source coverage is provisional, literal and nominal; P owns source period', () => {
     for (const coverage of ['complete', 'partial', 'unavailable']) {
         const f = instrument([['source', 'source_state', { id: 'source', period: '2042-06', coverage }]]);
         const operands = { source: f.access.handle('source'), context: context({ kind: 'source', ref_id: 'source' },
             { kind: 'month', value: '2042-06' }, 'source_period') };
         assert.equal(evaluateDirectMetric(operands, 'source_coverage'), coverage);
-        assert.throws(() => evaluateDirectMetric({ ...operands, context: context({ kind: 'source', ref_id: 'source' },
-            { kind: 'month', value: '2042-05' }, 'source_period') }, 'source_coverage'), /direct_metric_period/);
+        assert.equal(evaluateDirectMetric({ ...operands, context: context({ kind: 'source', ref_id: 'source' },
+            { kind: 'month', value: '2042-05' }, 'source_period') }, 'source_coverage'), coverage);
+        assert.equal(f.observations.some(e => e[1] === 'get' && e[2] === 'source' && e[4][0] === 'period'), false);
+        assert.throws(() => evaluateDirectMetric({ ...operands, context: context({ kind: 'source', ref_id: 'foreign' },
+            { kind: 'month', value: '2042-06' }, 'source_period') }, 'source_coverage'), /direct_metric_scope/);
     }
 });
 

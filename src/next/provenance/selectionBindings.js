@@ -15,6 +15,7 @@ function validateSelectionBindings({ graphs, claims, materialRegistry }) {
     if (claimMap.size !== claims.length) fail('duplicate');
     let selections = 0;
     const stateChecks = [];
+    const programs = [];
     for (const graph of graphs) {
         const claim = claimMap.get(graph.fact_key);
         if (!claim) fail('claim');
@@ -109,9 +110,21 @@ function validateSelectionBindings({ graphs, claims, materialRegistry }) {
                     if (!field || !reasons.every(predicate => stateGuard(predicate, excluded.node, field, expected, true))) fail('state_guard');
                 }
             }
+            // Lower only the causal certificates already checked above. No
+            // selected roster or expected trace is passed to the executor.
+            const excluded = new Map(selection.excluded.map(row => [row.node, row]));
+            const cases = candidates.map(node => {
+                const negative = excluded.get(node);
+                const ids = negative ? negative.predicates : included
+                    .filter(predicate => concerns(predicate, node)).map(predicate => predicate.id);
+                if (!ids.length) fail('program_guard');
+                return { node, mode: negative ? 'exclude_if_all' : 'include_if_all', predicates: [...ids] };
+            });
+            programs.push({ fact_key: graph.fact_key, candidate_set: selection.candidate_set,
+                selected_set: selection.selected_set, cases });
         }
     }
-    return freezeDeep({ stage: 'selection_bindings_checked_only', graphs: graphs.length, selections, stateChecks });
+    return freezeDeep({ stage: 'selection_bindings_checked_only', graphs: graphs.length, selections, stateChecks, programs });
 }
 
 module.exports = { validateSelectionBindings };

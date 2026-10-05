@@ -5,6 +5,7 @@ Cada conversa/worktree trabalha em um objetivo e preserva seu próprio estado.
 
 | Workstream | Estado | Checkpoint | Plano | Regra |
 |---|---|---|---|---|
+| `financasbot-n02g-month-code-audit-20261004` | HOLD; candidato de código, sem auditoria independente | `financasbot-n02g-month-code-audit-20261004.md` | `../../plans/workstreams/financasbot-next-02-n02g-path-singleton-month-profile-proposal-v1.md` | base04eb954; branchcodex/n02g-month-profile-code-20261004; sóM-01/binding_1, sem GO global |
 | `wgl-03-wgl-04` | pausado no SSD | `../current.md` | `../../plans/current-gate.md` | gate raiz; não sobrescrever por outro assunto |
 | `aws-oracle-migration` | migração concluída; release OCI em OPS-03 | `aws-oracle-migration.md` | `../../plans/workstreams/aws-oracle-migration.md` | produção OCI; deploy somente por artefato |
 | `lost-ssd-recovery` | concluído | `lost-ssd-recovery.md` | `../../plans/workstreams/lost-ssd-recovery.md` | pacote AES-256 validado; Drive restrito ao proprietário e a Daniel |

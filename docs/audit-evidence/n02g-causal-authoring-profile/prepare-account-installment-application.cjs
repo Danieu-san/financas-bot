@@ -4,7 +4,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
-const { execFileSync } = require('node:child_process');
+const { readImmutableBlob } = require('../../../scripts/agent/immutableGitBlob.cjs');
 const { createHash } = require('node:crypto');
 const root = path.resolve(__dirname, '../../..');
 const prefix = 'docs/contracts/next/provenance-v2/';
@@ -13,11 +13,8 @@ const proposalPath = 'docs/audit-evidence/n02g-causal-authoring-profile/account-
 const base = '207ca56b87381d69a922224332fcdda3a629d822';
 const proposalCommit = '629a6871ffbdaa581fb64bd59165589bae04c92a';
 const sha = value => 'sha256:' + createHash('sha256').update(value).digest('hex');
-const gitText = (commit, file) => execFileSync(process.env.EXHAUSTIVE_LOCAL_GIT_PATH || 'git',
-    ['cat-file', 'blob', `${commit}:${file}`],
-    { cwd: root, encoding: 'utf8', maxBuffer: 20 * 1024 * 1024,
-        env: { ...process.env, GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: 'safe.directory', GIT_CONFIG_VALUE_0: root }
-    }).replaceAll('\r\n', '\n');
+const gitText = (commit, file) => readImmutableBlob(commit, file)
+    .toString('utf8').replaceAll('\r\n', '\n');
 function reviewedCorpus() {
     const text = gitText(proposalCommit, proposalPath);
     assert.equal(sha(text), 'sha256:2660302e20b3b6c1be337472849aa5453735b5ad9aeeaddbac83b6978e2a23a3');

@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
+import { createRequire } from 'node:module';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 import standaloneCode from 'ajv/dist/standalone/index.js';
@@ -22,7 +23,7 @@ const schemaNames = Object.freeze({
 // Build-time closed bundle. The generated require is a guest-local finite map,
 // never Node's loader. This proves closure inventory, not semantic safety;
 // execution still requires measured artifact admission and the SES boundary.
-export function buildCommonJsGuestBundle({ sources, entry, exportName, constants = [] }) {
+function buildClosedCommonJsBundle({ sources, entry, exportName, constants = [], nativeImports = [] }, trusted = false) {
     const fail = code => { throw new Error(`guest_bundle_${code}`); };
     const validPath = value => typeof value === 'string' && value.length <= 512
         && value.endsWith('.js') && value.split('/').every(p => /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(p) && !p.endsWith('.'));
@@ -40,6 +41,16 @@ export function buildCommonJsGuestBundle({ sources, entry, exportName, constants
         files.set(item.path, item.source);
     }
     if (!files.has(entry)) fail('entry');
+    if (!Array.isArray(nativeImports) || nativeImports.length > 16 || !trusted && nativeImports.length) fail('native_imports');
+    const declaredNative = new Set(); const usedNative = new Set();
+    for (const row of nativeImports) {
+        if (!row || Object.keys(row).sort().join(',') !== 'source,specifier' || !files.has(row.source)
+            || !(['node:child_process', 'node:path'].includes(row.specifier)
+                || row.source === 'provenance/nativeRuntime.js' && row.specifier === 'node:fs'
+                || row.source === 'provenance/capturedTcbLauncher.js' && row.specifier === 'node:vm')) fail('native_imports');
+        const key = JSON.stringify([row.source, row.specifier]);
+        if (declaredNative.has(key)) fail('native_imports'); declaredNative.add(key);
+    }
     const imports = []; const links = new Map();
     for (const [file, source] of [...files].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)) {
         let ast;
@@ -52,6 +63,25 @@ export function buildCommonJsGuestBundle({ sources, entry, exportName, constants
                     || parent.arguments.length !== 1 || parent.arguments[0].type !== 'Literal'
                     || typeof parent.arguments[0].value !== 'string') fail('loader');
                 const specifier = parent.arguments[0].value;
+                // Only the trusted project capsule can link the declared Node
+                // runtime primitives. These are never evaluator endowments.
+                const nativeKey = JSON.stringify([file, specifier]);
+                if (trusted && (['node:crypto', 'node:util', 'node:process'].includes(specifier) || declaredNative.has(nativeKey))) {
+                    if (declaredNative.has(nativeKey)) usedNative.add(nativeKey);
+                    if (!outgoing.has(specifier)) {
+                        outgoing.set(specifier, specifier);
+                        imports.push({ source: file, specifier, target: specifier });
+                    }
+                    return;
+                }
+                if (trusted && specifier === 'ses') {
+                    if (!files.has('vendor/ses.js')) fail('import_target');
+                    if (!outgoing.has(specifier)) {
+                        outgoing.set(specifier, 'vendor/ses.js');
+                        imports.push({ source: file, specifier, target: 'vendor/ses.js' });
+                    }
+                    return;
+                }
                 if (!specifier.startsWith('./') && !specifier.startsWith('../')) fail('external_import');
                 if (specifier.includes('\\') || specifier.includes('\0')) fail('import_path');
                 const normalized = path.posix.normalize(path.posix.join(path.posix.dirname(file), specifier));
@@ -69,32 +99,61 @@ export function buildCommonJsGuestBundle({ sources, entry, exportName, constants
         }
         visit(ast);
     }
+    if (usedNative.size !== declaredNative.size) fail('unused_native_import');
     const active = new Set(); const seen = new Set();
     function visit(file) {
         if (active.has(file)) fail('cycle');
         if (seen.has(file)) return;
-        active.add(file); for (const target of links.get(file).values()) visit(target);
+        active.add(file); for (const target of links.get(file).values()) if (!target.startsWith('node:')) visit(target);
         active.delete(file); seen.add(file);
     }
     visit(entry); if (seen.size !== files.size) fail('unreachable_source');
     const ordered = [...files.keys()].sort(); const index = new Map(ordered.map((name, i) => [name, i]));
-    const factories = ordered.map(name => `function(require, module, exports) {\n${files.get(name)}\n}`).join(',\n');
-    const mapping = ordered.map(name => [...links.get(name)].map(([specifier, target]) => [specifier, index.get(target)]));
-    const source = `(function(operands) {\n'use strict';\n// closed-commonjs-bundle-v1\nconst factories = [${factories}];\n`
+    const factories = ordered.map(name => `function(require, module, exports${trusted ? ', __dirname, __filename' : ''}) {\n${files.get(name)}\n}`).join(',\n');
+    const mapping = ordered.map(name => [...links.get(name)].map(([specifier, target]) =>
+        [specifier, target.startsWith('node:') ? target : index.get(target)]));
+    const source = `(function(${trusted ? 'nativeRequire' : 'operands'}) {\n'use strict';\n// closed-commonjs-bundle-v1\nconst factories = [${factories}];\n`
         + `const edges = ${JSON.stringify(mapping)};\nconst cache = new Map();\n`
         + `function load(index) {\nif (cache.has(index)) return cache.get(index);\n`
         + `const module = { exports: Object.create(null) };\n`
-        + `const localRequire = name => { const edge = edges[index].find(pair => pair[0] === name); if (!edge) throw new Error('guest_bundle_unresolved'); return load(edge[1]); };\n`
-        + `factories[index](localRequire, module, module.exports);\ncache.set(index, module.exports); return module.exports;\n}\n`
-        + `return load(${index.get(entry)})[${JSON.stringify(exportName)}](operands${constants.map(v => `, ${JSON.stringify(v)}`).join('')});\n})`;
-    validateGuestBundle(source);
+        + `const localRequire = name => { const edge = edges[index].find(pair => pair[0] === name); if (!edge) throw new Error('guest_bundle_unresolved'); return ${trusted ? "typeof edge[1] === 'string' ? nativeRequire(edge[1]) : " : ''}load(edge[1]); };\n`
+        + `factories[index](localRequire, module, module.exports${trusted ? `, ${JSON.stringify(ordered.map(name => path.posix.dirname(name)))}[index], ${JSON.stringify(ordered)}[index]` : ''});\ncache.set(index, module.exports); return module.exports;\n}\n`
+        + `return load(${index.get(entry)})[${JSON.stringify(exportName)}]${trusted ? '' : `(operands${constants.map(v => `, ${JSON.stringify(v)}`).join('')})`};\n})`;
+    if (!trusted) validateGuestBundle(source);
     return { stage: 'bundled_source_only', source, imports,
         sourceHashes: ordered.map(name => ({ path: name, sha256: `sha256:${createHash('sha256').update(files.get(name), 'utf8').digest('hex')}` })) };
 }
 
 // Build-time only. No loadSchema hook, external resolution, coercion, removal
 // of unknown fields or insertion of defaults. Schema semantics remain draft-07.
-export function buildSchemaValidators() {
+// Output type comes from the registry/contract; this adapter shapes only R.
+export function buildTypedMetricGuestBundle({ sources, entry, exportName, constants = [], unit, kind }) {
+    const allowed = { BRL_minor: ['money_minor'], count: ['nonnegative_integer'],
+        entity_ids: ['id', 'id_set'], state: ['enum'] };
+    if (!Object.hasOwn(allowed, unit) || !allowed[unit].includes(kind)) throw new Error('guest_bundle_output_invalid');
+    const built = buildCommonJsGuestBundle({ sources, entry, exportName, constants });
+    const source = `(function(operands) {\n'use strict';\nconst evaluate = ${built.source};\n`
+        + `return { unit: ${JSON.stringify(unit)}, kind: ${JSON.stringify(kind)}, value: evaluate(operands) };\n})`;
+    validateGuestBundle(source);
+    return { ...built, source };
+}
+
+export function buildCommonJsGuestBundle(input) {
+    return buildClosedCommonJsBundle(input);
+}
+
+// Build product, not runtime admission. The launcher must still capture and
+// admit this complete output against an independently reviewed expected root.
+// In particular this does not let the bootstrap authenticate its own bytes.
+export function buildTrustedCommonJsBundle(input) {
+    if (input.constants?.length) throw new Error('guest_bundle_input');
+    const built = buildClosedCommonJsBundle(input, true);
+    return { ...built, stage: 'trusted_bundle_candidate_only', executable: false,
+        nativeExternals: [...new Set(built.imports.map(row => row.target)
+            .filter(target => target.startsWith('node:')))].sort() };
+}
+
+function compileSchemaDocuments(documents) {
     const ajv = new Ajv({
         // Ratified schemas use composition across allOf/oneOf/$ref. Optional
         // authoring lints are not draft-07 semantics. Keep unknown keywords and
@@ -115,9 +174,9 @@ export function buildSchemaValidators() {
     const exports = {};
     for (const [name, stem] of Object.entries(schemaNames)) {
         const relative = `${schemaDirectory}/${stem}.schema.json`;
-        const bytes = fs.readFileSync(path.join(root, relative));
-        const schema = JSON.parse(bytes.toString('utf8'));
-        const sha256 = `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
+        const document = documents.get(relative);
+        if (!document) throw new Error(`admitted_schema_missing:${relative}`);
+        const { value: schema, sha256 } = document;
         schemaHashes.push({ path: relative, sha256 });
         if (schema.$schema !== 'http://json-schema.org/draft-07/schema#') throw new Error('schema_dialect_mismatch');
         ajv.addSchema(schema);
@@ -126,6 +185,23 @@ export function buildSchemaValidators() {
     const validators = Object.fromEntries(Object.entries(exports).map(([name, id]) => [name, ajv.getSchema(id)]));
     const code = standaloneCode(ajv, exports);
     return { validators, code, schemaHashes };
+}
+
+export function buildSchemaValidators() {
+    const documents = new Map(Object.values(schemaNames).map(stem => {
+        const relative = `${schemaDirectory}/${stem}.schema.json`;
+        const bytes = fs.readFileSync(path.join(root, relative));
+        return [relative, { value: JSON.parse(bytes.toString('utf8')),
+            sha256: `sha256:${createHash('sha256').update(bytes).digest('hex')}` }];
+    }));
+    return compileSchemaDocuments(documents);
+}
+
+// HARNESS only: validators are built from the same opaque admitted package
+// used by the compiler. No disk fallback or caller-supplied validation callback.
+export function buildAdmittedSchemaValidators(packageReceipt) {
+    const { admittedDocuments } = createRequire(import.meta.url)('../../src/next/provenance/packageContract');
+    return compileSchemaDocuments(new Map(admittedDocuments(packageReceipt).map(row => [row.path, row])));
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

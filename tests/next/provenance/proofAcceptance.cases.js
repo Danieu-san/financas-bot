@@ -372,6 +372,28 @@ test('N02G:TRACE-COMPOSITION-004 rostered set and view consumption is explicitly
     }
 });
 
+test('N02G:MEASUREMENT-OWNER-001 exact pre-bound roots own M once without deleting observations', () => {
+    const names = ['evaluator_artifact_root', 'evaluator_contract_hash', 'validation_tcb_root', 'proof_engine_artifact_root'];
+    const measurements = names.map((measurement, index) => ({ measurement, observed: 'sha256:' + String(index).repeat(64) }));
+    const run = values => recorded((access, scope) => {
+        access.handle('a').get('amount');
+        for (const value of values) scope.measure(['M', value.measurement, value.observed]);
+    });
+    const input = { ...phaseInput(run(measurements)), measurements };
+    const result = comparePhaseCoverage(input);
+    assert.equal(result.matched, true); assert.equal(result.graph_accepted, false);
+    assert.deepEqual(result.components.measurements.covered_sequences, [1, 2, 3, 4]);
+    assert.ok(result.event_coverage.slice(1).every(row => row.component === 'measurements'));
+    for (const values of [measurements.slice(1), [...measurements, measurements[0]],
+        measurements.map((value, index) => index ? value : { ...value, observed: 'sha256:' + 'f'.repeat(64) })]) {
+        const negative = comparePhaseCoverage({ ...input, trace: run(values) });
+        assert.equal(negative.matched, false);
+        assert.equal(negative.graph_accepted, false);
+    }
+    assert.equal(comparePhaseCoverage(phaseInput(run(measurements))).matched, false);
+    assert.throws(() => comparePhaseCoverage({ ...input, measurements: [...measurements, measurements[0]] }), /trace_coverage_/);
+});
+
 test('N02G:TRACE-COMPOSITION-005 unadmitted metadata, unbound civil dates and unverified measurements remain blocking', () => {
     const observations = [
         ['I', 'identity', 'a', 'source', ['kind'], 'node_identity', ['scalar', 'event']],
@@ -384,7 +406,8 @@ test('N02G:TRACE-COMPOSITION-005 unadmitted metadata, unbound civil dates and un
             if (raw[0] === 'M') scope.measure(raw); else scope.observe(raw); });
         const result = comparePhaseCoverage(phaseInput(trace));
         assert.equal(result.matched, false); assert.equal(result.graph_accepted, false);
-        assert.deepEqual(result.components.read_edges.mismatches, []);
+        if (raw[1] === 'get') assert.ok(result.components.read_edges.mismatches.some(m => m.dimension === 'reads' && m.extra.length));
+        else assert.deepEqual(result.components.read_edges.mismatches, []);
         assert.equal(result.event_coverage.at(-1).status, raw[0] === 'M' ? 'unsupported' : 'invalid');
     }
 });
@@ -395,7 +418,8 @@ test('N02G:TRACE-COMPOSITION-006 record navigation, traversal and membership do 
     for (const trace of [record, traversal]) {
         const result = comparePhaseCoverage(phaseInput(trace));
         assert.equal(result.matched, false);
-        assert.ok(result.components.read_edges.mismatches.some(e => e.dimension === 'reads' && e.missing.length));
+        if (trace === record) assert.ok(result.components.access_metadata.errors.some(e => e.code === 'record_shape'));
+        else assert.ok(result.components.read_edges.mismatches.some(e => e.dimension === 'reads' && e.missing.length));
     }
     const input = phaseInput(recorded(a => a.handle('a').get('members').includes('one')));
     Object.assign(input.expected, membersExpected(['iterator', 'order', 'cardinality']));
@@ -566,7 +590,8 @@ function metadataInput(run = node => {
     run(access.handle('a')); access.revoke(); access.assertHealthy(); scope.seal();
     const input = phaseInput(recorder.finish());
     input.accessBindings = [{ alias: 'a', role: 'source', identity, records: [[], ['details'], ['details', 'child'], ['unused']] }];
-    input.expected.required_reads = [{ node: 'a', segments: ['details', 'child', 'amount'] }];
+    input.expected.required_reads = [['details'], ['details', 'child'], ['details', 'child', 'amount']]
+        .map(segments => ({ node: 'a', segments }));
     return input;
 }
 
@@ -599,7 +624,7 @@ test('N02G:ACCESS-METADATA-003 removing any ancestor navigation cannot be repair
         input.trace.derivation_trace = input.trace.derivation_trace.filter(e => JSON.stringify(e.path) !== JSON.stringify(path));
         input.trace.derivation_trace.forEach((e, i) => { e.sequence = i; });
         const result = comparePhaseCoverage(input); assert.equal(result.matched, false);
-        assert.deepEqual(result.components.read_edges.mismatches, []);
+        assert.ok(result.components.read_edges.mismatches.some(m => m.dimension === 'reads' && m.missing.length));
         assert.ok(result.components.access_metadata.errors.some(e => e.code === 'record_parent_missing'));
     }
     const reordered = structuredClone(metadataInput()); reordered.trace.derivation_trace.unshift(reordered.trace.derivation_trace.pop());
@@ -655,7 +680,7 @@ test('N02G:ACCESS-METADATA-008 structural child access needs the same observed a
             const child = node.get('details').get('child');
             if (operation === 'has') child.has('amount'); else child.keys();
         });
-        input.expected.required_reads = [];
+        input.expected.required_reads = [['details'], ['details', 'child']].map(segments => ({ node: 'a', segments }));
         input.expected.required_structural = [{ node: 'a', operation,
             segments: operation === 'has' ? ['details', 'child', 'amount'] : ['details', 'child'] }];
         assert.equal(comparePhaseCoverage(input).matched, true);
@@ -664,9 +689,95 @@ test('N02G:ACCESS-METADATA-008 structural child access needs the same observed a
             wrong.trace.derivation_trace = wrong.trace.derivation_trace.filter(e => !(e.operation === 'get' && e.path.length === depth));
             wrong.trace.derivation_trace.forEach((e, i) => { e.sequence = i; });
             const result = comparePhaseCoverage(wrong); assert.equal(result.matched, false);
-            assert.deepEqual(result.components.read_edges.mismatches, []);
+            assert.ok(result.components.read_edges.mismatches.some(m => m.dimension === 'reads' && m.missing.length));
             assert.ok(result.components.access_metadata.errors.some(e => e.code === 'record_parent_missing'));
         }
+    }
+});
+
+test('N02G:RECORD-OWNER-001 record reads require exact authored paths and retain one metadata owner', () => {
+    const input = metadataInput();
+    const result = comparePhaseCoverage(input);
+    assert.equal(result.matched, true);
+    const records = input.trace.derivation_trace.filter(e => e.operation === 'get' && e.outcome[1] === 'record');
+    for (const record of records) {
+        assert.equal(result.event_coverage.find(e => e.sequence === record.sequence).component, 'access_metadata');
+        assert.equal(result.components.read_edges.covered_sequences.includes(record.sequence), false);
+    }
+    for (const path of [['details'], ['details', 'child']]) {
+        const wrong = structuredClone(input);
+        wrong.expected.required_reads = wrong.expected.required_reads.filter(r => JSON.stringify(r.segments) !== JSON.stringify(path));
+        assert.equal(comparePhaseCoverage(wrong).matched, false);
+    }
+    const absent = structuredClone(input);
+    absent.trace.derivation_trace = absent.trace.derivation_trace.filter(e => e.outcome[1] !== 'record');
+    absent.trace.derivation_trace.forEach((e, i) => { e.sequence = i; });
+    const missing = comparePhaseCoverage(absent);
+    assert.equal(missing.matched, false);
+    assert.ok(missing.components.read_edges.mismatches.some(m => m.dimension === 'reads' && m.missing.length === 2));
+});
+
+function claimStructureInput() {
+    const recorder = createCausalRecorder({ executionId: 'execution-1', maxEvents: 100 });
+    const scope = recorder.open({ invocationId: 'invocation-1', phase: 'proof' });
+    const access = createInstrumentedAccess({ emit: scope.observe, bindings: [{
+        alias: 'claim/context', role: 'context', value: {
+            subject: { person_ids: ['person-a', 'person-b'] }, period: { kind: 'month', value: '2042-06' } },
+        shape: { type: 'record', fields: {
+            subject: { type: 'record', fields: { person_ids: { type: 'sequence', item: scalar } } },
+            period: { type: 'record', fields: { kind: scalar, value: scalar } } } } }] });
+    const handle = access.handle('claim/context');
+    for (const key of handle.get('period').keys()) assert.ok(['kind', 'value'].includes(key));
+    const people = handle.get('subject').get('person_ids');
+    assert.equal(people.length(), 2); assert.equal(people.at(0), 'person-a'); assert.equal(people.at(1), 'person-b');
+    assert.equal(people.includes('person-a'), true);
+    assert.deepEqual([...people], ['person-a', 'person-b']);
+    access.revoke(); access.assertHealthy(); scope.seal();
+    const input = phaseInput(recorder.finish()); input.phase = 'proof';
+    input.expected = { required_nodes: [], required_reads: [], required_edges: [], required_structural: [],
+        required_claim_reads: [['period'], ['subject'], ['subject', 'person_ids']].map(segments => ({ segments })),
+        required_selections: [], selected_nodes: [] };
+    input.accessBindings = [{ alias: 'claim/context', role: 'context', identity: null,
+        records: [[], ['subject'], ['period']], claim_structure: {
+            records: [{ path: [], keys: ['subject', 'period'] }, { path: ['subject'], keys: ['person_ids'] },
+                { path: ['period'], keys: ['kind', 'value'] }],
+            sequences: [{ path: ['subject', 'person_ids'], item_hashes: ['person-a', 'person-b'].map(id => 'sha256:' + digest(id)) }] } }];
+    return input;
+}
+
+test('N02G:CLAIM-STRUCTURE-001 record keys and sequence protocols have one metadata owner, without R or payload projection', () => {
+    const input = claimStructureInput(); const before = JSON.stringify(input);
+    const result = comparePhaseCoverage(input);
+    assert.equal(result.matched, true); assert.equal(result.graph_accepted, false);
+    assert.equal(result.event_coverage.length, input.trace.proof_trace.length);
+    for (const event of input.trace.proof_trace.filter(event => event.operation !== 'get')) {
+        assert.equal(result.event_coverage.find(row => row.sequence === event.sequence).component, 'access_metadata');
+    }
+    assert.equal(JSON.stringify(input), before);
+});
+
+test('N02G:CLAIM-STRUCTURE-002 missing ancestors, wrong values/order/role and forged protocol fail closed', () => {
+    const mutations = [
+        input => { delete input.accessBindings[0].claim_structure; },
+        input => { input.accessBindings[0].claim_structure.records.find(row => row.path.length === 0).keys = ['period']; },
+        input => { input.accessBindings[0].claim_structure.records.find(row => row.path.join('.') === 'subject').keys = []; },
+        input => { input.trace.proof_trace.find(event => event.operation === 'keys').outcome[1] = 'invented'; },
+        input => { input.trace.proof_trace.find(event => event.operation === 'at' && event.projection === 'data').outcome[1] = 'person-b'; },
+        input => { input.trace.proof_trace.find(event => event.operation === 'length' && event.projection === 'data').outcome[1] = 3; },
+        input => { input.trace.proof_trace.find(event => event.operation === 'includes').outcome[2] = false; },
+        input => { const event = input.trace.proof_trace.find(event => event.operation === 'next' && event.projection === 'data'); event.path[event.path.length - 1] = 1; },
+        input => { input.trace.proof_trace.find(event => event.operation === 'next' && event.projection === 'data' && event.outcome[0] === 'done').outcome = ['scalar', 'person-a']; },
+        input => { input.trace.proof_trace.find(event => event.operation === 'keys').role = 'other'; },
+        input => { input.trace.proof_trace = input.trace.proof_trace.filter(event => !(event.operation === 'get' && event.path.join('.') === 'period')); },
+        input => { input.trace.proof_trace = input.trace.proof_trace.filter(event => !(event.operation === 'get' && event.path.join('.') === 'subject.person_ids')); },
+        input => { const index = input.trace.proof_trace.findIndex(event => event.operation === 'iterate' && event.projection === 'data'); input.trace.proof_trace.splice(index, 0, structuredClone(input.trace.proof_trace[index])); }
+    ];
+    for (const mutate of mutations) {
+        const input = structuredClone(claimStructureInput()); mutate(input);
+        input.trace.proof_trace.forEach((event, sequence) => { event.sequence = sequence; });
+        let rejected = false;
+        try { rejected = !comparePhaseCoverage(input).matched; } catch { rejected = true; }
+        assert.equal(rejected, true);
     }
 });
 

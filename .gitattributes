@@ -1,0 +1,15 @@
+docs/contracts/next/provenance-v2/phase-composition-profile-v1.json text eol=lf
+docs/audit-evidence/n02g-causal-authoring-profile/path-inventory-v1-frozen.json text eol=lf
+docs/audit-evidence/n02g-causal-authoring-profile/path-authorship-v1-frozen.json text eol=lf
+docs/audit-evidence/n02g-causal-authoring-profile/path-inventory-v2-candidate.json text eol=lf
+docs/audit-evidence/n02g-causal-authoring-profile/path-inventory-v1-v2-migration.json text eol=lf
+docs/audit-evidence/n02g-causal-authoring-profile/path-inventory-v1-v2-migration-r2.json text eol=lf
+# Keep the measured capsule inputs identical to their immutable Git blobs.
+src/next/kernel/canonical*.js text eol=lf
+src/next/provenance/* text eol=lf
+scripts/agent/*.js text eol=lf
+scripts/agent/*.cjs text eol=lf
+scripts/agent/*.mjs text eol=lf
+scripts/runExhaustive*.js text eol=lf
+package.json text eol=lf
+package-lock.json text eol=lf

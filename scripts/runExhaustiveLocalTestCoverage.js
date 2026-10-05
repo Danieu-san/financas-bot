@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
+const { createHash } = require('node:crypto');
 const { buildDescendantNodeOptions } = require('../tests/helpers/exhaustiveNodeOptions');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -180,9 +181,11 @@ function validateRunnerResult({
     tap,
     coverage,
     skippedTests = [],
-    expectedSkippedTests = []
+    expectedSkippedTests = [],
+    subprocessError = null
 }) {
     const reasons = [];
+    if (subprocessError) reasons.push('child_subprocess_error');
     if (!Number.isInteger(exitStatus)) reasons.push('child_exit_status_missing');
     const requiredTapFields = ['tests', 'pass', 'fail', 'cancelled', 'skipped', 'todo'];
     if (!tap || requiredTapFields.some(field => !Number.isInteger(tap[field]))) {
@@ -267,11 +270,33 @@ function restoreFileSnapshot(file, snapshot) {
     if (fs.existsSync(file)) fs.unlinkSync(file);
 }
 
+function persistCoverageOutput(result, directory) {
+    const entry = fs.lstatSync(directory);
+    if (!entry.isDirectory() || entry.isSymbolicLink()) throw new Error('coverage_evidence_directory');
+    const evidence = {
+        capture_complete: !result.error && !result.signal && Number.isInteger(result.status),
+        subprocess_error: result.error ? { code: String(result.error.code || 'UNKNOWN') } : null
+    };
+    for (const [key, filename] of [['stdout', 'stdout.tap'], ['stderr', 'stderr.log']]) {
+        const bytes = Buffer.isBuffer(result[key]) ? result[key] : Buffer.from(result[key] || '', 'utf8');
+        const file = path.join(directory, filename);
+        fs.writeFileSync(file, bytes, { flag: 'wx' });
+        evidence[key] = { path: file, bytes: bytes.length,
+            sha256: createHash('sha256').update(bytes).digest('hex') };
+    }
+    return evidence;
+}
+
 function runLocalCoverage() {
     const allFiles = listAllLocalTestFiles();
     const nestedTestEntries = findNestedTestEntries(allFiles);
     const files = listLocalTestFiles();
     const startedAt = Date.now();
+    const evidenceRoot = path.join(ROOT, '.codex-temp');
+    if (!fs.existsSync(evidenceRoot)) fs.mkdirSync(evidenceRoot);
+    const evidenceEntry = fs.lstatSync(evidenceRoot);
+    if (!evidenceEntry.isDirectory() || evidenceEntry.isSymbolicLink()) throw new Error('coverage_evidence_directory');
+    const evidenceDirectory = fs.mkdtempSync(path.join(evidenceRoot, 'exhaustive-local-output-'));
     const auditTempRoot = fs.mkdtempSync(
         path.join(os.tmpdir(), 'financasbot-exhaustive-')
     );
@@ -288,6 +313,7 @@ function runLocalCoverage() {
         for (const [file, snapshot] of runtimeSnapshots) restoreFileSnapshot(file, snapshot);
         fs.rmSync(auditTempRoot, { recursive: true, force: true });
     }
+    const outputEvidence = persistCoverageOutput(result, evidenceDirectory);
     const output = `${result.stdout || ''}\n${result.stderr || ''}`;
     const tap = parseTapSummary(output);
     const coverage = parseCoverageSummary(output);
@@ -297,7 +323,8 @@ function runLocalCoverage() {
         tap,
         coverage,
         skippedTests,
-        expectedSkippedTests: EXPECTED_SKIPPED_TESTS
+        expectedSkippedTests: EXPECTED_SKIPPED_TESTS,
+        subprocessError: outputEvidence.subprocess_error
     });
     return {
         schema_version: 1,
@@ -317,6 +344,7 @@ function runLocalCoverage() {
         duration_ms: Date.now() - startedAt,
         exit_status: result.status,
         signal: result.signal || null,
+        output_evidence: outputEvidence,
         valid: validation.valid,
         validation_reasons: validation.reasons,
         tap,
@@ -351,5 +379,6 @@ module.exports = {
     resolveExecutableOnPath,
     captureFileSnapshot,
     restoreFileSnapshot,
+    persistCoverageOutput,
     runLocalCoverage
 };

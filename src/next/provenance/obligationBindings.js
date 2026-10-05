@@ -1,6 +1,12 @@
 'use strict';
 
-const fail = code => { throw new Error(`obligation_binding_${code}`); };
+const failures = new WeakMap();
+const fail = (code, dependency) => {
+    const error = new Error(`obligation_binding_${code}`);
+    if (dependency) failures.set(error, Object.freeze({ checker: 'obligation_binding', code,
+        fact_key: dependency.fact_key, predicate_ids: Object.freeze([...dependency.predicate_ids]) }));
+    throw error;
+};
 const tuple = node => JSON.stringify([node.kind, node.ref_id, node.version]);
 const pathKey = ref => JSON.stringify([ref.node, ref.segments]);
 const fieldAt = (arg, alias, name) => arg?.field?.node === alias
@@ -92,7 +98,11 @@ function validateObligationBindings({ graphs, snapshots, materialRegistry }) {
                         && predicate.args[1 - i]?.literal?.type === 'id'
                         && predicate.args[1 - i].literal.value === parent.fact_key);
                 });
-                if (matches.length !== 1) fail('parent');
+                if (matches.length !== 1) fail('parent', { fact_key: graph.fact_key,
+                    predicate_ids: edge.proof_predicates.map(id => predicates.get(id)).filter(predicate =>
+                        predicate?.obligation === 'node_identity' && predicate.args.some((arg, i) =>
+                            fieldAt(arg, edge.target, 'fact_key') && predicate.args[1 - i]?.literal?.type === 'id'
+                            && predicate.args[1 - i].literal.value === parent.fact_key)).map(predicate => predicate.id) });
                 parentBindings++;
             } else fail('edge');
         }
@@ -101,4 +111,4 @@ function validateObligationBindings({ graphs, snapshots, materialRegistry }) {
         snapshotBindings, materialEdgeBindings, parentBindings });
 }
 
-module.exports = { validateObligationBindings };
+module.exports = { validateObligationBindings, obligationBindingFailure: error => failures.get(error) ?? null };

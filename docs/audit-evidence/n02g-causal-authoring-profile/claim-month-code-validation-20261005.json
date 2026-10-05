@@ -1,0 +1,166 @@
+{
+  "schema_version": 1,
+  "state": "HOLD",
+  "base": "04eb9545516d100aa45e1ac6d8ebfda444fafbd7",
+  "local_only": true,
+  "independent_code_audit": false,
+  "global_g11": false,
+  "financial_release_eligible": false,
+  "broad_is_green": false,
+  "broad_cancellation_cause": "not_established",
+  "broad": {
+    "artifact": ".codex-temp/month-code-final-wide-20261004.json",
+    "sha256": "dc460d6593e4b132f4db2dbca7c1eabeea5c4c69eccc3489165542dacef5d17b",
+    "exit_code": 1,
+    "tap": {
+      "tests": 2630,
+      "suites": 0,
+      "pass": 2609,
+      "fail": 0,
+      "cancelled": 11,
+      "skipped": 10,
+      "todo": 0
+    },
+    "coverage": {
+      "line_percent": 92.17,
+      "branch_percent": 80.35,
+      "function_percent": 92.5,
+      "uncovered_lines": ""
+    },
+    "measured_sources_unchanged": true,
+    "output_evidence": {
+      "capture_complete": true,
+      "subprocess_error": null,
+      "stdout": {
+        "bytes": 785681,
+        "sha256": "c42bf2808de9901af7b439e3f5eee7d509395343b303deb08fcca5d41fb83877"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  },
+  "affected_recovery": {
+    "artifact": ".codex-temp/strategy-affected-20261005-job.json",
+    "sha256": "757f298f1b16c432b7e09041475b96f6f0acfe976a7a1079b6f9d7bb01c7e073",
+    "exit_code": 0,
+    "tap": {
+      "tests": 11,
+      "suites": 0,
+      "pass": 11,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "coverage": {
+      "line_percent": 37.92,
+      "branch_percent": 68.95,
+      "function_percent": 46.41,
+      "uncovered_lines": ""
+    },
+    "measured_sources_unchanged": true,
+    "output_evidence": {
+      "capture_complete": true,
+      "subprocess_error": null,
+      "stdout": {
+        "bytes": 27322,
+        "sha256": "485cb53d99f143c56ad9129ad316189df570573645d2b1abfb40ac422a309a51"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "exact_affected_tests": true,
+    "historical_broad_rewritten": false
+  },
+  "isolated_diagnostic": {
+    "artifact": ".codex-temp/strategy-cancellation-focal-20261005-job.json",
+    "sha256": "fa65db244cd3067625ae1b6a8d852e387a13158d30110544a1f9268bc758b803",
+    "exit_code": 0,
+    "tap": {
+      "tests": 1,
+      "suites": 0,
+      "pass": 1,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "coverage": {
+      "line_percent": 68.59,
+      "branch_percent": 65.38,
+      "function_percent": 74.96,
+      "uncovered_lines": ""
+    },
+    "measured_sources_unchanged": true,
+    "output_evidence": {
+      "capture_complete": true,
+      "subprocess_error": null,
+      "stdout": {
+        "bytes": 9028,
+        "sha256": "d0f67049610dd1294481bb66288eaa019e61ab57e2044c53f70a92341f5b8e8d"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  },
+  "predecessor_diagnostic": {
+    "artifact": ".codex-temp/strategy-sequence-focal-20261005-job.json",
+    "sha256": "c740efa2fb364597437567187e97797c6212cfa2aac5ed34a7adc684219e45ac",
+    "exit_code": 0,
+    "tap": {
+      "tests": 2,
+      "suites": 0,
+      "pass": 2,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "coverage": {
+      "line_percent": 38.2,
+      "branch_percent": 65.95,
+      "function_percent": 46.05,
+      "uncovered_lines": ""
+    },
+    "measured_sources_unchanged": true,
+    "output_evidence": {
+      "capture_complete": true,
+      "subprocess_error": null,
+      "stdout": {
+        "bytes": 23823,
+        "sha256": "3efa8513434261e386fd45b7aa1301ca70d655588aad95d583af0a1803a922fe"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  },
+  "monthly_scope_job": {
+    "artifact": ".codex-temp/claim-month-profile-scope-job-20261004.json",
+    "sha256": "f61520c1acc7b8ddb7c98dbaed9599f94b6590fb5e6946dc5e96919267401bf8",
+    "report_sha256": "sha256:689aa5568a8fb6c544513b26276332262185cf55991505f5f2656bc931ac5cbb"
+  },
+  "monthly_scope": {
+    "counts_source": "claim-month-profile-scope-20261004.json/scoped_mutations",
+    "source_report_sha256": "689aa5568a8fb6c544513b26276332262185cf55991505f5f2656bc931ac5cbb",
+    "source_report_verified": true,
+    "unique_invocations": true,
+    "exact_control_core_matched": true,
+    "target": "M-01#1#1/binding_1",
+    "expected": 1,
+    "generated": 1,
+    "executed": 1,
+    "matched": 1,
+    "original_corpus_witness_qualified": false,
+    "outside_scope_pending": 2418,
+    "activated": false
+  },
+  "measured_source_manifest": "docs/audit-evidence/n02g-causal-authoring-profile/claim-month-code-measured-sources-20261005.json"
+}

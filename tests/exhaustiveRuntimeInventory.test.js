@@ -5,6 +5,8 @@ const path = require('node:path');
 
 const {
     extractImports,
+    scanImports,
+    resolveImport,
     expandPackageScripts,
     packageFileReferences,
     runInventory
@@ -20,6 +22,31 @@ test('extractImports classifies CommonJS, ESM and literal dynamic imports', () =
     `), ['./one', './two.js', './three.mjs']);
 });
 
+test('AST import inventory separates emitted code text from executed template expressions', () => {
+    const source = [
+        "// require('./comment-only');",
+        "const literal = \"require('./quoted-only')\";",
+        "const generated = `const c = require('./generated-only'); ${require('./expression.cjs')}`;",
+        "export { item } from './exported.mjs';",
+        "const loaded = import('./loaded.js');",
+        "const dynamic = require(variable);"
+    ].join('\n');
+    assert.deepStrictEqual(extractImports(source), ['./expression.cjs', './exported.mjs', './loaded.js']);
+    assert.strictEqual(scanImports(source).dynamic, true);
+    assert.strictEqual(scanImports('const text = `require(variable)`;').dynamic, false);
+    assert.throws(() => extractImports('const broken = ;'), /Unexpected token/);
+});
+
+test('relative CJS modules resolve without dropping the executable extension', () => {
+    const fs = require('node:fs'); const os = require('node:os');
+    const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-import-inventory-'));
+    const entry = path.join(temp, 'entry.js'); const child = path.join(temp, 'child.cjs');
+    fs.writeFileSync(child, 'module.exports = {};');
+    assert.strictEqual(resolveImport(entry, './child'), null);
+    assert.strictEqual(resolveImport(entry, './child.cjs'), child);
+    assert.strictEqual(resolveImport(entry, './missing.cjs'), null);
+});
+
 test('default test script expansion follows npm run dependencies', () => {
     const expanded = expandPackageScripts({
         scripts: {
@@ -33,15 +60,15 @@ test('default test script expansion follows npm run dependencies', () => {
     assert.deepStrictEqual(expanded, ['phase:a', 'phase:b', 'phase:c', 'pretest', 'test']);
 });
 
-test('package file references include JavaScript entrypoints and all references exist', () => {
+test('package file references include JavaScript entrypoints and all references exist', async () => {
     const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
     const references = packageFileReferences(packageJson);
     assert.ok(references.some(reference => reference.script === 'start' && reference.file === 'index.js'));
-    assert.deepStrictEqual(runInventory().missing_package_references, []);
+    assert.deepStrictEqual((await runInventory()).missing_package_references, []);
 });
 
-test('inventory accounts for every source module without silently dropping graph gaps', () => {
-    const inventory = runInventory();
+test('inventory accounts for every source module without silently dropping graph gaps', async () => {
+    const inventory = await runInventory();
     assert.strictEqual(inventory.scope.runtime_root, 'index.js');
     assert.ok(inventory.scope.source_files > 0);
     assert.strictEqual(inventory.modules.length, inventory.scope.source_files);
@@ -55,8 +82,34 @@ test('inventory accounts for every source module without silently dropping graph
         inventory.scope.source_files
     );
     assert.deepStrictEqual(inventory.unresolved_product_imports, []);
+    assert.strictEqual(inventory.captured_only_relative_imports.length, 1);
+    const captured = inventory.captured_only_relative_imports[0];
+    assert.strictEqual(captured.from, 'src/next/provenance/validationTcbEntry.js');
+    assert.strictEqual(captured.specifier, '../vendor/schemaValidators');
+    assert.strictEqual(captured.target, 'vendor/schemaValidators.js');
+    assert.strictEqual(captured.resolution, 'closed-byte-table-only');
+    assert.strictEqual(captured.ambient_module_available, false);
+    assert.strictEqual(captured.financial_acceptance, false);
+    assert.strictEqual(captured.reviewed_source_admission, false);
+    for (const key of ['source_sha256', 'target_sha256', 'artifact_root']) assert.match(captured[key], /^sha256:[a-f0-9]{64}$/);
     for (const module of inventory.modules) {
         assert.ok(['runtime', 'operational_only', 'test_only', 'unreferenced'].includes(module.classification));
         assert.strictEqual(module.test_reachable, module.covering_test_count > 0);
+    }
+});
+
+test('captured-only import accounting refuses forged roots, drift, ambient reachability and unmatched edges', async () => {
+    const { captureImportCertificate, accountCapturedImports } = require('../scripts/agent/capturedImportInventory.cjs');
+    const certificate = await captureImportCertificate();
+    const edge = { from: 'src/next/provenance/validationTcbEntry.js', specifier: '../vendor/schemaValidators' };
+    const input = { unresolved: [edge], certificate, readSource: file => fs.readFileSync(path.join(ROOT, file)), ambientReachable: () => false };
+    assert.strictEqual(accountCapturedImports(input).captured.length, 1);
+    for (const fake of [{}, { ...certificate }, structuredClone(certificate)])
+        assert.throws(() => accountCapturedImports({ ...input, certificate: fake }), /captured_import_inventory_certificate/);
+    for (const change of [{ readSource: () => Buffer.from('module.exports = {};') },
+        { ambientReachable: () => true }, { unresolved: [{ ...edge, specifier: '../vendor/unknown' }] },
+        { unresolved: [{ ...edge, from: 'src/other.js' }] }]) {
+        const result = accountCapturedImports({ ...input, ...change });
+        assert.strictEqual(result.captured.length, 0); assert.strictEqual(result.remaining.length, 1);
     }
 });

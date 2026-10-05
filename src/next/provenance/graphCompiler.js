@@ -1,20 +1,30 @@
 'use strict';
 
 const { admittedDocuments } = require('./packageContract');
-const { digest } = require('../kernel/canonicalValue');
-const { validateGraphStructure } = require('./graphStructure');
+const { digest, canonicalValue } = require('../kernel/canonicalValue');
+const { validateGraphStructure, validateQualificationGraphStructure } = require('./graphStructure');
 const { validateTemplateReferences } = require('./templateReferences');
-const { compilePredicateTypes } = require('./predicateTypes');
+const { compilePredicateTypes, compileQualificationPredicateTypes } = require('./predicateTypes');
 const { validateSchemaRegistryProjection } = require('./schemaRegistryProjection');
 const { validateObligationBindings } = require('./obligationBindings');
 const { compileOperandBindings } = require('./operandBindings');
-const { validateClaimRequirements } = require('./claimRequirements');
+const { validateClaimRequirements, validateQualificationClaimRequirements } = require('./claimRequirements');
 const { validateSelectionBindings } = require('./selectionBindings');
 const { lowerAuthoringIR } = require('./authoringIR');
 const { validateCollectionRequirements } = require('./collectionRequirements');
-const { createInstrumentedAccess, createNodeSetAccess } = require('./instrumentedAccess');
+const { createInstrumentedAccess, createNodeSetAccess, createDerivedParentAccess } = require('./instrumentedAccess');
+const { resolveLedgerParent } = require('./claimBinding');
+const { resolveExecutionEvaluator } = require('./executionRegistry');
 const { copyData, identifier } = require('./observationContract');
 const { projectClaimContext } = require('./claimContext');
+const { types } = require('node:util');
+const { resolvePhaseCompositionMode, phaseCompositionCommitment, validatePhaseArtifactInputs } = require('./phaseCompositionProfile');
+const { freezeContents, resolveFrozenProofRoot } = require('./freezeContract');
+const { proofProgramIdentity } = require('./phaseProgramIdentity');
+const { prepareClaimMonthPathTransport, assertClaimMonthPathTransport } = require('./claimMonthPathProfile');
+const monthQualifications = new WeakMap();
+const monthCompilations = new WeakMap();
+const GRAPH_PATH = 'docs/contracts/next/provenance-v2/graphs-v2.json';
 
 function fail(code) { throw new Error(`graph_index_${code}`); }
 function text(value) {
@@ -134,7 +144,7 @@ function indexGraphDependencies({ graphs, claims, evaluators, expectedFactKeys }
 }
 
 /** Shared admission/compile pipeline. Neither public view is proof approval. */
-function compileAuthoring(admitted, validators) {
+function compileAuthoring(admitted, validators, qualification = null) {
     const documents = new Map(admittedDocuments(admitted).map(document => [document.path, document]));
     function document(path, expectedHash) {
         const value = documents.get(path);
@@ -181,18 +191,25 @@ function compileAuthoring(admitted, validators) {
     const index = indexGraphDependencies({ graphs: graphs.graphs, claims: claims.claims,
         evaluators: registry.entries, expectedFactKeys });
     const operandBindings = compileOperandBindings({ graphs: graphs.graphs, claims: claims.claims, evaluators: registry.entries, contracts });
-    validateGraphStructure({ graphs: graphs.graphs, claims: claims.claims,
-        materialRegistry: resolved.material_registry, operatorRegistry: resolved.operator_registry });
+    const structureInput = { graphs: graphs.graphs, claims: claims.claims,
+        materialRegistry: resolved.material_registry, operatorRegistry: resolved.operator_registry };
+    if (qualification) validateQualificationGraphStructure(structureInput, qualification.transport, qualification.variant);
+    else validateGraphStructure(structureInput);
     const templates = document('docs/contracts/next/provenance-v2/predicate-templates-v1.json');
     validateTemplateReferences({ graphs: graphs.graphs, operators: resolved.operator_registry.operators,
         templates,
         materialRegistry: resolved.material_registry, claims: claims.claims });
-    const predicateTypes = compilePredicateTypes({ graphs: graphs.graphs, claims: claims.claims, snapshots: snapshots.snapshots,
+    const typeInput = { graphs: graphs.graphs, claims: claims.claims, snapshots: snapshots.snapshots,
         materialRegistry: resolved.material_registry, operatorRegistry: resolved.operator_registry,
-        claimSchema });
+        claimSchema };
+    const predicateTypes = qualification
+        ? compileQualificationPredicateTypes(typeInput, qualification.transport, qualification.variant)
+        : compilePredicateTypes(typeInput);
     validateObligationBindings({ graphs: graphs.graphs, snapshots: snapshots.snapshots,
         materialRegistry: resolved.material_registry });
-    validateClaimRequirements({ graphs: graphs.graphs, claims: claims.claims });
+    if (qualification) validateQualificationClaimRequirements({ graphs: graphs.graphs, claims: claims.claims,
+        transport: qualification.transport, variant: qualification.variant });
+    else validateClaimRequirements({ graphs: graphs.graphs, claims: claims.claims });
     const selectionBindings = validateSelectionBindings({ graphs: graphs.graphs, claims: claims.claims,
         materialRegistry: resolved.material_registry });
     validateCollectionRequirements({ graphs: graphs.graphs, snapshots: snapshots.snapshots,
@@ -210,13 +227,225 @@ function compileAuthoringIR(admitted, validators) {
     return lowerAuthoringIR(compileAuthoring(admitted, validators));
 }
 
+// Host-only preparation. Full normal C compilation precedes any certificate;
+// expected target lowering is derived from authorship + fixed profile grammar,
+// before the compiler observes M. No runtime or financial authority is issued.
+function prepareClaimMonthQualification(admitted, validators, target) {
+    const selected = copyData(target);
+    if (Object.keys(selected).sort().join(',') !== 'fact_key,predicate_id') fail('month_qualification_target');
+    const baseline = compileAuthoring(admitted, validators);
+    if (Object.hasOwn(baseline.claimSchema.definitions.claim.properties, 'qualification')) fail('month_qualification_reserved');
+    const transport = prepareClaimMonthPathTransport({ graphs: baseline.graphs, claims: baseline.claims,
+        fact_key: selected.fact_key, predicate_id: selected.predicate_id });
+    const graph = baseline.graphs.find(g => g.fact_key === selected.fact_key);
+    const predicate = graph.predicates.find(p => p.id === selected.predicate_id);
+    function expectedSite(segments) {
+        return { id: predicate.id, op: predicate.op, atom: predicate.atom, obligation: predicate.obligation,
+            operands: [ { type: { form: 'period', periodKind: 'month' }, expression: { kind: 'claim_ref', segments } },
+                { type: { form: 'period', periodKind: 'month' }, expression: { kind: 'period_literal', period: structuredClone(predicate.args[1].period_literal) } } ] };
+    }
+    const expected = freeze({ C: expectedSite(['period']), M: expectedSite(['qualification', 'alternative_period']) });
+    const baselineIR = lowerAuthoringIR(baseline);
+    const receipt = freeze({ stage: 'claim_month_qualification_prepared_only', profile: transport.profile,
+        target: { ...selected }, transport, expected_conformance: expected,
+        expected_conformance_hash: digest(expected), profile_witness_qualified: false,
+        financial_release_eligible: false });
+    const documents = new Map(baseline.documents.map(row => [row.path, row]));
+    monthQualifications.set(receipt, { baseline, baselineIR, documents, transport, expected, target: receipt.target });
+    verifyClaimMonthQualificationConformance(receipt, baselineIR, 'C');
+    return receipt;
+}
+
+function verifyClaimMonthQualificationConformance(preparation, ir, variant = 'M') {
+    const authority = monthQualifications.get(preparation);
+    if (!authority) fail('month_qualification_authority');
+    if (!['C', 'M', 'S'].includes(variant)) fail('month_qualification_variant');
+    // Passive per-graph projection avoids accepting guest accessors or an IR
+    // self-declared site map; inventory comes from the original authored graph.
+    if (!ir || typeof ir !== 'object' || types.isProxy(ir)
+        || ![Object.prototype, null].includes(Object.getPrototypeOf(ir))) fail('month_qualification_conformance');
+    const graphProperty = Object.getOwnPropertyDescriptor(ir, 'graphs');
+    if (!graphProperty?.enumerable || !Object.hasOwn(graphProperty, 'value')) fail('month_qualification_conformance');
+    const sourceGraphs = graphProperty.value;
+    if (!Array.isArray(sourceGraphs) || types.isProxy(sourceGraphs)) fail('month_qualification_conformance');
+    const descriptors = Object.getOwnPropertyDescriptors(sourceGraphs);
+    const count = descriptors.length.value;
+    if (count !== authority.baseline.graphs.length || Reflect.ownKeys(descriptors).length !== count + 1) fail('month_qualification_conformance');
+    const graphs = [];
+    for (let index = 0; index < count; index++) {
+        const item = descriptors[index];
+        if (!item?.enumerable || !Object.hasOwn(item, 'value')) fail('month_qualification_conformance');
+        graphs.push(structuredClone(copyData(item.value)));
+    }
+    if (graphs.length !== authority.baseline.graphs.length || new Set(graphs.map(g => g.fact_key)).size !== graphs.length) fail('month_qualification_conformance');
+    const byKey = new Map(graphs.map(g => [g.fact_key, g]));
+    for (const authored of authority.baseline.graphs) {
+        const observed = byKey.get(authored.fact_key);
+        if (!observed || observed.predicates.length !== authored.predicates.length
+            || new Set(observed.predicates.map(p => p.id)).size !== authored.predicates.length
+            || observed.predicates.some((p, i) => p.id !== authored.predicates[i].id)) fail('month_qualification_conformance');
+    }
+    const observed = byKey.get(authority.target.fact_key).predicates.find(p => p.id === authority.target.predicate_id);
+    if (canonicalValue(observed) !== canonicalValue(authority.expected[variant === 'M' ? 'M' : 'C'])) fail('month_qualification_conformance');
+    // The target expectation above does not use actual IR. Baseline comparison
+    // additionally detects every collateral lowering change outside that site.
+    const restored = graphs.map(g => g.fact_key === authority.target.fact_key ? { ...g,
+        predicates: g.predicates.map(p => p.id === authority.target.predicate_id ? authority.expected.C : p) } : g);
+    if (canonicalValue(restored) !== canonicalValue(authority.baselineIR.graphs)) fail('month_qualification_conformance');
+    return freeze({ authorship_ir_conformance: true, expected_conformance_hash: preparation.expected_conformance_hash,
+        qualification_only: true, profile_witness_qualified: false });
+}
+
+function compileClaimMonthQualificationIR(admitted, validators, preparation, variant = 'M') {
+    const authority = monthQualifications.get(preparation);
+    if (!authority) fail('month_qualification_authority');
+    const documents = admittedDocuments(admitted);
+    if (documents.length !== authority.documents.size) fail('month_qualification_package');
+    for (const row of documents) {
+        const original = authority.documents.get(row.path);
+        if (!original || row.path !== GRAPH_PATH && row.sha256 !== original.sha256) fail('month_qualification_package');
+        if (row.path === GRAPH_PATH) {
+            const { graphs, ...envelope } = row.value;
+            const { graphs: _originalGraphs, ...originalEnvelope } = original.value;
+            if (canonicalValue(envelope) !== canonicalValue(originalEnvelope)) fail('month_qualification_package');
+            assertClaimMonthPathTransport({ graphs, claims: authority.baseline.claims, transport: authority.transport, variant });
+        }
+    }
+    // Every compiler pass runs over admitted M, not an injected baseline IR.
+    const context = compileAuthoring(admitted, validators, { transport: authority.transport, variant });
+    const ir = lowerAuthoringIR(context);
+    verifyClaimMonthQualificationConformance(preparation, ir, variant);
+    const result = freeze({ stage: 'claim_month_qualification_compiled_only', ir, profile: preparation.profile,
+        variant, expected_conformance_hash: preparation.expected_conformance_hash,
+        full_mutated_authorship_compiled: variant === 'M', static_target_binding_transported: variant === 'M',
+        authorship_ir_conformance: true, profile_witness_qualified: false,
+        financial_release_eligible: false, receipt_created: false });
+    monthCompilations.set(result, { context, authority, variant });
+    return result;
+}
+
+const monthIsolatedPlans = new WeakMap();
+function prepareClaimMonthIsolatedPlan(compilation) {
+    const compiled = monthCompilations.get(compilation);
+    if (!compiled) fail('month_qualification_authority');
+    const access = compileClaimMonthQualificationAccess(compilation);
+    const { target, transport } = compiled.authority;
+    const graph = compilation.ir.graphs.find(row => row.fact_key === target.fact_key);
+    const core = access.projectProofTransport({ fact_key: target.fact_key }).config.bindings.find(row => row.alias === 'claim/context');
+    const data = freeze({ schema_version: 1, profile_id: transport.profile,
+        normative_commit: transport.normative_commit, quarantine_origin: 'negative_qualification',
+        variant: compiled.variant, fact_key: target.fact_key, predicate_id: target.predicate_id,
+        core_context_hash: 'sha256:' + digest(structuredClone(core.value)), proof_ir_hash: 'sha256:' + digest(graph),
+        sidecar_hash: 'sha256:' + digest(transport.sidecar), sidecar: structuredClone(transport.sidecar),
+        original_period: structuredClone(transport.semantic_reference.original_period),
+        predicate_ids: graph.predicates.map(row => row.id) });
+    const source = canonicalValue(data);
+    const claim = compiled.authority.baseline.claims.find(row => row.fact_key === target.fact_key);
+    const registry = compiled.authority.baseline.documents.find(row => row.value?.registry_id === 'metric_evaluator_registry').value;
+    const evaluator = registry.entries.find(row => row.evaluator_id === claim.evaluator_ref.evaluator_id
+        && row.evaluator_version === claim.evaluator_ref.evaluator_version);
+    const receipt = freeze({ stage: 'claim_month_isolated_plan_only', profile: transport.profile,
+        descriptor: data, descriptor_hash: 'sha256:' + digest(data),
+        profile_witness_qualified: false, financial_release_eligible: false, receipt_created: false });
+    monthIsolatedPlans.set(receipt, Object.freeze({ data, source, access, baselineAccess: buildSnapshotAccess(compiled.authority.baseline),
+        evaluatorRef: freeze(structuredClone(claim.evaluator_ref)), contractHash: evaluator.evaluator_contract_hash,
+        packageAuthority: freeze(compiled.authority.baseline.documents.map(row => ({ path: row.path, sha256: row.sha256 }))
+            .sort((a, b) => a.path < b.path ? -1 : 1)) }));
+    return receipt;
+}
+
+function resolveClaimMonthIsolatedPlan(receipt) {
+    const row = monthIsolatedPlans.get(receipt);
+    if (!row) fail('month_qualification_authority');
+    return row;
+}
+
+function assertClaimMonthIsolatedProgram(receipt, raw, phaseProfileReceipt) {
+    const row = resolveClaimMonthIsolatedPlan(receipt);
+    let input;
+    try { input = structuredClone(copyData(raw)); } catch { fail('month_isolation_program'); }
+    const selector = { fact_key: row.data.fact_key };
+    const expected = { derivation: row.access.projectDerivationProgram(selector, phaseProfileReceipt).input,
+        proof: row.access.projectProofProgram(selector).input };
+    if (canonicalValue(input) !== canonicalValue(structuredClone(expected))) fail('month_isolation_program');
+    return row;
+}
+
+const monthLowerings = new WeakMap(); const monthProofRoots = new WeakMap(); const monthFrozenBaselines = new WeakMap();
+function admitClaimMonthFrozenBaseline(plan, raw) {
+    const row = resolveClaimMonthIsolatedPlan(plan);
+    const names = ['phaseProfileReceipt', 'freezeReceipt', 'registryReceipt', 'artifactReceipt'];
+    if (!raw || types.isProxy(raw) || ![Object.prototype, null].includes(Object.getPrototypeOf(raw))) fail('month_frozen_input');
+    const fields = Object.getOwnPropertyDescriptors(raw);
+    if (Reflect.ownKeys(fields).length !== names.length || names.some(name => !fields[name]?.enumerable
+        || !Object.hasOwn(fields[name], 'value'))) fail('month_frozen_input');
+    const args = Object.fromEntries(names.map(name => [name, fields[name].value]));
+    const authority = freezeContents(args.freezeReceipt);
+    const evaluator = resolveExecutionEvaluator(args.registryReceipt, row.evaluatorRef);
+    if (canonicalValue(structuredClone(authority.package_authority)) !== canonicalValue(row.packageAuthority)
+        || args.registryReceipt.observed_hash !== authority.metric_registry_hash) fail('month_frozen_world');
+    if (evaluator.evaluator_contract_hash !== row.contractHash) fail('month_frozen_contract');
+    const selector = { fact_key: row.data.fact_key }; const profile = phaseCompositionCommitment(args.phaseProfileReceipt);
+    const programId = proofProgramIdentity(row.baselineAccess.projectProofProgram(selector).input,
+        row.baselineAccess.projectDerivationProgram(selector, args.phaseProfileReceipt).input, profile.sha256);
+    const expectedRoot = resolveFrozenProofRoot(args.freezeReceipt, programId);
+    const { artifactContents } = require('./artifactLoader'); const contents = artifactContents(args.artifactReceipt);
+    validatePhaseArtifactInputs(contents);
+    if (contents.kind !== 'proof' || args.artifactReceipt.observed_root !== expectedRoot
+        || contents.files[1].source !== profile.source) fail('month_frozen_root');
+    const receipt = freeze({ stage: 'claim_month_frozen_baseline_bytes_only', baseline_root: expectedRoot,
+        freeze_hash: args.freezeReceipt.observed_hash, profile_witness_qualified: false,
+        financial_release_eligible: false, receipt_created: false });
+    monthFrozenBaselines.set(receipt, Object.freeze({ plan, source: contents.files[0].source, freeze: authority,
+        freezeHash: args.freezeReceipt.observed_hash, evaluatorRoot: evaluator.evaluator_artifact_root,
+        contractHash: evaluator.evaluator_contract_hash }));
+    return receipt;
+}
+function sealClaimMonthIsolatedLowering(plan, baselineSource, baselineReceipt = null) {
+    const row = resolveClaimMonthIsolatedPlan(plan);
+    const baseline = baselineReceipt === null ? null : monthFrozenBaselines.get(baselineReceipt);
+    if (baselineReceipt !== null && (!baseline || baseline.plan !== plan || baseline.source !== baselineSource)) fail('month_frozen_authority');
+    const { sealClaimMonthProofExpectation } = require('./claimMonthProofConformance');
+    const receipt = sealClaimMonthProofExpectation({ baselineSource, predicateId: row.data.predicate_id,
+        predicateIds: row.data.predicate_ids, originalPeriod: row.data.original_period, variant: row.data.variant });
+    monthLowerings.set(receipt, { plan, baseline }); return receipt;
+}
+function admitClaimMonthIsolatedProof(plan, lowering, artifactReceipt) {
+    const row = resolveClaimMonthIsolatedPlan(plan);
+    const loweringAuthority = monthLowerings.get(lowering);
+    if (loweringAuthority?.plan !== plan) fail('month_qualification_authority');
+    const { artifactContents } = require('./artifactLoader');
+    const { validateClaimMonthArtifact } = require('./claimMonthIsolatedProfile');
+    const { verifyClaimMonthProofSource } = require('./claimMonthProofConformance');
+    const contents = artifactContents(artifactReceipt);
+    validateClaimMonthArtifact(contents, row.source);
+    verifyClaimMonthProofSource(lowering, contents.files[0].source);
+    const receipt = freeze({ stage: 'claim_month_isolated_artifact_only', observed_root: artifactReceipt.observed_root,
+        positive_baseline_frozen: loweringAuthority.baseline !== null,
+        profile_witness_qualified: false, financial_release_eligible: false, receipt_created: false });
+    monthProofRoots.set(receipt, Object.freeze({ ...row, artifactReceipt, frozenBaseline: loweringAuthority.baseline })); return receipt;
+}
+function resolveClaimMonthIsolatedProof(receipt) {
+    const row = monthProofRoots.get(receipt); if (!row) fail('month_qualification_authority'); return row;
+}
+
+function compileClaimMonthQualificationAccess(compilation) {
+    const compiled = monthCompilations.get(compilation);
+    if (!compiled) fail('month_qualification_authority');
+    return buildSnapshotAccess(compiled.context, { transport: compiled.authority.transport,
+        target: compiled.authority.target, variant: compiled.variant });
+}
+
 // Host/TCB factory only; never endow this controller into a guest compartment.
 // No caller-supplied payload, shape, role declaration or identity override.
 // openSet admits the initial ordered roster; its handle.select computes new
 // views, but neither is approval of graph selection obligations. These methods
 // do not authorize validated-parent receipts or claim-context access.
 function compileSnapshotAccess(admitted, validators) {
-    const context = compileAuthoring(admitted, validators);
+    return buildSnapshotAccess(compileAuthoring(admitted, validators));
+}
+
+function buildSnapshotAccess(context, qualification = null) {
     const reject = code => { throw new Error(`snapshot_access_${code}`); };
     const identity = node => JSON.stringify([node.kind, node.ref_id, node.version]);
     const scalarTypes = new Set(['id', 'text', 'date', 'month', 'datetime', 'integer',
@@ -242,6 +471,9 @@ function compileSnapshotAccess(admitted, validators) {
             identity: freeze({ kind: snapshot.kind, ref_id: snapshot.ref_id, version: snapshot.version }) }];
     }));
     const graphs = new Map(context.graphs.map(g => [g.fact_key, g]));
+    const indexed = new Map(context.index.graphs.map(row => [row.fact_key, row]));
+    const claims = new Map(context.claims.map(claim => [claim.fact_key, claim]));
+    const proofIR = new Map(lowerAuthoringIR(context).graphs.map(graph => [graph.fact_key, graph]));
     const contexts = new Map(context.claims.map(claim => [claim.fact_key, projectClaimContext(claim, context.claimSchema)]));
     const bindings = new Map(context.operandBindings.graphs.map(g => [g.fact_key,
         new Map(g.operands.map(b => [b.role_ref.role_id, b]))]));
@@ -276,8 +508,195 @@ function compileSnapshotAccess(admitted, validators) {
         }
         return { bindings: queue.map(node => sourceBinding(fact_key, role, node)), links };
     }
-    return Object.freeze({ stage: 'snapshot_access_plan_only', executable: false,
+    function capabilityFields(raw, names) {
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw) || types.isProxy(raw)
+            || ![Object.prototype, null].includes(Object.getPrototypeOf(raw))) reject('parent_transport');
+        const descriptors = Object.getOwnPropertyDescriptors(raw);
+        if (Reflect.ownKeys(descriptors).length !== names.length || names.some(name =>
+            !descriptors[name]?.enumerable || !Object.hasOwn(descriptors[name], 'value'))) reject('parent_transport');
+        return Object.fromEntries(names.map(name => [name, descriptors[name].value]));
+    }
+    const plan = Object.freeze({ stage: qualification ? 'qualification_snapshot_access_plan_only' : 'snapshot_access_plan_only', executable: false,
+        ...(qualification ? { financial_release_eligible: false, profile_witness_qualified: false } : {}),
         snapshot_count: snapshots.size,
+        projectProofTransport(raw, parentContext) {
+            let selector;
+            try { selector = copyData(raw); } catch { reject('proof_transport_selector'); }
+            if (!selector || Object.keys(selector).join(',') !== 'fact_key' || !identifier(selector.fact_key)) reject('proof_transport_selector');
+            const graph = graphs.get(selector.fact_key);
+            if (!graph) reject('proof_transport_graph');
+            const metricTransport = plan.projectMetricTransport(selector, parentContext);
+            const material = reachable(selector.fact_key, 'proof/snapshot', Object.keys(graph.nodes)
+                .filter(alias => graph.nodes[alias].binding === 'snapshot'));
+            const parentBindings = metricTransport.parentGroups.flatMap(group => group.bindings.map(binding => ({ ...binding, role: 'proof/snapshot' })));
+            const targets = new Set(graph.selections.map(selection => selection.selected_set));
+            // Selected rosters NEVER enter transport. They can only arise from
+            // the guest's observed guards through the admitted selection pair.
+            return copyData({ stage: 'isolated_proof_transport_only', graph_accepted: false, config: {
+                bindings: [...material.bindings, ...parentBindings,
+                    { alias: 'claim/context', role: 'proof/context', ...contexts.get(selector.fact_key) }],
+                directLinks: material.links,
+                proofParentEdges: metricTransport.parentGroups.flatMap(group => group.edges),
+                proofParentMaterials: metricTransport.parentGroups.map(group => {
+                    const binding = group.bindings[0];
+                    return { edge_id: group.edgeId, descriptor: { registry_version: context.materialRegistry.registry_version,
+                        kind: 'derived_claim', fields: context.materialRegistry.kinds.derived_claim.fields },
+                        expected_fingerprint: 'sha256:' + digest({ registry_version: context.materialRegistry.registry_version,
+                            ...structuredClone(binding.identity), payload: structuredClone(binding.value) }) };
+                }),
+                proofSets: Object.entries(graph.sets).filter(([name]) => !targets.has(name)).map(([name, roster]) => ({ name, roster })),
+                proofSelections: graph.selections.map(({ candidate_set, selected_set }) => ({ candidate_set, selected_set }))
+            } });
+        },
+        // Private BUILD projection after package/schema/IR admission. These
+        // are instructions, literals and registry descriptors for lowering,
+        // not runtime evidence, raw snapshots, expected trace or acceptance.
+        projectProofProgram(raw) {
+            let selector;
+            try { selector = copyData(raw); } catch { reject('proof_build_selector'); }
+            if (!selector || Object.keys(selector).join(',') !== 'fact_key' || !identifier(selector.fact_key)) reject('proof_build_selector');
+            const graph = graphs.get(selector.fact_key); const ir = proofIR.get(selector.fact_key);
+            if (!graph || !ir) reject('proof_build_graph');
+            const registry = context.documents.find(document => document.value?.registry_id === 'operator_registry')?.value;
+            if (!registry || !Array.isArray(registry.operators)) reject('proof_build_operator');
+            const catalog = new Map(registry.operators.map(operator => [operator.id, operator]));
+            const predicates = ir.predicates.map(predicate => {
+                const operator = catalog.get(predicate.op);
+                if (!operator) reject('proof_build_operator');
+                return { id: predicate.id, operator, operands: predicate.operands };
+            });
+            const materials = Object.fromEntries(Object.entries(graph.nodes).map(([alias, node]) => {
+                const descriptor = context.materialRegistry.kinds[node.kind];
+                if (!descriptor) reject('proof_build_material');
+                return [alias, { registry_version: context.materialRegistry.registry_version, kind: node.kind, fields: descriptor.fields }];
+            }));
+            const selections = context.selectionBindings.programs.filter(program => program.fact_key === graph.fact_key)
+                .map(program => ({ candidate_set: program.candidate_set, selected_set: program.selected_set,
+                    cases: program.cases.map(item => ({ ...item, identity: {
+                        kind: graph.nodes[item.node].kind, ref_id: graph.nodes[item.node].ref_id,
+                        version: graph.nodes[item.node].version } })) }));
+            return copyData({ stage: 'proof_build_input_only', graph_accepted: false,
+                input: { predicates, windows: ir.windows, materials, operators: registry.operators, selections } });
+        },
+        // Private host preparation, not graph approval. All inputs come from
+        // admitted bindings/snapshots, never the expected trace or oracle.
+        projectMetricTransport(raw, parentContext) {
+            let selector;
+            try { selector = copyData(raw); } catch { reject('transport_selector'); }
+            if (!selector || Object.keys(selector).join(',') !== 'fact_key' || !identifier(selector.fact_key)) reject('transport_selector');
+            const graph = graphs.get(selector.fact_key); const roles = bindings.get(selector.fact_key);
+            if (!graph || !roles) reject('transport_graph');
+            const parentRoles = [...roles].filter(([, binding]) => binding.kind === 'parent_claim').map(([role]) => role);
+            let parents;
+            if (parentRoles.length) {
+                parents = capabilityFields(parentContext, ['receiptScope', 'registryReceipt', 'receipts']);
+                parents.receipts = capabilityFields(parents.receipts, parentRoles);
+            } else if (parentContext !== undefined) reject('parent_transport');
+            const directGroups = []; const nodeSets = []; const parentGroups = [];
+            for (const [role, binding] of roles) {
+                if (binding.kind === 'claim_context') directGroups.push({ role, alias: 'claim/context',
+                    bindings: [{ alias: 'claim/context', role, ...contexts.get(selector.fact_key) }], links: [] });
+                else if (binding.kind === 'node') {
+                    const group = reachable(selector.fact_key, role, [binding.alias]);
+                    directGroups.push({ role, alias: binding.alias, bindings: group.bindings, links: group.links });
+                } else if (binding.kind === 'node_set') {
+                    const group = reachable(selector.fact_key, role, binding.aliases);
+                    nodeSets.push({ role, bindings: group.bindings, roster: binding.aliases, links: group.links });
+                } else if (binding.kind === 'parent_claim') {
+                    const opened = plan.openDerivedRole({ fact_key: selector.fact_key, role_id: role, phase: 'derivation' },
+                        parents.receiptScope, parents.receipts[role], parents.registryReceipt, () => {});
+                    parentGroups.push(opened.transport);
+                    opened.control.revoke();
+                } else reject('transport_binding');
+            }
+            return copyData({ stage: 'snapshot_metric_transport_only', graph_accepted: false,
+                fact_key: selector.fact_key, directGroups, nodeSets, parentGroups });
+        },
+        projectDerivationProgram(raw, phaseProfileReceipt) {
+            const projected = plan.projectProofProgram(raw);
+            const selector = copyData(raw); const graph = graphs.get(selector.fact_key);
+            const claim = claims.get(selector.fact_key);
+            const registry = context.documents.find(document => document.value?.registry_id === 'metric_evaluator_registry').value;
+            const mode = resolvePhaseCompositionMode(phaseProfileReceipt, registry, claim.evaluator_ref, claim.metric);
+            const associations = plan.projectDerivationBindings(raw).selections;
+            const ids = new Set((mode === 'formula_plus_selection_guards' ? graph.selections : []).filter(selection => associations.some(row =>
+                row.candidate_set === selection.candidate_set && row.selected_set === selection.selected_set)).flatMap(selection =>
+                [...selection.selected_predicates, ...selection.excluded.flatMap(row => row.predicates)]));
+            const input = copyData({ ...projected.input, selections: [],
+                predicates: projected.input.predicates.filter(predicate => ids.has(predicate.id)) });
+            if (input.predicates.length !== ids.size) reject('derivation_build_predicate');
+            return copyData({ stage: 'derivation_build_input_only', graph_accepted: false, input });
+        },
+        projectDerivationBindings(raw) {
+            // Authored INPUT populations and role associations only. Selected
+            // populations are computed by the actual metric handle.select.
+            plan.projectProofProgram(raw);
+            const graph = graphs.get(copyData(raw).fact_key); const roles = bindings.get(graph.fact_key);
+            const targets = new Set(graph.selections.map(selection => selection.selected_set));
+            const selections = graph.selections.flatMap(selection => {
+                const candidates = graph.sets[selection.candidate_set];
+                const matches = [...roles].filter(([, row]) => row.kind === 'node_set'
+                    && JSON.stringify(row.aliases) === JSON.stringify(candidates));
+                if (matches.length > 1) reject('derivation_selection_binding');
+                // A proof-only population need not be a functional operand.
+                // Exactly the same role/roster association as the native path.
+                if (!matches.length) return [];
+                return [{ role: matches[0][0], candidate_set: selection.candidate_set, selected_set: selection.selected_set }];
+            });
+            return copyData({ sets: Object.entries(graph.sets).filter(([name]) => !targets.has(name))
+                .map(([name, aliases]) => ({ name, aliases })), selections });
+        },
+        // Before handle exposure bind the opaque prior-invocation receipt to
+        // this package's full documents and an admitted execution registry.
+        // A TCB transport receipt is still NOT a host's completed acceptance.
+        openDerivedRole(selector, receiptScope, receipt, registryReceipt, emit) {
+            let input;
+            try { input = copyData(selector); } catch { reject('parent_selector'); }
+            if (!input || Object.keys(input).sort().join(',') !== 'fact_key,phase,role_id'
+                || !identifier(input.fact_key) || !identifier(input.role_id)
+                || !['derivation', 'proof'].includes(input.phase) || typeof emit !== 'function') reject('parent_selector');
+            const graph = graphs.get(input.fact_key); const row = indexed.get(input.fact_key);
+            const parent = row?.parents.find(p => p.role === input.role_id);
+            if (!graph || !parent) reject('parent_role');
+            const parentGraph = graphs.get(parent.fact_key); const parentClaim = claims.get(parent.fact_key);
+            if (!parentGraph || !parentClaim || Object.values(parentGraph.nodes).some(n => n.binding !== 'snapshot')
+                || parentGraph.edges.some(e => e.relation === 'derived_from')
+                || Object.values(parentClaim.operand_bindings).some(b => b.kind === 'parent_claim')) reject('parent_profile');
+            const entry = resolveExecutionEvaluator(registryReceipt, parentClaim.evaluator_ref);
+            const authoringEntry = context.documents.find(d => d.value?.registry_id === 'metric_evaluator_registry')
+                .value.entries.find(e => evaluatorKey(e) === evaluatorKey(parentClaim.evaluator_ref));
+            if (!authoringEntry || entry.evaluator_contract_hash !== authoringEntry.evaluator_contract_hash
+                || entry.metric !== authoringEntry.metric || entry.unit !== parentClaim.unit
+                || digest(entry.roles.map(role => ({ ...role }))) !== digest(authoringEntry.roles)) reject('parent_registry');
+            const graphDocument = context.documents.find(d => d.path === 'docs/contracts/next/provenance-v2/graphs-v2.json');
+            const projected = resolveLedgerParent(receiptScope, { receipt, fact_key: parent.fact_key,
+                claim_id: parentClaim.claim_id, evaluator_version: parentClaim.evaluator_ref.evaluator_version,
+                claim_contract_hash: graphDocument.value.claim_contract.hash, graph_contract_hash: graphDocument.sha256,
+                metric_registry_hash: registryReceipt.observed_hash });
+            const snapshot = projected.snapshot;
+            if (snapshot.payload.parents.length !== 0 || snapshot.payload.result.unit !== 'BRL_minor'
+                || snapshot.payload.result.kind !== 'money_minor') reject('parent_profile');
+            const measured = `sha256:${digest({ registry_version: context.materialRegistry.registry_version,
+                kind: snapshot.kind, ref_id: snapshot.ref_id, version: snapshot.version, payload: snapshot.payload })}`;
+            if (measured !== projected.semantic_fingerprint) reject('parent_fingerprint');
+            const scalar = { type: 'scalar' }; const shape = { type: 'record', fields: {
+                id: scalar, fact_key: scalar, evaluator_version: scalar, result_hash: scalar,
+                result: { type: 'record', fields: { unit: scalar, kind: scalar, value: scalar } },
+                parents: { type: 'sequence', item: { type: 'record', fields: { role_id: scalar, parent_ref: scalar } } } } };
+            const role = input.phase === 'derivation' ? input.role_id : 'proof/snapshot';
+            const identity = { kind: snapshot.kind, ref_id: snapshot.ref_id, version: snapshot.version };
+            const edges = graph.edges.filter(e => e.relation === 'derived_from' && e.source === 'claim'
+                && e.field === input.role_id && e.target === parent.alias);
+            if (edges.length !== 1) reject('parent_binding');
+            const transport = copyData({ role, alias: parent.alias, edgeId: edges[0].id,
+                bindings: [{ alias: parent.alias, role, value: snapshot.payload, shape, identity }],
+                edges: edges.map(({ id, source, field, target, relation }) => ({ id, source, field, target, relation })) });
+            const control = createDerivedParentAccess({ phase: input.phase, emit,
+                bindings: transport.bindings, edges: transport.edges });
+            return Object.freeze({ control, resultHash: projected.result_hash,
+                expectedFingerprint: projected.semantic_fingerprint,
+                accessBinding: freeze({ alias: parent.alias, role, identity, records: [[], ['result']] }), transport });
+        },
         // TCB-only local composition of functional operands and the authored
         // derivation selection. Never endow the controller/scope into a guest.
         // This does not admit execution artifacts, proof or a financial graph.
@@ -288,7 +707,7 @@ function compileSnapshotAccess(admitted, validators) {
                 || !identifier(input.fact_key) || typeof emit !== 'function') reject('metric_selector');
             const graph = graphs.get(input.fact_key); const roles = bindings.get(input.fact_key);
             if (!graph || !roles) reject('metric_graph');
-            const ir = lowerAuthoringIR(context).graphs.find(row => row.fact_key === input.fact_key);
+            const ir = proofIR.get(input.fact_key);
             const operators = context.documents.find(doc => doc.value?.registry_id === 'operator_registry').value.operators;
             const { evaluateObservedSelectionOperator } = require('./proofOperators');
             const controls = []; const operands = {}; const nodes = new Map(); const sets = new Map();
@@ -350,9 +769,21 @@ function compileSnapshotAccess(admitted, validators) {
                     const members = graph.sets[name].map(alias => {
                         if (!nodes.has(alias)) invalid('metric_predicate_set'); return nodes.get(alias);
                     });
-                    return Object.freeze({ length: () => members.length, at: index => {
+                    return Object.freeze({ length: () => { healthy(); return members.length; }, at: index => {
+                        healthy();
                         if (!Number.isSafeInteger(index) || index < 0 || index >= members.length) invalid('metric_predicate_index');
                         return members[index];
+                    }, [Symbol.iterator]() {
+                        healthy(); let index = 0; let closed = false;
+                        return Object.freeze({ next() {
+                            healthy();
+                            if (closed || index === members.length) {
+                                closed = true; return { value: undefined, done: true };
+                            }
+                            return { value: members[index++], done: false };
+                        }, return() {
+                            healthy(); closed = true; return { value: undefined, done: true };
+                        }, [Symbol.iterator]() { healthy(); return this; } });
                     } });
                 },
                 window(name) { healthy(); if (!Object.hasOwn(ir.windows, name)) invalid('metric_predicate_window'); return ir.windows[name]; },
@@ -402,24 +833,23 @@ function compileSnapshotAccess(admitted, validators) {
                 revoke() { revoked = true; for (const control of controls) control.revoke(); }
             });
         },
-        observationMetadata(selector) {
+        observationMetadata(selector, parentContext) {
             let input;
             try { input = copyData(selector); } catch { reject('metadata_selector'); }
             if (!input || Object.keys(input).sort().join(',') !== 'fact_key,phase' || !identifier(input.fact_key)
                 || !['derivation', 'proof'].includes(input.phase)) reject('metadata_selector');
             const graph = graphs.get(input.fact_key);
             if (!graph) reject('metadata_graph');
-            if (Object.values(graph.nodes).some(node => node.binding !== 'snapshot')) reject('metadata_parent_pending');
             const sources = [];
             if (input.phase === 'derivation') {
-                for (const [role, binding] of bindings.get(input.fact_key)) {
-                    if (binding.kind === 'claim_context') sources.push({ alias: 'claim/context', role, ...contexts.get(input.fact_key) });
-                    else if (['node', 'node_set'].includes(binding.kind)) sources.push(...reachable(input.fact_key, role,
-                        binding.kind === 'node' ? [binding.alias] : binding.aliases).bindings);
-                    else reject('metadata_parent_pending');
-                }
+                const transport = plan.projectMetricTransport({ fact_key: input.fact_key }, parentContext);
+                sources.push(...[...transport.directGroups, ...transport.nodeSets, ...transport.parentGroups]
+                    .flatMap(group => group.bindings));
             } else {
-                const nodes = reachable(input.fact_key, 'proof/snapshot', Object.keys(graph.nodes)).bindings;
+                const transport = plan.projectMetricTransport({ fact_key: input.fact_key }, parentContext);
+                const primary = Object.keys(graph.nodes).filter(alias => graph.nodes[alias].binding === 'snapshot');
+                const nodes = [...reachable(input.fact_key, 'proof/snapshot', primary).bindings,
+                    ...transport.parentGroups.flatMap(group => group.bindings.map(binding => ({ ...binding, role: 'proof/snapshot' })))];
                 sources.push(...nodes, { alias: 'claim/context', role: 'proof/context', ...contexts.get(input.fact_key) });
                 const selected = new Set(graph.selections.map(selection => selection.selected_set));
                 for (const name of Object.keys(graph.sets).filter(name => !selected.has(name))) {
@@ -431,29 +861,128 @@ function compileSnapshotAccess(admitted, validators) {
             // payload values. Record elements inside sequences remain unsupported.
             return copyData(sources.map(binding => {
                 const records = [];
+                const claimRecords = []; const claimSequences = [];
                 function visit(shape, value, path) {
+                    if (binding.alias === 'claim/context' && shape.type === 'sequence' && value !== undefined) {
+                        if (shape.item.type !== 'scalar') reject('metadata_claim_sequence');
+                        claimSequences.push({ path, item_hashes: value.map(item => 'sha256:' + digest(item)) });
+                        return;
+                    }
                     if (shape.type !== 'record' || value === undefined) return;
                     records.push(path);
+                    if (binding.alias === 'claim/context') claimRecords.push({ path, keys: Object.keys(value) });
                     for (const [name, child] of Object.entries(shape.fields)) {
                         if (Object.hasOwn(value, name)) visit(child, value[name], [...path, name]);
                     }
                 }
                 visit(binding.shape, binding.value, []);
-                return { alias: binding.alias, role: binding.role, identity: binding.identity || null, records };
+                return { alias: binding.alias, role: binding.role, identity: binding.identity || null, records,
+                    ...(binding.alias === 'claim/context' ? { claim_structure: {
+                        records: claimRecords, sequences: claimSequences } } : {}) };
             }));
         },
-        openProof(selector, emit) {
+        runProofPredicates(selector, emit, parentContext) {
+            const observed = plan.inspectProofPredicates(selector, emit, parentContext);
+            if (!observed.satisfied) reject('proof_program_unsatisfied');
+            return Object.freeze({ stage: 'observed_proof_predicates_only', graph_accepted: false,
+                predicates: observed.results.length, selections: observed.selections });
+        },
+        inspectProofPredicates(selector, emit, parentContext) {
+            // TCB development execution, not the isolated/measured proof root
+            // and never graph acceptance. Neither R nor expected_trace is used.
+            // A false predicate is diagnostic data; an execution/admission/sink
+            // error is still an error, never an inferred semantic violation.
+            const access = plan.openProof(selector, emit, parentContext);
+            const graph = proofIR.get(selector.fact_key);
+            const predicates = new Map(graph.predicates.map(predicate => [predicate.id, predicate]));
+            const { evaluateObservedOperator } = require('./proofOperators');
+            const programs = context.selectionBindings.programs.filter(program => program.fact_key === graph.fact_key);
+            const qualificationObservations = [];
+            let activeSite = null;
+            let qualificationAccess = null;
+            if (qualification?.variant === 'M' && graph.fact_key === qualification.target.fact_key) {
+                const core = contexts.get(graph.fact_key);
+                const sidecar = qualification.transport.sidecar;
+                const view = { value: { ...core.value, qualification: sidecar.qualification }, shape: {
+                    type: 'record', fields: { ...core.shape.fields, qualification: { type: 'record', fields: {
+                        alternative_period: { type: 'record', fields: { kind: { type: 'scalar' }, value: { type: 'scalar' } } }
+                    } } }
+                } };
+                const role = `proof/qualification/${qualification.target.predicate_id}`;
+                qualificationAccess = createInstrumentedAccess({ bindings: [{ alias: 'qualification/context', role, ...view }], emit: tuple => {
+                    // Origin/phase/site belong to this native controller and
+                    // its active authored dispatch, not a guest-provided map.
+                    if (activeSite !== qualification.target.predicate_id || tuple[2] !== 'qualification/context'
+                        || tuple[3] !== role || tuple[4][0] !== 'qualification') reject('qualification_observation');
+                    qualificationObservations.push(copyData({ origin: 'qualification', phase: 'proof',
+                        site: activeSite, role, operation: tuple }));
+                    emit(tuple);
+                } });
+            }
+            const evaluate = (id, scope) => {
+                const predicate = predicates.get(id);
+                if (!predicate) reject('proof_program_predicate');
+                activeSite = id;
+                try {
+                    const targetScope = qualificationAccess && id === qualification.target.predicate_id
+                        ? { ...scope, claim: () => qualificationAccess.handle('qualification/context') } : scope;
+                    const result = evaluateObservedOperator(access.operator(predicate.op), predicate.operands, targetScope);
+                    if (typeof result !== 'boolean') reject('proof_program_result');
+                    return result;
+                } finally { activeSite = null; }
+            };
+            try {
+                // Full descriptor binding follows the schema-admitted context,
+                // not the list of expected reads. No functional R is present.
+                const { bindObservedContext } = require('./proofContextBinding');
+                bindObservedContext(contexts.get(graph.fact_key).value, access.claim());
+                if (Object.values(graph.nodes).some(node => node.binding === 'validated_parent')) {
+                    const { bindObservedParents } = require('./proofParentBinding');
+                    bindObservedParents(plan.projectProofTransport(selector, parentContext).config.proofParentMaterials,
+                        id => access.edge(id));
+                }
+                for (const program of programs) {
+                    access.select(program.candidate_set, program.selected_set, (member, index) => {
+                        const item = program.cases[index];
+                        if (!item) reject('proof_program_candidate');
+                        const node = graph.nodes[item.node];
+                        if (member.identity('kind') !== node.kind || member.identity('ref_id') !== node.ref_id
+                            || member.identity('version') !== node.version) reject('proof_program_identity');
+                        // Guards concerning the current candidate read its live
+                        // member handle; referenced targets keep normal access.
+                        const scope = { ...access, node: alias => alias === item.node ? member : access.node(alias) };
+                        let all = true;
+                        for (const id of item.predicates) if (!evaluate(id, scope)) all = false;
+                        return item.mode === 'include_if_all' ? all : !all;
+                    });
+                }
+                // No short-circuit: each authored predicate is independently
+                // executed even if it already participated in a selection.
+                const results = graph.predicates.map(predicate => Object.freeze({
+                    id: predicate.id, obligation: predicate.obligation, atom: predicate.atom,
+                    satisfied: evaluate(predicate.id, access)
+                }));
+                access.assertHealthy();
+                return Object.freeze({ stage: 'proof_predicate_diagnostics_only', graph_accepted: false,
+                    satisfied: results.every(row => row.satisfied), results: Object.freeze(results),
+                    selections: programs.length,
+                    ...(qualification ? { qualification_observations: Object.freeze(qualificationObservations) } : {}) });
+            } finally { qualificationAccess?.revoke(); access.revoke(); }
+        },
+        openProof(selector, emit, parentContext) {
             let input;
             try { input = copyData(selector); } catch { reject('proof_selector'); }
             if (!input || Object.keys(input).join(',') !== 'fact_key'
                 || !identifier(input.fact_key) || typeof emit !== 'function') reject('proof_selector');
             const graph = graphs.get(input.fact_key);
             if (!graph) reject('proof_graph');
-            if (Object.values(graph.nodes).some(node => node.binding !== 'snapshot')) reject('proof_parent_pending');
+            const transport = plan.projectProofTransport({ fact_key: input.fact_key }, parentContext).config;
+            const parentBindings = transport.bindings.filter(binding => binding.identity?.kind === 'derived_claim');
+            const parentEdges = transport.proofParentEdges;
             // This tag names the proof transport scope, NOT a metric operand
             // role. The execution host must bind this factory to phase proof.
             // No required_reads/expected_trace is used to manufacture events.
-            const reachableNodes = reachable(input.fact_key, 'proof/snapshot', Object.keys(graph.nodes));
+            const reachableNodes = { bindings: transport.bindings.filter(binding => binding.alias !== 'claim/context'), links: transport.directLinks };
             let failed = false; let revoked = false;
             let selectionBusy = false;
             const controllers = []; const sets = new Map(); const selected = new Map();
@@ -465,10 +994,12 @@ function compileSnapshotAccess(admitted, validators) {
             };
             const invalid = code => { failed = true; reject(code); };
             const observe = event => { check(); emit(event); check(); };
-            const access = createInstrumentedAccess({ bindings: [...reachableNodes.bindings,
-                { alias: 'claim/context', role: 'proof/context', ...contexts.get(input.fact_key) }],
+            const access = createInstrumentedAccess({ bindings: transport.bindings,
                 links: reachableNodes.links, emit: observe });
             controllers.push(access);
+            const parentAccess = parentBindings.length ? createDerivedParentAccess({ phase: 'proof', emit: observe,
+                bindings: parentBindings, edges: parentEdges }) : undefined;
+            if (parentAccess) controllers.push(parentAccess);
             function set(name) {
                 check();
                 if (typeof name !== 'string' || !Object.hasOwn(graph.sets, name)) invalid('proof_set');
@@ -506,7 +1037,9 @@ function compileSnapshotAccess(admitted, validators) {
                     } finally { selectionBusy = false; }
                 },
                 edge(id) {
-                    check(); const edge = graph.edges.find(e => e.id === id && e.relation === 'material_ref');
+                    check();
+                    if (parentEdges.some(edge => edge.id === id)) return parentAccess.traverse(id);
+                    const edge = graph.edges.find(e => e.id === id && e.relation === 'material_ref');
                     if (!edge) invalid('proof_edge');
                     return access.handle(edge.source).traverse(id);
                 },
@@ -540,6 +1073,12 @@ function compileSnapshotAccess(admitted, validators) {
                     return freeze({ registry_version: context.materialRegistry.registry_version, kind,
                         fields: context.materialRegistry.kinds[kind].fields });
                 },
+                window(name) {
+                    check();
+                    const windows = proofIR.get(input.fact_key).windows;
+                    if (typeof name !== 'string' || !Object.hasOwn(windows, name)) invalid('proof_window');
+                    return windows[name];
+                },
                 revoke() { revoked = true; for (const controller of controllers) controller.revoke(); },
                 assertHealthy() { if (failed) reject('proof_failed'); for (const controller of controllers) controller.assertHealthy(); }
             });
@@ -568,6 +1107,7 @@ function compileSnapshotAccess(admitted, validators) {
                 ...reachable(fact_key, role_id, binding.aliases), roster: binding.aliases, emit });
         }
     });
+    return plan;
 }
 
 // Compile-time consistency only. The proof phase must independently observe
@@ -608,7 +1148,11 @@ function validateStaticEvidence(graphs, snapshots, registry) {
             if (node.binding !== 'snapshot') continue;
             const identity = tuple(node);
             const snapshot = byIdentity.get(identity);
-            if (!snapshot || node.semantic_fingerprint !== snapshot.semantic_fingerprint) fail('node_snapshot_mismatch');
+            // Identity resolution precedes fingerprint comparison. A missing
+            // target does not establish a measured fingerprint violation.
+            // These are admission diagnostics, not D/P mutation acceptance.
+            if (!snapshot) fail('node_snapshot_mismatch_identity');
+            if (node.semantic_fingerprint !== snapshot.semantic_fingerprint) fail('node_snapshot_mismatch_fingerprint');
             if (aliases.has(identity)) fail('node_snapshot_duplicate');
             aliases.set(identity, alias);
         }
@@ -648,4 +1192,8 @@ function validateStaticEvidence(graphs, snapshots, registry) {
     return Object.freeze({ snapshots: byIdentity.size, graphs: graphs.length });
 }
 
-module.exports = { indexGraphDependencies, compileAuthoringIndex, compileAuthoringIR, compileSnapshotAccess, validateStaticEvidence };
+module.exports = { indexGraphDependencies, compileAuthoringIndex, compileAuthoringIR, compileSnapshotAccess, validateStaticEvidence,
+    prepareClaimMonthQualification, compileClaimMonthQualificationIR, verifyClaimMonthQualificationConformance,
+    compileClaimMonthQualificationAccess, prepareClaimMonthIsolatedPlan,
+    resolveClaimMonthIsolatedPlan, assertClaimMonthIsolatedProgram, sealClaimMonthIsolatedLowering,
+    admitClaimMonthIsolatedProof, resolveClaimMonthIsolatedProof, admitClaimMonthFrozenBaseline };

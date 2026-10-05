@@ -1,6 +1,12 @@
 'use strict';
 
-const fail = code => { throw new Error(`collection_requirements_${code}`); };
+const failures = new WeakMap();
+const fail = (code, dependency) => {
+    const error = new Error(`collection_requirements_${code}`);
+    if (dependency) failures.set(error, Object.freeze({ checker: 'collection_requirements', code,
+        fact_key: dependency.fact_key, predicate_ids: Object.freeze([...dependency.predicate_ids]) }));
+    throw error;
+};
 const tuple = node => JSON.stringify([node.kind, node.ref_id, node.version]);
 const sameSet = (a, b) => a.length === new Set(a).size && b.length === new Set(b).size
     && a.length === b.length && a.every(value => b.includes(value));
@@ -22,7 +28,10 @@ function validateCollectionRequirements({ graphs, snapshots, materialRegistry })
             const predicates = graph.predicates.filter(p => p.op === 'eq' && p.obligation === 'coverage'
                 && p.args.some(a => a.field?.node === alias && a.field.segments.length === 1 && a.field.segments[0] === field));
             if (!predicates.length || predicates.some(p => !p.args.some(a => a.literal?.type === type && a.literal.value === value))) {
-                fail('fixture_anchor');
+                fail('fixture_anchor', { fact_key: graph.fact_key,
+                    predicate_ids: graph.predicates.filter(p => p.obligation === 'coverage'
+                        && p.args.some(a => a.field?.node === alias && a.field.segments.length === 1 && a.field.segments[0] === field))
+                        .map(p => p.id) });
             }
         }
         for (const [alias, node] of entries.filter(([, node]) => node.kind === 'fixture')) {
@@ -64,4 +73,4 @@ function validateCollectionRequirements({ graphs, snapshots, materialRegistry })
     return Object.freeze({ stage: 'collection_requirements_checked_only', graphs: graphs.length, collections });
 }
 
-module.exports = { validateCollectionRequirements };
+module.exports = { validateCollectionRequirements, collectionRequirementFailure: error => failures.get(error) ?? null };

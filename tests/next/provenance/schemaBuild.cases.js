@@ -5,6 +5,9 @@ const assert = require('node:assert/strict');
 const { pathToFileURL } = require('node:url');
 const path = require('node:path');
 const Module = require('node:module');
+const fs = require('node:fs');
+const { createHash } = require('node:crypto');
+const { admitPackage } = require('../../../src/next/provenance/packageContract');
 
 test('N02G:SCHEMA-001 all authored documents validate without mutation', async () => {
     const builder = await import(pathToFileURL(path.resolve(__dirname, '../../../scripts/agent/buildNextProvenanceArtifacts.mjs')));
@@ -81,4 +84,36 @@ test('N02G:SCHEMA-003 emitted static validators execute with the same restrictio
     assert.equal(validators.claims(claims), true);
     claims.claims[0].period = { kind: 'date', value: '2042-02-30' };
     assert.equal(validators.claims(claims), false);
+});
+
+test('N02G:SCHEMA-004 admitted validators use measured schema contents without disk fallback or forged callbacks', async () => {
+    const builder = await import(pathToFileURL(path.resolve(__dirname, '../../../scripts/agent/buildNextProvenanceArtifacts.mjs')));
+    const prefix = 'docs/contracts/next/provenance-v2/';
+    const baseline = builder.buildSchemaValidators();
+    const entries = baseline.schemaHashes.map(row => ({ path: row.path,
+        bytes: fs.readFileSync(path.resolve(__dirname, '../../..', row.path)) }));
+    const sha = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
+    const admit = rows => admitPackage({ entries: rows, authority: rows.map(row => ({ path: row.path, sha256: sha(row.bytes) })) });
+    const original = admit(entries);
+    const built = builder.buildAdmittedSchemaValidators(original);
+    assert.deepEqual(built.schemaHashes, baseline.schemaHashes);
+    assert.equal(built.code, baseline.code);
+    assert.throws(() => builder.buildAdmittedSchemaValidators({ ...original }), /not_admitted/);
+    assert.throws(() => builder.buildAdmittedSchemaValidators(admit(entries.slice(1))), /admitted_schema_missing/);
+    const snapshotPath = prefix + 'evidence-snapshot.schema.json';
+    const schema = JSON.parse(entries.find(row => row.path === snapshotPath).bytes);
+    // Deliberately synthetic schema: proves the compiler consumes the admitted
+    // bytes, not the on-disk schema. It is never a financial domain ratification.
+    schema.definitions.payload_budget.properties.evidence_state.enum.push('synthetic_alternative');
+    const changed = entries.map(row => row.path === snapshotPath
+        ? { path: row.path, bytes: Buffer.from(JSON.stringify(schema)) } : row);
+    const alternate = builder.buildAdmittedSchemaValidators(admit(changed));
+    assert.notEqual(alternate.schemaHashes.find(row => row.path === snapshotPath).sha256,
+        baseline.schemaHashes.find(row => row.path === snapshotPath).sha256);
+    const source = require('../../../docs/contracts/next/provenance-v2/snapshot-manifest-v1.json').snapshots.find(row => row.kind === 'budget');
+    const { ref_id, kind, version, payload } = structuredClone(source);
+    payload.evidence_state = 'synthetic_alternative';
+    const envelope = { ref_id, kind, version, payload };
+    assert.equal(built.validators.snapshot(envelope), false);
+    assert.equal(alternate.validators.snapshot(envelope), true);
 });

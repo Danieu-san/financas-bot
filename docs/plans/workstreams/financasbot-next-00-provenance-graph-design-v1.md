@@ -781,6 +781,32 @@ Se a arquitetura não conseguir isolar um átomo, o resultado é
 `UNSATISFIED_MUTATION_WITNESS` e o gate falha; não se reduz a granularidade de
 `expected_violations` para acomodar a limitação.
 
+#### Adendo source-state ratificado — 2026-10-02
+
+Autoridade focal: proposta `98e3d6a929541e3238362400504c884c34031f22`,
+parecer independente APTO DOCUMENTAL PARA IMPLEMENTAR, registrado no checkpoint
+N02-G. Este adendo não é aprovação de código ou GO global.
+
+A qualificação negativa separa validade da fórmula e do fato original. Claim e
+oracle positivo permanecem congelados. Se uma única mutação semântica altera
+legitimamente um input funcional, exige-se referência contrafactual independente,
+tipada e pré-computada do mutant schema-valid e da lei funcional ratificada, sem
+executar/importar o evaluator sob teste ou consultar actual. Referência e hashes
+dos inputs são selados antes de D/P. A divergência do oracle positivo permanece
+registrada e bloqueia aceitação/receipt; a referência só qualifica o negativo.
+Sem referência suficiente: UNSATISFIED_MUTATION_WITNESS.
+
+O conjunto observado classifica todas as barreiras recusadas, não só predicates
+falsos. Expressões do mesmo átomo não criam átomos adicionais; cada coordenada
+conserva ID e execução próprios, falsifica seu alvo e preserva toda obrigação
+fora do átomo declarado. Não agrupar átomos, compartilhar execução, reclassificar
+erro genérico ou omitir falha de seleção, trace, fingerprint, identidade ou
+resultado funcional. Publicar separadamente positive_oracle_matched,
+counterfactual_reference_matched, proof_satisfied e negative_witness_qualified.
+Somente coverage em S-16 pode divergir do oracle positivo sob a referência
+literal independente prevista; o negativo nunca recebe aceitação financeira.
+eq→not_eq continua predicate_strategy, não predicate_atom.
+
 ### 10.1 Nós
 
 Para cada nó:
@@ -788,7 +814,18 @@ Para cada nó:
 - substituir por outro ID válido do mesmo kind;
 - alterar versão/fingerprint;
 - remover, duplicar ou acrescentar nó;
-- alterar cada campo material por outro valor válido do mesmo tipo.
+- resolver o domínio contratual exato de cada campo material, confrontando
+  registry e schema admitidos no mesmo pacote;
+- quando existir outro valor válido do mesmo tipo, alterar o campo por essa
+  alternativa schema-valid, com witness semântico discriminante;
+- quando o domínio contratual for exatamente singleton, exigir prova de
+  invariância (registry/schema concordantes e baseline igual ao único valor)
+  e negativo de admissão com valor distinto do mesmo tipo fora do domínio.
+
+A classificação decorre do contrato, nunca dos exemplos disponíveis no corpus.
+Domínio desconhecido, não resolvido ou divergente falha fechado. Alterar somente
+ID, versão ou fingerprint não substitui alteração do campo. O negativo
+singleton não é execução D/P, witness semântico, átomo ortogonal ou receipt.
 
 ### 10.2 Predicados
 
@@ -799,6 +836,42 @@ Para cada predicado:
 - inverter ou retargetar a relação;
 - alterar operador por outro compatível em tipo, porém semanticamente errado;
 - inserir operador/path desconhecido.
+
+#### Adendo ratificado de domínio de paths v2 — 2026-10-03
+
+Decisão imutável `f892a35fce88fe21d474bd7ed408fe2697052ce7`, ratificada
+documentalmente conforme `path-domain-v2-independent-review.md` em
+`docs/audit-evidence/n02g-causal-authoring-profile/`. Implementar exatamente a
+proposta `financasbot-next-02-n02g-path-domain-proposal-v2.md` naquele SHA.
+Isto não aprova código nem ativa o inventário candidato.
+
+`same_type_wrong_path` tem uma obrigação semântica por predicado que contenha
+ao menos um site authored path-bearing. Ausência de alternativa discriminante
+mantém o ID obrigatório UNSATISFIED; predicado sem path recebe aplicabilidade
+positiva zero-sites, não SKIP. Demais famílias do predicado permanecem intactas.
+O witness preserva ramo, operador, tipagem nominal/unidade/domínio, claim/oracle
+e barreiras não alvo, atravessa admissão e discrimina D/P. Não há nova exceção
+contrafactual ou de cofalha; source-state e A/B eq conservam seus limites.
+
+Admissão: `unknown_path` por site de path e `unknown_reference` por site de
+referência, namespaces separados e schema-valid. Path negativo muda apenas
+segments; referência negativa muda apenas ID. Diagnóstico nativo específico,
+baseline/restore e controles contra forja/coordenada errada são obrigatórios.
+`dp_execution=false`, `semantic_mutation_credit=0`; nenhuma recusa genérica
+anterior a D/P satisfaz o ledger semântico. Unknown_operator é família própria.
+
+Derivar sites da gramática, incluindo fieldPath anchor, ref_set.field, sort,
+projection e bindings recursivos sem deduplicação por valor. Literal e
+period_literal não são locators, mesmo quando contêm texto parecido com ID.
+Ramo/namespace sem regra ratificada, inclusive partial_policy sem resolver
+admitido, bloqueia o inventário; não ignorar nem inventar resolver.
+
+Preservar integralmente os 45.988 IDs históricos v1 e seus relatórios; tabela
+versionada um-a-um deve conferir old_id/old_target contra o manifesto congelado,
+declarar disposição, IDs novos relacionados e hash do adendo. Supersessão só
+pertence à migração, nunca a executed/matched/PASS/SKIP. Novos IDs usam domínio
+financasbot.mutation-requirement.v2; cada site de admissão exige sua invocação.
+Ativação depende de tabela completa, conformance e auditoria de código.
 
 ### 10.3 Arestas
 
@@ -825,7 +898,7 @@ As contagens esperadas são calculadas do próprio schema compilado:
 
 ```text
 mutations_expected =
-  material_node_fields
+  material_node_fields_with_legal_alternative
   + predicates
   + material_edges
   + trace_reads
@@ -833,13 +906,35 @@ mutations_expected =
   + structural_mutations
 ```
 
+```text
+domain_invariants_expected = material_node_fields_with_exact_singleton_domain
+material_node_fields =
+  material_node_fields_with_legal_alternative
+  + material_node_fields_with_exact_singleton_domain
+```
+
+As classes são derivadas, mutuamente exclusivas e cobrem todas as coordenadas.
+Mutações semânticas e invariantes de domínio têm inventários próprios de
+`expected/generated/executed/matched`, integralmente iguais dentro de cada
+classe, sem compensação cruzada. No inventário de invariantes, `executed`
+significa executar o negativo de admissão, jamais executar D/P.
+
 Não existe número hardcoded que possa continuar verde após inclusão de novo
 nó, campo, aresta ou fato.
 
+Parcelas explícitas do adendo de paths v2:
+`path_semantic_expected = predicates_with_at_least_one_authored_path_site`;
+`path_admission_expected = authored_path_sites`;
+`reference_admission_expected = authored_reference_sites`.
+São ledgers distintos das outras famílias G11. Aplicabilidade, migração e
+probes não entram em executed/matched. Inventário v1 segue histórico intacto;
+v2 permanece candidato até satisfazer os gates de ativação acima.
+
 ### 10.6 Witness obrigatório e fail-closed
 
-Cada mutação enumerada precisa produzir um witness schema-valid e
-discriminante. O gerador segue esta ordem:
+Cada mutação semântica enumerada precisa produzir um witness schema-valid e
+discriminante. Para campo com alternativa contratualmente válida, o gerador
+segue esta ordem:
 
 1. reutilizar alternativa válida do closed world;
 2. sintetizar alternativa mínima a partir do schema do kind;
@@ -848,10 +943,55 @@ discriminante. O gerador segue esta ordem:
 
 Se não conseguir materializar witness, o resultado é
 `UNSATISFIED_MUTATION_WITNESS` e o gate falha. Nunca há `skip`, redução da
-cardinalidade esperada ou aceitação por ausência de alternativa.
+cardinalidade esperada ou aceitação por ausência contingente de alternativa.
+
+Somente domínio exatamente singleton, comprovado por registry e schema
+admitidos conjuntamente, usa a classe separada de invariante: provar o
+baseline admitido igual ao único valor e executar alteração mínima para valor
+distinto do mesmo tipo, recusada na admissão. A coordenada permanece exigida;
+não vira `skip`/N/A nem cobre outro alvo ou um dos doze átomos. Domínio ampliado
+para admitir uma alternativa volta automaticamente à classe semântica.
+Negativo schema-invalid nunca recebe crédito D/P, `both`, semântico ou receipt.
+Ausência da resolução de domínio, da prova singleton ou do negativo obrigatório
+falha fechado, assim como ausência de witness onde há alternativa legal.
 
 O relatório registra `expected`, `generated`, `executed` e `matched`; os quatro
-totais precisam ser iguais.
+totais precisam ser iguais separadamente nas duas classes.
+
+#### Adendo predicate-strategy eq ratificado — 2026-10-03
+
+Autoridade documental: proposta imutável
+`dbe72aa94894b7c4abf70c31fab8902f5e9236dc`, parent único
+`6666c4ede22896034029b1bf018e6af97d125f8a`, parecer APTO DOCUMENTAL PARA
+IMPLEMENTAR. O plano `financasbot-next-02-n02g-predicate-strategy-boundary-proposal-v1.md`
+nesse SHA fixa integralmente a decisão. Sua aprovação não aprova runtime/G11.
+
+Exclusivamente `predicate_strategy/compatible_wrong_operator/eq` usa DOIS
+canais obrigatórios por ID, sem compensação:
+
+- A: autoria eq→not_eq; recusa pelo checker específico com dependência causal
+  demonstrada, ou admissão intermediária seguida de compile da autoria MUTADA
+  em quarentena e conformance independente autoria→IR em todos os sites causais.
+  Expected de ID, operands, tipo e sites é selado antes de observar o IR mutado;
+  mapa autodeclarado e IR observado não formam expected. Lowering not_eq→eq,
+  sites ausentes/extra ou conformance ausente reprovam A mesmo com B suficiente.
+- B: fault somente na asserção final P do IR baseline admitido; seleção,
+  guards D, outras asserções, inputs, fingerprints, claim e oracle continuam
+  intactos. Mapa estruturado e verificador separado conferem o artefato inteiro;
+  referência tipada independente existe antes da execução real D/P e trace externo.
+- A asserção identity ALVO pode rejeitar; identity colateral não qualifica.
+  Classificar sites/papéis, não apenas o nome do átomo. Pais reais são obrigatórios.
+- Root negativo selado e observado não é root positivo de release. Nenhum
+  negativo gera receipt/validated_parent ou entra no ledger financeiro. Freeze
+  e release positivos não são relaxados; erro genérico/abort antes de P não dá crédito.
+- Publicar ledgers authoring_probe e semantic_assertion_fault por ID, com
+  expected/generated/executed/matched completos em cada canal; inventário e
+  execuções individuais preservados, zero UNSATISFIED para fechar a família.
+
+Esta mudança limitada de §§10.0/10.2/10.5/10.6 não cobre predicate_atom nem
+outras estratégias. Os adendos singleton/source-state permanecem inalterados.
+O lote histórico vermelho não é promovido retroativamente. Implementação e
+controles obrigatórios da proposta continuam exigindo testes e auditoria de código.
 
 ## 11. Compilador e evaluator
 

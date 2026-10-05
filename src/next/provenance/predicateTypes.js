@@ -4,21 +4,20 @@ const { unifyOperatorTypes } = require('./operatorTypes');
 const { validateLiteral } = require('./literalTypes');
 const { parseDate, parseMonth, dayOrdinal } = require('./civilCalendar');
 const { freezeDeep } = require('../kernel/canonicalValue');
-const fail = code => { throw new Error(`predicate_types_${code}`); };
+const { claimReferenceKind } = require('./claimNominalTypes');
+const diagnostics = new WeakMap();
+const fail = code => {
+    const error = new Error(`predicate_types_${code}`);
+    diagnostics.set(error, freezeDeep({ checker: 'predicate_types', code }));
+    throw error;
+};
+// Error messages are not authority. Only a native failure can carry the
+// coordinate assigned by this pass; foreign/forged errors return null.
+const readPredicateTypeDiagnostic = error => diagnostics.get(error) ?? null;
 const own = (value, key) => value !== null && typeof value === 'object' && Object.hasOwn(value, key);
 const scalar = (type, extra = {}) => ({ form: 'scalar', type, ...extra });
 const nodeType = kind => ({ form: 'node', kind });
 const enumType = values => scalar('enum', { values, domain: JSON.stringify([...values].sort()) });
-const subjectKinds = Object.freeze({ source: 'source_state', merchant: 'merchant_identity', transfer_pair: 'transfer_identity' });
-
-function claimReferenceKind(claim, segments) {
-    const path = segments.join('.');
-    if (path === 'subject.ref_id') return subjectKinds[claim.subject.kind] || claim.subject.kind;
-    if (/^subject\.(family|person|category|budget)_id$/.test(path)) return segments[1].slice(0, -3);
-    if (path === 'subject.person_ids') return 'person';
-    return `claim.${path}`;
-}
-
 // Schemas have already been validated by the admitted, static validator. This
 // resolves their local discriminated branches; it is not another JSON Schema
 // validator or a fallback to the shape/type of a primitive runtime value.
@@ -52,7 +51,7 @@ function claimSchemaPath(root, claim, segments) {
 
 // Internal pass after admission, schemas, identity/edge indexing and template
 // validation. This function alone does not establish those preconditions.
-function compilePredicateTypes({ graphs, claims, snapshots, materialRegistry, operatorRegistry, claimSchema }) {
+function compilePredicateTypesInternal({ graphs, claims, snapshots, materialRegistry, operatorRegistry, claimSchema }, qualification) {
     const claimMap = new Map(claims.map(claim => [claim.fact_key, claim]));
     const operators = new Map(operatorRegistry.operators.map(operator => [operator.id, operator]));
     const tuple = node => JSON.stringify([node.kind, node.ref_id, node.version]);
@@ -70,6 +69,15 @@ function compilePredicateTypes({ graphs, claims, snapshots, materialRegistry, op
     }
     for (const graph of graphs) {
         const typedPredicates = [];
+        function atOperand(predicate, operand_index, resolve) {
+            try { return resolve(); }
+            catch (error) {
+                const diagnostic = diagnostics.get(error);
+                if (diagnostic && !Object.hasOwn(diagnostic, 'predicate_id')) diagnostics.set(error, freezeDeep({ ...diagnostic,
+                    fact_key: graph.fact_key, predicate_id: predicate.id, operand_index }));
+                throw error;
+            }
+        }
         const claim = claimMap.get(graph.fact_key);
         if (!claim) fail('claim_missing');
         const node = alias => {
@@ -129,6 +137,12 @@ function compilePredicateTypes({ graphs, claims, snapshots, materialRegistry, op
             return { form: 'field', value: fieldValue(kind, ref.segments[0], fieldDescriptor(kind, ref.segments), ref.node) };
         }
         function claimField(ref) {
+            if (qualification?.variant === 'M' && graph.fact_key === qualification.subobligation.fact_key
+                && JSON.stringify(ref.segments) === JSON.stringify(qualification.locator)) {
+                // Nominal type is the admitted profile's exact descriptor,
+                // not inferred from a value or a caller-provided schema.
+                return { ...qualification.type };
+            }
             const { schema, ref: schemaRef, value } = claimSchemaPath(claimSchema, claim, ref.segments);
             const path = ref.segments.join('.');
             let type;
@@ -176,14 +190,16 @@ function compilePredicateTypes({ graphs, claims, snapshots, materialRegistry, op
             for (const predicate of graph.predicates) {
                 if (predicate.op === 'set_eq' || predicate.op === 'set_subset') {
                     const [left, right] = predicate.args;
-                    const type = arg => arg.ref_set ? refSetType(arg.ref_set) : arg.set ? setKinds.get(arg.set) : null;
-                    if (left.set) changed = hint(left.set, type(right)) || changed;
-                    if (right.set) changed = hint(right.set, type(left)) || changed;
+                    const type = arg => atOperand(predicate, predicate.args.indexOf(arg), () =>
+                        arg.ref_set ? refSetType(arg.ref_set) : arg.set ? setKinds.get(arg.set) : null);
+                    if (left.set) changed = atOperand(predicate, 0, () => hint(left.set, type(right))) || changed;
+                    if (right.set) changed = atOperand(predicate, 1, () => hint(right.set, type(left))) || changed;
                 }
                 const setArg = predicate.args.find(arg => arg.set);
                 const template = predicate.args.find(arg => arg.template);
                 if (setArg && template) for (const binding of Object.values(template.bindings)) {
-                    if (binding.selector) changed = hint(setArg.set, binding.selector.kind) || changed;
+                    if (binding.selector) changed = atOperand(predicate, predicate.args.indexOf(setArg),
+                        () => hint(setArg.set, binding.selector.kind)) || changed;
                 }
             }
         } while (changed);
@@ -263,7 +279,8 @@ function compilePredicateTypes({ graphs, claims, snapshots, materialRegistry, op
         for (const predicate of graph.predicates) {
             const operator = operators.get(predicate.op);
             if (!operator || operator.args.length !== predicate.args.length) fail('operator');
-            const rawTypes = predicate.args.map(raw);
+            const rawTypes = predicate.args.map((arg, operand_index) =>
+                atOperand(predicate, operand_index, () => raw(arg)));
             const scalarView = type => type.form === 'field' ? type.value : type;
             const peers = rawTypes.filter(type => !type.literal).map(scalarView);
             const types = rawTypes.map((original, index) => {
@@ -316,7 +333,10 @@ function compilePredicateTypes({ graphs, claims, snapshots, materialRegistry, op
             try { unifyOperatorTypes(operator, types); }
             catch (error) {
                 // Compiler diagnostics identify declarations, never operand values.
-                throw new Error(`${error.message}:${graph.fact_key}:${predicate.id}`, { cause: error });
+                const failure = new Error(`${error.message}:${graph.fact_key}:${predicate.id}`, { cause: error });
+                diagnostics.set(failure, freezeDeep({ checker: 'predicate_types', code: 'operator_types',
+                    fact_key: graph.fact_key, predicate_id: predicate.id }));
+                throw failure;
             }
             typedPredicates.push({ id: predicate.id, op: predicate.op,
                 obligation: predicate.obligation, atom: predicate.atom,
@@ -332,4 +352,14 @@ function compilePredicateTypes({ graphs, claims, snapshots, materialRegistry, op
         predicates: count, unresolved: 0, typedGraphs });
 }
 
-module.exports = { compilePredicateTypes, claimReferenceKind };
+function compilePredicateTypes(input) {
+    return compilePredicateTypesInternal(input, null);
+}
+
+function compileQualificationPredicateTypes(input, transport, variant) {
+    const qualification = require('./claimMonthPathProfile').assertClaimMonthPathTransport({
+        graphs: input.graphs, claims: input.claims, transport, variant });
+    return compilePredicateTypesInternal(input, qualification);
+}
+
+module.exports = { compilePredicateTypes, compileQualificationPredicateTypes, claimReferenceKind, readPredicateTypeDiagnostic };

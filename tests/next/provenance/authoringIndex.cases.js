@@ -15,6 +15,29 @@ const root = path.resolve(__dirname, '../../..');
 const prefix = 'docs/contracts/next/provenance-v2/';
 const graphPath = prefix + 'graphs-v2.json';
 const hash = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
+const { admitPhaseCompositionProfile, PROFILE_PATH } = require('../../../src/next/provenance/phaseCompositionProfile');
+function reviewedPhaseProfile() {
+    return admitPhaseCompositionProfile({ source: fs.readFileSync(path.join(root, PROFILE_PATH), 'utf8'),
+        registry: JSON.parse(fs.readFileSync(path.join(root, prefix + 'metric-evaluator-registry-v1.json'), 'utf8')) });
+}
+
+// Historical delta tests retain their exact pre-parent authorities. First prove
+// that today's WHOLE corpus follows the ratified parent + source_state chain;
+// never remove arbitrary observations to make a historical assertion pass.
+// Runtime fixtures below still admit the current corpus and current expected.
+let historicalReader;
+function readPreParentAuthorship(file) {
+    if (!historicalReader) {
+        const { createHistoricalAuthoringReader } = require('../../../scripts/agent/historicalAuthoringChain.cjs');
+        historicalReader = createHistoricalAuthoringReader(name =>
+            fs.readFileSync(path.join(root, name), 'utf8').replaceAll('\r\n', '\n'));
+    }
+    return historicalReader(file);
+}
+function preParentDerivation(graph) {
+    const corpus = JSON.parse(readPreParentAuthorship(graphPath));
+    return corpus.graphs.find(row => row.fact_key === graph.fact_key).trace_contract.derivation;
+}
 
 function fixture() {
     const byPath = new Map();
@@ -160,10 +183,245 @@ function undoReviewedAccountInstallment(corpus) {
     }
 }
 
+test('N02G:PARENT-COMPILER-001 six admitted parent roles bind private transport identity and full material reads', async () => {
+    const { createSameExecutionParentLedger } = require('../../../src/next/provenance/claimBinding');
+    const { admitExecutionRegistry, resolveExecutionEvaluator, admitExecutionContract } = require('../../../src/next/provenance/executionRegistry');
+    const { admitArtifact } = require('../../../src/next/provenance/artifactLoader');
+    const { runAdmittedGraph, runAdmittedProof } = require('../../../src/next/provenance/executionHost');
+    const { measureMaterialFingerprint } = require('../../../src/next/provenance/proofOperators');
+    const { digest } = require('../../../src/next/kernel/canonicalValue');
+    const { buildExecutionRegistryCandidate, buildAvailableMetricArtifacts, buildMetricChildCapsule } = await import('../../../scripts/agent/buildNextMetricArtifacts.mjs');
+    const { buildScalarProofProgram } = await import('../../../scripts/agent/lowerNextProofProgram.mjs');
+    const admitBuilt = (source, kind, entry) => {
+        const bytes = Buffer.from(source);
+        const manifestBytes = Buffer.from(require('../../../src/next/kernel/canonicalValue').canonicalValue({ format: 'financasbot.provenance.artifact', version: 1,
+            kind, entry, files: [{ path: entry, media_type: 'text/javascript', sha256: hash(bytes) }] }));
+        return admitArtifact({ manifestBytes, entries: [{ path: entry, bytes }], expectedRoot: hash(manifestBytes) });
+    };
+    const proofChild = admitBuilt(buildMetricChildCapsule().source, 'tcb', 'bootstrap.js');
+    const built = buildExecutionRegistryCandidate();
+    const metricArtifacts = buildAvailableMetricArtifacts().built;
+    const registryReceipt = admitExecutionRegistry({ bytes: Buffer.from(built.bytes), expectedHash: built.registry_hash });
+    const { plan, graphs, claims, snapshots, registry } = await snapshotAccessFixture();
+    const current = JSON.parse(fs.readFileSync(path.join(root, graphPath), 'utf8'));
+    const graphHash = hash(fs.readFileSync(path.join(root, graphPath), 'utf8').replaceAll('\r\n', '\n'));
+    const descriptor = { registry_version: registry.registry_version, kind: 'derived_claim',
+        fields: registry.kinds.derived_claim.fields };
+    const ledger = createSameExecutionParentLedger({ executionId: 'compiler-parent-transport' });
+    const receipts = new Map();
+    const children = graphs.filter(graph => Object.values(graph.nodes).some(node => node.binding === 'validated_parent'));
+    const parentKeys = [...new Set(children.flatMap(graph => Object.values(graph.nodes)
+        .filter(node => node.binding === 'validated_parent').map(node => node.fact_key)))];
+    assert.equal(parentKeys.length, 4);
+    for (const fact_key of parentKeys) {
+        const claim = claims.find(row => row.fact_key === fact_key);
+        const graph = graphs.find(row => row.fact_key === fact_key);
+        const entry = resolveExecutionEvaluator(registryReceipt, claim.evaluator_ref);
+        const primary_inputs = Object.entries(graph.nodes).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
+            .map(([alias, node]) => {
+                const snapshot = snapshots.find(row => row.kind === node.kind && row.ref_id === node.ref_id && row.version === node.version);
+                assert.ok(snapshot);
+                return { alias, kind: node.kind, ref_id: node.ref_id, version: node.version,
+                    semantic_fingerprint: 'sha256:' + digest({ registry_version: registry.registry_version,
+                        kind: node.kind, ref_id: node.ref_id, version: node.version, payload: snapshot.payload }) };
+            });
+        const scope = ledger.openInvocation({ invocationId: 'fixture-' + fact_key });
+        // Only a TCB transport fixture: these amounts are not a financial
+        // acceptance or a substitute for the future host's proof/freeze gate.
+        receipts.set(fact_key, scope.acceptPrimary({ descriptor, preimage: {
+            claim_contract_hash: current.claim_contract.hash, graph_contract_hash: graphHash,
+            metric_registry_hash: registryReceipt.observed_hash, claim_id: claim.claim_id, fact_key,
+            evaluator_ref: claim.evaluator_ref, result: { unit: 'BRL_minor', kind: 'money_minor', value: 100 },
+            operand_bindings: claim.operand_bindings, primary_inputs, parents: [], registry_roles: entry.roles } }));
+        scope.seal();
+    }
+    let checked = 0;
+    for (const graph of children) {
+        const claim = claims.find(row => row.fact_key === graph.fact_key);
+        const scope = ledger.openInvocation({ invocationId: 'child-' + graph.fact_key });
+        for (const [role_id, operand] of Object.entries(claim.operand_bindings).filter(([, binding]) => binding.kind === 'parent_claim')) {
+            const receipt = receipts.get(operand.fact_key);
+            const alias = Object.entries(graph.nodes).find(([, node]) => node.binding === 'validated_parent' && node.fact_key === operand.fact_key)[0];
+            const edge = graph.edges.find(row => row.relation === 'derived_from' && row.field === role_id && row.target === alias);
+            for (const phase of ['derivation', 'proof']) {
+                const recorder = createCausalRecorder({ executionId: 'compiler-parent-transport', maxEvents: 1000 });
+                const observation = recorder.open({ invocationId: graph.fact_key, phase });
+                const opened = plan.openDerivedRole({ fact_key: graph.fact_key, role_id, phase }, scope, receipt, registryReceipt, observation.observe);
+                const handle = opened.control.traverse(edge.id);
+                if (phase === 'derivation') {
+                    assert.equal(handle.get('fact_key'), operand.fact_key);
+                    assert.equal(handle.get('evaluator_version'), 1);
+                    assert.equal(handle.get('result_hash'), opened.resultHash);
+                    assert.equal(handle.get('result').get('value'), 100);
+                } else assert.equal(measureMaterialFingerprint(handle, descriptor), opened.expectedFingerprint);
+                opened.control.assertHealthy(); opened.control.revoke(); observation.seal();
+                const authored = graph.trace_contract[phase];
+                const expected = { required_nodes: [alias], required_reads: authored.required_reads.filter(row => row.node === alias),
+                    required_edges: [edge.id], required_claim_reads: [], required_structural: authored.required_structural.filter(row => row.node === alias),
+                    required_selections: [], selected_nodes: [] };
+                const trace = recorder.finish();
+                const args = { executionId: 'compiler-parent-transport', invocationId: graph.fact_key, phase,
+                    expected, trace, sets: {}, bindings: [], operandSets: [], accessBindings: [opened.accessBinding] };
+                const coverage = comparePhaseCoverage(args);
+                assert.equal(coverage.matched, true, `${graph.fact_key}/${role_id}/${phase}: ${JSON.stringify(coverage.components)}`);
+                assert.equal(coverage.graph_accepted, false);
+                const events = trace[phase + '_trace'];
+                const record = events.find(row => row.operation === 'get' && row.path.join('.') === 'result');
+                assert.ok(record);
+                assert.equal(coverage.event_coverage.find(row => row.sequence === record.sequence).component, 'access_metadata');
+                const missing = { ...trace, [phase + '_trace']: events.filter(row => row.sequence !== record.sequence)
+                    .map((row, sequence) => ({ ...row, sequence })) };
+                assert.equal(comparePhaseCoverage({ ...args, trace: missing }).matched, false);
+                assert.throws(() => handle.get('result'));
+            }
+            for (const invalidReceipt of [Object.freeze({}), structuredClone(receipt), receipts.get(parentKeys.find(key => key !== operand.fact_key))]) {
+                let observations = 0;
+                assert.throws(() => plan.openDerivedRole({ fact_key: graph.fact_key, role_id, phase: 'derivation' },
+                    scope, invalidReceipt, registryReceipt, () => observations++));
+                assert.equal(observations, 0);
+            }
+            assert.throws(() => plan.openDerivedRole({ fact_key: graph.fact_key, role_id, phase: 'derivation' },
+                { resolveParent: () => ({}) }, receipt, registryReceipt, () => {}));
+            checked++;
+        }
+        const parentContext = { receiptScope: scope, registryReceipt, receipts: Object.fromEntries(
+            Object.entries(claim.operand_bindings).filter(([, binding]) => binding.kind === 'parent_claim')
+                .map(([role, binding]) => [role, receipts.get(binding.fact_key)])) };
+        const transport = plan.projectMetricTransport({ fact_key: graph.fact_key }, parentContext);
+        assert.equal(transport.parentGroups.length, 2);
+        assert.equal(transport.graph_accepted, false);
+        // Independent in-process control locates formula/transport errors;
+        // only the separate measured child below is execution evidence.
+        const { createInstrumentedAccess, createNodeSetAccess, createDerivedParentAccess } = require('../../../src/next/provenance/instrumentedAccess');
+        const controls = []; const operands = {};
+        for (const group of transport.directGroups) {
+            const control = createInstrumentedAccess({ bindings: group.bindings, links: group.links, emit: () => {} });
+            controls.push(control); operands[group.role] = control.handle(group.alias);
+        }
+        for (const group of transport.nodeSets) {
+            const control = createNodeSetAccess({ ...group, emit: () => {} });
+            controls.push(control); operands[group.role] = control.handle;
+        }
+        for (const group of transport.parentGroups) {
+            const control = createDerivedParentAccess({ phase: 'derivation', bindings: group.bindings, edges: group.edges, emit: () => {} });
+            controls.push(control); operands[group.role] = control.traverse(group.edgeId);
+        }
+        const controlValue = require('../../../src/next/provenance/metricParents').evaluateParentMetric(operands, claim.metric);
+        for (const control of controls) { control.revoke(); control.assertHealthy(); }
+        assert.throws(() => plan.projectMetricTransport({ fact_key: graph.fact_key }));
+        let getterCalls = 0;
+        assert.throws(() => plan.projectMetricTransport({ fact_key: graph.fact_key }, {
+            receiptScope: scope, registryReceipt, get receipts() { getterCalls++; return parentContext.receipts; } }));
+        assert.equal(getterCalls, 0);
+        const metric = metricArtifacts.find(row => row.evaluator_id === claim.evaluator_ref.evaluator_id);
+        const artifactReceipt = admitArtifact({ manifestBytes: Buffer.from(metric.manifest), expectedRoot: metric.artifact_root,
+            entries: [{ path: 'bundle.js', bytes: Buffer.from(metric.source) }] });
+        const entry = resolveExecutionEvaluator(registryReceipt, claim.evaluator_ref);
+        const contractReceipt = admitExecutionContract({ registryReceipt, evaluatorRef: claim.evaluator_ref,
+            bytes: Buffer.from(fs.readFileSync(path.join(root, entry.contract_path), 'utf8').replaceAll('\r\n', '\n')) });
+        assert.equal(artifactReceipt.observed_root, entry.evaluator_artifact_root);
+        assert.equal(contractReceipt.stage, 'admitted_evaluator_contract_bytes_only');
+        const proofArtifact = admitBuilt(buildScalarProofProgram(plan.projectProofProgram({ fact_key: graph.fact_key }).input).source, 'proof', 'bundle.js');
+        const proofTransport = plan.projectProofTransport({ fact_key: graph.fact_key }, parentContext);
+        const executed = await runAdmittedGraph({ childCapsuleReceipt: proofChild,
+            executionId: 'compiler-parent-transport', invocationId: graph.fact_key, timeoutMs: 4000,
+            derivation: { artifactReceipt, bindings: [], directGroups: transport.directGroups,
+                nodeSets: transport.nodeSets, parentGroups: transport.parentGroups },
+            proof: { ...proofTransport.config, artifactReceipt: proofArtifact } });
+        assert.equal(executed.graph_accepted, false);
+        const expectedValue = claim.metric === 'ranking_winner'
+            ? claim.operand_bindings.people.aliases.map(alias => graph.nodes[alias].ref_id).sort()[0] : 0;
+        assert.equal(executed.functional_result.value, expectedValue);
+        assert.equal(executed.functional_result.value, controlValue);
+        const events = executed.trace.derivation_trace;
+        assert.equal(events.filter(row => row.operation === 'traverse' && row.alias === 'claim').length, 2);
+        assert.equal(events.filter(row => row.operation === 'get' && row.path.join('.') === 'result.value').length, 2);
+        assert.ok(events.every(row => !Object.hasOwn(row, 'functional_result')));
+        const { evidence_set_mode, ...expected } = graph.trace_contract.derivation;
+        const wholePhase = comparePhaseCoverage({ executionId: 'compiler-parent-transport', invocationId: graph.fact_key,
+            phase: 'derivation', trace: executed.trace, expected, sets: graph.sets, bindings: [],
+            operandSets: Object.entries(claim.operand_bindings).filter(([, binding]) => binding.kind === 'node_set')
+                .map(([role, binding]) => ({ role, aliases: binding.aliases })),
+            accessBindings: plan.observationMetadata({ fact_key: graph.fact_key, phase: 'derivation' }, parentContext),
+            measurements: [{ measurement: 'evaluator_artifact_root', observed: entry.evaluator_artifact_root }] });
+        assert.equal(wholePhase.matched, true, `${graph.fact_key}: ${JSON.stringify(wholePhase.components)}`);
+        assert.equal(wholePhase.graph_accepted, false);
+        assert.equal(wholePhase.event_coverage.length, events.length);
+        const proofRecorder = createCausalRecorder({ executionId: 'compiler-parent-transport', maxEvents: 5000 });
+        const proofObservation = proofRecorder.open({ invocationId: graph.fact_key, phase: 'proof' });
+        const proof = plan.openProof({ fact_key: graph.fact_key }, proofObservation.observe, parentContext);
+        const parentAliases = new Set(transport.parentGroups.map(group => group.alias));
+        for (const group of transport.parentGroups) {
+            const opened = plan.openDerivedRole({ fact_key: graph.fact_key, role_id: group.role, phase: 'proof' },
+                scope, parentContext.receipts[group.role], registryReceipt, () => {});
+            assert.equal(measureMaterialFingerprint(proof.node(group.alias), proof.material(group.alias)), opened.expectedFingerprint);
+            assert.equal(proof.edge(group.edgeId).get('fact_key'), group.bindings[0].value.fact_key);
+            opened.control.revoke();
+        }
+        proof.assertHealthy(); proof.revoke(); proof.assertHealthy(); proofObservation.seal();
+        const authoredProof = graph.trace_contract.proof;
+        const proofExpected = { required_nodes: [...parentAliases],
+            required_reads: authoredProof.required_reads.filter(row => parentAliases.has(row.node)),
+            required_edges: transport.parentGroups.map(group => group.edgeId), required_claim_reads: [],
+            required_structural: authoredProof.required_structural.filter(row => parentAliases.has(row.node)),
+            required_selections: [], selected_nodes: [] };
+        const proofCoverage = comparePhaseCoverage({ executionId: 'compiler-parent-transport', invocationId: graph.fact_key,
+            phase: 'proof', trace: proofRecorder.finish(), expected: proofExpected, sets: {}, bindings: [], operandSets: [],
+            accessBindings: plan.observationMetadata({ fact_key: graph.fact_key, phase: 'proof' }, parentContext)
+                .filter(binding => parentAliases.has(binding.alias) && binding.role === 'proof/snapshot') });
+        assert.equal(proofCoverage.matched, true, `${graph.fact_key}: ${JSON.stringify(proofCoverage.components)}`);
+        assert.equal(proofCoverage.graph_accepted, false);
+        const completeProofEvents = [];
+        const completeRecorder = createCausalRecorder({ executionId: 'compiler-parent-transport', maxEvents: 10000 });
+        const completeScope = completeRecorder.open({ invocationId: graph.fact_key, phase: 'proof' });
+        const program = plan.runProofPredicates({ fact_key: graph.fact_key },
+            event => { completeProofEvents.push(event); completeScope.observe(event); }, parentContext);
+        completeScope.seal();
+        assert.equal(program.graph_accepted, false);
+        assert.equal(program.predicates, graph.predicates.length);
+        assert.equal(program.selections, 0);
+        for (const group of transport.parentGroups) {
+            assert.ok(completeProofEvents.some(event => event[1] === 'traverse' && event[6][1] === group.edgeId));
+            assert.ok(completeProofEvents.some(event => event[1] === 'get' && event[2] === group.alias
+                && event[4].join('.') === 'result.value'));
+        }
+        const { evidence_set_mode: proofSetMode, ...wholeProofExpected } = graph.trace_contract.proof;
+        const fullProof = comparePhaseCoverage({ executionId: 'compiler-parent-transport', invocationId: graph.fact_key,
+            phase: 'proof', trace: completeRecorder.finish(), expected: wholeProofExpected, sets: graph.sets, bindings: [],
+            operandSets: Object.entries(graph.sets).map(([name, aliases]) => ({ role: `proof/set/${name}`, aliases })),
+            accessBindings: plan.observationMetadata({ fact_key: graph.fact_key, phase: 'proof' }, parentContext) });
+        assert.equal(fullProof.matched, true, `${graph.fact_key}: ${JSON.stringify(Object.fromEntries(
+            Object.entries(fullProof.components).map(([name, component]) => [name, {
+                matched: component.matched, errors: component.errors?.slice(0, 2), mismatches: component.mismatches }])))}; unsupported=${JSON.stringify(fullProof.event_coverage.filter(event => event.status !== 'covered').slice(0, 3))}`);
+        assert.equal(fullProof.graph_accepted, false);
+        const isolatedProof = executed;
+        assert.equal(isolatedProof.proof_satisfied, true); assert.equal(isolatedProof.graph_accepted, false);
+        const isolatedCoverage = comparePhaseCoverage({ executionId: 'compiler-parent-transport', invocationId: graph.fact_key,
+            phase: 'proof', trace: isolatedProof.trace, expected: wholeProofExpected, sets: graph.sets, bindings: [],
+            operandSets: Object.entries(graph.sets).map(([name, aliases]) => ({ role: `proof/set/${name}`, aliases })),
+            accessBindings: plan.observationMetadata({ fact_key: graph.fact_key, phase: 'proof' }, parentContext),
+            measurements: [{ measurement: 'proof_engine_artifact_root', observed: proofArtifact.observed_root }] });
+        assert.equal(isolatedCoverage.matched, true, `${graph.fact_key}: ${JSON.stringify(Object.fromEntries(Object.entries(isolatedCoverage.components)
+            .filter(([, component]) => !component.matched).map(([name, component]) => [name, { errors: component.errors?.slice(0, 2), mismatches: component.mismatches?.slice(0, 2) }])))}; unclassified=${JSON.stringify(isolatedCoverage.event_coverage.filter(event => event.status !== 'covered').slice(0, 2))}`);
+        assert.equal(isolatedCoverage.graph_accepted, false);
+        const isolatedConfig = { ...proofTransport.config, artifactReceipt: proofArtifact, childCapsuleReceipt: proofChild,
+            executionId: 'compiler-parent-transport', invocationId: graph.fact_key, timeoutMs: 4000 };
+        await assert.rejects(runAdmittedProof({ ...isolatedConfig, proofParentMaterials: [] }), /host_config_invalid/);
+        const wrongFingerprint = structuredClone(proofTransport.config.proofParentMaterials);
+        wrongFingerprint[0].expected_fingerprint = `sha256:${'0'.repeat(64)}`;
+        await assert.rejects(runAdmittedProof({ ...isolatedConfig, proofParentMaterials: wrongFingerprint }), /host_child_operands/);
+        const wrongEvidence = structuredClone(proofTransport.config.bindings);
+        wrongEvidence.find(binding => binding.identity?.kind === 'derived_claim').value.result.value++;
+        await assert.rejects(runAdmittedProof({ ...isolatedConfig, bindings: wrongEvidence }), /host_child_operands/);
+        scope.seal();
+    }
+    assert.equal(checked, 6); ledger.finish();
+});
+
 test('N02G:ACCOUNT-INSTALLMENT-001 exactly eleven frozen derivations preserve all other corpus content', () => {
     const { reviewedCorpus } = require('../../../docs/audit-evidence/n02g-causal-authoring-profile/prepare-account-installment-application.cjs');
     const { original, expected } = reviewedCorpus();
-    const actual = JSON.parse(fs.readFileSync(path.join(root, graphPath), 'utf8'));
+    const actual = JSON.parse(readPreParentAuthorship(graphPath));
     assert.deepEqual(actual, expected);
     undoReviewedAccountInstallment(actual); assert.deepEqual(actual, original);
 });
@@ -179,7 +437,7 @@ test('N02G:ACCOUNT-INSTALLMENT-002 functional selection plus real authored predi
     const cases = freezeDeep(proposal.records.map(record => {
         const claim = claims.find(row => row.fact_key === record.fact_key);
         const graph = graphs.find(row => row.fact_key === record.fact_key);
-        assert.deepEqual(graph.trace_contract.derivation, record.proposed_derivation);
+        assert.deepEqual(preParentDerivation(graph), record.proposed_derivation);
         const { evidence_set_mode, ...expected } = graph.trace_contract.derivation;
         return { claim, graph, expected: structuredClone(expected), historical: record.current_derivation };
     }));
@@ -312,7 +570,12 @@ function assertHistoricalSource(document) {
         assert.equal(expected, 'sha256:2526b6eb373fc5265bf61798c85bf976011d3d77430858df75776306067ae3e8');
         expected = 'sha256:5c894c224bb7432819fa1feb335902c8f4cf9a531c155b50beb0ae9b53ddefad';
     }
-    assert.equal(hash(fs.readFileSync(path.join(root, document.path), 'utf8').replaceAll('\r\n', '\n')), expected);
+    assert.equal(hash(readHistoricalAuthority(document.path)), expected);
+}
+function readHistoricalAuthority(file) {
+    // One verified chain for every pinned historical authority, including
+    // source_state's runtime successor. No per-test current-source repairs.
+    return readPreParentAuthorship(file);
 }
 function undoReviewedDirectEvent(corpus) {
     undoReviewedSimilarEvent(corpus);
@@ -339,7 +602,7 @@ function undoReviewedTransferScope(corpus) {
 }
 test('N02G:TRANSFER-SCOPE-001 optional scope delta preserves the complete remaining corpus', () => {
     const { canonicalValue } = require('../../../src/next/kernel/canonicalValue');
-    const corpus = JSON.parse(fs.readFileSync(path.join(root, graphPath), 'utf8'));
+    const corpus = JSON.parse(readPreParentAuthorship(graphPath));
     const claims = JSON.parse(fs.readFileSync(path.join(root, prefix + 'claims-v2.json'), 'utf8')).claims;
     const snapshots = JSON.parse(fs.readFileSync(path.join(root, corpus.snapshot_manifest.path), 'utf8')).snapshots;
     const proposal = reviewedTransferScopeProposal(); let checked = 0;
@@ -355,7 +618,7 @@ test('N02G:TRANSFER-SCOPE-001 optional scope delta preserves the complete remain
     for (const doc of proposal.documents.filter(d => d.path !== graphPath)) {
         const transition = sourceSuccessors[doc.path];
         if (transition) assert.equal(doc.lf_sha256, transition.predecessor);
-        assert.equal(hash(fs.readFileSync(path.join(root, doc.path), 'utf8').replaceAll('\r\n', '\n')), transition?.successor || doc.lf_sha256);
+        assert.equal(hash(readHistoricalAuthority(doc.path)), transition?.successor || doc.lf_sha256);
     }
     for (const claim of claims.filter(c => c.evaluator_ref.evaluator_id === 'consumption_effect' && c.evaluator_ref.evaluator_version === 1 && c.subject.kind === 'transfer_pair')) {
         const graph = corpus.graphs.find(g => g.fact_key === claim.fact_key);
@@ -492,7 +755,7 @@ function undoReviewedOwnedCards(corpus) {
 
 test('N02G:OWNED-CARDS-001 owner identity delta preserves every other corpus field', () => {
     const { canonicalValue } = require('../../../src/next/kernel/canonicalValue');
-    const corpus = JSON.parse(fs.readFileSync(path.join(root, graphPath), 'utf8'));
+    const corpus = JSON.parse(readPreParentAuthorship(graphPath));
     const claims = JSON.parse(fs.readFileSync(path.join(root, prefix + 'claims-v2.json'), 'utf8')).claims;
     const snapshots = JSON.parse(fs.readFileSync(path.join(root, corpus.snapshot_manifest.path), 'utf8')).snapshots;
     const proposal = reviewedOwnedCardsProposal(); let checked = 0;
@@ -637,7 +900,7 @@ function restoreReviewedDueBillAmount(corpus) {
 
 test('N02G:DUE-BILL-IDS-001 only one noncausal derivation read is removed; proof and total preserved', () => {
     const { canonicalValue } = require('../../../src/next/kernel/canonicalValue');
-    const corpus = JSON.parse(fs.readFileSync(path.join(root, graphPath), 'utf8'));
+    const corpus = JSON.parse(readPreParentAuthorship(graphPath));
     const claims = JSON.parse(fs.readFileSync(path.join(root, prefix + 'claims-v2.json'), 'utf8')).claims;
     const snapshots = JSON.parse(fs.readFileSync(path.join(root, corpus.snapshot_manifest.path), 'utf8')).snapshots;
     const proposal = reviewedDueBillIdsProposal(); let checked = 0;
@@ -720,7 +983,7 @@ function undoReviewedCollectionKind(corpus) {
 
 test('N02G:COLLECTION-KIND-001 three domain reads preserve all other graph fields', () => {
     const { canonicalValue } = require('../../../src/next/kernel/canonicalValue');
-    const corpus = JSON.parse(fs.readFileSync(path.join(root, graphPath), 'utf8'));
+    const corpus = JSON.parse(readPreParentAuthorship(graphPath));
     const claims = JSON.parse(fs.readFileSync(path.join(root, prefix + 'claims-v2.json'), 'utf8')).claims;
     const snapshots = JSON.parse(fs.readFileSync(path.join(root, corpus.snapshot_manifest.path), 'utf8')).snapshots;
     const proposal = reviewedCollectionKindProposal(); let checked = 0;
@@ -878,7 +1141,7 @@ function undoReviewedSourcePresence(corpus) {
 
 test('N02G:SOURCE-PRESENCE-001 three authored presence observations preserve every other graph field', () => {
     const { canonicalValue } = require('../../../src/next/kernel/canonicalValue');
-    const corpus = JSON.parse(fs.readFileSync(path.join(root, graphPath), 'utf8'));
+    const corpus = JSON.parse(readPreParentAuthorship(graphPath));
     const claims = JSON.parse(fs.readFileSync(path.join(root, prefix + 'claims-v2.json'), 'utf8')).claims;
     const snapshots = JSON.parse(fs.readFileSync(path.join(root, corpus.snapshot_manifest.path), 'utf8')).snapshots;
     const proposal = reviewedSourcePresenceProposal(); let checked = 0;
@@ -981,12 +1244,12 @@ function restoreReviewedBudgetClassReads(corpus) {
 
 test('N02G:BUDGET-CLASS-001 exact effective-category reads preserve all other graph fields', () => {
     const { canonicalValue } = require('../../../src/next/kernel/canonicalValue');
-    const corpus = JSON.parse(fs.readFileSync(path.join(root, graphPath), 'utf8'));
+    const corpus = JSON.parse(readPreParentAuthorship(graphPath));
     const claims = JSON.parse(fs.readFileSync(path.join(root, prefix + 'claims-v2.json'), 'utf8')).claims;
     const snapshots = JSON.parse(fs.readFileSync(path.join(root, corpus.snapshot_manifest.path), 'utf8')).snapshots;
     const proposal = reviewedBudgetClassProposal();
     for (const document of proposal.documents.filter(d => d.path !== graphPath)) {
-        assert.equal(hash(fs.readFileSync(path.join(root, document.path), 'utf8').replaceAll('\r\n', '\n')), document.lf_sha256);
+        assert.equal(hash(readHistoricalAuthority(document.path)), document.lf_sha256);
     }
     let checked = 0;
     for (const claim of claims.filter(c => c.evaluator_ref.evaluator_id === 'budget_class_consumption' && c.evaluator_ref.evaluator_version === 1)) {
@@ -1095,7 +1358,7 @@ function safePaceStateRequirements(claim) {
 
 test('N02G:EVIDENCE-STATE-001 only two reviewed claim reads extend the immutable corpus', () => {
     const { digest } = require('../../../src/next/kernel/canonicalValue');
-    const corpus = JSON.parse(fs.readFileSync(path.join(root, graphPath), 'utf8'));
+    const corpus = JSON.parse(readPreParentAuthorship(graphPath));
     const claims = JSON.parse(fs.readFileSync(path.join(root, prefix + 'claims-v2.json'), 'utf8'));
     const registry = JSON.parse(fs.readFileSync(path.join(root, prefix + 'metric-evaluator-registry-v1.json'), 'utf8'));
     assert.equal(digest(claims), 'f6c148b2cdbd9a4c875e8641264979c4797f25a93cac382c290044ad49ee80d4');
@@ -1238,7 +1501,7 @@ test('N02G:EVIDENCE-STATE-004 safe pace requires its authored state observation 
 });
 
 test('N02G:FAMILY-PHASE-001 transitive population authored delta preserves every other graph field', () => {
-    const document = JSON.parse(fs.readFileSync(path.join(root, graphPath), 'utf8'));
+    const document = JSON.parse(readPreParentAuthorship(graphPath));
     const source = JSON.parse(fs.readFileSync(path.join(root, 'docs/audit-evidence/n02g-transitive-family/graphs-extract.json'), 'utf8'));
     for (const claim of source.claims) {
         const graph = document.graphs.find(g => g.fact_key === claim.fact_key);
@@ -1291,7 +1554,7 @@ function countCompensationRequirements(graph, claim) {
 }
 
 test('N02G:COUNT-PHASE-001 effective-category dependency changes only the approved derivation fields', () => {
-    const document = JSON.parse(fs.readFileSync(path.join(root, graphPath), 'utf8'));
+    const document = JSON.parse(readPreParentAuthorship(graphPath));
     // Undo only the independently reviewed later structural additions.
     undoReviewedSourcePresence(document);
     const source = JSON.parse(fs.readFileSync(path.join(root, 'docs/audit-evidence/n02g-count-compensation/graphs-extract.json'), 'utf8'));
@@ -1379,7 +1642,11 @@ test('N02G:ACCESS-METADATA-COMPILER-001 metadata comes from admitted role reacha
     assert.ok(context.records.some(p => JSON.stringify(p) === '["period"]'));
     assert.ok(context.records.some(p => JSON.stringify(p) === '["subject"]'));
     assert.equal(metadata.some(b => b.alias === 'source_partial_may'), false);
-    for (const binding of metadata) assert.deepEqual(Object.keys(binding).sort(), ['alias', 'identity', 'records', 'role']);
+    for (const binding of metadata) assert.deepEqual(Object.keys(binding).sort(),
+        ['alias', ...(binding.alias === 'claim/context' ? ['claim_structure'] : []), 'identity', 'records', 'role']);
+    assert.deepEqual(Object.keys(context.claim_structure).sort(), ['records', 'sequences']);
+    assert.ok(context.claim_structure.records.every(record => Object.keys(record).sort().join(',') === 'keys,path'));
+    assert.ok(context.claim_structure.sequences.every(sequence => Object.keys(sequence).sort().join(',') === 'item_hashes,path'));
     assert.throws(() => { source.identity.kind = 'other'; }, TypeError);
     assert.throws(() => context.records.push(['forged']), TypeError);
     assert.deepEqual(plan.observationMetadata(selector), metadata);
@@ -1416,7 +1683,7 @@ function snapshotAccessFixture() {
 test('N02G:AUTHOR-INTEGRATION-001 candidate obligations are frozen before execution and cannot be regenerated from a tampered trace', async () => {
     const { buildCandidateReport } = require('../../../scripts/agent/reportNextCausalAuthoring.cjs');
     const { freezeDeep } = require('../../../src/next/kernel/canonicalValue');
-    const report = buildCandidateReport(file => fs.readFileSync(path.join(root, file), 'utf8').replaceAll('\r\n', '\n'));
+    const report = buildCandidateReport(readPreParentAuthorship);
     const record = report.records.find(r => r.metric === 'consumption_by_instrument');
     const candidate = freezeDeep(record.candidate); const before = JSON.stringify(candidate);
     // Generation is complete before the evaluator is even loaded here. No
@@ -1450,7 +1717,7 @@ test('N02G:AUTHOR-INTEGRATION-001 candidate obligations are frozen before execut
 test('N02G:AUTHOR-NORMATIVE-001 reviewed six-graph delta equals independent authoring and preserves the remaining corpus', () => {
     const { buildCandidateReport } = require('../../../scripts/agent/reportNextCausalAuthoring.cjs');
     const { canonicalValue } = require('../../../src/next/kernel/canonicalValue');
-    const read = file => fs.readFileSync(path.join(root, file), 'utf8').replaceAll('\r\n', '\n');
+    const read = readPreParentAuthorship;
     const reportText = read('docs/audit-evidence/n02g-causal-authoring-profile/candidate-report.json');
     const extractText = read('docs/audit-evidence/n02g-causal-authoring-profile/source-extract.json');
     assert.equal(hash(reportText), 'sha256:0140b589491ea40a1f315b744f338b84d987656707e62cb798b420d991eec012');
@@ -1499,7 +1766,7 @@ test('N02G:AUTHOR-NORMATIVE-001 reviewed six-graph delta equals independent auth
 test('N02G:AUTHOR-RECONCILE-001 six independently authored normative derivations cover observations without accepting graphs', async () => {
     const { buildCandidateReport } = require('../../../scripts/agent/reportNextCausalAuthoring.cjs');
     const { freezeDeep } = require('../../../src/next/kernel/canonicalValue');
-    const report = freezeDeep(buildCandidateReport(file => fs.readFileSync(path.join(root, file), 'utf8').replaceAll('\r\n', '\n')));
+    const report = freezeDeep(buildCandidateReport(readPreParentAuthorship));
     const before = JSON.stringify(report);
     const { evaluateEconomicMetric } = require('../../../src/next/provenance/metricSelection');
     const { plan, claims, graphs } = await snapshotAccessFixture();
@@ -1512,7 +1779,9 @@ test('N02G:AUTHOR-RECONCILE-001 six independently authored normative derivations
         const executionId = `profile-reconciliation-${record.fact_key}`;
         const scope = selectionInput(claim, graph, executionId);
         const normative = Object.fromEntries(Object.keys(record.candidate.obligations).map(key => [key, graph.trace_contract.derivation[key]]));
-        assert.equal(hash(JSON.stringify(normative)), hash(JSON.stringify(record.candidate.obligations)), `${claim.fact_key}: normative authoring mismatch`);
+        const historical = Object.fromEntries(Object.keys(record.candidate.obligations)
+            .map(key => [key, preParentDerivation(graph)[key]]));
+        assert.equal(hash(JSON.stringify(historical)), hash(JSON.stringify(record.candidate.obligations)), `${claim.fact_key}: normative authoring mismatch`);
         const expected = freezeDeep({ ...normative, ...scope.expected });
         const accessBindings = plan.observationMetadata({ fact_key: claim.fact_key, phase: 'derivation' });
         const operandSets = Object.entries(claim.operand_bindings).filter(([, b]) => b.kind === 'node_set')
@@ -1689,15 +1958,16 @@ test('N02G:OBSERVED-METRIC-003 installment selection is independently observed f
 
 test('N02G:SIMILAR-EVENT-001 frozen proposal changes only focal inventories; all other corpus content is preserved', () => {
     const { canonicalValue } = require('../../../src/next/kernel/canonicalValue');
-    const corpus = JSON.parse(fs.readFileSync(path.join(root, graphPath), 'utf8')); const p = reviewedSimilarEventProposal();
+    const corpus = JSON.parse(readPreParentAuthorship(graphPath)); const p = reviewedSimilarEventProposal();
     assert.equal(p.records.length, 1); const r = p.records[0];
     const g = corpus.graphs.find(g => g.fact_key === r.fact_key);
     assert.deepEqual(g.trace_contract.derivation, r.proposed_derivation);
     assert.equal(hash(canonicalValue(g.trace_contract.proof)), r.proof_preserved_sha256);
     undoReviewedSimilarEvent(corpus);
     assert.equal(corpus.graphs.length, 76); assert.equal(hash(canonicalValue(corpus)), p.source_corpus_sha256);
-    for (const d of p.documents.filter(d => ![graphPath, 'tests/next/provenance/metricDirectReads.cases.js'].includes(d.path)))
-        assert.equal(hash(fs.readFileSync(path.join(root, d.path), 'utf8').replaceAll('\r\n', '\n')), d.lf_sha256, d.path);
+    for (const d of p.documents.filter(d => ![graphPath, 'tests/next/provenance/metricDirectReads.cases.js'].includes(d.path))) {
+        assert.equal(hash(readHistoricalAuthority(d.path)), d.lf_sha256, d.path);
+    }
 });
 
 test('N02G:SIMILAR-EVENT-002 admitted trace matches pre-frozen profile and rejects old requirements and missing operations', async () => {
@@ -1726,7 +1996,7 @@ test('N02G:SIMILAR-EVENT-002 admitted trace matches pre-frozen profile and rejec
     } finally { for (const a of controls) a.revoke(); }
     phase.seal(); const trace = recorder.finish(); const input = { ...scope, expected, trace, operandSets, accessBindings };
     const coverage = comparePhaseCoverage(input); assert.equal(coverage.matched, true); assert.equal(coverage.graph_accepted, false);
-    assert.deepEqual(graph.trace_contract.derivation, r.proposed_derivation);
+    assert.deepEqual(preParentDerivation(graph), r.proposed_derivation);
     assert.equal(comparePhaseCoverage({ ...input, expected: historicalExpected }).matched, false);
     const groups = new Set(trace.derivation_trace.filter(e => ['get', 'has', 'traverse'].includes(e.operation))
         .map(e => JSON.stringify([e.operation, e.alias, e.path])));
@@ -1744,10 +2014,10 @@ test('N02G:SIMILAR-EVENT-002 admitted trace matches pre-frozen profile and rejec
 
 test('N02G:DIRECT-EVENT-004 exact frozen proposal changes only five derivations and preserves complete source corpus', () => {
     const { canonicalValue } = require('../../../src/next/kernel/canonicalValue');
-    const corpus = JSON.parse(fs.readFileSync(path.join(root, graphPath), 'utf8')); const proposal = reviewedDirectEventProposal();
+    const corpus = JSON.parse(readPreParentAuthorship(graphPath)); const proposal = reviewedDirectEventProposal();
     for (const r of proposal.records) {
         const graph = corpus.graphs.find(g => g.fact_key === r.fact_key);
-        assert.deepEqual(graph.trace_contract.derivation, r.proposed_derivation);
+        assert.deepEqual(preParentDerivation(graph), r.proposed_derivation);
         assert.equal(hash(canonicalValue(graph.trace_contract.proof)), r.proof_preserved_sha256);
     }
     assert.equal(corpus.graphs.length, 76); undoReviewedDirectEvent(corpus);
@@ -1763,9 +2033,9 @@ test('N02G:DIRECT-EVENT-005 five admitted executions match pre-frozen derivation
     for (const record of proposal.records) {
         const claim = claims.find(c => c.fact_key === record.fact_key); const graph = graphs.find(g => g.fact_key === claim.fact_key);
         const before = JSON.stringify(graph); const scope = selectionInput(claim, graph, `direct-event-${checked}`);
-        assert.deepEqual(graph.trace_contract.derivation, record.proposed_derivation);
+        assert.deepEqual(preParentDerivation(graph), record.proposed_derivation);
         const fields = ['required_nodes', 'required_reads', 'required_claim_reads', 'required_edges', 'required_structural', 'required_selections', 'selected_nodes'];
-        const expected = freezeDeep(structuredClone(Object.fromEntries(fields.map(k => [k, record.proposed_derivation[k]]))));
+        const expected = freezeDeep(structuredClone(Object.fromEntries(fields.map(k => [k, graph.trace_contract.derivation[k]]))));
         const accessBindings = plan.observationMetadata({ fact_key: claim.fact_key, phase: 'derivation' });
         const recorder = createCausalRecorder({ executionId: scope.executionId, maxEvents: 10000 });
         const phase = recorder.open({ invocationId: claim.fact_key, phase: 'derivation' }); const controls = []; const operands = {}; let value;
@@ -1919,7 +2189,7 @@ function refundRequirements(graph, claim) {
 }
 
 test('N02G:REFUND-PHASE-001 authored derivation matches the reviewed semantic closure and preserves proof', () => {
-    const document = JSON.parse(fs.readFileSync(path.join(root, graphPath), 'utf8'));
+    const document = JSON.parse(readPreParentAuthorship(graphPath));
     const claims = JSON.parse(fs.readFileSync(path.join(root, document.claim_contract.path), 'utf8')).claims;
     const baseline = JSON.parse(fs.readFileSync(path.join(root, 'docs/audit-evidence/n02g-refund-phase/graphs-extract.json'), 'utf8'));
     const selected = claims.filter(c => c.metric === 'refund_amount'); assert.equal(selected.length, 2);
@@ -1974,7 +2244,8 @@ test('N02G:REFUND-PHASE-002 both refund contexts have exact partial derivation c
 
 test('N02G:TRACE-COMPAT-001 required edge remains independent from derivation node and read coverage', async () => {
     const { inspectTraversalCoverage } = await import(pathToFileURL(path.join(root, 'scripts/agent/inspectNextProvenanceTraceCompatibility.mjs')));
-    const { plan, graphs } = await snapshotAccessFixture();
+    const { plan } = await snapshotAccessFixture();
+    const graphs = JSON.parse(readPreParentAuthorship(graphPath)).graphs;
     // Keep the historical traversal/owned-card comparison on its exact corpus.
     // DIRECT-EVENT-004/005 separately prove the successor's five derivations.
     const beforeDirectEvent = { graphs: structuredClone(graphs) }; undoReviewedDirectEvent(beforeDirectEvent);
@@ -2116,7 +2387,7 @@ test('N02G:SNAPSHOT-ACCESS-001 handles resolve exact admitted fact/role/alias id
     assert.equal(plan.stage, 'snapshot_access_plan_only');
     assert.equal(plan.executable, false);
     assert.equal(plan.snapshot_count, 115);
-    assert.deepEqual(Object.keys(plan).sort(), ['executable', 'observationMetadata', 'open', 'openContext', 'openMetricInvocation', 'openProof', 'openSet', 'snapshot_count', 'stage']);
+    assert.deepEqual(Object.keys(plan).sort(), ['executable', 'inspectProofPredicates', 'observationMetadata', 'open', 'openContext', 'openDerivedRole', 'openMetricInvocation', 'openProof', 'openSet', 'projectDerivationBindings', 'projectDerivationProgram', 'projectMetricTransport', 'projectProofProgram', 'projectProofTransport', 'runProofPredicates', 'snapshot_count', 'stage']);
     let opened = 0;
     for (const claim of claims) {
         const graph = graphs.find(g => g.fact_key === claim.fact_key);
@@ -2156,7 +2427,7 @@ test('N02G:SNAPSHOT-ACCESS-009 proof snapshots are read independently of metric 
     const measured = new Set(); let traversals = 0;
     for (const graph of graphs) {
         if (Object.values(graph.nodes).some(node => node.binding !== 'snapshot')) {
-            assert.throws(() => plan.openProof({ fact_key: graph.fact_key }, () => {}), /proof_parent_pending/);
+            assert.throws(() => plan.openProof({ fact_key: graph.fact_key }, () => {}), /parent_transport/);
             continue;
         }
         const events = []; const scope = plan.openProof({ fact_key: graph.fact_key }, e => events.push(e));
@@ -2241,6 +2512,868 @@ test('N02G:OBSERVED-PROOF-001 compiled scalar, identity and fingerprint predicat
     // selections, timezone and validated parents remain explicitly pending.
     assert.ok(executed > 11000); assert.ok(observations > executed);
     t.diagnostic(`compiled_predicates_executed=${executed}; instrumented_observations=${observations}; acceptance_gate=false`);
+});
+
+test('N02G:PROOF-PROGRAM-001 compiled proof executes all primary predicates and causal selection guards', async t => {
+    const { plan, ir } = await snapshotAccessFixture();
+    let graphs = 0; let predicates = 0; let selections = 0;
+    for (const graph of ir.graphs) {
+        if (Object.values(graph.nodes).some(node => node.binding !== 'snapshot')) continue;
+        const events = [];
+        const executionId = 'proof-program-' + graph.fact_key;
+        const recorder = createCausalRecorder({ executionId, maxEvents: 100000 });
+        const scope = recorder.open({ invocationId: graph.fact_key, phase: 'proof' });
+        const observed = plan.runProofPredicates({ fact_key: graph.fact_key }, event => { events.push(event); scope.observe(event); });
+        scope.seal();
+        const selectedSets = new Set(graph.selections.map(selection => selection.selected_set));
+        const { evidence_set_mode, ...expected } = graph.expected_trace.proof;
+        const coverage = comparePhaseCoverage({ executionId, invocationId: graph.fact_key, phase: 'proof',
+            trace: recorder.finish(), expected, sets: graph.sets,
+            bindings: graph.selections.map(selection => ({ role: `proof/set/${selection.candidate_set}`,
+                candidate_set: selection.candidate_set, selected_set: selection.selected_set })),
+            operandSets: Object.keys(graph.sets).filter(name => !selectedSets.has(name))
+                .map(name => ({ role: `proof/set/${name}`, aliases: graph.sets[name] })),
+            accessBindings: plan.observationMetadata({ fact_key: graph.fact_key, phase: 'proof' }) });
+        const diagnosis = Object.fromEntries(Object.entries(coverage.components).map(([key, value]) =>
+            [key, { matched: value.matched, errors: value.errors?.slice(0, 3),
+                mismatches: value.mismatches?.slice(0, 3).map(row => ({ dimension: row.dimension,
+                    missing: row.missing?.slice(0, 3), extra: row.extra?.slice(0, 3),
+                    missing_count: row.missing?.length, extra_count: row.extra?.length })),
+                unclassified: value.unclassified_sequences?.slice(0, 3) }]));
+        assert.equal(coverage.matched, true, `${graph.fact_key}: ${JSON.stringify(diagnosis)}; unsupported=${JSON.stringify(coverage.event_coverage.filter(event => event.status !== 'covered').slice(0, 3))}`);
+        assert.equal(coverage.graph_accepted, false);
+        assert.equal(observed.stage, 'observed_proof_predicates_only');
+        assert.equal(observed.graph_accepted, false);
+        assert.equal(observed.predicates, graph.predicates.length);
+        assert.equal(observed.selections, graph.selections.length);
+        assert.ok(events.length > graph.predicates.length);
+        for (const selection of graph.selections) {
+            const decisions = events.filter(event => event[1] === 'select_member'
+                && event[3] === `proof/set/${selection.candidate_set}`);
+            assert.equal(decisions.length, graph.sets[selection.candidate_set].length);
+            assert.deepEqual(decisions.filter(event => event[6][2]).map(event => event[6][1]),
+                graph.sets[selection.selected_set]); // Independent harness comparison only.
+        }
+        graphs++; predicates += observed.predicates; selections += observed.selections;
+    }
+    assert.equal(graphs, 73);
+    assert.equal(selections, 73);
+    t.diagnostic(`observed_proof_graphs=${graphs}; predicates=${predicates}; selections=${selections}; graph_accepted=false`);
+});
+
+test('N02G:PROOF-PROGRAM-002 false inclusion and exclusion guards change real decisions and cannot pass', async () => {
+    const schema = await validators();
+    for (const mode of ['inclusion', 'exclusion']) {
+        const input = fixture();
+        const entry = input.entries.find(entry => entry.path === graphPath);
+        const corpus = JSON.parse(entry.bytes);
+        const graph = corpus.graphs.find(graph => graph.fact_key === 'M-01#1#1');
+        const selection = graph.selections[0];
+        let node; let id;
+        if (mode === 'inclusion') {
+            node = 'evt_market_a';
+            id = selection.selected_predicates.find(id => {
+                const predicate = graph.predicates.find(predicate => predicate.id === id);
+                return predicate.op === 'eq' && predicate.args.some(arg => arg.field?.node === node);
+            });
+            graph.predicates.find(predicate => predicate.id === id).args[1].literal.value = 'person-b';
+        } else {
+            const excluded = selection.excluded.find(row => row.node === 'evt_salary_a');
+            node = excluded.node; id = excluded.predicates[0];
+            graph.predicates.find(predicate => predicate.id === id).args[1].literal.value = 'income';
+        }
+        assert.ok(id);
+        entry.bytes = Buffer.from(JSON.stringify(corpus));
+        input.authority.find(row => row.path === graphPath).sha256 = hash(entry.bytes);
+        const plan = compileSnapshotAccess(admitPackage(input), schema);
+        const events = [];
+        assert.throws(() => plan.runProofPredicates({ fact_key: graph.fact_key }, event => events.push(event)),
+            /proof_program_unsatisfied/);
+        const decision = events.find(event => event[1] === 'select_member' && event[6][1] === node);
+        assert.ok(decision);
+        assert.equal(decision[6][2], mode === 'exclusion');
+    }
+});
+
+test('N02G:PROOF-DIAGNOSTIC-001 real predicate results identify the single false guard without short-circuit', async () => {
+    const schema = await validators();
+    const { buildScalarProofProgram } = await import('../../../scripts/agent/lowerNextProofProgram.mjs');
+    const { buildMetricChildCapsule } = await import('../../../scripts/agent/buildNextMetricArtifacts.mjs');
+    const { admitArtifact } = require('../../../src/next/provenance/artifactLoader');
+    const { runAdmittedProof } = require('../../../src/next/provenance/executionHost');
+    const { canonicalValue } = require('../../../src/next/kernel/canonicalValue');
+    const admit = (source, kind, name) => {
+        const bytes = Buffer.from(source);
+        const manifestBytes = Buffer.from(canonicalValue({ format: 'financasbot.provenance.artifact', version: 1,
+            kind, entry: name, files: [{ path: name, media_type: 'text/javascript', sha256: hash(bytes) }] }));
+        return admitArtifact({ manifestBytes, expectedRoot: hash(manifestBytes), entries: [{ path: name, bytes }] });
+    };
+    const child = admit(buildMetricChildCapsule().source, 'tcb', 'bootstrap.js');
+    for (const mode of ['inclusion', 'exclusion', 'edge']) {
+        const input = fixture();
+        const original = compileSnapshotAccess(admitPackage(input), schema);
+        const entry = input.entries.find(row => row.path === graphPath);
+        const corpus = JSON.parse(entry.bytes);
+        const graph = corpus.graphs.find(row => row.fact_key === 'M-01#1#1');
+        const selector = { fact_key: graph.fact_key };
+        const baseline = original.inspectProofPredicates(selector, () => {});
+        assert.equal(baseline.stage, 'proof_predicate_diagnostics_only');
+        assert.equal(baseline.graph_accepted, false);
+        assert.equal(baseline.satisfied, true);
+        assert.equal(baseline.results.length, graph.predicates.length);
+        assert.ok(baseline.results.every(row => row.satisfied === true));
+        const selection = graph.selections[0];
+        const id = mode === 'inclusion'
+            ? selection.selected_predicates.find(id => {
+                const p = graph.predicates.find(row => row.id === id);
+                return p.op === 'eq' && p.args.some(arg => arg.field?.node === 'evt_market_a');
+            })
+            : mode === 'exclusion' ? selection.excluded.find(row => row.node === 'evt_salary_a').predicates[0]
+                : graph.predicates.find(row => row.atom === 'edge' && row.op === 'not_eq'
+                    && row.args.every(arg => arg.field)).id;
+        const predicate = graph.predicates.find(row => row.id === id);
+        if (mode === 'edge') predicate.op = 'eq';
+        else predicate.args[1].literal.value = mode === 'inclusion' ? 'person-b' : 'income';
+        entry.bytes = Buffer.from(JSON.stringify(corpus));
+        input.authority.find(row => row.path === graphPath).sha256 = hash(entry.bytes);
+        const changed = compileSnapshotAccess(admitPackage(input), schema);
+        const events = [];
+        const actual = changed.inspectProofPredicates(selector, event => events.push(event));
+        assert.equal(actual.satisfied, false);
+        assert.equal(actual.graph_accepted, false);
+        assert.equal(actual.results.length, baseline.results.length);
+        assert.deepEqual(actual.results.filter(row => !row.satisfied), [{
+            id, obligation: predicate.obligation, atom: predicate.atom, satisfied: false
+        }]);
+        assert.deepEqual(actual.results.filter(row => row.id !== id), baseline.results.filter(row => row.id !== id));
+        assert.ok(Object.isFrozen(actual) && Object.isFrozen(actual.results)
+            && actual.results.every(Object.isFrozen));
+        if (mode !== 'edge') {
+            const node = mode === 'inclusion' ? 'evt_market_a' : 'evt_salary_a';
+            assert.equal(events.find(event => event[1] === 'select_member' && event[6][1] === node)[6][2], mode === 'exclusion');
+        }
+        assert.throws(() => changed.runProofPredicates(selector, () => {}), /proof_program_unsatisfied/);
+
+        // Same lowered program semantics in the captured child. This is a
+        // contract-guard mutation, not a repaired semantic-payload witness.
+        // It does not supply a production freeze or financial acceptance.
+        const captured = [];
+        for (const current of [original, changed]) {
+            const artifact = admit(buildScalarProofProgram(current.projectProofProgram(selector).input).source, 'proof', 'bundle.js');
+            const config = current.projectProofTransport(selector).config;
+            const executionId = `diagnostic-${mode}`;
+            const observed = await runAdmittedProof({ ...config, artifactReceipt: artifact, childCapsuleReceipt: child,
+                executionId, invocationId: graph.fact_key, timeoutMs: 4000 });
+            const selectedSets = new Set(graph.selections.map(row => row.selected_set));
+            const { evidence_set_mode, ...expected } = graph.trace_contract.proof;
+            const coverage = comparePhaseCoverage({ executionId, invocationId: graph.fact_key, phase: 'proof',
+                trace: observed.trace, expected, sets: graph.sets,
+                bindings: config.proofSelections.map(row => ({ role: `proof/set/${row.candidate_set}`,
+                    candidate_set: row.candidate_set, selected_set: row.selected_set })),
+                operandSets: config.proofSets.filter(row => !selectedSets.has(row.name))
+                    .map(row => ({ role: `proof/set/${row.name}`, aliases: row.roster })),
+                accessBindings: current.observationMetadata({ fact_key: graph.fact_key, phase: 'proof' }),
+                measurements: [{ measurement: 'proof_engine_artifact_root', observed: artifact.observed_root }] });
+            assert.equal(observed.graph_accepted, false);
+            assert.equal(observed.observed_artifact_root, artifact.observed_root);
+            captured.push({ observed, coverage, config });
+        }
+        assert.deepEqual(captured[0].config, captured[1].config, 'guard drift must not change operands');
+        assert.equal(captured[0].observed.proof_satisfied, true);
+        assert.equal(captured[0].coverage.matched, true);
+        assert.equal(captured[1].observed.proof_satisfied, false);
+        const materialEvents = result => result.observed.trace.proof_trace
+            .filter(row => row.operation && !row.operation.startsWith('select'))
+            .map(({ sequence, ...row }) => row);
+        for (const result of captured) {
+            assert.deepEqual(result.coverage.components.read_edges.mismatches, []);
+            for (const name of ['operand_sets', 'access_metadata', 'civil_dates', 'measurements']) {
+                assert.equal(result.coverage.components[name].matched, true, name);
+            }
+            assert.ok(result.coverage.event_coverage.every(row => row.status === 'covered'));
+        }
+        assert.deepEqual(materialEvents(captured[0]), materialEvents(captured[1]));
+        if (mode === 'edge') {
+            // This predicate is outside selection. Its false boolean is the
+            // only semantic drift; every trace obligation remains covered.
+            assert.equal(captured[1].coverage.matched, true);
+            assert.equal(captured[1].coverage.components.selection.matched, true);
+        } else {
+            // A single false predicate does NOT imply an isolated witness.
+            // Both controls also change selection; all real reads remain
+            // covered. Retain that collateral effect rather than G11 credit.
+            assert.equal(captured[1].coverage.matched, false);
+            assert.equal(captured[1].coverage.components.selection.matched, false);
+            assert.deepEqual(captured[1].coverage.components.selection.errors, []);
+            assert.ok(captured[1].coverage.components.selection.mismatches.length > 0);
+        }
+    }
+});
+
+test('N02G:MUTATION-ISOLATION-001 repaired semantic sign and magnitude variants isolate edge in captured D/P', async t => {
+    const schema = await validators();
+    const data = await snapshotAccessFixture();
+    const targets = data.ir.graphs.find(row => row.fact_key === 'M-01#1#1').predicates
+        .filter(row => ['opposite_sign', 'abs_eq'].includes(row.op));
+    const oracle = JSON.parse(fs.readFileSync(path.join(root,
+        'tests/fixtures/financasbot-next/golden-claim-oracles-v1.json'), 'utf8')).turns['M-01#1'].facts[0].value;
+    let executed = 0; let omittedReads = 0; let omittedEdges = 0; let omittedClaimReads = 0; let omittedKeys = 0;
+    let omittedStructuralLifecycles = 0; let omittedHas = 0;
+    async function exercise(predicateId, operandIndex) {
+    const input = fixture();
+    const original = compileSnapshotAccess(admitPackage(input), schema);
+    const entries = new Map(input.entries.map(row => [row.path, row]));
+    const corpus = JSON.parse(entries.get(graphPath).bytes);
+    const graph = corpus.graphs.find(row => row.fact_key === 'M-01#1#1');
+    const predicate = graph.predicates.find(row => row.id === predicateId);
+    const claim = JSON.parse(entries.get(corpus.claim_contract.path).bytes).claims.find(row => row.fact_key === graph.fact_key);
+    const { materializeSignedRelationMutation } = require('../../../src/next/provenance/mutationWitnesses');
+    const generated = materializeSignedRelationMutation({ packageReceipt: admitPackage(input), fact_key: graph.fact_key,
+        predicate_id: predicate.id, operand_index: operandIndex });
+    assert.equal(generated.stage, 'generated_semantic_mutation_only');
+    assert.equal(generated.mutation_acceptance, false);
+    assert.deepEqual(generated.expected_violations, ['edge']);
+    const { canonicalValue } = require('../../../src/next/kernel/canonicalValue');
+    for (const row of generated.changes) {
+        entries.get(row.path).bytes = Buffer.from(row.source);
+        assert.equal(hash(entries.get(row.path).bytes), row.sha256);
+        input.authority.find(ref => ref.path === row.path).sha256 = row.sha256;
+    }
+    const changed = compileSnapshotAccess(admitPackage(input), schema);
+    const selector = { fact_key: graph.fact_key };
+    const baseline = original.inspectProofPredicates(selector, () => {});
+    const actual = changed.inspectProofPredicates(selector, () => {});
+    const expectedViolations = ['edge']; // fixed before any mutant execution
+    assert.equal(baseline.satisfied, true);
+    assert.deepEqual(actual.results.filter(row => !row.satisfied), [{ id: predicate.id,
+        obligation: predicate.obligation, atom: predicate.atom, satisfied: false }]);
+    assert.deepEqual([...new Set(actual.results.filter(row => !row.satisfied).map(row => row.atom))], expectedViolations);
+    assert.deepEqual(actual.results.filter(row => row.id !== predicate.id), baseline.results.filter(row => row.id !== predicate.id));
+    const { buildPhaseProofProgram } = await import('../../../scripts/agent/lowerNextProofProgram.mjs');
+    const { buildMetricChildCapsule, buildAvailableMetricArtifacts } = await import('../../../scripts/agent/buildNextMetricArtifacts.mjs');
+    const { admitArtifact } = require('../../../src/next/provenance/artifactLoader');
+    const { runAdmittedGraph } = require('../../../src/next/provenance/executionHost');
+    const profile = reviewedPhaseProfile();
+    const admit = (source, kind, entry, extra) => {
+        const files = [{ path: entry, bytes: Buffer.from(source) }];
+        if (extra) files.push({ path: extra.path, bytes: Buffer.from(extra.source) });
+        const manifestBytes = Buffer.from(canonicalValue({ format: 'financasbot.provenance.artifact', version: 1,
+            kind, entry, files: files.map(row => ({ path: row.path, sha256: hash(row.bytes),
+                media_type: row.path.endsWith('.json') ? 'application/json' : 'text/javascript' })) }));
+        return admitArtifact({ manifestBytes, expectedRoot: hash(manifestBytes), entries: files });
+    };
+    const child = admit(buildMetricChildCapsule().source, 'tcb', 'bootstrap.js');
+    const metric = admit(buildAvailableMetricArtifacts().built.find(row => row.evaluator_id === claim.evaluator_ref.evaluator_id).source,
+        'metric', 'bundle.js');
+    const runs = [];
+    for (const plan of [original, changed]) {
+        const built = buildPhaseProofProgram({ proof: plan.projectProofProgram(selector).input,
+            derivation: plan.projectDerivationProgram(selector, profile).input }, profile);
+        const proof = admit(built.source, 'proof', 'bundle.js', built.profileInput);
+        const proofConfig = plan.projectProofTransport(selector).config;
+        const transport = plan.projectMetricTransport(selector);
+        const executionId = 'semantic-transfer-sign';
+        const observed = await runAdmittedGraph({ childCapsuleReceipt: child, executionId,
+            invocationId: graph.fact_key, timeoutMs: 5000,
+            derivation: { artifactReceipt: metric, bindings: [], directGroups: transport.directGroups,
+                nodeSets: transport.nodeSets,
+                derivationBindings: plan.projectDerivationBindings(selector) },
+            proof: { ...proofConfig, artifactReceipt: proof } });
+        for (const phase of ['derivation', 'proof']) {
+            const { evidence_set_mode, ...expected } = graph.trace_contract[phase];
+            const isProof = phase === 'proof';
+            const coverageInput = { executionId, invocationId: graph.fact_key, phase,
+                trace: observed.trace, expected, sets: graph.sets,
+                bindings: isProof ? proofConfig.proofSelections.map(row => ({ role: `proof/set/${row.candidate_set}`,
+                    candidate_set: row.candidate_set, selected_set: row.selected_set })) : selectionInput(claim, graph, executionId).bindings,
+                operandSets: isProof ? proofConfig.proofSets.map(row => ({ role: `proof/set/${row.name}`, aliases: row.roster }))
+                    : Object.entries(claim.operand_bindings).filter(([, row]) => row.kind === 'node_set')
+                        .map(([role, row]) => ({ role, aliases: row.aliases })),
+                accessBindings: plan.observationMetadata({ fact_key: graph.fact_key, phase }),
+                measurements: isProof ? [{ measurement: 'proof_engine_artifact_root', observed: proof.observed_root }]
+                    : [{ measurement: 'evaluator_artifact_root', observed: metric.observed_root },
+                        { measurement: 'proof_engine_artifact_root', observed: proof.observed_root }] };
+            const coverage = comparePhaseCoverage(coverageInput);
+            assert.equal(coverage.matched, true, `${phase}: ${JSON.stringify(coverage.components)}`);
+            assert.equal(coverage.graph_accepted, false);
+            if (plan === original && executed === 0) {
+                const { materializeTraceReadOmission, materializeTraceEdgeOmission,
+                    materializeTraceClaimReadOmission, materializeTraceStructuralOmission } = require('../../../src/next/provenance/mutationWitnesses');
+                for (const read of expected.required_reads) {
+                    const fault = materializeTraceReadOmission({ trace: observed.trace, fact_key: graph.fact_key,
+                        phase, node: read.node, segments: read.segments });
+                    assert.equal(fault.stage, 'generated_trace_fault_only');
+                    assert.equal(fault.mutation_acceptance, false);
+                    assert.deepEqual(fault.expected_violations, ['trace']);
+                    assert.ok(fault.removed_sequences.length > 0);
+                    const failed = compareReadEdgeCoverage({ executionId, invocationId: graph.fact_key, phase,
+                        trace: fault.trace, expected: Object.fromEntries(['required_nodes', 'required_reads',
+                            'required_claim_reads', 'required_edges', 'required_structural'].map(key => [key, expected[key]])) });
+                    const reads = failed.mismatches.find(row => row.dimension === 'reads');
+                    assert.ok(reads);
+                    assert.deepEqual(reads.missing, expected.required_reads.filter(row => row.node === read.node
+                        && read.segments.length <= row.segments.length && read.segments.every((part, index) => row.segments[index] === part))
+                        .map(row => [row.node, row.segments]).sort((a, b) => JSON.stringify(a) < JSON.stringify(b) ? -1 : JSON.stringify(a) > JSON.stringify(b) ? 1 : 0));
+                    assert.deepEqual(reads.extra, []);
+                    // This is recorder-output fault injection only. Original
+                    // R, predicate truth and measured artifacts are untouched;
+                    // the corrupted trace cannot become a financial receipt.
+                    assert.equal(failed.graph_accepted, false);
+                    omittedReads++;
+                }
+                for (const edge of expected.required_edges) {
+                    const fault = materializeTraceEdgeOmission({ trace: observed.trace, fact_key: graph.fact_key, phase, edge });
+                    assert.deepEqual(fault.expected_violations, ['trace']);
+                    assert.ok(fault.removed_sequences.length > 0);
+                    const failed = compareReadEdgeCoverage({ executionId, invocationId: graph.fact_key, phase,
+                        trace: fault.trace, expected: Object.fromEntries(['required_nodes', 'required_reads',
+                            'required_claim_reads', 'required_edges', 'required_structural'].map(key => [key, expected[key]])) });
+                    assert.deepEqual(failed.mismatches.map(row => ({ dimension: row.dimension,
+                        missing: row.missing, extra: row.extra })), [{ dimension: 'edges', missing: [edge], extra: [] }]);
+                    assert.equal(failed.graph_accepted, false);
+                    const retained = row => row.operation !== 'traverse' || row.outcome[1] !== edge;
+                    const content = rows => rows.map(({ sequence, ...row }) => row);
+                    assert.deepEqual(content(fault.trace[`${phase}_trace`]), content(observed.trace[`${phase}_trace`].filter(retained)));
+                    assert.deepEqual(content(fault.trace[`${phase === 'proof' ? 'derivation' : 'proof'}_trace`]),
+                        content(observed.trace[`${phase === 'proof' ? 'derivation' : 'proof'}_trace`]));
+                    omittedEdges++;
+                }
+                for (const read of expected.required_claim_reads) {
+                    const fault = materializeTraceClaimReadOmission({ trace: observed.trace, fact_key: graph.fact_key,
+                        phase, segments: read.segments });
+                    assert.deepEqual(fault.expected_violations, ['trace']);
+                    assert.ok(fault.removed_sequences.length > 0);
+                    const failed = compareReadEdgeCoverage({ executionId, invocationId: graph.fact_key, phase,
+                        trace: fault.trace, expected: Object.fromEntries(['required_nodes', 'required_reads',
+                            'required_claim_reads', 'required_edges', 'required_structural'].map(key => [key, expected[key]])) });
+                    const reads = failed.mismatches.find(row => row.dimension === 'claim_reads');
+                    assert.ok(reads); assert.deepEqual(reads.missing, expected.required_claim_reads.filter(row =>
+                        read.segments.length <= row.segments.length && read.segments.every((part, index) => row.segments[index] === part))
+                        .map(row => row.segments).sort((a, b) => JSON.stringify(a) < JSON.stringify(b) ? -1 : JSON.stringify(a) > JSON.stringify(b) ? 1 : 0)); assert.deepEqual(reads.extra, []);
+                    assert.ok(failed.mismatches.every(row => row.dimension === 'claim_reads'));
+                    assert.equal(failed.graph_accepted, false);
+                    omittedClaimReads++;
+                }
+                for (const required of expected.required_structural.filter(row => ['keys', 'has'].includes(row.operation))) {
+                    const fault = materializeTraceStructuralOmission({ trace: observed.trace, fact_key: graph.fact_key,
+                        phase, node: required.node, operation: required.operation, segments: required.segments });
+                    assert.deepEqual(fault.expected_violations, ['trace']);
+                    const failed = compareReadEdgeCoverage({ executionId, invocationId: graph.fact_key, phase,
+                        trace: fault.trace, expected: Object.fromEntries(['required_nodes', 'required_reads',
+                            'required_claim_reads', 'required_edges', 'required_structural'].map(key => [key, expected[key]])) });
+                    const structural = failed.mismatches.find(row => row.dimension === 'structural');
+                    assert.ok(structural);
+                    assert.deepEqual(structural.missing, [[required.node, required.operation, required.segments]]);
+                    assert.deepEqual(structural.extra, []);
+                    assert.ok(failed.mismatches.every(row => row.dimension === 'structural'));
+                    assert.equal(failed.graph_accepted, false);
+                    const content = rows => rows.map(({ sequence, ...row }) => row);
+                    const composed = comparePhaseCoverage({ ...coverageInput, trace: fault.trace });
+                    assert.equal(composed.matched, false); assert.equal(composed.graph_accepted, false);
+                    assert.ok(composed.event_coverage.every(row => row.status === 'covered'));
+                    for (const component of ['selection', 'operand_sets', 'access_metadata', 'civil_dates', 'measurements']) {
+                        assert.equal(composed.components[component].matched, true, component);
+                    }
+                    const retained = row => {
+                        if (row.alias !== required.node) return true;
+                        const keyView = required.operation === 'keys' && row.projection === 'keys';
+                        const base = keyView && ['next', 'at'].includes(row.operation) ? row.path.slice(0, -1) : row.path;
+                        return JSON.stringify(base) !== JSON.stringify(required.segments)
+                            || !keyView && (row.projection !== 'data' || row.operation !== required.operation);
+                    };
+                    assert.deepEqual(content(fault.trace[`${phase}_trace`]), content(observed.trace[`${phase}_trace`].filter(retained)));
+                    assert.deepEqual(content(fault.trace[`${phase}_trace`].filter(row => row.operation === 'get')),
+                        content(observed.trace[`${phase}_trace`].filter(row => row.operation === 'get')));
+                    assert.deepEqual(content(fault.trace[`${phase === 'proof' ? 'derivation' : 'proof'}_trace`]),
+                        content(observed.trace[`${phase === 'proof' ? 'derivation' : 'proof'}_trace`]));
+                    if (required.operation === 'keys') omittedKeys++;
+                    else omittedHas++;
+                }
+                for (const required of expected.required_structural.filter(row => ['iterator', 'order', 'cardinality'].includes(row.operation))) {
+                    const fault = materializeTraceStructuralOmission({ trace: observed.trace, fact_key: graph.fact_key,
+                        phase, node: required.node, operation: required.operation, segments: required.segments });
+                    const failed = compareReadEdgeCoverage({ executionId, invocationId: graph.fact_key, phase,
+                        trace: fault.trace, expected: Object.fromEntries(['required_nodes', 'required_reads',
+                            'required_claim_reads', 'required_edges', 'required_structural'].map(key => [key, expected[key]])) });
+                    assert.equal(failed.matched, false); assert.equal(failed.graph_accepted, false);
+                    const composed = comparePhaseCoverage({ ...coverageInput, trace: fault.trace });
+                    assert.equal(composed.matched, false); assert.equal(composed.graph_accepted, false);
+                    assert.ok(composed.event_coverage.every(row => row.status === 'covered'));
+                    for (const component of ['selection', 'operand_sets', 'access_metadata', 'civil_dates', 'measurements']) {
+                        assert.equal(composed.components[component].matched, true, component);
+                    }
+                    assert.ok(failed.mismatches.every(row => row.dimension === 'structural'));
+                    assert.ok(failed.mismatches.find(row => row.dimension === 'structural').missing.some(row =>
+                        row[0] === required.node && row[1] === required.operation
+                        && JSON.stringify(row[2]) === JSON.stringify(required.segments)));
+                    const content = rows => rows.map(({ sequence, ...row }) => row);
+                    assert.deepEqual(content(fault.trace[`${phase}_trace`].filter(row => row.operation === 'get')),
+                        content(observed.trace[`${phase}_trace`].filter(row => row.operation === 'get')));
+                    assert.deepEqual(fault.expected_violations, ['trace']);
+                    omittedStructuralLifecycles++;
+                }
+            }
+        }
+        runs.push(observed);
+    }
+    assert.equal(runs[0].proof_satisfied, true);
+    assert.equal(runs[1].proof_satisfied, false);
+    assert.deepEqual(runs[0].functional_result, runs[1].functional_result);
+    assert.deepEqual(runs[0].functional_result.value, oracle);
+    assert.ok(runs.every(row => row.graph_accepted === false));
+    executed++;
+    }
+    for (const predicate of targets) for (const index of [0, 1]) await exercise(predicate.id, index);
+    assert.equal(executed, targets.length * 2);
+    assert.ok(omittedReads > 0); assert.ok(omittedEdges > 0);
+    assert.ok(omittedClaimReads > 0);
+    assert.ok(omittedKeys > 0);
+    assert.ok(omittedStructuralLifecycles > 0);
+    t.diagnostic(`captured_structural_lifecycle_faults=${omittedStructuralLifecycles}; scalar_reads_preserved=true; only_atom=trace; G11_complete=false`);
+    t.diagnostic(`recorder_faults: omitted_reads=${omittedReads}; omitted_edges=${omittedEdges}; omitted_claim_reads=${omittedClaimReads}; omitted_keys=${omittedKeys}; omitted_has=${omittedHas}; only_atom=trace; G11_complete=false`);
+    t.diagnostic(`semantic_sign_variants=${executed}; captured_phases=${executed * 4}; only_atom=edge; G11_complete=false`);
+});
+
+test('N02G:MUTATION-ISOLATION-CONTROL-001 native period diagnostics do not qualify a budget-month witness by themselves', async t => {
+    const schema = await validators();
+    const input = fixture();
+    const originalReceipt = admitPackage(input);
+    const original = compileSnapshotAccess(originalReceipt, schema);
+    const corpus = JSON.parse(input.entries.find(row => row.path === graphPath).bytes);
+    const graph = corpus.graphs.find(row => row.fact_key === 'M-13#1#3');
+    const predicate = graph.predicates.find(row => row.op === 'month_bounds_match');
+    assert.ok(predicate);
+    const { materializeMonthRelationMutation } = require('../../../src/next/provenance/mutationWitnesses');
+    const generated = materializeMonthRelationMutation({ packageReceipt: originalReceipt,
+        fact_key: graph.fact_key, predicate_id: predicate.id });
+    assert.equal(generated.mutation_acceptance, false);
+    assert.deepEqual(generated.expected_violations, ['period']);
+    assert.equal(generated.changes.length, 3);
+    const changes = new Map(generated.changes.map(row => [row.path, row]));
+    const entries = input.entries.map(row => ({ path: row.path,
+        bytes: changes.has(row.path) ? Buffer.from(changes.get(row.path).source) : Buffer.from(row.bytes) }));
+    for (const row of generated.changes) assert.equal(hash(row.source), row.sha256);
+    const changed = compileSnapshotAccess(admitPackage({ entries,
+        authority: entries.map(row => ({ path: row.path, sha256: hash(row.bytes) })) }), schema);
+    const selector = { fact_key: graph.fact_key };
+    const baseline = original.inspectProofPredicates(selector, () => {});
+    const actual = changed.inspectProofPredicates(selector, () => {});
+    assert.equal(baseline.satisfied, true);
+    const violations = actual.results.filter(row => !row.satisfied);
+    assert.ok(violations.length > 0);
+    assert.ok(violations.some(row => row.id === predicate.id));
+    assert.deepEqual([...new Set(violations.map(row => row.atom))], ['period']);
+    assert.deepEqual(actual.results.filter(row => row.atom !== 'period'), baseline.results.filter(row => row.atom !== 'period'));
+    assert.deepEqual(actual.selections, baseline.selections);
+    assert.equal(actual.graph_accepted, false);
+    t.diagnostic(`period_predicates_false=${violations.length}; native_only=true; metric_consumes_budget_period=true; witness_not_qualified=true; G11_complete=false`);
+});
+
+test('N02G:MUTATION-ISOLATION-002 source-state period and coverage mismatches preserve captured derivation and other atoms', async t => {
+    const schema = await validators();
+    const input = fixture(); const receipt = admitPackage(input);
+    const original = compileSnapshotAccess(receipt, schema);
+    const corpus = JSON.parse(input.entries.find(row => row.path === graphPath).bytes);
+    const graph = corpus.graphs.find(row => row.fact_key === 'M-01#1#1');
+    for (const atom of ['period', 'coverage']) {
+    const predicate = graph.predicates.find(row => row.atom === atom && row.op === 'eq'
+        && graph.nodes[row.args[0]?.field?.node]?.kind === 'source_state');
+    assert.ok(predicate);
+    const field = predicate.args[0].field;
+    assert.ok(!graph.trace_contract.derivation.required_reads.some(row => row.node === field.node
+        && JSON.stringify(row.segments) === JSON.stringify(field.segments)));
+    const factories = require('../../../src/next/provenance/mutationWitnesses');
+    const factory = atom === 'period' ? factories.materializeMonthRelationMutation : factories.materializeEnumEqualityMutation;
+    const generated = factory({ packageReceipt: receipt,
+        fact_key: graph.fact_key, predicate_id: predicate.id });
+    assert.equal(generated.mutation_acceptance, false); assert.deepEqual(generated.expected_violations, [atom]);
+    const changes = new Map(generated.changes.map(row => [row.path, row]));
+    const entries = input.entries.map(row => ({ path: row.path,
+        bytes: changes.has(row.path) ? Buffer.from(changes.get(row.path).source) : Buffer.from(row.bytes) }));
+    const changed = compileSnapshotAccess(admitPackage({ entries,
+        authority: entries.map(row => ({ path: row.path, sha256: hash(row.bytes) })) }), schema);
+    const selector = { fact_key: graph.fact_key };
+    const baseline = original.inspectProofPredicates(selector, () => {});
+    const actual = changed.inspectProofPredicates(selector, () => {});
+    assert.equal(baseline.satisfied, true);
+    const violations = actual.results.filter(row => !row.satisfied);
+    assert.deepEqual(violations, [{ id: predicate.id, obligation: predicate.obligation, atom, satisfied: false }]);
+    assert.deepEqual([...new Set(violations.map(row => row.atom))], [atom]);
+    assert.deepEqual(actual.results.filter(row => row.atom !== atom), baseline.results.filter(row => row.atom !== atom));
+    assert.deepEqual(actual.selections, baseline.selections);
+    assert.equal(actual.graph_accepted, false);
+    const claim = JSON.parse(input.entries.find(row => row.path === corpus.claim_contract.path).bytes)
+        .claims.find(row => row.fact_key === graph.fact_key);
+    const oracle = JSON.parse(fs.readFileSync(path.join(root,
+        'tests/fixtures/financasbot-next/golden-claim-oracles-v1.json'), 'utf8')).turns['M-01#1'].facts[0].value;
+    const { canonicalValue } = require('../../../src/next/kernel/canonicalValue');
+    const { buildPhaseProofProgram } = await import('../../../scripts/agent/lowerNextProofProgram.mjs');
+    const { buildMetricChildCapsule, buildAvailableMetricArtifacts } = await import('../../../scripts/agent/buildNextMetricArtifacts.mjs');
+    const { admitArtifact } = require('../../../src/next/provenance/artifactLoader');
+    const { runAdmittedGraph } = require('../../../src/next/provenance/executionHost');
+    const profile = reviewedPhaseProfile();
+    const admit = (source, kind, entry, extra) => {
+        const files = [{ path: entry, bytes: Buffer.from(source) }];
+        if (extra) files.push({ path: extra.path, bytes: Buffer.from(extra.source) });
+        const manifestBytes = Buffer.from(canonicalValue({ format: 'financasbot.provenance.artifact', version: 1,
+            kind, entry, files: files.map(row => ({ path: row.path, sha256: hash(row.bytes),
+                media_type: row.path.endsWith('.json') ? 'application/json' : 'text/javascript' })) }));
+        return admitArtifact({ manifestBytes, expectedRoot: hash(manifestBytes), entries: files });
+    };
+    const child = admit(buildMetricChildCapsule().source, 'tcb', 'bootstrap.js');
+    const metric = admit(buildAvailableMetricArtifacts().built.find(row => row.evaluator_id === claim.evaluator_ref.evaluator_id).source,
+        'metric', 'bundle.js');
+    const runs = [];
+    for (const plan of [original, changed]) {
+        const built = buildPhaseProofProgram({ proof: plan.projectProofProgram(selector).input,
+            derivation: plan.projectDerivationProgram(selector, profile).input }, profile);
+        const proof = admit(built.source, 'proof', 'bundle.js', built.profileInput);
+        const proofConfig = plan.projectProofTransport(selector).config;
+        const transport = plan.projectMetricTransport(selector);
+        const executionId = `semantic-source-${atom}`;
+        const observed = await runAdmittedGraph({ childCapsuleReceipt: child, executionId,
+            invocationId: graph.fact_key, timeoutMs: 5000,
+            derivation: { artifactReceipt: metric, bindings: [], directGroups: transport.directGroups,
+                nodeSets: transport.nodeSets, derivationBindings: plan.projectDerivationBindings(selector) },
+            proof: { ...proofConfig, artifactReceipt: proof } });
+        for (const phase of ['derivation', 'proof']) {
+            const { evidence_set_mode, ...expected } = graph.trace_contract[phase];
+            const isProof = phase === 'proof';
+            const coverageInput = { executionId, invocationId: graph.fact_key, phase,
+                trace: observed.trace, expected, sets: graph.sets,
+                bindings: isProof ? proofConfig.proofSelections.map(row => ({ role: `proof/set/${row.candidate_set}`,
+                    candidate_set: row.candidate_set, selected_set: row.selected_set })) : selectionInput(claim, graph, executionId).bindings,
+                operandSets: isProof ? proofConfig.proofSets.map(row => ({ role: `proof/set/${row.name}`, aliases: row.roster }))
+                    : Object.entries(claim.operand_bindings).filter(([, row]) => row.kind === 'node_set')
+                        .map(([role, row]) => ({ role, aliases: row.aliases })),
+                accessBindings: plan.observationMetadata({ fact_key: graph.fact_key, phase }),
+                measurements: isProof ? [{ measurement: 'proof_engine_artifact_root', observed: proof.observed_root }]
+                    : [{ measurement: 'evaluator_artifact_root', observed: metric.observed_root },
+                        { measurement: 'proof_engine_artifact_root', observed: proof.observed_root }] };
+            const coverage = comparePhaseCoverage(coverageInput);
+            assert.equal(coverage.matched, true, `${phase}: ${JSON.stringify(coverage.components)}`);
+            assert.equal(coverage.graph_accepted, false);
+            if (atom === 'period' && plan === original && phase === 'proof') {
+                const read = expected.required_reads.find(row => row.segments.join('.') === 'synthetic');
+                assert.ok(read);
+                const fault = factories.materializeTraceReadSubstitution({ packageReceipt: receipt,
+                    trace: observed.trace, fact_key: graph.fact_key, phase, node: read.node, segments: read.segments });
+                const failed = comparePhaseCoverage({ ...coverageInput, trace: fault.trace });
+                assert.equal(failed.matched, false); assert.equal(failed.graph_accepted, false);
+                assert.deepEqual(failed.components.read_edges.mismatches.map(row => ({ dimension: row.dimension,
+                    missing: row.missing, extra: row.extra })), [{ dimension: 'reads', missing: [[read.node, read.segments]], extra: [] }]);
+                for (const name of ['selection', 'operand_sets', 'access_metadata', 'civil_dates', 'measurements']) {
+                    assert.equal(failed.components[name].matched, true, name);
+                }
+                assert.ok(failed.event_coverage.every(row => row.status === 'covered'));
+                assert.equal(fault.trace.proof_trace.length, observed.trace.proof_trace.length);
+                for (const event of observed.trace.proof_trace) {
+                    const changedEvent = fault.trace.proof_trace.find(row => row.sequence === event.sequence);
+                    if (fault.replaced_sequences.includes(event.sequence)) assert.deepEqual(changedEvent, { ...event, path: fault.patch.after });
+                    else assert.deepEqual(changedEvent, event);
+                }
+                assert.deepEqual(fault.trace.derivation_trace, observed.trace.derivation_trace);
+                t.diagnostic(`trace_path_substitutions=${fault.replaced_sequences.length}; same_type=true; values_unchanged=true; event_count_unchanged=true; only_atom=trace; recorder_fault_only=true; G11_complete=false`);
+            }
+        }
+        runs.push(observed);
+    }
+    assert.equal(runs[0].proof_satisfied, true); assert.equal(runs[1].proof_satisfied, false);
+    assert.deepEqual(runs[0].functional_result, runs[1].functional_result);
+    assert.deepEqual(runs[0].functional_result.value, oracle);
+    assert.ok(runs.every(row => row.graph_accepted === false));
+    t.diagnostic(`predicates_false=${violations.length}; other_atoms_unchanged=true; selection_unchanged=true; captured_phases=4; R_unchanged=true; only_atom=${atom}; G11_complete=false`);
+    }
+});
+
+test('N02G:MUTATION-ISOLATION-003 captured account has omissions preserve every non-trace component', async t => {
+    const { plan, graphs, claims } = await snapshotAccessFixture();
+    const graph = graphs.find(row => row.fact_key === 'S-04#1#1');
+    const claim = claims.find(row => row.fact_key === graph.fact_key);
+    const selector = { fact_key: graph.fact_key };
+    const { canonicalValue } = require('../../../src/next/kernel/canonicalValue');
+    const { buildPhaseProofProgram } = await import('../../../scripts/agent/lowerNextProofProgram.mjs');
+    const { buildMetricChildCapsule, buildAvailableMetricArtifacts } = await import('../../../scripts/agent/buildNextMetricArtifacts.mjs');
+    const { admitArtifact } = require('../../../src/next/provenance/artifactLoader');
+    const { runAdmittedGraph } = require('../../../src/next/provenance/executionHost');
+    const { materializeTraceStructuralOmission } = require('../../../src/next/provenance/mutationWitnesses');
+    const profile = reviewedPhaseProfile();
+    const admit = (source, kind, entry, extra) => {
+        const files = [{ path: entry, bytes: Buffer.from(source) }];
+        if (extra) files.push({ path: extra.path, bytes: Buffer.from(extra.source) });
+        const manifestBytes = Buffer.from(canonicalValue({ format: 'financasbot.provenance.artifact', version: 1,
+            kind, entry, files: files.map(row => ({ path: row.path, sha256: hash(row.bytes),
+                media_type: row.path.endsWith('.json') ? 'application/json' : 'text/javascript' })) }));
+        return admitArtifact({ manifestBytes, expectedRoot: hash(manifestBytes), entries: files });
+    };
+    const child = admit(buildMetricChildCapsule().source, 'tcb', 'bootstrap.js');
+    const metric = admit(buildAvailableMetricArtifacts().built.find(row => row.evaluator_id === claim.evaluator_ref.evaluator_id).source,
+        'metric', 'bundle.js');
+    const built = buildPhaseProofProgram({ proof: plan.projectProofProgram(selector).input,
+        derivation: plan.projectDerivationProgram(selector, profile).input }, profile);
+    const proof = admit(built.source, 'proof', 'bundle.js', built.profileInput);
+    const proofConfig = plan.projectProofTransport(selector).config;
+    const transport = plan.projectMetricTransport(selector);
+    const executionId = 'captured-account-has';
+    const observed = await runAdmittedGraph({ childCapsuleReceipt: child, executionId,
+        invocationId: graph.fact_key, timeoutMs: 5000,
+        derivation: { artifactReceipt: metric, bindings: [], directGroups: transport.directGroups,
+            nodeSets: transport.nodeSets, derivationBindings: plan.projectDerivationBindings(selector) },
+        proof: { ...proofConfig, artifactReceipt: proof } });
+    assert.equal(observed.proof_satisfied, true); assert.equal(observed.graph_accepted, false);
+    const oracle = JSON.parse(fs.readFileSync(path.join(root,
+        'tests/fixtures/financasbot-next/golden-claim-oracles-v1.json'), 'utf8')).turns['S-04#1'].facts[0];
+    assert.deepEqual(observed.functional_result.value, oracle.value);
+    let faults = 0;
+    for (const phase of ['derivation', 'proof']) {
+        const { evidence_set_mode, ...expected } = graph.trace_contract[phase];
+        const isProof = phase === 'proof';
+        const args = { executionId, invocationId: graph.fact_key, phase, trace: observed.trace, expected, sets: graph.sets,
+            bindings: isProof ? proofConfig.proofSelections.map(row => ({ role: `proof/set/${row.candidate_set}`,
+                candidate_set: row.candidate_set, selected_set: row.selected_set })) : selectionInput(claim, graph, executionId).bindings,
+            operandSets: isProof ? proofConfig.proofSets.map(row => ({ role: `proof/set/${row.name}`, aliases: row.roster }))
+                : Object.entries(claim.operand_bindings).filter(([, row]) => row.kind === 'node_set')
+                    .map(([role, row]) => ({ role, aliases: row.aliases })),
+            accessBindings: plan.observationMetadata({ fact_key: graph.fact_key, phase }),
+            measurements: isProof ? [{ measurement: 'proof_engine_artifact_root', observed: proof.observed_root }]
+                : [{ measurement: 'evaluator_artifact_root', observed: metric.observed_root },
+                    { measurement: 'proof_engine_artifact_root', observed: proof.observed_root }] };
+        assert.equal(comparePhaseCoverage(args).matched, true);
+        const required = expected.required_structural.filter(row => row.operation === 'has');
+        assert.ok(required.length > 0, 'use a graph with genuine has obligations in both phases');
+        for (const row of required) {
+            const fault = materializeTraceStructuralOmission({ trace: observed.trace, fact_key: graph.fact_key,
+                phase, node: row.node, operation: row.operation, segments: row.segments });
+            const actual = comparePhaseCoverage({ ...args, trace: fault.trace });
+            assert.equal(actual.matched, false); assert.equal(actual.graph_accepted, false);
+            assert.deepEqual(actual.components.read_edges.mismatches.map(item => ({ dimension: item.dimension,
+                missing: item.missing, extra: item.extra })),
+                [{ dimension: 'structural', missing: [[row.node, 'has', row.segments]], extra: [] }]);
+            assert.ok(actual.event_coverage.every(item => item.status === 'covered'));
+            for (const name of ['selection', 'operand_sets', 'access_metadata', 'civil_dates', 'measurements']) {
+                assert.equal(actual.components[name].matched, true, name);
+            }
+            const content = rows => rows.map(({ sequence, ...item }) => item);
+            assert.deepEqual(content(fault.trace[`${phase}_trace`].filter(item => item.operation === 'get')),
+                content(observed.trace[`${phase}_trace`].filter(item => item.operation === 'get')));
+            assert.deepEqual(content(fault.trace[`${isProof ? 'derivation' : 'proof'}_trace`]),
+                content(observed.trace[`${isProof ? 'derivation' : 'proof'}_trace`]));
+            assert.deepEqual(fault.expected_violations, ['trace']); faults++;
+        }
+    }
+    assert.equal(faults, 22);
+    t.diagnostic(`captured_has_faults=${faults}; all_other_components_match=true; R_and_predicates_unchanged=true; only_atom=trace; G11_complete=false`);
+});
+
+test('N02G:PROOF-DIAGNOSTIC-002 malformed selectors and execution errors cannot fabricate boolean violations', async () => {
+    const { plan, graphs } = await snapshotAccessFixture();
+    const graph = graphs.find(row => Object.values(row.nodes).every(node => node.binding === 'snapshot'));
+    let calls = 0;
+    assert.throws(() => plan.inspectProofPredicates({ fact_key: graph.fact_key, results: [] }, () => calls++));
+    assert.equal(calls, 0);
+    assert.throws(() => plan.inspectProofPredicates({ fact_key: graph.fact_key }, () => { throw new Error('sink_diagnostic_red'); }));
+    const after = plan.inspectProofPredicates({ fact_key: graph.fact_key }, () => {});
+    assert.equal(after.satisfied, true);
+    assert.equal(after.graph_accepted, false);
+});
+
+test('N02G:PROOF-PROGRAM-003 callers cannot supply expectations or swallow a sink failure', async () => {
+    const { plan, graphs } = await snapshotAccessFixture();
+    const graph = graphs.find(graph => Object.values(graph.nodes).every(node => node.binding === 'snapshot'));
+    let events = 0;
+    for (const extra of [{ expected_trace: graph.trace_contract.proof }, { selected_nodes: [] }, { result: 0 }]) {
+        assert.throws(() => plan.runProofPredicates({ fact_key: graph.fact_key, ...extra }, () => events++));
+    }
+    assert.equal(events, 0);
+    assert.throws(() => plan.runProofPredicates({ fact_key: graph.fact_key }, () => { throw new Error('sink_red'); }));
+    assert.equal(plan.executable, false);
+});
+
+test('N02G:PROOF-BUILD-PROJECTION-001 build inputs contain admitted instructions and descriptors, not acceptance expectations', async () => {
+    const { plan, graphs } = await snapshotAccessFixture();
+    const { buildScalarProofProgram } = await import('../../../scripts/agent/lowerNextProofProgram.mjs');
+    for (const graph of graphs) {
+        const projected = plan.projectProofProgram({ fact_key: graph.fact_key });
+        assert.equal(projected.stage, 'proof_build_input_only');
+        assert.equal(projected.graph_accepted, false);
+        assert.deepEqual(Object.keys(projected.input).sort(), ['materials', 'operators', 'predicates', 'selections', 'windows']);
+        assert.equal(projected.input.predicates.length, graph.predicates.length);
+        assert.deepEqual(Object.keys(projected.input.materials).sort(), Object.keys(graph.nodes).sort());
+        for (const predicate of projected.input.predicates) {
+            assert.deepEqual(Object.keys(predicate).sort(), ['id', 'operands', 'operator']);
+            assert.deepEqual(Object.keys(predicate.operator).sort(), ['args', 'id', 'semantics']);
+        }
+        for (const descriptor of Object.values(projected.input.materials)) {
+            assert.deepEqual(Object.keys(descriptor).sort(), ['fields', 'kind', 'registry_version']);
+        }
+        assert.equal(projected.input.selections.length, graph.selections.length);
+        for (const selection of projected.input.selections) {
+            assert.deepEqual(Object.keys(selection).sort(), ['candidate_set', 'cases', 'selected_set']);
+            assert.deepEqual(selection.cases.map(item => item.node), graph.sets[selection.candidate_set]);
+            for (const item of selection.cases) assert.deepEqual(Object.keys(item).sort(), ['identity', 'mode', 'node', 'predicates']);
+        }
+        const program = buildScalarProofProgram(projected.input);
+        assert.equal(program.executable, false); assert.equal(program.predicateCount, graph.predicates.length);
+        assert.throws(() => { projected.input.predicates.length = 0; }, TypeError);
+    }
+    assert.throws(() => plan.projectProofProgram({ fact_key: graphs[0].fact_key, expected_trace: [] }), /proof_build_selector/);
+    assert.throws(() => plan.projectProofProgram({ fact_key: 'S-99#1#1' }), /proof_build_graph/);
+});
+
+test('N02G:PROOF-TRANSPORT-001 all primary graphs execute both isolated phases with exact coverage and no expected rosters', async t => {
+    const { plan, graphs, claims } = await snapshotAccessFixture();
+    const phaseProfile = reviewedPhaseProfile();
+    const { buildPhaseProofProgram } = await import('../../../scripts/agent/lowerNextProofProgram.mjs');
+    const { buildMetricChildCapsule, buildAvailableMetricArtifacts } = await import('../../../scripts/agent/buildNextMetricArtifacts.mjs');
+    const { admitArtifact } = require('../../../src/next/provenance/artifactLoader');
+    const { runAdmittedGraph } = require('../../../src/next/provenance/executionHost');
+    const admit = (source, kind, entry, profileInput) => {
+        const entries = [{ path: entry, bytes: Buffer.from(source) }];
+        if (profileInput) entries.push({ path: profileInput.path, bytes: Buffer.from(profileInput.source) });
+        const manifestBytes = Buffer.from(canonicalManifest(kind, entry, entries));
+        return admitArtifact({ manifestBytes, expectedRoot: hash(manifestBytes), entries });
+    };
+    function canonicalManifest(kind, entry, entries) {
+        return require('../../../src/next/kernel/canonicalValue').canonicalValue({ format: 'financasbot.provenance.artifact', version: 1,
+            kind, entry, files: entries.map(row => ({ path: row.path,
+                media_type: row.path.endsWith('.json') ? 'application/json' : 'text/javascript', sha256: hash(row.bytes) })) });
+    }
+    const child = admit(buildMetricChildCapsule().source, 'tcb', 'bootstrap.js');
+    const metrics = new Map(buildAvailableMetricArtifacts().built.map(row => [row.evaluator_id, admit(row.source, 'metric', 'bundle.js')]));
+    const oracle = JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/financasbot-next/golden-claim-oracles-v1.json'), 'utf8'));
+    let executed = 0; let predicates = 0; let selections = 0;
+    for (const graph of graphs.filter(graph => Object.values(graph.nodes).every(node => node.binding === 'snapshot'))) {
+        const transport = plan.projectProofTransport({ fact_key: graph.fact_key });
+        assert.equal(transport.stage, 'isolated_proof_transport_only'); assert.equal(transport.graph_accepted, false);
+        const targets = new Set(graph.selections.map(selection => selection.selected_set));
+        assert.equal(transport.config.proofSets.some(set => targets.has(set.name)), false);
+        assert.deepEqual(transport.config.proofSelections.map(({ candidate_set, selected_set }) => [candidate_set, selected_set]),
+            graph.selections.map(({ candidate_set, selected_set }) => [candidate_set, selected_set]));
+        assert.deepEqual(Object.keys(transport.config).sort(), ['bindings', 'directLinks', 'proofParentEdges', 'proofParentMaterials', 'proofSelections', 'proofSets']);
+        const built = buildPhaseProofProgram({ proof: plan.projectProofProgram({ fact_key: graph.fact_key }).input,
+            derivation: plan.projectDerivationProgram({ fact_key: graph.fact_key }, phaseProfile).input }, phaseProfile);
+        assert.equal(new Set(built.sourceHashes.map(row => row.path)).size, built.sourceHashes.length);
+        assert.equal(built.sourceHashes.find(row => row.path === PROFILE_PATH).sha256, built.profileInput.sha256);
+        const artifactReceipt = admit(built.source, 'proof', 'bundle.js', built.profileInput);
+        assert.equal(artifactReceipt.observed_root, built.artifact_root);
+        const claim = claims.find(row => row.fact_key === graph.fact_key);
+        const metric = plan.projectMetricTransport({ fact_key: graph.fact_key });
+        const result = await runAdmittedGraph({ childCapsuleReceipt: child, executionId: 'compiler-isolated-proof',
+            invocationId: graph.fact_key, timeoutMs: 4000,
+            derivation: { artifactReceipt: metrics.get(claim.evaluator_ref.evaluator_id), bindings: [],
+                directGroups: metric.directGroups, nodeSets: metric.nodeSets, parentGroups: metric.parentGroups,
+                derivationBindings: plan.projectDerivationBindings({ fact_key: graph.fact_key }) },
+            proof: { ...transport.config, artifactReceipt } }).catch(error => { throw new Error(`${graph.fact_key}: ${error.message}`); });
+        const { evidence_set_mode: derivationMode, ...expectedDerivation } = graph.trace_contract.derivation;
+        const derivationCoverage = comparePhaseCoverage({ ...selectionInput(claim, graph, 'compiler-isolated-proof'),
+            expected: expectedDerivation, trace: result.trace,
+            operandSets: Object.entries(claim.operand_bindings).filter(([, row]) => row.kind === 'node_set')
+                .map(([role, row]) => ({ role, aliases: row.aliases })),
+            accessBindings: plan.observationMetadata({ fact_key: graph.fact_key, phase: 'derivation' }),
+            measurements: [{ measurement: 'evaluator_artifact_root', observed: metrics.get(claim.evaluator_ref.evaluator_id).observed_root },
+                { measurement: 'proof_engine_artifact_root', observed: artifactReceipt.observed_root }] });
+        assert.equal(derivationCoverage.matched, true, `${graph.fact_key}/derivation: ${JSON.stringify(Object.fromEntries(
+            Object.entries(derivationCoverage.components).filter(([, row]) => !row.matched).map(([name, row]) => [name, {
+                errors: row.errors?.slice(0, 2), mismatches: row.mismatches?.slice(0, 2), unclassified: row.unclassified_sequences?.slice(0, 2) }])))}; unclassified=${JSON.stringify(derivationCoverage.event_coverage.filter(row => row.status !== 'covered').slice(0, 2))}`);
+        assert.equal(derivationCoverage.graph_accepted, false);
+        const split = graph.fact_key.lastIndexOf('#');
+        assert.deepEqual(result.functional_result.value, oracle.turns[graph.fact_key.slice(0, split)].facts[Number(graph.fact_key.slice(split + 1)) - 1].value, graph.fact_key);
+        assert.equal(result.proof_satisfied, true, graph.fact_key); assert.equal(result.graph_accepted, false);
+        assert.ok(result.trace.proof_trace.some(event => event.operation === 'get'));
+        const { evidence_set_mode, ...expected } = graph.trace_contract.proof;
+        const coverage = comparePhaseCoverage({ executionId: 'compiler-isolated-proof', invocationId: graph.fact_key, phase: 'proof',
+            trace: result.trace, expected, sets: graph.sets,
+            bindings: transport.config.proofSelections.map(selection => ({ role: `proof/set/${selection.candidate_set}`,
+                candidate_set: selection.candidate_set, selected_set: selection.selected_set })),
+            operandSets: transport.config.proofSets.map(set => ({ role: `proof/set/${set.name}`, aliases: set.roster })),
+            accessBindings: plan.observationMetadata({ fact_key: graph.fact_key, phase: 'proof' }),
+            measurements: [{ measurement: 'proof_engine_artifact_root', observed: artifactReceipt.observed_root }] });
+        assert.equal(coverage.matched, true, `${graph.fact_key}: ${JSON.stringify(Object.fromEntries(Object.entries(coverage.components)
+            .filter(([, component]) => !component.matched).map(([name, component]) => [name, { errors: component.errors?.slice(0, 2),
+                mismatches: component.mismatches?.slice(0, 2), unclassified: component.unclassified_sequences?.slice(0, 2) }])))}; unclassified=${JSON.stringify(coverage.event_coverage.filter(event => event.status !== 'covered').slice(0, 2))}`);
+        assert.equal(coverage.graph_accepted, false);
+        executed++; predicates += graph.predicates.length; selections += graph.selections.length;
+    }
+    assert.equal(executed, 73); assert.equal(selections, 73);
+    t.diagnostic(`isolated_primary_graphs=${executed}; phases=${executed * 2}; predicates=${predicates}; selections=${selections}; exact_phase_coverage=true; graph_accepted=false`);
+    assert.throws(() => plan.projectProofTransport({ fact_key: graphs[0].fact_key, expected_trace: [] }), /proof_transport_selector/);
+    assert.throws(() => plan.projectProofTransport({ fact_key: 'S-99#1#1' }), /proof_transport_graph/);
+});
+
+test('N02G:PHASE-COMPOSITION-002 derivation composition does not reduce proof or infer mode from fact keys', async () => {
+    const { plan, graphs, claims } = await snapshotAccessFixture(); const receipt = reviewedPhaseProfile();
+    const profile = JSON.parse(fs.readFileSync(path.join(root, PROFILE_PATH), 'utf8'));
+    let guarded = 0;
+    for (const graph of graphs) {
+        const selector = { fact_key: graph.fact_key }; const proof = plan.projectProofProgram(selector);
+        const before = JSON.stringify(proof); const derived = plan.projectDerivationProgram(selector, receipt);
+        const claim = claims.find(row => row.fact_key === graph.fact_key);
+        const mode = profile.entries.find(row => row.evaluator_id === claim.evaluator_ref.evaluator_id
+            && row.evaluator_version === claim.evaluator_ref.evaluator_version).derivation_mode;
+        const bindings = plan.projectDerivationBindings(selector);
+        const ids = new Set((mode === 'formula_plus_selection_guards' ? graph.selections : [])
+            .filter(s => bindings.selections.some(b => b.candidate_set === s.candidate_set && b.selected_set === s.selected_set))
+            .flatMap(s => [...s.selected_predicates, ...s.excluded.flatMap(row => row.predicates)]));
+        assert.deepEqual(derived.input.predicates.map(row => row.id), proof.input.predicates.filter(row => ids.has(row.id)).map(row => row.id));
+        assert.equal(derived.input.selections.length, 0); assert.equal(derived.graph_accepted, false);
+        assert.equal(JSON.stringify(plan.projectProofProgram(selector)), before); assert.equal(proof.input.predicates.length, graph.predicates.length);
+        if (mode === 'formula_plus_selection_guards') { guarded++; assert.ok(ids.size); }
+    }
+    assert.equal(guarded, 11);
+    assert.throws(() => plan.projectDerivationProgram({ fact_key: graphs[0].fact_key }), /phase_profile_receipt/);
+    assert.throws(() => plan.projectDerivationProgram({ fact_key: graphs[0].fact_key }, {}), /phase_profile_receipt/);
+});
+
+test('N02G:PHASE-COMPOSITION-003 generated namespaces and roster order preserve signature-based composition', async () => {
+    const validation = await validators(); const receipt = reviewedPhaseProfile();
+    const { buildPhaseProofProgram } = await import('../../../scripts/agent/lowerNextProofProgram.mjs');
+    for (const factKey of ['S-11#1#1', 'M-03#1#1']) for (const variation of ['namespace', 'order']) {
+        const f = fixture(); const graphEntry = f.entries.find(row => row.path === graphPath);
+        const corpus = JSON.parse(graphEntry.bytes); const graph = corpus.graphs.find(row => row.fact_key === factKey);
+        const claimEntry = f.entries.find(row => row.path === corpus.claim_contract.path);
+        const claims = JSON.parse(claimEntry.bytes); const claim = claims.claims.find(row => row.fact_key === factKey);
+        if (variation === 'namespace') {
+            const names = [...Object.keys(graph.nodes), ...graph.edges.map(edge => edge.id), ...Object.keys(graph.sets)];
+            const rename = new Map(names.map((name, i) => [name, `renamed_${i}`]));
+            // Rename local references, not material kinds, registry roles,
+            // payload literals or field paths that happen to share a name.
+            const semantic = new Set(['kind', 'ref_id', 'version', 'roles', 'role_id', 'semantic_role',
+                'value', 'value_type', 'segments', 'metric', 'evaluator_id', 'type']);
+            const rewrite = (value, key = '') => typeof value === 'string'
+                ? semantic.has(key) || key === 'field' ? value : rename.get(value) || value
+                : Array.isArray(value) ? value.map(child => rewrite(child, key)) : value && typeof value === 'object'
+                    ? Object.fromEntries(Object.entries(value).map(([field, child]) => [field, rewrite(child, field)])) : value;
+            const rewritten = rewrite(graph);
+            for (const dictionary of ['nodes', 'sets']) rewritten[dictionary] = Object.fromEntries(
+                Object.entries(rewritten[dictionary]).map(([name, row]) => [rename.get(name), row]));
+            for (const [name, node] of Object.entries(graph.nodes)) assert.equal(rewritten.nodes[rename.get(name)].kind, node.kind);
+            corpus.graphs[corpus.graphs.indexOf(graph)] = rewritten;
+            claims.claims[claims.claims.indexOf(claim)] = rewrite(claim);
+        } else {
+            for (const selection of graph.selections) {
+                const before = JSON.stringify(graph.sets[selection.candidate_set]);
+                for (const binding of Object.values(claim.operand_bindings)) {
+                    if (binding.kind === 'node_set' && JSON.stringify(binding.aliases) === before) binding.aliases.reverse();
+                }
+                graph.sets[selection.candidate_set].reverse(); graph.sets[selection.selected_set].reverse();
+            }
+            graph.edges.reverse();
+        }
+        claimEntry.bytes = Buffer.from(JSON.stringify(claims)); corpus.claim_contract.hash = hash(claimEntry.bytes);
+        graphEntry.bytes = Buffer.from(JSON.stringify(corpus));
+        for (const entry of [claimEntry, graphEntry]) f.authority.find(row => row.path === entry.path).sha256 = hash(entry.bytes);
+        const plan = compileSnapshotAccess(admitPackage(f), validation); const selector = { fact_key: factKey };
+        const derivation = plan.projectDerivationProgram(selector, receipt).input;
+        const proof = plan.projectProofProgram(selector).input;
+        assert.equal(proof.predicates.length, graph.predicates.length);
+        assert.equal(plan.projectDerivationBindings(selector).selections.length, graph.selections.length);
+        assert.equal(derivation.predicates.length > 0, factKey === 'S-11#1#1');
+        const built = buildPhaseProofProgram({ derivation, proof }, receipt);
+        assert.equal(built.derivationPredicateCount, derivation.predicates.length);
+        assert.equal(built.predicateCount, proof.predicates.length);
+        assert.equal(built.profileInput.sha256, require('../../../src/next/provenance/phaseCompositionProfile').REVIEWED_PROFILE_SHA256);
+        assert.equal(built.executable, false);
+    }
 });
 
 test('N02G:SNAPSHOT-ACCESS-012 proof selected sets exist only after observed computation', async () => {

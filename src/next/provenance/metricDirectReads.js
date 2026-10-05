@@ -172,10 +172,8 @@ function evaluateDirectMetric(operands, metric) {
     }
     if (metric === 'eligible_event_count') {
         const source = operands.source; identity(source, 'source_state');
-        const month = period(context, 'month', 'event_date');
-        const actual = source.get('period'); parseMonth(actual);
-        if (actual !== month) fail('period');
-        if (source.get('coverage') !== 'complete') fail('coverage');
+        // D computes a provisional count. Source period/completeness are P
+        // obligations; selection below still uses the claim's functional month.
         const s = context.get('subject'); const kind = s.get('kind');
         const category = id(s.get(kind === 'category' ? 'ref_id' : 'category_id'));
         if (readReferenceId(source, 'category_id') !== category) fail('scope');
@@ -202,9 +200,7 @@ function evaluateDirectMetric(operands, metric) {
     if (metric === 'source_coverage') {
         const source = operands.source;
         if (identity(source, 'source_state').ref !== subject(context, 'source')) fail('scope');
-        const month = period(context, 'month', 'source_period');
-        const actual = source.get('period'); parseMonth(actual);
-        if (month !== actual) fail('period');
+        // Nominal source resolution is functional; its period relation is P.
         const coverage = source.get('coverage');
         if (!['complete', 'partial', 'unavailable'].includes(coverage)) fail('coverage');
         return coverage;

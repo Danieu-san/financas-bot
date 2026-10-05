@@ -3,7 +3,24 @@
 const { digest } = require('../kernel/canonicalValue');
 const { unifyOperatorTypes } = require('./operatorTypes');
 const { validateLiteral } = require('./literalTypes');
-const fail = code => { throw new Error(`template_reference_${code}`); };
+const { freezeDeep } = require('../kernel/canonicalValue');
+const diagnostics = new WeakMap();
+const fail = code => {
+    const error = new Error(`template_reference_${code}`);
+    diagnostics.set(error, freezeDeep({ checker: 'template_references', code }));
+    throw error;
+};
+const readTemplateReferenceDiagnostic = error => diagnostics.get(error) ?? null;
+// Internal attribution preserves the first native origin; external errors and
+// their text never acquire authority. This wrapper does not alter rejection.
+function atBinding(coordinate, resolve) {
+    try { return resolve(); } catch (error) {
+        const diagnostic = diagnostics.get(error);
+        if (diagnostic && !Object.hasOwn(diagnostic, 'predicate_id'))
+            diagnostics.set(error, freezeDeep({ ...diagnostic, ...coordinate }));
+        throw error;
+    }
+}
 const own = (value, key) => value !== null && typeof value === 'object' && Object.hasOwn(value, key);
 function closed(value, keys) {
     if (!value || typeof value !== 'object' || Array.isArray(value)
@@ -123,8 +140,11 @@ function validateTemplateReferences({ graphs, templates, operators, materialRegi
         }
         return scalarBinding(arg, graph, claim);
     }
-    for (const graph of graphs) for (const predicate of graph.predicates) for (const arg of predicate.args) {
+    for (const graph of graphs) for (const predicate of graph.predicates) for (const [operand_index, arg] of predicate.args.entries()) {
         if (!own(arg, 'template')) continue;
+        // Preserve the native first origin also for template identity/hash,
+        // before named-binding resolution starts. Acceptance is unchanged.
+        atBinding({ fact_key: graph.fact_key, predicate_id: predicate.id, operand_index }, () => {
         closed(arg, ['template', 'bindings']);
         closed(arg.template, ['id', 'version', 'hash']);
         const entry = entries.get(identity(arg.template.id, arg.template.version));
@@ -133,7 +153,9 @@ function validateTemplateReferences({ graphs, templates, operators, materialRegi
         const names = Object.keys(entry.template.parameters);
         if (!arg.bindings || typeof arg.bindings !== 'object' || Array.isArray(arg.bindings)
             || Object.keys(arg.bindings).length !== names.length || names.some(name => !own(arg.bindings, name))) fail('bindings');
-        const types = new Map(names.map(name => [name, binding(arg.bindings[name], graph, claimMap.get(graph.fact_key))]));
+        const types = new Map(names.map(name => [name, atBinding({ fact_key: graph.fact_key,
+            predicate_id: predicate.id, operand_index, binding_name: name },
+        () => binding(arg.bindings[name], graph, claimMap.get(graph.fact_key)))]));
         // Literals carry syntax types; their nominal domain comes from a typed
         // parameter, never from matching a string to a snapshot identifier.
         const typedT = names.filter(name => entry.template.parameters[name].startsWith('field_selector:'))
@@ -170,8 +192,9 @@ function validateTemplateReferences({ graphs, templates, operators, materialRegi
             }
         }
         references++;
+        });
     }
     return Object.freeze({ stage: 'template_references_checked_only', templates: entries.size, references });
 }
 
-module.exports = { validateTemplateReferences };
+module.exports = { validateTemplateReferences, readTemplateReferenceDiagnostic };

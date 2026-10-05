@@ -3,7 +3,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { execFileSync } = require('node:child_process');
+const { readImmutableBlob } = require('../../../scripts/agent/immutableGitBlob.cjs');
 const { createHash } = require('node:crypto');
 
 const BASE = '6baf88dc8b33326f8e05245e38f9682cc722c0be';
@@ -179,13 +179,9 @@ function propose(documents) {
 
 function loadImmutableDocuments() {
     const documents = {}; const sources = [];
-    const env = { ...process.env, GIT_NO_REPLACE_OBJECTS: '1' };
-    for (const name of ['GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE',
-        'GIT_OBJECT_DIRECTORY', 'GIT_ALTERNATE_OBJECT_DIRECTORIES']) delete env[name];
     for (const name of SOURCES) {
         const relative = PREFIX + name;
-        const bytes = execFileSync('git', ['-c', `safe.directory=${ROOT}`, '-C', ROOT,
-            'show', `${BASE}:${relative}`], { env, maxBuffer: 16 * 1024 * 1024 });
+        const bytes = readImmutableBlob(BASE, relative);
         const source = bytes.toString('utf8');
         if (!Buffer.from(source).equals(bytes)) fail('utf8');
         sources.push({ path: relative, sha256: digest(bytes), bytes: bytes.length });

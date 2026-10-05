@@ -549,7 +549,7 @@
       "metric": "eligible_event_count",
       "unit": "count",
       "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/eligible_event_count.json",
-      "evaluator_contract_hash": "sha256:bf2a5e70c7cf661c8b983a2598ae4142567ce9e1b97e34985851b77dcf0e7937",
+      "evaluator_contract_hash": "sha256:f338fef9c95fa8ec005b95b6aa8b21069bb1c04f03ccc777d672bf5f161f4951",
       "artifact_status": "not_built",
       "roles": [
         {
@@ -1389,7 +1389,7 @@
       "metric": "source_coverage",
       "unit": "state",
       "contract_path": "docs/contracts/next/provenance-v2/evaluator-contracts/source_coverage.json",
-      "evaluator_contract_hash": "sha256:9a80ff7de3d119bb6f598db2af660c33095b64c82802741c01ed119ae95d38d8",
+      "evaluator_contract_hash": "sha256:fab2872015cb21a449c05e355f7ba967865078ed963c869e84dd96da4b1e0111",
       "artifact_status": "not_built",
       "roles": [
         {

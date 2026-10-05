@@ -2,11 +2,7 @@
 const { digest } = require('../kernel/canonicalValue');
 const { types } = require('node:util');
 const fail = () => { throw new Error('observation_shape_invalid'); };
-const identifier = v => typeof v === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.:#/-]{0,127}$/.test(v);
-const field = v => typeof v === 'string' && /^[A-Za-z_][A-Za-z0-9_]{0,127}$/.test(v)
-    && !['__proto__', 'constructor', 'prototype'].includes(v);
-const scalar = v => v === null || typeof v === 'boolean' || typeof v === 'string' && v.length <= 65536
-    || typeof v === 'number' && Number.isSafeInteger(v) && !Object.is(v, -0);
+const { identifier, field, scalar } = require('./observationScalars');
 
 // Copy only bounded data descriptors, never getters, proxies or coercions.
 // This is transport/shape admission, not a financial schema validator.

@@ -457,7 +457,8 @@ test('N02G:METRIC-SELECTION-006 source count must equal eligible cardinality, no
     assert.equal(run(3, 'complete', true, 'f1'), 3);
     assert.throws(() => run(3, 'complete', true, 'foreign-family'), /direct_metric_scope/);
     for (const count of [0, 2, 4, undefined]) assert.throws(() => run(count), /direct_metric_count/);
-    assert.throws(() => run(3, 'partial'), /direct_metric_coverage/);
+    // Provisional count is not acceptance: P still proves source coverage.
+    for (const coverage of ['partial', 'unavailable']) assert.equal(run(3, coverage), 3);
     assert.throws(() => run(3, 'complete', false), /access_traversal/);
 });
 

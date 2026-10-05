@@ -178,7 +178,7 @@ Boundary §§3–5. Este charter aplica essas decisões, sem alterar sua ordem.
 |---|---|
 | G07 | Compiler genérico, resolução closed-world, onze obrigações, fingerprints, predicados, conjuntos e arestas para 76/76 grafos |
 | G08 | 39 evaluators do corpus sintético, roles/contratos, roots executáveis reais, loader/host, proxy e recorder externos com canais R/I/M/L/T |
-| G11 | Mutações derivadas do schema/IR/registries, isolamento causal e expected_violations exato; ausência de witness bloqueia |
+| G11 | Domínios resolvidos por schema/registry admitidos; campos com alternativa legal exigem witness semântico schema-valid e expected_violations exato; singleton exige baseline admitido + negativo de admissão, em inventário próprio. Ambas as classes fecham expected/generated/executed/matched sem compensação; ausência de prova bloqueia. Doze átomos e demais estratégias preservados |
 | G14 | Identidade estática e por execução, binding de R ao claim, pais validados, projeção pública por request e verificação antes da resposta |
 
 Os 39 evaluators permitem provar o corpus histórico inteiro. Isso não abre
@@ -345,9 +345,12 @@ preferência de Daniel; não consumir uso fazendo polling da suíte.
 Gate específico deve exigir conjunto integral de fontes/artefatos, roots reais,
 76/76 grafos executados e resultados confrontados com oracle independente;
 39/39 entradas executáveis com witnesses; obrigações e trace exatos;
-expected=generated=executed=matched para todas as mutações enumeradas. Contagens
-de mutations vêm do IR; os números do corpus são apenas âncoras de inventário.
-Qualquer UNSATISFIED_MUTATION_WITNESS bloqueia. IDs de testes derivam de eventos
+expected=generated=executed=matched separadamente para mutações semânticas e
+invariantes singleton derivadas dos domínios concordantes registry/schema.
+Não há compensação cruzada; negativo de admissão não é execução D/P, atom ou
+receipt. Contagens vêm do IR/contrato; números do corpus são apenas âncoras.
+Qualquer UNSATISFIED_MUTATION_WITNESS ou UNSATISFIED_DOMAIN_INVARIANT bloqueia.
+IDs de testes derivam de eventos
 estruturados de execução sem skip/todo e não de texto TAP ou presença no source.
 
 Preservar 25 properties NEXT-01 e 64 N02-E, além dos testes afetados de G14.
