@@ -1,0 +1,54 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
+import { createRequire } from 'node:module';
+import { loadLocalAuthoringPackage } from '../scripts/agent/executeNextDomainInvariantMatrix.mjs';
+import { buildAdmittedSchemaValidators } from '../scripts/agent/buildNextProvenanceArtifacts.mjs';
+const require = createRequire(import.meta.url), root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const { admittedDocuments } = require('../src/next/provenance/packageContract');
+const { compileAuthoringIR } = require('../src/next/provenance/graphCompiler');
+const { enumeratePathInventoryCandidate, enumeratePathSemanticCandidates } = require('../src/next/provenance/pathMutationInventory');
+const { sealPathSemanticReference } = require('../src/next/provenance/pathSemanticReference');
+const sha = value => createHash('sha256').update(value).digest('hex');
+const output = path.join(root, '.codex-temp/path-window-reference-census-20261006.json');
+if (process.version !== 'v22.17.0' || fs.existsSync(output)) throw Error('pinned_node_or_duplicate');
+const source = () => ['src/next/provenance/pathSemanticReference.js', 'src/next/provenance/pathMutationInventory.js',
+    'docs/contracts/next/provenance-v2/graphs-v2.json'].map(file => ({ file, sha256: sha(fs.readFileSync(path.join(root, file))) }));
+const before = source(), packageReceipt = loadLocalAuthoringPackage();
+const docs = admittedDocuments(packageReceipt), corpus = docs.find(row => row.path.endsWith('/graphs-v2.json')).value;
+const ir = compileAuthoringIR(packageReceipt, buildAdmittedSchemaValidators(packageReceipt).validators);
+const inventoryCandidate = enumeratePathInventoryCandidate({ packageReceipt, ir });
+const operators = ['day_of_month_matches', 'month_bounds_match', 'civil_offset_matches', 'inclusive_day_count_matches'];
+const priorBytes = fs.readFileSync(path.join(root, '.codex-temp/path-civil-reference-census-20261006.json'));
+if (sha(priorBytes) !== '72a25240a657d8b5085d3b09c9c7eee61af01f0fd78a700c78518802cdf349e5') throw Error('prior_census_identity');
+const prior = JSON.parse(priorBytes);
+const pendingIds = new Set(prior.rows.filter(row => row.alternatives > 0 && row.reference_available === 0).map(row => row.mutation_id));
+const requirements = inventoryCandidate.requirements.filter(row => row.family === 'predicate_path_semantic'
+    && pendingIds.has(row.mutation_id) && operators.includes(corpus.graphs.find(graph => graph.fact_key === row.target.fact_key).predicates
+        .find(predicate => predicate.id === row.target.predicate_id).op));
+const rows = requirements.map(row => {
+    const enumeration = enumeratePathSemanticCandidates({ inventoryCandidate, mutation_id: row.mutation_id });
+    const refs = enumeration.candidates.map(candidate => ({ candidate_id: candidate.candidate_id,
+        reference: sealPathSemanticReference({ packageReceipt, candidate }) }));
+    return { mutation_id: row.mutation_id, target: row.target,
+        operator: corpus.graphs.find(graph => graph.fact_key === row.target.fact_key).predicates.find(p => p.id === row.target.predicate_id).op,
+        alternatives: enumeration.candidates.length, reference_available: refs.filter(row => row.reference.available).length,
+        independently_discriminating: refs.filter(row => row.reference.available && row.reference.baseline_satisfied
+            && row.reference.mutant_satisfied === false).length,
+        references: refs, executed: 0, matched: 0, dp_execution: false,
+        realization: 'UNSATISFIED_MUTATION_WITNESS_PENDING_DP_OR_ALTERNATIVE' };
+});
+const after = source(), unchanged = JSON.stringify(before) === JSON.stringify(after);
+if (!unchanged || !rows.length || new Set(rows.map(row => row.mutation_id)).size !== requirements.length) throw Error('census_identity');
+const report = { stage: 'reference_only_census_not_semantic_qualification', expected: requirements.length,
+    rows, prior_census_sha256: sha(priorBytes), original_civil_rows: prior.expected, measured_sources_before: before, measured_sources_after: after, measured_sources_unchanged: unchanged,
+    package_authority: docs.map(({ path, sha256 }) => ({ path, sha256 })),
+    expected_ids_sha256: sha(JSON.stringify(requirements.map(row => row.mutation_id).sort())),
+    dp_executions: 0, matched: 0, semantic_mutation_credit: 0, global_go: false, financial_receipt: false };
+fs.writeFileSync(output, JSON.stringify(report) + '\n', { flag: 'wx' });
+console.log(JSON.stringify({ expected: report.expected, generated_reference_rows: rows.length,
+    available_rows: rows.filter(row => row.reference_available).length,
+    discriminating_rows: rows.filter(row => row.independently_discriminating).length,
+    unresolved: rows.filter(row => !row.reference_available).map(({target,operator,alternatives}) => ({target,operator,alternatives})),
+    dp_executions: 0, matched: 0, sources_unchanged: unchanged, report_sha256: sha(fs.readFileSync(output)) }));

@@ -1,0 +1,109 @@
+// Diagnostic only. Whole authored mutants, no D/P, no witness or financial credit.
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
+import { createRequire } from 'node:module';
+import { loadLocalAuthoringPackage } from '../scripts/agent/executeNextDomainInvariantMatrix.mjs';
+import { buildAdmittedSchemaValidators } from '../scripts/agent/buildNextProvenanceArtifacts.mjs';
+const require = createRequire(import.meta.url);
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const sha = bytes => createHash('sha256').update(bytes).digest('hex');
+const local = name => path.join(root, '.codex-temp', name);
+const output = local('path-window-admission-preflight-20261006.json');
+const job = local('path-window-admission-preflight-20261006-job.json');
+if (process.version !== 'v22.17.0' || fs.existsSync(output) || fs.existsSync(job)) throw Error('pinned_node_or_duplicate');
+const started_at = new Date().toISOString();
+const status = (state, fields = {}) => fs.writeFileSync(job, JSON.stringify({ state, pid: process.pid,
+    node: process.version, started_at, dp_execution: false, semantic_mutation_credit: 0, ...fields })+'\n');
+const { admitPackage, admittedDocuments } = require('../src/next/provenance/packageContract');
+const { compileAuthoringIR, compileSnapshotAccess } = require('../src/next/provenance/graphCompiler');
+const { enumeratePathInventoryCandidate, enumeratePathSemanticCandidates } = require('../src/next/provenance/pathMutationInventory');
+const { sealPathSemanticReference } = require('../src/next/provenance/pathSemanticReference');
+const readers = ['claimRequirements', 'collectionRequirements', 'obligationBindings'].map((name, i) =>
+    require('../src/next/provenance/'+name)[['claimRequirementFailure','collectionRequirementFailure','obligationBindingFailure'][i]]);
+const broadBytes = fs.readFileSync(local('path-window-native-affected-20261006.json'));
+if (sha(broadBytes) !== 'f9557231d243cdb7c8cfa08422b81815112d146a9aa13d6262fb01b811868efa') throw Error('broad_identity');
+const baselineFiles = JSON.parse(broadBytes).measured_sources_before.files;
+const identity = () => baselineFiles.map(({path:file}) => ({path:file,sha256:sha(fs.readFileSync(path.join(root,file)))}));
+let before;
+try {
+    before=identity();
+    if(JSON.stringify(before)!==JSON.stringify(baselineFiles)) throw Error('measured_sources_changed_before');
+    status('window_admission_preflight_running');
+    const censusBytes=fs.readFileSync(local('path-window-reference-census-20261006.json'));
+    if(sha(censusBytes)!=='c6575ba00a21de8b09cb592a5b6451862c02a9309f638cff0a9986530c6c653a') throw Error('census_identity');
+    const census=JSON.parse(censusBytes);
+    const pendingIds=new Set(census.rows.map(row=>row.mutation_id));
+    const packageReceipt=loadLocalAuthoringPackage();
+    const docs=admittedDocuments(packageReceipt);
+    const corpus=docs.find(row=>row.path.endsWith('/graphs-v2.json'));
+    const validators=buildAdmittedSchemaValidators(packageReceipt).validators;
+    const ir=compileAuthoringIR(packageReceipt,validators);
+    const inventoryCandidate=enumeratePathInventoryCandidate({packageReceipt,ir});
+    const ops=['day_of_month_matches','month_bounds_match','civil_offset_matches','inclusive_day_count_matches'];
+    // Derive scope from frozen authored requirements and independent references,
+    // never from compiler outcomes or previously observed mutant results.
+    const selected=inventoryCandidate.requirements.filter(row=>row.family==='predicate_path_semantic'
+        && pendingIds.has(row.mutation_id) && ops.includes(corpus.value.graphs.find(g=>g.fact_key===row.target.fact_key).predicates.find(p=>p.id===row.target.predicate_id).op))
+        .map(requirement=>({requirement,alternatives:enumeratePathSemanticCandidates({inventoryCandidate,mutation_id:requirement.mutation_id})
+            .candidates.map(candidate=>({candidate,reference:sealPathSemanticReference({packageReceipt,candidate})}))
+            .filter(({reference})=>reference.available&&reference.baseline_satisfied&&reference.mutant_satisfied===false)}))
+        .filter(row=>row.alternatives.length);
+    const expectedIds=selected.map(({requirement})=>requirement.mutation_id).sort();
+    const censusIds=census.rows.filter(row=>row.independently_discriminating>0).map(row=>row.mutation_id).sort();
+    if(JSON.stringify(expectedIds)!==JSON.stringify(censusIds)) throw Error('independent_scope_disagrees');
+    const rows=[];
+    for(const {requirement,alternatives} of selected) {
+        const results=[];
+        for(const {candidate,reference} of alternatives) {
+            const next=structuredClone(corpus.value);
+            next.graphs[next.graphs.findIndex(g=>g.fact_key===requirement.target.fact_key)]=candidate.graph;
+            const entries=docs.map(row=>({path:row.path,bytes:Buffer.from(row.path===corpus.path?JSON.stringify(next):
+                fs.readFileSync(path.join(root,row.path),'utf8').replaceAll('\r\n','\n'))}));
+            const mutant=admitPackage({entries,authority:entries.map(({path,bytes})=>({path,sha256:'sha256:'+sha(bytes)}))});
+            const result={candidate_id:candidate.candidate_id,reference,whole_compiler_admitted:false,dp_execution:false,matched:false};
+            try {
+                const changedIR=compileAuthoringIR(mutant,validators);
+                enumeratePathInventoryCandidate({packageReceipt:mutant,ir:changedIR});
+                compileSnapshotAccess(mutant,validators);
+                result.whole_compiler_admitted=true;
+            } catch(error) {
+                result.error=error.message;
+                result.native_checker_dependency=readers.map(read=>read(error)).find(Boolean)??null;
+            }
+            results.push(result);
+        }
+        rows.push({mutation_id:requirement.mutation_id,target:requirement.target,alternatives:results,
+            admitted_alternatives:results.filter(row=>row.whole_compiler_admitted).length,
+            dp_execution:false,matched:false,realization:'UNSATISFIED_MUTATION_WITNESS_PENDING_DP'});
+    }
+    const after=identity();
+    const unchanged=JSON.stringify(before)===JSON.stringify(after);
+    const ids=rows.map(row=>row.mutation_id).sort();
+    const candidateIds=rows.flatMap(row=>row.alternatives.map(x=>x.candidate_id));
+    const complete=JSON.stringify(ids)===JSON.stringify(expectedIds)&&new Set(ids).size===ids.length
+        &&new Set(candidateIds).size===candidateIds.length;
+    const report={stage:'civil_whole_compiler_preflight_not_dp',expected:expectedIds.length,rows,
+        accounting_complete:complete,measured_sources_unchanged:unchanged,measured_sources_count:before.length,
+        diagnostic_source_sha256:sha(fs.readFileSync(fileURLToPath(import.meta.url))),
+        census_sha256:sha(censusBytes),broad_report_sha256:sha(broadBytes),
+        unique_ids:new Set(ids).size,unique_candidates:new Set(candidateIds).size,
+        admitted_candidates:rows.reduce((n,row)=>n+row.admitted_alternatives,0),
+        dp_executions:0,matched:0,semantic_mutation_credit:0,global_go:false,financial_receipt:false};
+    fs.writeFileSync(output,JSON.stringify(report)+'\n',{flag:'wx'});
+    const valid=complete&&unchanged;
+    status(valid?'completed_preflight_only':'blocked',{exit_code:valid?0:1,completed_at:new Date().toISOString(),
+        report_sha256:sha(fs.readFileSync(output)),accounting_complete:complete,measured_sources_unchanged:unchanged,
+        expected:report.expected,unique_candidates:report.unique_candidates,admitted_candidates:report.admitted_candidates});
+    console.log(JSON.stringify({expected:report.expected,unique_candidates:report.unique_candidates,
+        admitted_candidates:report.admitted_candidates,dp_executions:0,matched:0,accounting_complete:complete,
+        measured_sources_unchanged:unchanged,report_sha256:sha(fs.readFileSync(output)),
+        rows:rows.map(({target,admitted_alternatives,alternatives})=>({target,admitted_alternatives,
+            errors:[...new Set(alternatives.filter(x=>!x.whole_compiler_admitted).map(x=>x.error))]}))}));
+    if(!valid)process.exitCode=1;
+} catch(error) {
+    status('blocked',{exit_code:1,error:error.message,measured_sources_unchanged:before?JSON.stringify(before)===JSON.stringify(identity()):null});
+    console.error(error.message);process.exitCode=1;
+}
+

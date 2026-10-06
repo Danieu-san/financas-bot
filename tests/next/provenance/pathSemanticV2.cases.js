@@ -4,6 +4,38 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 let cached;
+test('N02G:PATH-SEMANTIC-V2-012 independent authored windows resolve only frozen civil operands', async () => {
+    const { packageReceipt, inventoryCandidate } = await fixture();
+    const { enumeratePathSemanticCandidates } = require('../../../src/next/provenance/pathMutationInventory');
+    const { sealPathSemanticReference } = require('../../../src/next/provenance/pathSemanticReference');
+    const targets = [
+        ['F-03#2#1', 'calendar_close_day'], ['M-05#1#1', 'calendar_close_day'],
+        ['S-05#1#1', 'calendar_close_day'], ['M-13#1#3', 'calendar_budget_bounds'],
+        ['M-13#1#6', 'calendar_budget_bounds']
+    ];
+    for (const [fact_key, predicate_id] of targets) {
+        const requirement = inventoryCandidate.requirements.find(row => row.family === 'predicate_path_semantic'
+            && row.target.fact_key === fact_key && row.target.predicate_id === predicate_id);
+        assert.ok(requirement);
+        const candidates = enumeratePathSemanticCandidates({ inventoryCandidate, mutation_id: requirement.mutation_id }).candidates;
+        assert.ok(candidates.length > 0);
+        const refs = candidates.map(candidate => sealPathSemanticReference({ packageReceipt, candidate }));
+        assert.ok(refs.every(row => row.available), `${fact_key}/${predicate_id} reference domain`);
+        assert.ok(refs.every(row => row.baseline_satisfied === true));
+        assert.ok(refs.some(row => row.mutant_satisfied === false));
+        assert.ok(refs.every(row => row.financial_receipt === false
+            && row.source === 'admitted_frozen_claim_and_primary_snapshot_only'));
+        assert.throws(() => sealPathSemanticReference({ packageReceipt, candidate: structuredClone(candidates[0]) }));
+    }
+    for (const [fact_key, predicate_id] of [['F-03#2#1','calendar_previous_close'], ['M-13#1#3','calendar_day_count']]) {
+        const requirement = inventoryCandidate.requirements.find(row => row.family === 'predicate_path_semantic'
+            && row.target.fact_key === fact_key && row.target.predicate_id === predicate_id);
+        const result = enumeratePathSemanticCandidates({ inventoryCandidate, mutation_id: requirement.mutation_id });
+        assert.equal(result.candidates.length, 0);
+        assert.equal(result.no_candidate_disposition, 'UNSATISFIED_MUTATION_WITNESS');
+    }
+});
+
 test('N02G:PATH-SEMANTIC-V2-010 explicit ID scope retains exact expected row and never claims global coverage', async () => {
     const { executePathSemanticV2ScopedBatch } = await import('../../../scripts/agent/executeNextPredicateStrategyMatrix.mjs');
     const { packageReceipt, inventoryCandidate } = await fixture();

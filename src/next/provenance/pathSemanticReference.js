@@ -170,11 +170,44 @@ function sealPathSemanticReference(raw) {
         if (node?.binding !== 'snapshot') return unavailable;
         return at(snapshotMap.get(canonicalValue([node.kind, node.ref_id, node.version])), locator.segments);
     }
+    // Resolve only the admitted authored window grammar, independently of IR,
+    // guest window normalization and baseline actual. Scalar bindings cannot
+    // recurse into windows or use parent/derived material as a fallback.
+    function window(graph, id) {
+        if (typeof id !== 'string' || !Object.hasOwn(graph.windows, id)) return unavailable;
+        const value = graph.windows[id];
+        const scalar = arg => {
+            for (const key of ['field', 'claim', 'literal']) {
+                const entry = ownRecord(arg, [key]);
+                if (entry) return operand(graph, entry);
+            }
+            return unavailable;
+        };
+        const month = ownRecord(value, ['kind', 'value']);
+        if (month?.kind === 'month') {
+            const resolved = scalar(month.value);
+            return civilParts(resolved, true) ? { kind: 'month', value: resolved } : unavailable;
+        }
+        const range = ownRecord(value, ['kind', 'start', 'end', 'start_inclusive', 'end_inclusive']);
+        if (!range || range.kind !== 'range' || typeof range.start_inclusive !== 'boolean'
+            || typeof range.end_inclusive !== 'boolean') return unavailable;
+        const start = scalar(range.start), end = scalar(range.end);
+        if (!civilParts(start) || !civilParts(end) || start > end) return unavailable;
+        return { kind: 'range', start, end, start_inclusive: range.start_inclusive,
+            end_inclusive: range.end_inclusive };
+    }
     function operand(graph, arg) {
         if (arg.field) return field(graph, arg.field);
         if (arg.claim) return at(claim, arg.claim.segments);
         if (arg.literal) return arg.literal.value;
         if (arg.period_literal) return arg.period_literal;
+        if (arg.period_ref) return window(graph, arg.period_ref);
+        if (arg.period_bound) {
+            const bound = ownRecord(arg.period_bound, ['period', 'bound']);
+            if (!bound || !['start', 'end'].includes(bound.bound)) return unavailable;
+            const resolved = window(graph, bound.period);
+            return resolved !== unavailable && resolved.kind === 'range' ? resolved[bound.bound] : unavailable;
+        }
         if (arg.presence) {
             const node = graph.nodes[arg.presence.node];
             if (node?.binding !== 'snapshot') return unavailable;

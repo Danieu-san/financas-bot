@@ -1,0 +1,99 @@
+// Local scoped D/P only. No global activation, acceptance, release or historical rewrite.
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
+import { createRequire } from 'node:module';
+import { loadLocalAuthoringPackage } from '../scripts/agent/executeNextDomainInvariantMatrix.mjs';
+import { buildAdmittedSchemaValidators } from '../scripts/agent/buildNextProvenanceArtifacts.mjs';
+import { executePathSemanticV2ScopedBatch } from '../scripts/agent/executeNextPredicateStrategyMatrix.mjs';
+const require=createRequire(import.meta.url),root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const { admittedDocuments }=require('../src/next/provenance/packageContract');
+const { compileAuthoringIR }=require('../src/next/provenance/graphCompiler');
+const { enumeratePathInventoryCandidate,enumeratePathSemanticCandidates }=require('../src/next/provenance/pathMutationInventory');
+const { sealPathSemanticReference }=require('../src/next/provenance/pathSemanticReference');
+const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
+const local=name=>path.join(root,'.codex-temp',name);
+const job=local('path-window-scoped-dp-20261006-job.json'),output=local('path-window-scoped-dp-20261006.json');
+if(process.version!=='v22.17.0'||fs.existsSync(job)||fs.existsSync(output))throw Error('pinned_node_or_duplicate');
+const started_at=new Date().toISOString();
+const status=(state,fields={})=>fs.writeFileSync(job,JSON.stringify({state,pid:process.pid,node:process.version,
+    started_at,global_go:false,financial_receipt:false,...fields})+'\n');
+const broadBytes=fs.readFileSync(local('path-window-native-affected-20261006.json'));
+if(sha(broadBytes)!=='f9557231d243cdb7c8cfa08422b81815112d146a9aa13d6262fb01b811868efa')throw Error('broad_identity');
+const historical=JSON.parse(broadBytes).measured_sources_after.files;
+const identity=()=>{const files=historical.map(row=>({path:row.path,sha256:sha(fs.readFileSync(path.join(root,row.path)))}));
+    return{files,sha256:sha(JSON.stringify(files))};};
+let before;
+try{
+    before=identity();
+    const changed=before.files.filter((row,i)=>row.sha256!==historical[i].sha256).map(row=>row.path).sort();
+    if(changed.length)
+        throw Error('unexpected_measured_source_delta');
+    status('path_window_scoped_dp_running',{measured_sources_sha256:before.sha256,measured_sources_count:before.files.length});
+    const preflightBytes=fs.readFileSync(local('path-window-admission-preflight-20261006.json'));
+    if(sha(preflightBytes)!=='54f0236e5ebf16f90cdb24f5d8cebdf7cae6a1cde269f1c373bb12c09ebd8ab5')throw Error('preflight_identity');
+    const preflight=JSON.parse(preflightBytes);
+    if(!preflight.accounting_complete||!preflight.measured_sources_unchanged)throw Error('preflight_capture_invalid');
+    const pendingIds=new Set(preflight.rows.map(row=>row.mutation_id));
+    const packageReceipt=loadLocalAuthoringPackage(),docs=admittedDocuments(packageReceipt);
+    const corpus=docs.find(row=>row.path.endsWith('/graphs-v2.json')).value;
+    const claims=docs.find(row=>row.path===corpus.claim_contract.path).value.claims;
+    const validators=buildAdmittedSchemaValidators(packageReceipt).validators;
+    const ir=compileAuthoringIR(packageReceipt,validators);
+    const inventoryCandidate=enumeratePathInventoryCandidate({packageReceipt,ir});
+    const all=inventoryCandidate.requirements.filter(row=>row.family==='predicate_path_semantic');
+    const ops=['day_of_month_matches','month_bounds_match','civil_offset_matches','inclusive_day_count_matches'];
+    // Explicit scope comes from authored obligations and independent expected,
+    // sealed before any D/P mutant or baseline observation in this driver.
+    const selected=all.filter(row=>pendingIds.has(row.mutation_id)&&ops.includes(corpus.graphs.find(g=>g.fact_key===row.target.fact_key)
+        .predicates.find(p=>p.id===row.target.predicate_id).op)).filter(row=>
+        enumeratePathSemanticCandidates({inventoryCandidate,mutation_id:row.mutation_id}).candidates
+            .map(candidate=>sealPathSemanticReference({packageReceipt,candidate}))
+            .some(reference=>reference.available&&reference.baseline_satisfied&&reference.mutant_satisfied===false));
+    const mutation_ids=selected.map(row=>row.mutation_id).sort();
+    if(JSON.stringify(mutation_ids)!==JSON.stringify(preflight.rows.map(row=>row.mutation_id).sort()))throw Error('scope_identity');
+    const fact_keys=[...new Set(selected.map(row=>row.target.fact_key))];
+    const needed=new Set(fact_keys);
+    const visit=key=>{for(const binding of Object.values(claims.find(row=>row.fact_key===key).operand_bindings))
+        if(binding.kind==='parent_claim'&&!needed.has(binding.fact_key)){needed.add(binding.fact_key);visit(binding.fact_key);}};
+    fact_keys.forEach(visit);
+    status('path_window_scoped_dp_running',{measured_sources_sha256:before.sha256,measured_sources_count:before.files.length,
+        expected:mutation_ids.length,expected_ids_sha256:sha(JSON.stringify(mutation_ids)),expected_baselines:needed.size});
+    const result=await executePathSemanticV2ScopedBatch({packageReceipt,fact_keys,mutation_ids});
+    const after=identity(),ids=result.rows.map(row=>row.mutation_id).sort();
+    const invocations=result.rows.filter(row=>row.dp_execution).map(row=>row.invocation_id);
+    const complete=JSON.stringify(ids)===JSON.stringify(mutation_ids)&&new Set(ids).size===ids.length
+        &&JSON.stringify(result.explicit_scope.mutation_ids)===JSON.stringify(mutation_ids)
+        &&JSON.stringify(result.baselines.map(row=>row.fact_key).sort())===JSON.stringify([...needed].sort())
+        &&new Set(invocations).size===invocations.length
+        &&result.mutations.expected===mutation_ids.length
+        &&result.mutations.generated===result.rows.filter(row=>row.generated).length
+        &&result.mutations.executed===invocations.length
+        &&result.mutations.matched===result.rows.filter(row=>row.matched).length
+        &&result.rows.every(row=>row.matched!==result.unsatisfied.some(item=>item.mutation_id===row.mutation_id));
+    const unchanged=before.sha256===after.sha256;
+    const scope_valid=complete&&unchanged&&result.batch_complete&&result.financial_receipt===false
+        &&result.global_g11===false&&result.full_scalar_scope_expected===all.length;
+    const report={...result,accounting_complete:complete,scope_valid,global_valid:false,activated:false,
+        global_expected:all.length,outside_scope_pending_in_this_report:all.length-mutation_ids.length,
+        expected_ids_sha256:sha(JSON.stringify(mutation_ids)),unique_ids:new Set(ids).size,unique_invocations:new Set(invocations).size,
+        preflight_sha256:sha(preflightBytes),diagnostic_source_sha256:sha(fs.readFileSync(fileURLToPath(import.meta.url))),
+        measured_sources_before:before,measured_sources_after:after,measured_sources_unchanged:unchanged,
+        independent_code_audit:'pending_window_reference',semantic_mutation_credit:0,global_go:false};
+    fs.writeFileSync(output,JSON.stringify(report)+'\n',{flag:'wx'});
+    status(scope_valid?'completed_local_scope_only':'completed_with_pending',{completed_at:new Date().toISOString(),
+        exit_code:scope_valid?0:1,report_sha256:sha(fs.readFileSync(output)),accounting_complete:complete,
+        scope_valid,measured_sources_sha256:before.sha256,measured_sources_unchanged:unchanged,
+        mutations:result.mutations,unique_ids:report.unique_ids,unique_invocations:report.unique_invocations,
+        baselines:result.baselines.length,unsatisfied:result.unsatisfied.length,global_go:false});
+    console.log(JSON.stringify({scope_valid,accounting_complete:complete,mutations:result.mutations,
+        measured_sources_unchanged:unchanged,report_sha256:sha(fs.readFileSync(output)),
+        rows:result.rows.map(({target,generated,dp_execution,matched,cause,observed_violations})=>({target,generated,dp_execution,matched,cause,observed_violations}))}));
+    if(!scope_valid)process.exitCode=1;
+}catch(error){
+    status('blocked',{exit_code:1,error:error.message,measured_sources_sha256:before?.sha256??null,
+        measured_sources_unchanged:before?identity().sha256===before.sha256:null});
+    console.error(error.message);process.exitCode=1;
+}
+

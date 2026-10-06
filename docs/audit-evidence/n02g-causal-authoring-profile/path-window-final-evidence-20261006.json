@@ -1,0 +1,371 @@
+{
+  "schema_version": "path-window-reference-evidence/v1",
+  "evidence_kind": "local_execution_reconciliation_not_independent_audit",
+  "audit_parent": "3e56122a2f445cebb56d0b6113d7019a559eb1c1",
+  "source_delta": [
+    {
+      "path": "src/next/provenance/pathSemanticReference.js",
+      "bytes": 15530,
+      "sha256": "f4f7845f73816a91381ac9ef1741f15ec53931ed0d4a2a9b8e25b424b767e3cc",
+      "git_blob_sha1": "0f57c73d005fa74e459eb5bfd2c5eaabdf8ae6a5"
+    },
+    {
+      "path": "tests/next/provenance/pathSemanticV2.cases.js",
+      "bytes": 30486,
+      "sha256": "5c6ec3f6b16086536caa9d5f27ebfaef89b8f1617a2fc55d9e471823407406ef",
+      "git_blob_sha1": "b47ce9e6c406f73bb067542733e2d1e2fc09a5e1"
+    }
+  ],
+  "report_sha256": "f1707bb2c3c9b921335ce191957dc89535e0068620d599720a83dfd1d930823d",
+  "started_at": "2026-10-06T09:09:16.247Z",
+  "completed_at": "2026-10-06T10:02:03.012Z",
+  "node": "v22.17.0",
+  "exit_code": 0,
+  "capture_valid": true,
+  "matrix_green": true,
+  "tap": {
+    "tests": 2638,
+    "suites": 0,
+    "pass": 2628,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 10,
+    "todo": 0
+  },
+  "coverage": {
+    "line_percent": 92.52,
+    "branch_percent": 80.67,
+    "function_percent": 92.83,
+    "uncovered_lines": ""
+  },
+  "skipped_titles": [
+    "instalador executa install e uninstall restaurando bytes preexistentes",
+    "install adota bloco existente e preserva integralmente os bytes atuais",
+    "install recusa adocao quando backup diverge apenas por BOM sem mutar config",
+    "uninstall recusa configuracao alterada e preserva o arquivo atual",
+    "uninstall recusa divergencia somente de BOM e preserva bytes atuais",
+    "functional: consent, onboarding, settings and dashboard",
+    "functional: expenses, income and credit card installments",
+    "functional: goals, debts, payments and reminders",
+    "functional: analytics, deletion, admin and fallback",
+    "functional: complex analytics handles typos, counts, duplicates and min/max"
+  ],
+  "exact_skipped_titles": true,
+  "output_evidence": {
+    "stdout": {
+      "bytes": 784932,
+      "sha256": "f174737990e4c8456845e9e2fc7d489a79b0a5809673008464c70171338ac36e"
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "sources": {
+    "files": 765,
+    "sha256": "f1576690ab9b9e3e008d6049b2ebd1f8b50d854ba9c0334263d7d9480c73664d",
+    "unchanged": true
+  },
+  "native_coverage": {
+    "files": 718,
+    "invalid": 0,
+    "manifest_sha256": "190864fcac7fb98d03fd2448710a8e97f92e60fa42c7b08e6b0143fbf5580f9f"
+  },
+  "affected": {
+    "reference_api_pass": 37,
+    "dp_pass": 2,
+    "exact_dp_titles": true,
+    "scope_valid": true,
+    "original_subset_valid": false,
+    "original_subset_reasons": [
+      "unexpected_skipped_tests"
+    ],
+    "report_sha256": "f9557231d243cdb7c8cfa08422b81815112d146a9aa13d6262fb01b811868efa",
+    "historical_failed_wrappers_rewritten": false
+  },
+  "census": {
+    "report_sha256": "c6575ba00a21de8b09cb592a5b6451862c02a9309f638cff0a9986530c6c653a",
+    "expected_ids_sha256": "272a4480cafb4a0308005e26df97ce5ac5c2b786bcaf07f74e53b61ed6391856",
+    "expected": 5,
+    "alternatives": 13,
+    "dp": 0,
+    "matched": 0
+  },
+  "preflight": {
+    "report_sha256": "54f0236e5ebf16f90cdb24f5d8cebdf7cae6a1cde269f1c373bb12c09ebd8ab5",
+    "expected": 5,
+    "unique_candidates": 13,
+    "admitted": 13,
+    "dp": 0,
+    "matched": 0
+  },
+  "scoped_dp": {
+    "report_sha256": "2e0359a2cdec3e2b2cd2fc5bfd998b1f35f32aabfbaf2f10b79ecc70855fb28d",
+    "mutations": {
+      "expected": 5,
+      "generated": 5,
+      "executed": 5,
+      "matched": 5
+    },
+    "baselines": 5,
+    "unique_invocations": 5,
+    "unsatisfied": 0,
+    "accounting_complete": true,
+    "scope_valid": true,
+    "rows": [
+      {
+        "mutation_id": "sha256:e73869f3587bc2e9272a04f4b7c4bb18818dbe886ad75e86dcf15de7578ccd2d",
+        "target": {
+          "fact_key": "F-03#2#1",
+          "predicate_id": "calendar_close_day",
+          "strategy": "same_type_wrong_path"
+        },
+        "candidate_id": "sha256:109316f3520f4e43d52e82bdc3c7957cfc938caab3badc4ae9b8748525c589b4",
+        "invocation_id": "path-v2-e73869f3587bc2e9272a04f4b7c4bb18818dbe886ad75e86dcf15de7578ccd2d",
+        "reference": {
+          "stage": "path_semantic_reference_sealed_before_dp",
+          "mutation_id": "sha256:e73869f3587bc2e9272a04f4b7c4bb18818dbe886ad75e86dcf15de7578ccd2d",
+          "candidate_id": "sha256:109316f3520f4e43d52e82bdc3c7957cfc938caab3badc4ae9b8748525c589b4",
+          "predicate_id": "calendar_close_day",
+          "operator": "day_of_month_matches",
+          "available": true,
+          "baseline_satisfied": true,
+          "mutant_satisfied": false,
+          "expected_violations": [
+            "period"
+          ],
+          "financial_receipt": false,
+          "source": "admitted_frozen_claim_and_primary_snapshot_only",
+          "world_sha256": "sha256:13e8a2b3ff0603df966178108a060dd0d5de60cafe6526652947577bb67afb95",
+          "operands_sha256": "sha256:970665f0ca714727825e644816402d374f69792d3e11940eb37c8d6f2927a97d"
+        },
+        "patch": {
+          "location": [
+            "args",
+            1,
+            "field"
+          ],
+          "before": {
+            "node": "card_blue",
+            "segments": [
+              "closing_day"
+            ]
+          },
+          "after": {
+            "node": "card_green",
+            "segments": [
+              "closing_day"
+            ]
+          }
+        }
+      },
+      {
+        "mutation_id": "sha256:083116cd209f005a9470eb9953af27051c72ad497dd15de9881e0b8c0e2edc9f",
+        "target": {
+          "fact_key": "M-05#1#1",
+          "predicate_id": "calendar_close_day",
+          "strategy": "same_type_wrong_path"
+        },
+        "candidate_id": "sha256:95241901d61a184758f52a99bb736bf4661a990e34d97645cff0b724a5358004",
+        "invocation_id": "path-v2-083116cd209f005a9470eb9953af27051c72ad497dd15de9881e0b8c0e2edc9f",
+        "reference": {
+          "stage": "path_semantic_reference_sealed_before_dp",
+          "mutation_id": "sha256:083116cd209f005a9470eb9953af27051c72ad497dd15de9881e0b8c0e2edc9f",
+          "candidate_id": "sha256:95241901d61a184758f52a99bb736bf4661a990e34d97645cff0b724a5358004",
+          "predicate_id": "calendar_close_day",
+          "operator": "day_of_month_matches",
+          "available": true,
+          "baseline_satisfied": true,
+          "mutant_satisfied": false,
+          "expected_violations": [
+            "period"
+          ],
+          "financial_receipt": false,
+          "source": "admitted_frozen_claim_and_primary_snapshot_only",
+          "world_sha256": "sha256:13e8a2b3ff0603df966178108a060dd0d5de60cafe6526652947577bb67afb95",
+          "operands_sha256": "sha256:970665f0ca714727825e644816402d374f69792d3e11940eb37c8d6f2927a97d"
+        },
+        "patch": {
+          "location": [
+            "args",
+            1,
+            "field"
+          ],
+          "before": {
+            "node": "card_blue",
+            "segments": [
+              "closing_day"
+            ]
+          },
+          "after": {
+            "node": "card_green",
+            "segments": [
+              "closing_day"
+            ]
+          }
+        }
+      },
+      {
+        "mutation_id": "sha256:c1930e4acd4d3c24e76a330140ea8af5be62bdaa886543f5ffd372f2abc78c97",
+        "target": {
+          "fact_key": "M-13#1#3",
+          "predicate_id": "calendar_budget_bounds",
+          "strategy": "same_type_wrong_path"
+        },
+        "candidate_id": "sha256:cb7460ab46cd3899717c6767ddb3ff302986866d17490c0d2ecdf4a87da4d9f5",
+        "invocation_id": "path-v2-c1930e4acd4d3c24e76a330140ea8af5be62bdaa886543f5ffd372f2abc78c97",
+        "reference": {
+          "stage": "path_semantic_reference_sealed_before_dp",
+          "mutation_id": "sha256:c1930e4acd4d3c24e76a330140ea8af5be62bdaa886543f5ffd372f2abc78c97",
+          "candidate_id": "sha256:cb7460ab46cd3899717c6767ddb3ff302986866d17490c0d2ecdf4a87da4d9f5",
+          "predicate_id": "calendar_budget_bounds",
+          "operator": "month_bounds_match",
+          "available": true,
+          "baseline_satisfied": true,
+          "mutant_satisfied": false,
+          "expected_violations": [
+            "period"
+          ],
+          "financial_receipt": false,
+          "source": "admitted_frozen_claim_and_primary_snapshot_only",
+          "world_sha256": "sha256:13e8a2b3ff0603df966178108a060dd0d5de60cafe6526652947577bb67afb95",
+          "operands_sha256": "sha256:524698e9e80ce50589b5d57de031bde198017a92973ea6d384aaaf3306ef6de6"
+        },
+        "patch": {
+          "location": [
+            "args",
+            2,
+            "field"
+          ],
+          "before": {
+            "node": "evaluation_policy_v1",
+            "segments": [
+              "daily_pace_end"
+            ]
+          },
+          "after": {
+            "node": "evaluation_policy_v1",
+            "segments": [
+              "daily_pace_as_of"
+            ]
+          }
+        }
+      },
+      {
+        "mutation_id": "sha256:dc30a993036022311a753ce6d370898769075f23758a35b352be39786bdeda7b",
+        "target": {
+          "fact_key": "M-13#1#6",
+          "predicate_id": "calendar_budget_bounds",
+          "strategy": "same_type_wrong_path"
+        },
+        "candidate_id": "sha256:42e499963ba95244077ba4c0d6ec337bdec70c96d2bf3a44bff1a12f170a9dc1",
+        "invocation_id": "path-v2-dc30a993036022311a753ce6d370898769075f23758a35b352be39786bdeda7b",
+        "reference": {
+          "stage": "path_semantic_reference_sealed_before_dp",
+          "mutation_id": "sha256:dc30a993036022311a753ce6d370898769075f23758a35b352be39786bdeda7b",
+          "candidate_id": "sha256:42e499963ba95244077ba4c0d6ec337bdec70c96d2bf3a44bff1a12f170a9dc1",
+          "predicate_id": "calendar_budget_bounds",
+          "operator": "month_bounds_match",
+          "available": true,
+          "baseline_satisfied": true,
+          "mutant_satisfied": false,
+          "expected_violations": [
+            "period"
+          ],
+          "financial_receipt": false,
+          "source": "admitted_frozen_claim_and_primary_snapshot_only",
+          "world_sha256": "sha256:13e8a2b3ff0603df966178108a060dd0d5de60cafe6526652947577bb67afb95",
+          "operands_sha256": "sha256:524698e9e80ce50589b5d57de031bde198017a92973ea6d384aaaf3306ef6de6"
+        },
+        "patch": {
+          "location": [
+            "args",
+            2,
+            "field"
+          ],
+          "before": {
+            "node": "evaluation_policy_v1",
+            "segments": [
+              "daily_pace_end"
+            ]
+          },
+          "after": {
+            "node": "evaluation_policy_v1",
+            "segments": [
+              "daily_pace_as_of"
+            ]
+          }
+        }
+      },
+      {
+        "mutation_id": "sha256:35f4681e15093b5c0e5c2cb06a5c6f795bc31c5b7063b2df1eb2a8becc190c6c",
+        "target": {
+          "fact_key": "S-05#1#1",
+          "predicate_id": "calendar_close_day",
+          "strategy": "same_type_wrong_path"
+        },
+        "candidate_id": "sha256:4b316c5e4fcc40e7adaa8964e23de4b54e4b0feb7fe8e9d5b67552602334d238",
+        "invocation_id": "path-v2-35f4681e15093b5c0e5c2cb06a5c6f795bc31c5b7063b2df1eb2a8becc190c6c",
+        "reference": {
+          "stage": "path_semantic_reference_sealed_before_dp",
+          "mutation_id": "sha256:35f4681e15093b5c0e5c2cb06a5c6f795bc31c5b7063b2df1eb2a8becc190c6c",
+          "candidate_id": "sha256:4b316c5e4fcc40e7adaa8964e23de4b54e4b0feb7fe8e9d5b67552602334d238",
+          "predicate_id": "calendar_close_day",
+          "operator": "day_of_month_matches",
+          "available": true,
+          "baseline_satisfied": true,
+          "mutant_satisfied": false,
+          "expected_violations": [
+            "period"
+          ],
+          "financial_receipt": false,
+          "source": "admitted_frozen_claim_and_primary_snapshot_only",
+          "world_sha256": "sha256:13e8a2b3ff0603df966178108a060dd0d5de60cafe6526652947577bb67afb95",
+          "operands_sha256": "sha256:970665f0ca714727825e644816402d374f69792d3e11940eb37c8d6f2927a97d"
+        },
+        "patch": {
+          "location": [
+            "args",
+            1,
+            "field"
+          ],
+          "before": {
+            "node": "card_blue",
+            "segments": [
+              "closing_day"
+            ]
+          },
+          "after": {
+            "node": "card_green",
+            "segments": [
+              "closing_day"
+            ]
+          }
+        }
+      }
+    ],
+    "global_expected": 2419,
+    "outside_this_report": 2414,
+    "not_consolidated_global_balance": true
+  },
+  "driver_snapshots": [
+    {
+      "name": "path-window-reference-census-20261006",
+      "sha256": "214ee11bcaf8d5b6ba841dfa828645172d587dfa15c114f30fa07044188f141f"
+    },
+    {
+      "name": "path-window-admission-preflight-20261006",
+      "sha256": "c7650fcae156fc955e88b4dd4bedabf8d81541d5bd9377c959d18ea42eb35ce3"
+    },
+    {
+      "name": "path-window-scoped-dp-20261006",
+      "sha256": "90c95823a8b2ad670d35af7eb7824d12b2ec081a2e36e1ed7daacd46d4100ccc"
+    }
+  ],
+  "runtime_tests_executed_by_verifier": false,
+  "dp_execution": false,
+  "semantic_mutation_credit": 0,
+  "independent_code_audit": false,
+  "global_go": false,
+  "historical_semantic_rows_rewritten": false
+}
