@@ -25,6 +25,79 @@ function civilParts(value, monthOnly = false) {
     const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
     return day >= 1 && day <= days[month - 1] ? { year, month, day } : null;
 }
+// Independent 400-year civil table, not the guest civilCalendar algorithm.
+// Values below are reference relations only and mint no execution authority.
+const yearLengths = Array.from({ length: 400 }, (_, index) => {
+    const year = index + 1;
+    return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0) ? 366 : 365;
+});
+const yearPrefix = [0];
+yearLengths.forEach(length => yearPrefix.push(yearPrefix.at(-1) + length));
+const monthDays = ({ year, month }) => month === 2
+    ? year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0) ? 29 : 28
+    : [4, 6, 9, 11].includes(month) ? 30 : 31;
+function civilOrdinal(parts) {
+    const previousYears = parts.year - 1;
+    let value = Math.floor(previousYears / 400) * yearPrefix[400]
+        + yearPrefix[previousYears % 400] + parts.day;
+    for (let month = 1; month < parts.month; month++) value += monthDays({ year: parts.year, month });
+    return value;
+}
+const maximumOrdinal = civilOrdinal({ year: 9999, month: 12, day: 31 });
+const safeInteger = value => Number.isSafeInteger(value) && !Object.is(value, -0);
+function ownRecord(value, names) {
+    if (!value || typeof value !== 'object' || Array.isArray(value) || types.isProxy(value)
+        || ![Object.prototype, null].includes(Object.getPrototypeOf(value))) return null;
+    const d = Object.getOwnPropertyDescriptors(value);
+    if (Reflect.ownKeys(d).length !== names.length || names.some(name => !d[name]?.enumerable
+        || !Object.hasOwn(d[name], 'value'))) return null;
+    return Object.fromEntries(names.map(name => [name, d[name].value]));
+}
+const civilRelations = Object.freeze({
+    day_of_month_matches: { arity: 3, evaluate: ([date, day]) => {
+        const parts = civilParts(date);
+        return parts && safeInteger(day) && day >= 1 && day <= 31 ? parts.day === day : null;
+    } },
+    month_bounds_match: { arity: 4, evaluate: ([month, start, end]) => {
+        const parts = civilParts(month, true), first = civilParts(start), last = civilParts(end);
+        return parts && first && last ? start === `${month}-01`
+            && end === `${month}-${String(monthDays(parts)).padStart(2, '0')}` : null;
+    } },
+    civil_offset_matches: { arity: 5, evaluate: ([origin, amount, unit, target]) => {
+        const from = civilParts(origin), to = civilParts(target);
+        if (!from || !to || !safeInteger(amount)) return null;
+        if (unit === 'day') {
+            const expected = civilOrdinal(from) + amount;
+            return safeInteger(expected) && expected >= 1 && expected <= maximumOrdinal
+                ? expected === civilOrdinal(to) : null;
+        }
+        if (unit !== 'month') return null;
+        const index = (from.year - 1) * 12 + from.month - 1 + amount;
+        if (!safeInteger(index) || index < 0 || index >= 9999 * 12) return null;
+        const year = Math.floor(index / 12) + 1, month = index % 12 + 1;
+        if (from.day > monthDays({ year, month })) return null;
+        return to.year === year && to.month === month && to.day === from.day;
+    } },
+    inclusive_day_count_matches: { arity: 3, evaluate: ([value, count]) => {
+        const range = ownRecord(value, ['kind', 'start', 'end', 'start_inclusive', 'end_inclusive']);
+        if (!range || range.kind !== 'range' || range.start_inclusive !== true || range.end_inclusive !== true
+            || !safeInteger(count) || count < 1) return null;
+        const start = civilParts(range.start), end = civilParts(range.end);
+        return start && end && range.start <= range.end
+            ? civilOrdinal(end) - civilOrdinal(start) + 1 === count : null;
+    } }
+});
+function referenceCivilRelation(operator, args) {
+    if (typeof operator !== 'string' || !Object.hasOwn(civilRelations, operator)
+        || !Array.isArray(args) || types.isProxy(args) || Object.getPrototypeOf(args) !== Array.prototype) return null;
+    const spec = civilRelations[operator], d = Object.getOwnPropertyDescriptors(args);
+    if (d.length?.value !== spec.arity || Reflect.ownKeys(d).length !== spec.arity + 1
+        || Array.from({ length: spec.arity }, (_, index) => index).some(index => !d[index]?.enumerable
+            || !Object.hasOwn(d[index], 'value'))) return null;
+    const values = Array.from({ length: spec.arity }, (_, index) => d[index].value);
+    if (values.at(-1) !== 'proleptic_gregorian') return null;
+    return spec.evaluate(values);
+}
 function referenceCivilDateContained(date, period) {
     if (!civilParts(date) || !period || typeof period !== 'object' || Array.isArray(period)
         || types.isProxy(period) || ![Object.prototype, null].includes(Object.getPrototypeOf(period))) return null;
@@ -50,12 +123,15 @@ function referenceCivilDateContained(date, period) {
 // A declared semantic reference domain, not a list of target IDs. Unsupported
 // operator classes stay pending; no guest/proof implementation is a fallback.
 const operators = Object.freeze({
-    eq: equal, not_eq: (left, right) => !equal(left, right), field_eq: equal,
-    period_eq: equal, state_is: equal,
-    date_in_period: (date, period) => referenceCivilDateContained(date, period) ?? unavailable,
-    abs_eq: (left, right) => integerPair(left, right) ? Math.abs(left) === Math.abs(right) : unavailable,
-    opposite_sign: (left, right) => integerPair(left, right) ? left !== 0 && right !== 0
-        && (left < 0) !== (right < 0) : unavailable
+    eq: { arity: 2, evaluate: equal }, not_eq: { arity: 2, evaluate: (left, right) => !equal(left, right) },
+    field_eq: { arity: 2, evaluate: equal }, period_eq: { arity: 2, evaluate: equal },
+    state_is: { arity: 2, evaluate: equal },
+    date_in_period: { arity: 2, evaluate: (date, period) => referenceCivilDateContained(date, period) ?? unavailable },
+    abs_eq: { arity: 2, evaluate: (left, right) => integerPair(left, right) ? Math.abs(left) === Math.abs(right) : unavailable },
+    opposite_sign: { arity: 2, evaluate: (left, right) => integerPair(left, right) ? left !== 0 && right !== 0
+        && (left < 0) !== (right < 0) : unavailable },
+    ...Object.fromEntries(Object.entries(civilRelations).map(([operator, spec]) => [operator,
+        { arity: spec.arity, evaluate: (...args) => referenceCivilRelation(operator, args) ?? unavailable }]))
 });
 function sealPathSemanticReference(raw) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw) || types.isProxy(raw)
@@ -110,13 +186,13 @@ function sealPathSemanticReference(raw) {
     }
     const baseline = original.predicates.find(row => row.id === candidate.target.predicate_id);
     const mutant = candidate.graph.predicates.find(row => row.id === baseline.id);
-    const operation = operators[baseline.op];
+    const operation = Object.hasOwn(operators, baseline.op) ? operators[baseline.op] : null;
     const before = baseline.args.map(arg => operand(original, arg));
     const after = mutant.args.map(arg => operand(candidate.graph, arg));
-    const supported = operation && before.length === 2 && after.length === 2
+    const supported = operation && before.length === operation.arity && after.length === operation.arity
         && [...before, ...after].every(value => value !== unavailable);
-    const baselineSatisfied = supported ? operation(...before) : unavailable;
-    const mutantSatisfied = supported ? operation(...after) : unavailable;
+    const baselineSatisfied = supported ? operation.evaluate(...before) : unavailable;
+    const mutantSatisfied = supported ? operation.evaluate(...after) : unavailable;
     const available = typeof baselineSatisfied === 'boolean' && typeof mutantSatisfied === 'boolean';
     const result = freezeDeep({ stage: 'path_semantic_reference_sealed_before_dp',
         mutation_id: capability.mutation_id, candidate_id: capability.candidate_id,
@@ -132,4 +208,4 @@ function sealPathSemanticReference(raw) {
 }
 const readPathSemanticReference = raw => references.get(raw) ?? null;
 // The pure reference export carries no candidate capability or execution credit.
-module.exports = { sealPathSemanticReference, readPathSemanticReference, referenceCivilDateContained };
+module.exports = { sealPathSemanticReference, readPathSemanticReference, referenceCivilDateContained, referenceCivilRelation };

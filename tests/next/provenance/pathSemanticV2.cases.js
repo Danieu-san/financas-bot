@@ -4,6 +4,85 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 let cached;
+test('N02G:PATH-SEMANTIC-V2-008 independent civil relations respect arity, Gregorian boundaries and inert inputs', () => {
+    const { referenceCivilRelation } = require('../../../src/next/provenance/pathSemanticReference');
+    const calendar = 'proleptic_gregorian';
+    const years = [...Array.from({ length: 400 }, (_, index) => index + 1), 1900, 2000, 2024, 2100, 9999];
+    for (const year of years) for (let month = 1; month <= 12; month++) {
+        const y = String(year).padStart(4, '0'), m = String(month).padStart(2, '0');
+        const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+        const last = month === 2 ? leap ? 29 : 28 : [4, 6, 9, 11].includes(month) ? 30 : 31;
+        const start = `${y}-${m}-01`, end = `${y}-${m}-${last}`;
+        assert.equal(referenceCivilRelation('month_bounds_match', [`${y}-${m}`, start, end, calendar]), true);
+        assert.equal(referenceCivilRelation('month_bounds_match', [`${y}-${m}`, start, start, calendar]), false);
+        for (let day = 1; day <= last; day++) {
+            const date = `${y}-${m}-${String(day).padStart(2, '0')}`;
+            assert.equal(referenceCivilRelation('day_of_month_matches', [date, day, calendar]), true);
+            assert.equal(referenceCivilRelation('day_of_month_matches', [date, day === 1 ? 2 : 1, calendar]), false);
+            assert.equal(referenceCivilRelation('civil_offset_matches', [start, day - 1, 'day', date, calendar]), true);
+            assert.equal(referenceCivilRelation('civil_offset_matches', [date, 1 - day, 'day', start, calendar]), true);
+        }
+        const range = { kind: 'range', start, end, start_inclusive: true, end_inclusive: true };
+        assert.equal(referenceCivilRelation('inclusive_day_count_matches', [range, last, calendar]), true);
+        assert.equal(referenceCivilRelation('inclusive_day_count_matches', [range, last + 1, calendar]), false);
+        if (year < 9999 || month < 12) {
+            const next = month === 12 ? `${String(year + 1).padStart(4, '0')}-01-01`
+                : `${y}-${String(month + 1).padStart(2, '0')}-01`;
+            assert.equal(referenceCivilRelation('civil_offset_matches', [end, 1, 'day', next, calendar]), true);
+            assert.equal(referenceCivilRelation('civil_offset_matches', [next, -1, 'day', end, calendar]), true);
+            assert.equal(referenceCivilRelation('civil_offset_matches', [start, 1, 'month', next, calendar]), true);
+            assert.equal(referenceCivilRelation('civil_offset_matches', [next, -1, 'month', start, calendar]), true);
+        }
+    }
+    for (const [origin, amount, target] of [['2024-01-31', 1, '2024-02-29'], ['2024-03-31', -1, '2024-02-29']])
+        assert.equal(referenceCivilRelation('civil_offset_matches', [origin, amount, 'month', target, calendar]), null);
+    assert.equal(referenceCivilRelation('civil_offset_matches', ['2024-01-29', 1, 'month', '2024-02-29', calendar]), true);
+    assert.equal(referenceCivilRelation('civil_offset_matches', ['2000-01-01', -1, 'day', '1999-12-31', calendar]), true);
+    for (const unit of ['day', 'month']) {
+        assert.equal(referenceCivilRelation('civil_offset_matches', ['0001-01-01', -1, unit, '0001-01-01', calendar]), null);
+        assert.equal(referenceCivilRelation('civil_offset_matches', ['9999-12-31', 1, unit, '9999-12-31', calendar]), null);
+    }
+    for (const date of ['0000-01-01', '1900-02-29', '2100-02-29', '2024-04-31', '2024-1-01', '10000-01-01'])
+        assert.equal(referenceCivilRelation('day_of_month_matches', [date, 1, calendar]), null);
+    for (const value of [0, -0, 32, 1.5, '1', Number.MAX_SAFE_INTEGER + 1])
+        assert.equal(referenceCivilRelation('day_of_month_matches', ['2024-01-01', value, calendar]), null);
+    assert.equal(referenceCivilRelation('civil_offset_matches', ['2024-01-01', -0, 'day', '2024-01-01', calendar]), null);
+    assert.equal(referenceCivilRelation('civil_offset_matches', ['2024-01-01', 1, 'hour', '2024-01-02', calendar]), null);
+    assert.equal(referenceCivilRelation('day_of_month_matches', ['2024-01-01', 1, 'gregorian']), null);
+    assert.equal(referenceCivilRelation('day_of_month_matches', ['2024-01-01', 1, calendar, 'actual']), null);
+    assert.equal(referenceCivilRelation('civil_date_matches', ['2024-01-01T00:00:00Z', '2024-01-01', 'UTC', calendar]), null);
+    let effects = 0;
+    const getter = ['2024-01-01', 1, calendar];
+    Object.defineProperty(getter, 0, { enumerable: true, get() { effects++; return '2024-01-01'; } });
+    assert.equal(referenceCivilRelation('day_of_month_matches', getter), null);
+    assert.equal(referenceCivilRelation('day_of_month_matches', new Proxy([], { ownKeys() { effects++; return []; } })), null);
+    const range = { kind: 'range', start: '2024-01-01', end: '2024-01-02', start_inclusive: true, end_inclusive: true };
+    for (const invalid of [{ ...range, actual: 2 }, { ...range, start_inclusive: false }, { ...range, end: '2023-12-31' }])
+        assert.equal(referenceCivilRelation('inclusive_day_count_matches', [invalid, 2, calendar]), null);
+    Object.defineProperty(range, 'start', { enumerable: true, get() { effects++; return '2024-01-01'; } });
+    assert.equal(referenceCivilRelation('inclusive_day_count_matches', [range, 2, calendar]), null);
+    assert.equal(referenceCivilRelation('inclusive_day_count_matches', [new Proxy({}, { ownKeys() { effects++; return []; } }), 1, calendar]), null);
+    assert.equal(referenceCivilRelation('__proto__', getter), null);
+    assert.equal(effects, 0);
+});
+
+test('N02G:PATH-SEMANTIC-V2-009 authored three-argument civil predicates seal independent references without D/P credit', async () => {
+    const { packageReceipt, inventoryCandidate } = await fixture();
+    const { enumeratePathSemanticCandidates } = require('../../../src/next/provenance/pathMutationInventory');
+    const { sealPathSemanticReference } = require('../../../src/next/provenance/pathSemanticReference');
+    const requirement = inventoryCandidate.requirements.find(row => row.family === 'predicate_path_semantic'
+        && row.target.fact_key === 'F-03#2#1' && row.target.predicate_id === 'calendar_due_day');
+    assert.ok(requirement);
+    const enumeration = enumeratePathSemanticCandidates({ inventoryCandidate, mutation_id: requirement.mutation_id });
+    assert.ok(enumeration.candidates.length > 0);
+    const refs = enumeration.candidates.map(candidate => sealPathSemanticReference({ packageReceipt, candidate }));
+    assert.ok(refs.some(reference => reference.available && reference.baseline_satisfied));
+    assert.ok(refs.every(reference => reference.financial_receipt === false
+        && reference.source === 'admitted_frozen_claim_and_primary_snapshot_only'));
+    assert.equal(enumeration.executed, 0);
+    assert.equal(enumeration.matched, 0);
+});
+
 async function fixture() {
     if (cached) return cached;
     const { loadLocalAuthoringPackage } = await import('../../../scripts/agent/executeNextDomainInvariantMatrix.mjs');

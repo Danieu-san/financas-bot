@@ -1,0 +1,312 @@
+{
+  "schema_version": "path-civil-reference-evidence/v1",
+  "evidence_kind": "local_execution_reconciliation_not_independent_audit",
+  "audit_parent": "c3365152ee307c1ff1adb68616bb9ad0dbf95eaa",
+  "source_delta": [
+    {
+      "path": "src/next/provenance/pathSemanticReference.js",
+      "bytes": 13608,
+      "sha256": "203f76713cc02d633d9c184f57d25ec0bac9e8338fa135c4124483a040be7d0b",
+      "git_blob_sha1": "21e403601991943c40402acd34570ac4f597ff44"
+    },
+    {
+      "path": "tests/next/provenance/pathSemanticV2.cases.js",
+      "bytes": 23562,
+      "sha256": "b56db55f6f9b1846e4ff35713f699a2e178cf2e801285abe39e5e2841fd392fb",
+      "git_blob_sha1": "311e919a3aecbfad8835fb1ae79a8c674333edd1"
+    }
+  ],
+  "report_sha256": "ef05eb7f58fe2fb97136cc8203423dcf0d64de63a804b40a475688abf807f999",
+  "started_at": "2026-10-06T05:18:44.664Z",
+  "completed_at": "2026-10-06T06:12:12.901Z",
+  "node": "v22.17.0",
+  "exit_code": 0,
+  "capture_valid": true,
+  "matrix_green": true,
+  "tap": {
+    "tests": 2635,
+    "suites": 0,
+    "pass": 2625,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 10,
+    "todo": 0
+  },
+  "coverage": {
+    "line_percent": 92.49,
+    "branch_percent": 80.5,
+    "function_percent": 92.83,
+    "uncovered_lines": ""
+  },
+  "skipped_titles": [
+    "instalador executa install e uninstall restaurando bytes preexistentes",
+    "install adota bloco existente e preserva integralmente os bytes atuais",
+    "install recusa adocao quando backup diverge apenas por BOM sem mutar config",
+    "uninstall recusa configuracao alterada e preserva o arquivo atual",
+    "uninstall recusa divergencia somente de BOM e preserva bytes atuais",
+    "functional: consent, onboarding, settings and dashboard",
+    "functional: expenses, income and credit card installments",
+    "functional: goals, debts, payments and reminders",
+    "functional: analytics, deletion, admin and fallback",
+    "functional: complex analytics handles typos, counts, duplicates and min/max"
+  ],
+  "exact_skipped_titles": true,
+  "output_evidence": {
+    "stdout": {
+      "bytes": 784247,
+      "sha256": "b9b9fc48918416d6e8dc95db982b2bfa0ece5d13949827740085e2eee1e9a979"
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "sources": {
+    "files": 765,
+    "sha256": "f5363b227e1d2f80dfd5350e970470a3d255b1285ee013a138e95e12712c5868",
+    "unchanged": true
+  },
+  "native_coverage": {
+    "files": 716,
+    "invalid": 0,
+    "manifest_sha256": "d61c3e356291b189f12274b6284d54a796a9abb3b1df75f1fbe6a2cbcc139023"
+  },
+  "affected": {
+    "report_sha256": "703f9c311fd73da298b7258e2b5646f51dc8af7ab81b74098fbebc2bc360d0cc",
+    "tap": {
+      "tests": 34,
+      "suites": 0,
+      "pass": 34,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "syntax_checks": 2
+  },
+  "reference_census": {
+    "report_sha256": "72a25240a657d8b5085d3b09c9c7eee61af01f0fd78a700c78518802cdf349e5",
+    "expected_ids_sha256": "d38ee98a3fda08fe829b050eb474b77ad26531ea0efb0f7a1b76894330798433",
+    "expected_rows": 15,
+    "available_rows": 5,
+    "discriminating_rows": 5,
+    "rows": [
+      {
+        "mutation_id": "sha256:02082d2bb3be381ee2aed47357b26e8c679d7087dc0f7f2ba7f97c39dc621367",
+        "target": {
+          "fact_key": "F-03#2#1",
+          "predicate_id": "calendar_previous_close",
+          "strategy": "same_type_wrong_path"
+        },
+        "operator": "civil_offset_matches",
+        "alternatives": 0,
+        "reference_available": 0,
+        "independently_discriminating": 0,
+        "executed": 0,
+        "matched": 0
+      },
+      {
+        "mutation_id": "sha256:083116cd209f005a9470eb9953af27051c72ad497dd15de9881e0b8c0e2edc9f",
+        "target": {
+          "fact_key": "M-05#1#1",
+          "predicate_id": "calendar_close_day",
+          "strategy": "same_type_wrong_path"
+        },
+        "operator": "day_of_month_matches",
+        "alternatives": 3,
+        "reference_available": 0,
+        "independently_discriminating": 0,
+        "executed": 0,
+        "matched": 0
+      },
+      {
+        "mutation_id": "sha256:0ce765725a53849a373a0ac2d88be57c4a5272c4afe4980c753b08e64f63d668",
+        "target": {
+          "fact_key": "S-05#1#1",
+          "predicate_id": "calendar_due_day",
+          "strategy": "same_type_wrong_path"
+        },
+        "operator": "day_of_month_matches",
+        "alternatives": 3,
+        "reference_available": 3,
+        "independently_discriminating": 3,
+        "executed": 0,
+        "matched": 0
+      },
+      {
+        "mutation_id": "sha256:1a7c9c33edac25d587e34a0ac6f853716c0741933263b5dc6332b0851588b44d",
+        "target": {
+          "fact_key": "M-13#1#3",
+          "predicate_id": "calendar_day_count",
+          "strategy": "same_type_wrong_path"
+        },
+        "operator": "inclusive_day_count_matches",
+        "alternatives": 0,
+        "reference_available": 0,
+        "independently_discriminating": 0,
+        "executed": 0,
+        "matched": 0
+      },
+      {
+        "mutation_id": "sha256:35f4681e15093b5c0e5c2cb06a5c6f795bc31c5b7063b2df1eb2a8becc190c6c",
+        "target": {
+          "fact_key": "S-05#1#1",
+          "predicate_id": "calendar_close_day",
+          "strategy": "same_type_wrong_path"
+        },
+        "operator": "day_of_month_matches",
+        "alternatives": 3,
+        "reference_available": 0,
+        "independently_discriminating": 0,
+        "executed": 0,
+        "matched": 0
+      },
+      {
+        "mutation_id": "sha256:44b045735e1b19714a35f07a5154e0a4d841c1bee4b415881629a34cd90a1ca5",
+        "target": {
+          "fact_key": "M-13#1#6",
+          "predicate_id": "calendar_next_day",
+          "strategy": "same_type_wrong_path"
+        },
+        "operator": "civil_offset_matches",
+        "alternatives": 4,
+        "reference_available": 4,
+        "independently_discriminating": 4,
+        "executed": 0,
+        "matched": 0
+      },
+      {
+        "mutation_id": "sha256:5c731c8cc2232f5f29c7fea1f081fb7888a8044cb5145d2bb25cf441aed45d66",
+        "target": {
+          "fact_key": "M-05#1#1",
+          "predicate_id": "calendar_previous_close",
+          "strategy": "same_type_wrong_path"
+        },
+        "operator": "civil_offset_matches",
+        "alternatives": 0,
+        "reference_available": 0,
+        "independently_discriminating": 0,
+        "executed": 0,
+        "matched": 0
+      },
+      {
+        "mutation_id": "sha256:895838e34d69d14b83e627da327045e8bbd5af0b9597e3c8d42c358b7b2bc063",
+        "target": {
+          "fact_key": "M-13#1#6",
+          "predicate_id": "calendar_day_count",
+          "strategy": "same_type_wrong_path"
+        },
+        "operator": "inclusive_day_count_matches",
+        "alternatives": 0,
+        "reference_available": 0,
+        "independently_discriminating": 0,
+        "executed": 0,
+        "matched": 0
+      },
+      {
+        "mutation_id": "sha256:97b3be569687ef55822118727f50492a0fbde34feea8b1277d05ddec9b5b38f2",
+        "target": {
+          "fact_key": "M-05#1#1",
+          "predicate_id": "calendar_due_day",
+          "strategy": "same_type_wrong_path"
+        },
+        "operator": "day_of_month_matches",
+        "alternatives": 3,
+        "reference_available": 3,
+        "independently_discriminating": 3,
+        "executed": 0,
+        "matched": 0
+      },
+      {
+        "mutation_id": "sha256:c1930e4acd4d3c24e76a330140ea8af5be62bdaa886543f5ffd372f2abc78c97",
+        "target": {
+          "fact_key": "M-13#1#3",
+          "predicate_id": "calendar_budget_bounds",
+          "strategy": "same_type_wrong_path"
+        },
+        "operator": "month_bounds_match",
+        "alternatives": 2,
+        "reference_available": 0,
+        "independently_discriminating": 0,
+        "executed": 0,
+        "matched": 0
+      },
+      {
+        "mutation_id": "sha256:c1e03ba510bf39b434632b3c865daff5611c962de7362c4b64bbc235b7d1fba6",
+        "target": {
+          "fact_key": "S-05#1#1",
+          "predicate_id": "calendar_previous_close",
+          "strategy": "same_type_wrong_path"
+        },
+        "operator": "civil_offset_matches",
+        "alternatives": 0,
+        "reference_available": 0,
+        "independently_discriminating": 0,
+        "executed": 0,
+        "matched": 0
+      },
+      {
+        "mutation_id": "sha256:c34cc2a34f8593585ec4ca3ce14f70303e00e7b2245041cb1f61cfd9590e7cd0",
+        "target": {
+          "fact_key": "F-03#2#1",
+          "predicate_id": "calendar_due_day",
+          "strategy": "same_type_wrong_path"
+        },
+        "operator": "day_of_month_matches",
+        "alternatives": 3,
+        "reference_available": 3,
+        "independently_discriminating": 3,
+        "executed": 0,
+        "matched": 0
+      },
+      {
+        "mutation_id": "sha256:dc30a993036022311a753ce6d370898769075f23758a35b352be39786bdeda7b",
+        "target": {
+          "fact_key": "M-13#1#6",
+          "predicate_id": "calendar_budget_bounds",
+          "strategy": "same_type_wrong_path"
+        },
+        "operator": "month_bounds_match",
+        "alternatives": 2,
+        "reference_available": 0,
+        "independently_discriminating": 0,
+        "executed": 0,
+        "matched": 0
+      },
+      {
+        "mutation_id": "sha256:e73869f3587bc2e9272a04f4b7c4bb18818dbe886ad75e86dcf15de7578ccd2d",
+        "target": {
+          "fact_key": "F-03#2#1",
+          "predicate_id": "calendar_close_day",
+          "strategy": "same_type_wrong_path"
+        },
+        "operator": "day_of_month_matches",
+        "alternatives": 3,
+        "reference_available": 0,
+        "independently_discriminating": 0,
+        "executed": 0,
+        "matched": 0
+      },
+      {
+        "mutation_id": "sha256:fa31884017fe10ab638614941c74d121b91658cc2e8f66eb862a0c9858ee2c7a",
+        "target": {
+          "fact_key": "M-13#1#3",
+          "predicate_id": "calendar_next_day",
+          "strategy": "same_type_wrong_path"
+        },
+        "operator": "civil_offset_matches",
+        "alternatives": 4,
+        "reference_available": 4,
+        "independently_discriminating": 4,
+        "executed": 0,
+        "matched": 0
+      }
+    ]
+  },
+  "runtime_tests_executed_by_verifier": false,
+  "dp_execution": false,
+  "semantic_mutation_credit": 0,
+  "independent_code_audit": false,
+  "global_go": false,
+  "historical_semantic_rows_rewritten": false
+}
