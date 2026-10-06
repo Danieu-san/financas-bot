@@ -82,7 +82,31 @@ export async function executePathSemanticV2Batch(raw) {
     return executeBatch(raw, true, true);
 }
 
-async function executeBatch(raw, boundary, pathSemantic = false) {
+// Harness-only subset. IDs are validated against immutable authored obligations
+// before any guest observation; no requirement is removed from the global ledger.
+export async function executePathSemanticV2ScopedBatch(raw) {
+    if (!raw || typeof raw !== 'object' || types.isProxy(raw) || Array.isArray(raw)
+        || ![Object.prototype, null].includes(Object.getPrototypeOf(raw))) fail('input');
+    const fields = Object.getOwnPropertyDescriptors(raw);
+    const names = ['packageReceipt', 'fact_keys', 'mutation_ids'];
+    if (Reflect.ownKeys(fields).length !== names.length || names.some(name =>
+        !fields[name]?.enumerable || !Object.hasOwn(fields[name], 'value'))) fail('input');
+    const values = fields.mutation_ids.value;
+    if (types.isProxy(values) || !Array.isArray(values) || Object.getPrototypeOf(values) !== Array.prototype) fail('input');
+    const descriptors = Object.getOwnPropertyDescriptors(values);
+    const length = descriptors.length.value;
+    if (!length || Reflect.ownKeys(descriptors).length !== length + 1) fail('input');
+    const ids = Array.from({ length }, (_, index) => {
+        const field = descriptors[index];
+        if (!field?.enumerable || !Object.hasOwn(field, 'value') || typeof field.value !== 'string'
+            || !/^sha256:[a-f0-9]{64}$/.test(field.value)) fail('input');
+        return field.value;
+    }).sort();
+    if (new Set(ids).size !== ids.length) fail('input');
+    return executeBatch({ packageReceipt: fields.packageReceipt.value, fact_keys: fields.fact_keys.value }, true, true, ids);
+}
+
+async function executeBatch(raw, boundary, pathSemantic = false, mutationIds = null) {
     const { packageReceipt, factKeys } = input(raw);
     const docs = admittedDocuments(packageReceipt); const byPath = new Map(docs.map(row => [row.path, row]));
     const corpus = byPath.get(prefix + 'graphs-v2.json')?.value;
@@ -105,7 +129,13 @@ async function executeBatch(raw, boundary, pathSemantic = false) {
     const scoped = pathSemantic ? pathInventory.requirements.filter(row => row.family === 'predicate_path_semantic')
         : inventory.requirements.filter(row => row.family === 'predicate_strategy'
             && row.target.operator === 'eq' && row.target.strategy === 'compatible_wrong_operator');
-    const selected = scoped.filter(row => factKeys.includes(row.target.fact_key));
+    let selected = scoped.filter(row => factKeys.includes(row.target.fact_key));
+    if (mutationIds !== null) {
+        if (!pathSemantic || mutationIds.some(id => !selected.some(row => row.mutation_id === id))) fail('path_scope');
+        selected = selected.filter(row => mutationIds.includes(row.mutation_id));
+        const selectedFacts = [...new Set(selected.map(row => row.target.fact_key))].sort();
+        if (!equal(selectedFacts, [...factKeys].sort())) fail('path_scope');
+    }
     const graphs = new Map(corpus.graphs.map(row => [row.fact_key, row]));
     if (factKeys.some(key => !graphs.has(key)) || !selected.length) fail('fact_keys');
     const profile = admitPhaseCompositionProfile({ source: sourceAt(PROFILE_PATH), registry });
@@ -426,7 +456,10 @@ async function executeBatch(raw, boundary, pathSemantic = false) {
     return freezeDeep({ stage: pathSemantic ? 'path_semantic_v2_subset_only' : 'scalar_equality_predicate_strategy_subset_only', global_g11: false,
         artifact_authority: 'self_built_local_not_reviewed_host',
         scope: pathSemantic ? 'predicate_path_semantic/same_type_wrong_path' : 'predicate_strategy/compatible_wrong_operator/eq', predicate_atom_credit: 0,
-        full_scalar_scope_expected: scoped.length, mutations: counts, baselines, rows, unsatisfied,
+        full_scalar_scope_expected: scoped.length,
+        ...(mutationIds === null ? {} : { explicit_scope: { policy: 'authored_required_ids_before_outcomes',
+            mutation_ids: mutationIds, expected_ids_sha256: sha(canonicalValue(mutationIds)) } }),
+        mutations: counts, baselines, rows, unsatisfied,
         qualification_boundary: pathSemantic ? 'authored_locator_full_admission_and_unmodified_dp' : boundary ? 'authoring_plus_isolated_final_assertion' : 'historical_authored_mutant_only',
         parent_source: boundary ? 'same_batch_positive_oracle_and_coverage_verified' : 'pending',
         authoring_probe: boundary && !pathSemantic ? { mutations: authoringCounts, rows: authoringRows } : null,

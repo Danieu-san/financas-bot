@@ -4,6 +4,66 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 let cached;
+test('N02G:PATH-SEMANTIC-V2-010 explicit ID scope retains exact expected row and never claims global coverage', async () => {
+    const { executePathSemanticV2ScopedBatch } = await import('../../../scripts/agent/executeNextPredicateStrategyMatrix.mjs');
+    const { packageReceipt, inventoryCandidate } = await fixture();
+    const requirement = inventoryCandidate.requirements.find(row => row.family === 'predicate_path_semantic'
+        && row.target.fact_key === 'F-03#2#1' && row.target.predicate_id === 'calendar_due_day');
+    const result = await executePathSemanticV2ScopedBatch({ packageReceipt, fact_keys: ['F-03#2#1'],
+        mutation_ids: [requirement.mutation_id] });
+    assert.equal(result.mutations.expected, 1);
+    assert.deepEqual(result.rows.map(row => row.mutation_id), [requirement.mutation_id]);
+    assert.deepEqual(result.explicit_scope.mutation_ids, [requirement.mutation_id]);
+    assert.equal(result.explicit_scope.policy, 'authored_required_ids_before_outcomes');
+    assert.equal(result.full_scalar_scope_expected,
+        inventoryCandidate.requirements.filter(row => row.family === 'predicate_path_semantic').length);
+    assert.equal(result.financial_receipt, false);
+    assert.equal(result.global_g11, false);
+    assert.equal(result.rows[0].matched, !result.unsatisfied.length);
+    if (result.rows[0].matched) {
+        assert.equal(result.rows[0].dp_execution, true);
+        assert.equal(result.rows[0].reference.mutant_satisfied, false);
+        assert.equal(result.rows[0].outside_target_preserved, true);
+        assert.equal(result.rows[0].phases_covered, true);
+        assert.equal(result.rows[0].positive_oracle_matched, true);
+    }
+});
+
+test('N02G:PATH-SEMANTIC-V2-011 scoped harness rejects absent duplicate cross-graph and effectful IDs before guest', async () => {
+    const { executePathSemanticV2ScopedBatch } = await import('../../../scripts/agent/executeNextPredicateStrategyMatrix.mjs');
+    const { packageReceipt, inventoryCandidate } = await fixture();
+    const requirement = inventoryCandidate.requirements.find(row => row.family === 'predicate_path_semantic'
+        && row.target.fact_key === 'F-03#2#1' && row.target.predicate_id === 'calendar_due_day');
+    const base = { packageReceipt, fact_keys: ['F-03#2#1'] };
+    for (const mutation_ids of [[], ['sha256:' + '0'.repeat(64)], [requirement.mutation_id, requirement.mutation_id], ['bad']])
+        await assert.rejects(() => executePathSemanticV2ScopedBatch({ ...base, mutation_ids }), /predicate_strategy_matrix_(input|path_scope)/);
+    await assert.rejects(() => executePathSemanticV2ScopedBatch({ packageReceipt, fact_keys: ['M-01#1#1'],
+        mutation_ids: [requirement.mutation_id] }), /predicate_strategy_matrix_path_scope/);
+    await assert.rejects(() => executePathSemanticV2ScopedBatch({ packageReceipt, fact_keys: ['F-03#2#1','M-01#1#1'],
+        mutation_ids: [requirement.mutation_id] }), /predicate_strategy_matrix_path_scope/);
+    const admission = inventoryCandidate.requirements.find(row => row.family === 'predicate_path_admission'
+        && row.target.fact_key === 'F-03#2#1');
+    assert.ok(admission);
+    await assert.rejects(() => executePathSemanticV2ScopedBatch({ ...base, mutation_ids: [admission.mutation_id] }),
+        /predicate_strategy_matrix_path_scope/);
+    let effects = 0;
+    const getter = [requirement.mutation_id];
+    Object.defineProperty(getter, 0, { enumerable: true, get() { effects++; return requirement.mutation_id; } });
+    for (const mutation_ids of [getter, new Proxy([], { ownKeys() { effects++; return []; } })])
+        await assert.rejects(() => executePathSemanticV2ScopedBatch({ ...base, mutation_ids }), /predicate_strategy_matrix_input/);
+    const sparse = new Array(1);
+    const extra = [requirement.mutation_id]; extra.actual = 'ignored';
+    const symbolic = [requirement.mutation_id]; symbolic[Symbol('actual')] = 'ignored';
+    for (const mutation_ids of [sparse, extra, symbolic])
+        await assert.rejects(() => executePathSemanticV2ScopedBatch({ ...base, mutation_ids }), /predicate_strategy_matrix_input/);
+    const raw = { ...base, mutation_ids: [requirement.mutation_id] };
+    Object.defineProperty(raw, 'mutation_ids', { enumerable: true, get() { effects++; return getter; } });
+    await assert.rejects(() => executePathSemanticV2ScopedBatch(raw), /predicate_strategy_matrix_input/);
+    await assert.rejects(() => executePathSemanticV2ScopedBatch({ ...base, mutation_ids: [requirement.mutation_id], actual: {} }),
+        /predicate_strategy_matrix_input/);
+    assert.equal(effects, 0);
+});
+
 test('N02G:PATH-SEMANTIC-V2-008 independent civil relations respect arity, Gregorian boundaries and inert inputs', () => {
     const { referenceCivilRelation } = require('../../../src/next/provenance/pathSemanticReference');
     const calendar = 'proleptic_gregorian';

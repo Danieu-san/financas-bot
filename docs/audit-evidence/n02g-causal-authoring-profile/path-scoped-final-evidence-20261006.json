@@ -1,0 +1,536 @@
+{
+  "schema_version": "path-scoped-execution-evidence/v1",
+  "evidence_kind": "local_execution_reconciliation_not_independent_audit",
+  "audit_parent": "cc0bf9de28d5c646cc70f37fd11f06cb02734e94",
+  "source_delta": [
+    {
+      "path": "scripts/agent/executeNextPredicateStrategyMatrix.mjs",
+      "bytes": 38077,
+      "sha256": "d92f2680d7b75c3ebec8e9fa0634b436ee583f0c600660d7767a8ed0fd01f32e",
+      "git_blob_sha1": "a69ce05dd6c2f9c37294e88f00cabd9959c0fcef"
+    },
+    {
+      "path": "tests/next/provenance/pathSemanticV2.cases.js",
+      "bytes": 28161,
+      "sha256": "70c4b5786d8f55518ba3ba42357771fef98094fff07d80bb107c5fcffbb59f20",
+      "git_blob_sha1": "965ebb7d25d50e207d9e59e7bdc0cbaaebb6775e"
+    }
+  ],
+  "report_sha256": "3ff08bc54e9afc510209ecd1dc16d646d1390ac18e018712fe341032ca9c3c7d",
+  "started_at": "2026-10-06T07:06:05.398Z",
+  "completed_at": "2026-10-06T08:00:38.087Z",
+  "node": "v22.17.0",
+  "exit_code": 0,
+  "capture_valid": true,
+  "matrix_green": true,
+  "tap": {
+    "tests": 2637,
+    "suites": 0,
+    "pass": 2627,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 10,
+    "todo": 0
+  },
+  "coverage": {
+    "line_percent": 92.52,
+    "branch_percent": 80.71,
+    "function_percent": 92.82,
+    "uncovered_lines": ""
+  },
+  "skipped_titles": [
+    "instalador executa install e uninstall restaurando bytes preexistentes",
+    "install adota bloco existente e preserva integralmente os bytes atuais",
+    "install recusa adocao quando backup diverge apenas por BOM sem mutar config",
+    "uninstall recusa configuracao alterada e preserva o arquivo atual",
+    "uninstall recusa divergencia somente de BOM e preserva bytes atuais",
+    "functional: consent, onboarding, settings and dashboard",
+    "functional: expenses, income and credit card installments",
+    "functional: goals, debts, payments and reminders",
+    "functional: analytics, deletion, admin and fallback",
+    "functional: complex analytics handles typos, counts, duplicates and min/max"
+  ],
+  "exact_skipped_titles": true,
+  "output_evidence": {
+    "stdout": {
+      "bytes": 784644,
+      "sha256": "646dc13a5d6e775351c75787c7da7f3ddcd2da089a032f35a572d5853bbb8871"
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "sources": {
+    "files": 765,
+    "sha256": "34faac2624f559f9cad483ffb8853db0b749ead629bdbedf8cc58be80375013b",
+    "unchanged": true
+  },
+  "native_coverage": {
+    "files": 718,
+    "invalid": 0,
+    "manifest_sha256": "b93aa41557c0919bc3c67f6bb059abb6929cefec3f9504c35ebcc4e2e8b6fb8c"
+  },
+  "affected": {
+    "report_sha256": "e9c1750e298b82a5f5c9ea620dc74fb1868ae363d57d90acad9fafb8da59c0ac",
+    "tap": {
+      "tests": 36,
+      "suites": 0,
+      "pass": 36,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "syntax_checks": 2
+  },
+  "reference_census": {
+    "report_sha256": "72a25240a657d8b5085d3b09c9c7eee61af01f0fd78a700c78518802cdf349e5",
+    "expected_ids_sha256": "d38ee98a3fda08fe829b050eb474b77ad26531ea0efb0f7a1b76894330798433",
+    "expected_rows": 15,
+    "available_rows": 5,
+    "discriminating_rows": 5,
+    "rows": [
+      {
+        "mutation_id": "sha256:02082d2bb3be381ee2aed47357b26e8c679d7087dc0f7f2ba7f97c39dc621367",
+        "target": {
+          "fact_key": "F-03#2#1",
+          "predicate_id": "calendar_previous_close",
+          "strategy": "same_type_wrong_path"
+        },
+        "operator": "civil_offset_matches",
+        "alternatives": 0,
+        "reference_available": 0,
+        "independently_discriminating": 0,
+        "executed": 0,
+        "matched": 0
+      },
+      {
+        "mutation_id": "sha256:083116cd209f005a9470eb9953af27051c72ad497dd15de9881e0b8c0e2edc9f",
+        "target": {
+          "fact_key": "M-05#1#1",
+          "predicate_id": "calendar_close_day",
+          "strategy": "same_type_wrong_path"
+        },
+        "operator": "day_of_month_matches",
+        "alternatives": 3,
+        "reference_available": 0,
+        "independently_discriminating": 0,
+        "executed": 0,
+        "matched": 0
+      },
+      {
+        "mutation_id": "sha256:0ce765725a53849a373a0ac2d88be57c4a5272c4afe4980c753b08e64f63d668",
+        "target": {
+          "fact_key": "S-05#1#1",
+          "predicate_id": "calendar_due_day",
+          "strategy": "same_type_wrong_path"
+        },
+        "operator": "day_of_month_matches",
+        "alternatives": 3,
+        "reference_available": 3,
+        "independently_discriminating": 3,
+        "executed": 0,
+        "matched": 0
+      },
+      {
+        "mutation_id": "sha256:1a7c9c33edac25d587e34a0ac6f853716c0741933263b5dc6332b0851588b44d",
+        "target": {
+          "fact_key": "M-13#1#3",
+          "predicate_id": "calendar_day_count",
+          "strategy": "same_type_wrong_path"
+        },
+        "operator": "inclusive_day_count_matches",
+        "alternatives": 0,
+        "reference_available": 0,
+        "independently_discriminating": 0,
+        "executed": 0,
+        "matched": 0
+      },
+      {
+        "mutation_id": "sha256:35f4681e15093b5c0e5c2cb06a5c6f795bc31c5b7063b2df1eb2a8becc190c6c",
+        "target": {
+          "fact_key": "S-05#1#1",
+          "predicate_id": "calendar_close_day",
+          "strategy": "same_type_wrong_path"
+        },
+        "operator": "day_of_month_matches",
+        "alternatives": 3,
+        "reference_available": 0,
+        "independently_discriminating": 0,
+        "executed": 0,
+        "matched": 0
+      },
+      {
+        "mutation_id": "sha256:44b045735e1b19714a35f07a5154e0a4d841c1bee4b415881629a34cd90a1ca5",
+        "target": {
+          "fact_key": "M-13#1#6",
+          "predicate_id": "calendar_next_day",
+          "strategy": "same_type_wrong_path"
+        },
+        "operator": "civil_offset_matches",
+        "alternatives": 4,
+        "reference_available": 4,
+        "independently_discriminating": 4,
+        "executed": 0,
+        "matched": 0
+      },
+      {
+        "mutation_id": "sha256:5c731c8cc2232f5f29c7fea1f081fb7888a8044cb5145d2bb25cf441aed45d66",
+        "target": {
+          "fact_key": "M-05#1#1",
+          "predicate_id": "calendar_previous_close",
+          "strategy": "same_type_wrong_path"
+        },
+        "operator": "civil_offset_matches",
+        "alternatives": 0,
+        "reference_available": 0,
+        "independently_discriminating": 0,
+        "executed": 0,
+        "matched": 0
+      },
+      {
+        "mutation_id": "sha256:895838e34d69d14b83e627da327045e8bbd5af0b9597e3c8d42c358b7b2bc063",
+        "target": {
+          "fact_key": "M-13#1#6",
+          "predicate_id": "calendar_day_count",
+          "strategy": "same_type_wrong_path"
+        },
+        "operator": "inclusive_day_count_matches",
+        "alternatives": 0,
+        "reference_available": 0,
+        "independently_discriminating": 0,
+        "executed": 0,
+        "matched": 0
+      },
+      {
+        "mutation_id": "sha256:97b3be569687ef55822118727f50492a0fbde34feea8b1277d05ddec9b5b38f2",
+        "target": {
+          "fact_key": "M-05#1#1",
+          "predicate_id": "calendar_due_day",
+          "strategy": "same_type_wrong_path"
+        },
+        "operator": "day_of_month_matches",
+        "alternatives": 3,
+        "reference_available": 3,
+        "independently_discriminating": 3,
+        "executed": 0,
+        "matched": 0
+      },
+      {
+        "mutation_id": "sha256:c1930e4acd4d3c24e76a330140ea8af5be62bdaa886543f5ffd372f2abc78c97",
+        "target": {
+          "fact_key": "M-13#1#3",
+          "predicate_id": "calendar_budget_bounds",
+          "strategy": "same_type_wrong_path"
+        },
+        "operator": "month_bounds_match",
+        "alternatives": 2,
+        "reference_available": 0,
+        "independently_discriminating": 0,
+        "executed": 0,
+        "matched": 0
+      },
+      {
+        "mutation_id": "sha256:c1e03ba510bf39b434632b3c865daff5611c962de7362c4b64bbc235b7d1fba6",
+        "target": {
+          "fact_key": "S-05#1#1",
+          "predicate_id": "calendar_previous_close",
+          "strategy": "same_type_wrong_path"
+        },
+        "operator": "civil_offset_matches",
+        "alternatives": 0,
+        "reference_available": 0,
+        "independently_discriminating": 0,
+        "executed": 0,
+        "matched": 0
+      },
+      {
+        "mutation_id": "sha256:c34cc2a34f8593585ec4ca3ce14f70303e00e7b2245041cb1f61cfd9590e7cd0",
+        "target": {
+          "fact_key": "F-03#2#1",
+          "predicate_id": "calendar_due_day",
+          "strategy": "same_type_wrong_path"
+        },
+        "operator": "day_of_month_matches",
+        "alternatives": 3,
+        "reference_available": 3,
+        "independently_discriminating": 3,
+        "executed": 0,
+        "matched": 0
+      },
+      {
+        "mutation_id": "sha256:dc30a993036022311a753ce6d370898769075f23758a35b352be39786bdeda7b",
+        "target": {
+          "fact_key": "M-13#1#6",
+          "predicate_id": "calendar_budget_bounds",
+          "strategy": "same_type_wrong_path"
+        },
+        "operator": "month_bounds_match",
+        "alternatives": 2,
+        "reference_available": 0,
+        "independently_discriminating": 0,
+        "executed": 0,
+        "matched": 0
+      },
+      {
+        "mutation_id": "sha256:e73869f3587bc2e9272a04f4b7c4bb18818dbe886ad75e86dcf15de7578ccd2d",
+        "target": {
+          "fact_key": "F-03#2#1",
+          "predicate_id": "calendar_close_day",
+          "strategy": "same_type_wrong_path"
+        },
+        "operator": "day_of_month_matches",
+        "alternatives": 3,
+        "reference_available": 0,
+        "independently_discriminating": 0,
+        "executed": 0,
+        "matched": 0
+      },
+      {
+        "mutation_id": "sha256:fa31884017fe10ab638614941c74d121b91658cc2e8f66eb862a0c9858ee2c7a",
+        "target": {
+          "fact_key": "M-13#1#3",
+          "predicate_id": "calendar_next_day",
+          "strategy": "same_type_wrong_path"
+        },
+        "operator": "civil_offset_matches",
+        "alternatives": 4,
+        "reference_available": 4,
+        "independently_discriminating": 4,
+        "executed": 0,
+        "matched": 0
+      }
+    ]
+  },
+  "preflight": {
+    "report_sha256": "cea3daab982d43d689edfaddadcc02a386ba12a259b2315925283c0dbdeb4565",
+    "ids": 5,
+    "candidates": 17,
+    "admitted": 17,
+    "dp_executions": 0
+  },
+  "scoped_dp": {
+    "report_sha256": "95d18ae0d70d829a5dcbbb64683a2fba61370bbdb873b8ed4bc57b660740624b",
+    "driver_sha256": "8a3913d58c304713a88cb3bdc2f70c073207ad609a7c9ea59d706fd2fb3ea19e",
+    "mutations": {
+      "expected": 5,
+      "generated": 5,
+      "executed": 5,
+      "matched": 5
+    },
+    "expected_ids_sha256": "75c388237d0a1ea1cfb7b45f2c6984842112b141aad04da5273fddfbc9882a3c",
+    "unique_ids": 5,
+    "unique_invocations": 5,
+    "baselines": 5,
+    "sources_sha256": "53a6f1fb6a062626bd4736e958d969c50b811894a4ca4b0818171da4c58aa144",
+    "subsequent_source_change": "tests_only",
+    "global_expected": 2419,
+    "outside_this_report": 2414,
+    "rows": [
+      {
+        "mutation_id": "sha256:c34cc2a34f8593585ec4ca3ce14f70303e00e7b2245041cb1f61cfd9590e7cd0",
+        "target": {
+          "fact_key": "F-03#2#1",
+          "predicate_id": "calendar_due_day",
+          "strategy": "same_type_wrong_path"
+        },
+        "candidate_id": "sha256:c9664b69f7e56e26681cc8d6bf5eb2c3f266aa6ce306fd9cee16484bb0f88764",
+        "reference": {
+          "stage": "path_semantic_reference_sealed_before_dp",
+          "mutation_id": "sha256:c34cc2a34f8593585ec4ca3ce14f70303e00e7b2245041cb1f61cfd9590e7cd0",
+          "candidate_id": "sha256:c9664b69f7e56e26681cc8d6bf5eb2c3f266aa6ce306fd9cee16484bb0f88764",
+          "predicate_id": "calendar_due_day",
+          "operator": "day_of_month_matches",
+          "available": true,
+          "baseline_satisfied": true,
+          "mutant_satisfied": false,
+          "expected_violations": [
+            "period"
+          ],
+          "financial_receipt": false,
+          "source": "admitted_frozen_claim_and_primary_snapshot_only",
+          "world_sha256": "sha256:13e8a2b3ff0603df966178108a060dd0d5de60cafe6526652947577bb67afb95",
+          "operands_sha256": "sha256:9c6bdc24fda51cdea6e35d81bb9537656ff8d99405d1ab5d093b58492d1654ae"
+        },
+        "expected_violations": [
+          "period"
+        ],
+        "observed_violations": [
+          "period"
+        ],
+        "whole_compiler_admitted": true,
+        "dp_execution": true,
+        "matched": true,
+        "outside_target_preserved": true,
+        "phases_covered": true,
+        "positive_oracle_matched": true,
+        "proof_satisfied": false
+      },
+      {
+        "mutation_id": "sha256:97b3be569687ef55822118727f50492a0fbde34feea8b1277d05ddec9b5b38f2",
+        "target": {
+          "fact_key": "M-05#1#1",
+          "predicate_id": "calendar_due_day",
+          "strategy": "same_type_wrong_path"
+        },
+        "candidate_id": "sha256:e50093a6c53045c3de97e40c349bbf942818360803ad946c5656d40e7e9c977d",
+        "reference": {
+          "stage": "path_semantic_reference_sealed_before_dp",
+          "mutation_id": "sha256:97b3be569687ef55822118727f50492a0fbde34feea8b1277d05ddec9b5b38f2",
+          "candidate_id": "sha256:e50093a6c53045c3de97e40c349bbf942818360803ad946c5656d40e7e9c977d",
+          "predicate_id": "calendar_due_day",
+          "operator": "day_of_month_matches",
+          "available": true,
+          "baseline_satisfied": true,
+          "mutant_satisfied": false,
+          "expected_violations": [
+            "period"
+          ],
+          "financial_receipt": false,
+          "source": "admitted_frozen_claim_and_primary_snapshot_only",
+          "world_sha256": "sha256:13e8a2b3ff0603df966178108a060dd0d5de60cafe6526652947577bb67afb95",
+          "operands_sha256": "sha256:9c6bdc24fda51cdea6e35d81bb9537656ff8d99405d1ab5d093b58492d1654ae"
+        },
+        "expected_violations": [
+          "period"
+        ],
+        "observed_violations": [
+          "period"
+        ],
+        "whole_compiler_admitted": true,
+        "dp_execution": true,
+        "matched": true,
+        "outside_target_preserved": true,
+        "phases_covered": true,
+        "positive_oracle_matched": true,
+        "proof_satisfied": false
+      },
+      {
+        "mutation_id": "sha256:fa31884017fe10ab638614941c74d121b91658cc2e8f66eb862a0c9858ee2c7a",
+        "target": {
+          "fact_key": "M-13#1#3",
+          "predicate_id": "calendar_next_day",
+          "strategy": "same_type_wrong_path"
+        },
+        "candidate_id": "sha256:3e870b89727e8d9debb0f810de9dc58c790330df989285ee2cf53809363749ab",
+        "reference": {
+          "stage": "path_semantic_reference_sealed_before_dp",
+          "mutation_id": "sha256:fa31884017fe10ab638614941c74d121b91658cc2e8f66eb862a0c9858ee2c7a",
+          "candidate_id": "sha256:3e870b89727e8d9debb0f810de9dc58c790330df989285ee2cf53809363749ab",
+          "predicate_id": "calendar_next_day",
+          "operator": "civil_offset_matches",
+          "available": true,
+          "baseline_satisfied": true,
+          "mutant_satisfied": false,
+          "expected_violations": [
+            "period"
+          ],
+          "financial_receipt": false,
+          "source": "admitted_frozen_claim_and_primary_snapshot_only",
+          "world_sha256": "sha256:13e8a2b3ff0603df966178108a060dd0d5de60cafe6526652947577bb67afb95",
+          "operands_sha256": "sha256:009ec58f51623add383254c803981c08932e606ae429c2dc81fc317df08bc740"
+        },
+        "expected_violations": [
+          "period"
+        ],
+        "observed_violations": [
+          "period"
+        ],
+        "whole_compiler_admitted": true,
+        "dp_execution": true,
+        "matched": true,
+        "outside_target_preserved": true,
+        "phases_covered": true,
+        "positive_oracle_matched": true,
+        "proof_satisfied": false
+      },
+      {
+        "mutation_id": "sha256:44b045735e1b19714a35f07a5154e0a4d841c1bee4b415881629a34cd90a1ca5",
+        "target": {
+          "fact_key": "M-13#1#6",
+          "predicate_id": "calendar_next_day",
+          "strategy": "same_type_wrong_path"
+        },
+        "candidate_id": "sha256:4c9a168dedb05a6b7814a4b50a107e64b0462b6a89dbd1796bf0745273cc510b",
+        "reference": {
+          "stage": "path_semantic_reference_sealed_before_dp",
+          "mutation_id": "sha256:44b045735e1b19714a35f07a5154e0a4d841c1bee4b415881629a34cd90a1ca5",
+          "candidate_id": "sha256:4c9a168dedb05a6b7814a4b50a107e64b0462b6a89dbd1796bf0745273cc510b",
+          "predicate_id": "calendar_next_day",
+          "operator": "civil_offset_matches",
+          "available": true,
+          "baseline_satisfied": true,
+          "mutant_satisfied": false,
+          "expected_violations": [
+            "period"
+          ],
+          "financial_receipt": false,
+          "source": "admitted_frozen_claim_and_primary_snapshot_only",
+          "world_sha256": "sha256:13e8a2b3ff0603df966178108a060dd0d5de60cafe6526652947577bb67afb95",
+          "operands_sha256": "sha256:009ec58f51623add383254c803981c08932e606ae429c2dc81fc317df08bc740"
+        },
+        "expected_violations": [
+          "period"
+        ],
+        "observed_violations": [
+          "period"
+        ],
+        "whole_compiler_admitted": true,
+        "dp_execution": true,
+        "matched": true,
+        "outside_target_preserved": true,
+        "phases_covered": true,
+        "positive_oracle_matched": true,
+        "proof_satisfied": false
+      },
+      {
+        "mutation_id": "sha256:0ce765725a53849a373a0ac2d88be57c4a5272c4afe4980c753b08e64f63d668",
+        "target": {
+          "fact_key": "S-05#1#1",
+          "predicate_id": "calendar_due_day",
+          "strategy": "same_type_wrong_path"
+        },
+        "candidate_id": "sha256:b617ccab84c70288340c53d6ebcab8226c5ced3567438768c05d40b78575ab4b",
+        "reference": {
+          "stage": "path_semantic_reference_sealed_before_dp",
+          "mutation_id": "sha256:0ce765725a53849a373a0ac2d88be57c4a5272c4afe4980c753b08e64f63d668",
+          "candidate_id": "sha256:b617ccab84c70288340c53d6ebcab8226c5ced3567438768c05d40b78575ab4b",
+          "predicate_id": "calendar_due_day",
+          "operator": "day_of_month_matches",
+          "available": true,
+          "baseline_satisfied": true,
+          "mutant_satisfied": false,
+          "expected_violations": [
+            "period"
+          ],
+          "financial_receipt": false,
+          "source": "admitted_frozen_claim_and_primary_snapshot_only",
+          "world_sha256": "sha256:13e8a2b3ff0603df966178108a060dd0d5de60cafe6526652947577bb67afb95",
+          "operands_sha256": "sha256:9c6bdc24fda51cdea6e35d81bb9537656ff8d99405d1ab5d093b58492d1654ae"
+        },
+        "expected_violations": [
+          "period"
+        ],
+        "observed_violations": [
+          "period"
+        ],
+        "whole_compiler_admitted": true,
+        "dp_execution": true,
+        "matched": true,
+        "outside_target_preserved": true,
+        "phases_covered": true,
+        "positive_oracle_matched": true,
+        "proof_satisfied": false
+      }
+    ]
+  },
+  "local_reported_dp_executions": 5,
+  "dp_executed_by_verifier": false,
+  "runtime_tests_executed_by_verifier": false,
+  "dp_execution": false,
+  "semantic_mutation_credit": 0,
+  "independent_code_audit": false,
+  "global_go": false,
+  "historical_semantic_rows_rewritten": false
+}
