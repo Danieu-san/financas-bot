@@ -22,6 +22,35 @@ function firstRef(input) {
     throw new Error('test_fixture_missing_template');
 }
 
+test('N02G:TEMPLATE-005 signature diagnostics compose with the authored template origin without forged authority', () => {
+    const { readTemplateReferenceDiagnostic } = require('../../../src/next/provenance/templateReferences');
+    const input = fixture();
+    const graph = input.graphs.find(g => g.predicates.some(p => p.args.some(a => a.template)));
+    const predicate = graph.predicates.find(p => p.args.some(a => a.template));
+    const index = predicate.args.findIndex(a => a.template);
+    predicate.args[index].bindings.period = { claim: { segments: ['period', 'value'] } };
+    assert.throws(() => validateTemplateReferences(input), error => {
+        assert.match(error.message, /^operator_types_shape$/);
+        const diagnostic = readTemplateReferenceDiagnostic(error);
+        assert.equal(diagnostic?.checker, 'template_references');
+        assert.equal(diagnostic.code, 'operator_types');
+        assert.equal(diagnostic.cause.checker, 'operator_types');
+        assert.equal(diagnostic.cause.code, 'shape');
+        assert.equal(diagnostic.fact_key, graph.fact_key);
+        assert.equal(diagnostic.predicate_id, predicate.id);
+        assert.equal(diagnostic.operand_index, index);
+        assert.ok(Object.isFrozen(diagnostic.cause));
+        assert.equal(readTemplateReferenceDiagnostic(new Error(error.message)), null);
+        return true;
+    });
+    const external = fixture();
+    const forged = new Error('operator_types_shape');
+    Object.defineProperty(firstRef(external), 'bindings', { enumerable: true,
+        get() { throw forged; } });
+    assert.throws(() => validateTemplateReferences(external), error => error === forged);
+    assert.equal(readTemplateReferenceDiagnostic(forged), null);
+});
+
 test('N02G:TEMPLATE-001 actual references resolve the canonical entry hash, not the whole file', () => {
     const input = fixture();
     const result = validateTemplateReferences(input);

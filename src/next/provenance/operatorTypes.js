@@ -7,7 +7,15 @@ const SCALARS = new Set(['id', 'text', 'date', 'month', 'datetime', 'integer',
     'positive_integer', 'nonnegative_integer', 'money_minor', 'boolean', 'enum',
     'digest', 'timezone', 'calendar', 'civil_unit']);
 const NUMBERS = new Set(['integer', 'positive_integer', 'nonnegative_integer', 'money_minor']);
-const fail = code => { throw new Error(`operator_types_${code}`); };
+const diagnostics = new WeakMap();
+// Only failures minted by this checker carry authority; matching text or a
+// copied Error never does. Consumers may add their own authored origin.
+const fail = code => {
+    const error = new Error(`operator_types_${code}`);
+    diagnostics.set(error, Object.freeze({ checker: 'operator_types', code }));
+    throw error;
+};
+const readOperatorTypeDiagnostic = error => diagnostics.get(error) ?? null;
 function form(value, expected) {
     if (!value || value.form !== expected) fail('shape');
     return value;
@@ -123,4 +131,4 @@ function unifyOperatorTypes(operator, args) {
     return Object.freeze({ stage: 'signature_checked_only', bindings: Object.freeze(Object.fromEntries(bindings)) });
 }
 
-module.exports = { unifyOperatorTypes };
+module.exports = { unifyOperatorTypes, readOperatorTypeDiagnostic };

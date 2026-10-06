@@ -1,0 +1,110 @@
+{
+  "schema_version": "path-template-diagnostic-evidence/v1",
+  "evidence_kind": "local_execution_reconciliation_not_independent_audit",
+  "audit_parent": "180547085ab3a24504c7d584374264ef242e1689",
+  "source_delta": [
+    {
+      "path": "src/next/provenance/operatorTypes.js",
+      "bytes": 6064,
+      "sha256": "573db750922769a1626fe11c938458271b7cd09fdc5571df5c7b6786fa8d493c",
+      "git_blob_sha1": "9960ac5fe96452f53fd651617c7529f581ae49ad"
+    },
+    {
+      "path": "src/next/provenance/templateReferences.js",
+      "bytes": 11620,
+      "sha256": "bd5c186192b41d991f8fc1bf74dce0f372d8ff8ac63a845eaa029640a7d3f34f",
+      "git_blob_sha1": "554bb512d28974bdb53f3c5b02bb3631d1b36334"
+    },
+    {
+      "path": "tests/next/provenance/operatorTypes.cases.js",
+      "bytes": 7952,
+      "sha256": "e98972f24c6920b0bb3f50c85fe365106d10dfb328f70aa37f4d21391b298df7",
+      "git_blob_sha1": "813424cb232b91e4877c0a07d2fd7b9cefd0f345"
+    },
+    {
+      "path": "tests/next/provenance/pathSemanticV2.cases.js",
+      "bytes": 16748,
+      "sha256": "025a3692f0f62ffb120ed185fc85c869369ae6240fc8a0ab8bd16742b95e8a88",
+      "git_blob_sha1": "a72c46e1cce2dd04d8abb45329e02b398cc7a662"
+    },
+    {
+      "path": "tests/next/provenance/templateReferences.cases.js",
+      "bytes": 6728,
+      "sha256": "59b0b59127d71d2e3e31533e0472956698ceb0a85bb5d94ff0d6a781ac0f95bb",
+      "git_blob_sha1": "922eae8cc6695a63d48481091b3549edfbb613fa"
+    }
+  ],
+  "report_sha256": "6dab8cd13ec4b6bb57596f6edac0c1d1945c83922faeee91b24fd232c7d837cd",
+  "started_at": "2026-10-06T03:54:13.241Z",
+  "completed_at": "2026-10-06T04:48:14.349Z",
+  "node": "v22.17.0",
+  "exit_code": 0,
+  "capture_valid": true,
+  "matrix_green": true,
+  "tap": {
+    "tests": 2633,
+    "suites": 0,
+    "pass": 2623,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 10,
+    "todo": 0
+  },
+  "coverage": {
+    "line_percent": 92.49,
+    "branch_percent": 80.52,
+    "function_percent": 92.84,
+    "uncovered_lines": ""
+  },
+  "skipped_titles": [
+    "instalador executa install e uninstall restaurando bytes preexistentes",
+    "install adota bloco existente e preserva integralmente os bytes atuais",
+    "install recusa adocao quando backup diverge apenas por BOM sem mutar config",
+    "uninstall recusa configuracao alterada e preserva o arquivo atual",
+    "uninstall recusa divergencia somente de BOM e preserva bytes atuais",
+    "functional: consent, onboarding, settings and dashboard",
+    "functional: expenses, income and credit card installments",
+    "functional: goals, debts, payments and reminders",
+    "functional: analytics, deletion, admin and fallback",
+    "functional: complex analytics handles typos, counts, duplicates and min/max"
+  ],
+  "exact_skipped_titles": true,
+  "output_evidence": {
+    "stdout": {
+      "bytes": 783626,
+      "sha256": "7a0147eff0bc9defd7eca0d36d8af856d6da7e222ff275d75b23a5e88f62550e"
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "sources": {
+    "files": 765,
+    "sha256": "3e2ba6461cd9092ad3bc49d0fc2e15814ea3ee4463b0a93ddbf2084da9e74e35",
+    "unchanged": true
+  },
+  "native_coverage": {
+    "files": 716,
+    "invalid": 0,
+    "manifest_sha256": "16571f7122f461331396d8afb7ef6e6cf1d08892b13d9bd3094af5404d53ad59"
+  },
+  "affected": {
+    "report_sha256": "0c1ef551ad07d8503bc8322b10efec366d7ec8b6af4e123ab008984faa2687bd",
+    "tap": {
+      "tests": 32,
+      "suites": 0,
+      "pass": 32,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "syntax_checks": 5
+  },
+  "runtime_tests_executed_by_verifier": false,
+  "semantic_mutation_credit": 0,
+  "independent_code_audit": false,
+  "global_go": false,
+  "historical_semantic_rows_rewritten": false
+}

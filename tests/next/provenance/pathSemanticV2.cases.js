@@ -16,6 +16,27 @@ async function fixture() {
     cached = { packageReceipt, validators, ir, inventoryCandidate: enumeratePathInventoryCandidate({ packageReceipt, ir }) };
     return cached;
 }
+test('N02G:PATH-SEMANTIC-V2-007 invalid template alternatives do not abort the closed-world search or grant credit', async () => {
+    const { enumeratePathSemanticCandidates } = require('../../../src/next/provenance/pathMutationInventory');
+    const { inventoryCandidate } = await fixture();
+    const graphs = JSON.parse(fs.readFileSync(path.resolve(__dirname,
+        '../../../docs/contracts/next/provenance-v2/graphs-v2.json'), 'utf8')).graphs;
+    const requirements = inventoryCandidate.requirements.filter(row => row.family === 'predicate_path_semantic'
+        && graphs.find(graph => graph.fact_key === row.target.fact_key).predicates
+            .find(predicate => predicate.id === row.target.predicate_id).args.some(arg => arg.template));
+    assert.ok(requirements.length > 0);
+    for (const requirement of requirements) {
+        const result = enumeratePathSemanticCandidates({ inventoryCandidate, mutation_id: requirement.mutation_id });
+        assert.equal(result.mutation_id, requirement.mutation_id);
+        assert.equal(result.required, true);
+        assert.equal(result.executed, 0);
+        assert.equal(result.matched, 0);
+        assert.equal(result.no_candidate_disposition, 'UNSATISFIED_MUTATION_WITNESS');
+        assert.ok(result.candidates.every(candidate => candidate.nominal_type_preserved
+            && candidate.operator_preserved && candidate.executed === 0 && candidate.matched === 0));
+    }
+});
+
 test('N02G:PATH-SEMANTIC-V2-001 alternatives are sealed by coordinate, preserve one locator and never grant execution credit', async () => {
     const { enumeratePathSemanticCandidates, readPathSemanticCandidate } = require('../../../src/next/provenance/pathMutationInventory');
     const { inventoryCandidate } = await fixture();
@@ -129,6 +150,14 @@ test('N02G:PATH-SEMANTIC-V2-004 unexpected checker failure is not relabelled as 
         assert.throws(() => enumeratePathSemanticCandidates({ inventoryCandidate, mutation_id: requirement.mutation_id }),
             /unexpected_checker_failure/);
     } finally { native.compilePredicateTypes = saved; }
+    const templates = require('../../../src/next/provenance/templateReferences');
+    const original = templates.validateTemplateReferences;
+    const forged = new Error('operator_types_shape');
+    templates.validateTemplateReferences = () => { throw forged; };
+    try {
+        assert.throws(() => enumeratePathSemanticCandidates({ inventoryCandidate, mutation_id: requirement.mutation_id }),
+            error => error === forged);
+    } finally { templates.validateTemplateReferences = original; }
 });
 
 test('N02G:PATH-SEMANTIC-V2-005 independent civil containment covers boundaries without runtime or actual', async () => {

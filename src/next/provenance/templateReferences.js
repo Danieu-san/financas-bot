@@ -1,7 +1,7 @@
 'use strict';
 
 const { digest } = require('../kernel/canonicalValue');
-const { unifyOperatorTypes } = require('./operatorTypes');
+const { unifyOperatorTypes, readOperatorTypeDiagnostic } = require('./operatorTypes');
 const { validateLiteral } = require('./literalTypes');
 const { freezeDeep } = require('../kernel/canonicalValue');
 const diagnostics = new WeakMap();
@@ -15,7 +15,10 @@ const readTemplateReferenceDiagnostic = error => diagnostics.get(error) ?? null;
 // their text never acquire authority. This wrapper does not alter rejection.
 function atBinding(coordinate, resolve) {
     try { return resolve(); } catch (error) {
-        const diagnostic = diagnostics.get(error);
+        const signatureFailure = readOperatorTypeDiagnostic(error);
+        const diagnostic = diagnostics.get(error) ?? (signatureFailure
+            ? { checker: 'template_references', code: 'operator_types', cause: signatureFailure }
+            : null);
         if (diagnostic && !Object.hasOwn(diagnostic, 'predicate_id'))
             diagnostics.set(error, freezeDeep({ ...diagnostic, ...coordinate }));
         throw error;

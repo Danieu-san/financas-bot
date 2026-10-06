@@ -40,6 +40,27 @@ function sample(signature) {
     return scalar(signature);
 }
 
+test('N02G:TYPES-006 native signature failures carry private authority for every registered operand', () => {
+    const { readOperatorTypeDiagnostic } = require('../../../src/next/provenance/operatorTypes');
+    assert.equal(typeof readOperatorTypeDiagnostic, 'function');
+    for (const operator of registry.operators) for (let index = 0; index < operator.args.length; index++) {
+        const args = operator.args.map(sample); args[index] = {};
+        assert.throws(() => unifyOperatorTypes(operator, args), error => {
+            const diagnostic = readOperatorTypeDiagnostic(error);
+            assert.equal(diagnostic.checker, 'operator_types');
+            assert.ok(Object.isFrozen(diagnostic));
+            assert.equal(error.message, `operator_types_${diagnostic.code}`);
+            assert.equal(readOperatorTypeDiagnostic(new Error(error.message)), null);
+            assert.equal(readOperatorTypeDiagnostic({ ...error }), null);
+            return true;
+        });
+    }
+    const forged = new Error('operator_types_shape');
+    const external = { get args() { throw forged; } };
+    assert.throws(() => unifyOperatorTypes(external, []), error => error === forged);
+    assert.equal(readOperatorTypeDiagnostic(forged), null);
+});
+
 test('N02G:TYPES-001 every one of the 32 registered signatures has a typed witness', () => {
     assert.equal(registry.operators.length, 32);
     for (const operator of registry.operators) {
