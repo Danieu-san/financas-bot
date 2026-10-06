@@ -158,10 +158,22 @@ test('N02G:GRAPH-PROCESS-002 phase protocol and clean exit cannot be replaced by
         [...sequence, sequence[6]],
         [...sequence, { kind: 'observation', event: ['I', 'get', 'input', 'source', ['count'], 'number', 7] }]
     ];
-    for (const [index, messages] of mutations.entries()) await assert.rejects(run(messages), /host_/, `protocol mutation ${index}`);
+    // Missing suffixes must still test a real clean exit. For an explicitly
+    // invalid message, let the parent own termination: a concurrent voluntary
+    // exit can be killed mid native coverage flush and produce an empty JSON.
+    // Exact errors ensure an alive fixture cannot pass merely by timing out.
+    const expectedErrors = [
+        'incomplete_exit', 'incomplete_exit', 'protocol', 'protocol', 'protocol',
+        'measurement_invalid', 'protocol', 'functional_result_invalid',
+        'functional_result_invalid', 'protocol', 'protocol'
+    ];
+    for (const [index, messages] of mutations.entries()) {
+        const tail = index < 2 ? 'process.disconnect();' : 'process.on("message",()=>{});';
+        await assert.rejects(run(messages, tail), error => error.message === 'host_' + expectedErrors[index], `protocol mutation ${index}`);
+    }
     await assert.rejects(run(sequence, 'process.exitCode=1;process.disconnect();'), /host_incomplete_exit/);
     await assert.rejects(run(sequence, 'for(;;){}'), /host_timeout/);
-    await assert.rejects(run(sequence, 'process.stdout.write("fake evidence");process.disconnect();'), /host_output_forbidden/);
+    await assert.rejects(run(sequence, 'process.stdout.write("fake evidence");process.on("message",()=>{});'), /host_output_forbidden/);
 });
 
 test('N02G:GRAPH-PROCESS-003 derivation guards read live handles under the same measured phase program', async () => {

@@ -1,0 +1,62 @@
+{
+  "schema_version": "graph-process-fixture-final-evidence/v1",
+  "evidence_kind": "local_execution_reconciliation_not_independent_audit",
+  "audit_parent": "c27cf81dee9dd8a273a407aae3f17c591544d90f",
+  "measured_code_delta": [
+    "tests/next/provenance/executionHost.cases.js"
+  ],
+  "fixture_sha256": "7a484aab818ba855f3e7765e2739c383ed7e7ec49f3a90e86129e13eb8cf7c27",
+  "fixture_git_blob_sha1": "55df8ac0633c4ec96c1d836f6e1544e5c015e7a7",
+  "report_sha256": "1c1507b9ff54ff0f3976ff013a979d66973b0375fde45cd1a83d8e5528cf1399",
+  "started_at": "2026-10-06T01:52:04.404Z",
+  "completed_at": "2026-10-06T02:42:09.037Z",
+  "node": "v22.17.0",
+  "exit_status": 0,
+  "capture_valid": true,
+  "matrix_green": true,
+  "validation_reasons": [],
+  "tap": {
+    "tests": 2630,
+    "suites": 0,
+    "pass": 2620,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 10,
+    "todo": 0
+  },
+  "coverage": {
+    "line_percent": 92.5,
+    "branch_percent": 80.63,
+    "function_percent": 92.83,
+    "uncovered_lines": ""
+  },
+  "output_evidence": {
+    "stdout": {
+      "bytes": 782633,
+      "sha256": "b18c495186eb34296bc3223f270055255600955dca922888bc798b81c1d761a0"
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "measured_sources": {
+    "files": 765,
+    "sha256": "3c50cd1065357caf91e693bb49a0f5dfb84b9cb96499efa3414c44b0d7958914",
+    "unchanged": true
+  },
+  "retained_coverage": {
+    "files": 716,
+    "invalid": 0,
+    "manifest_sha256": "69a710b65094b7705d7d56a5d2e3918be5ac574a3bc35ed018c93dd10a21c8a0"
+  },
+  "causal_execution_change": "normal_temp_and_local_capabilities_vs_historical_sandbox_denials",
+  "exact_116_recovery_partition": true,
+  "historical_red_retained": true,
+  "original_eleven_cancellations_cause_established": false,
+  "independent_code_audit": false,
+  "published_new_candidate": false,
+  "global_go": false,
+  "semantic_ids_outside_month_focal": 2418,
+  "no_runtime_tests_executed_by_verifier": true
+}
