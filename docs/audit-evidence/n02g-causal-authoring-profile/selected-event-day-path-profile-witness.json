@@ -1,0 +1,554 @@
+{
+  "stage": "documentary_selection_day_path_construction_only",
+  "profile": "selected-event-day-path/v1",
+  "publication_parent": "241a08c4e35d257209d9fb8320d7d4828cdc7854",
+  "normative_approval": false,
+  "runtime_tests_executed": false,
+  "compiler_executed": false,
+  "dp_executed": 0,
+  "matched": 0,
+  "semantic_mutation_credit": 0,
+  "ordinary_v2_witness_qualified": false,
+  "profile_witness_qualified": false,
+  "source_identities": [
+    {
+      "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+      "bytes": 4954513,
+      "sha256": "e9c852034d8cc887e1d8645a61d9597176409f72a28eaf0de4c95f17c0c8358d",
+      "git_blob_sha1": "a3baa82049ef927095458199a71ef0f377870c3c"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claims-v2.json",
+      "bytes": 64240,
+      "sha256": "4810612761ea7f232e4445c0d192ae53ebf0761f0ba8752da758efb826b30494",
+      "git_blob_sha1": "0f0ade4e0f174966ae9f2660df97cc0b29d2d775"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/snapshot-manifest-v1.json",
+      "bytes": 52403,
+      "sha256": "2547229db3c07f2dd0941601ab5164bf89981ce966e4e23a2e3058124edba8c4",
+      "git_blob_sha1": "f83ff603add9d90b2850a2f05ad87e36923e88ed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/material-field-registry-v1.json",
+      "bytes": 10998,
+      "sha256": "ee7ef3eff146bc2e9cea2cc986c398371acbff3cf35d858ced8386a9758a4d62",
+      "git_blob_sha1": "03d53deb88eae3317dc1c0f58f7af552bd8b12bf"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/operator-registry-v2.json",
+      "bytes": 5531,
+      "sha256": "d28eb3dfbf7ea6949c1ff696e9f9bc7aa572c3ab8433a06d316936092a2dcac7",
+      "git_blob_sha1": "78c1b42f4a8075172360c91660b27041e1265787"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/metric-evaluator-registry-v1.json",
+      "bytes": 45195,
+      "sha256": "a1fde4b01b9f68bdd2550305305ca2ffe8f750af0351b29b12bf3bb5afdb3c88",
+      "git_blob_sha1": "04d77636b5d491f9c9d00df4f59d9a50d9b54d8d"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/phase-composition-profile-v1.json",
+      "bytes": 15194,
+      "sha256": "204962b56fd0833f3d15ac030e6c55dd3866c8fd18ded5e24784f729e41be2bc",
+      "git_blob_sha1": "425f446669a2eb15fcc3595116c301d6376e453c"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/provenance-graph.schema.json",
+      "bytes": 14785,
+      "sha256": "9e3c148c95d6fecd3d93f019ad5a5967126f8bf1cb9bde9d152c70c057a1740b",
+      "git_blob_sha1": "5aa7ca4bbcc1d5e4e58fea43210aaaddf4716336"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claim-contract.schema.json",
+      "bytes": 6124,
+      "sha256": "b69ef61b562061f057a9bf08f47623ae432c723f565e8775f3dbe6eb942ea998",
+      "git_blob_sha1": "40f4a97483a359d77ddf649a167ebc67b9b6286e"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/refund_amount.json",
+      "bytes": 1772,
+      "sha256": "2dafc200e53dfa069e3b7e12d42c0ead14db1f2b020768ec5fd2a6fcda4c515c",
+      "git_blob_sha1": "7d6baf5e5e43bbf19046e0cddfb5d34ad9d90d7b"
+    },
+    {
+      "path": "src/next/provenance/selectionBindings.js",
+      "bytes": 8169,
+      "sha256": "3556bf000bde856b22f91fdbe8af3ec9f45a1379d86f60f9f82c5cce10a8b311",
+      "git_blob_sha1": "d9829d1d50b47c69ee14147c8e1dc3ee0c6beec1"
+    },
+    {
+      "path": "src/next/provenance/graphCompiler.js",
+      "bytes": 82211,
+      "sha256": "fe938a128cfd4dccda0d8ddc1f2e6965b623feecc6d1854ef0306700efda1016",
+      "git_blob_sha1": "7fe96f0937faddb5fddba19771889e9500b93a00"
+    },
+    {
+      "path": "src/next/provenance/proofOperators.js",
+      "bytes": 18512,
+      "sha256": "6d7ed8142652c1c3e3240e58c9333ee5890a9c5cdd62801258b02c4f91dde63b",
+      "git_blob_sha1": "54aa34b802e7383a5fc1a6a15eb2a991c0982169"
+    },
+    {
+      "path": "src/next/provenance/instrumentedAccess.js",
+      "bytes": 23516,
+      "sha256": "0a226802919420fc1e90d07847b96cc120121e230905c0f5cef484c034dedf92",
+      "git_blob_sha1": "84e25bde306e67c65b45b03d6be0ab1523d21b54"
+    },
+    {
+      "path": "src/next/provenance/proofAcceptance.js",
+      "bytes": 38138,
+      "sha256": "6ddc6138fc0485c1278f52fad545bbdd9cd908975e000efa98863fddd86f3cea",
+      "git_blob_sha1": "5e47b32cc4a258f7190cd88305dbb79badf0fc6e"
+    },
+    {
+      "path": "src/next/provenance/pathMutationInventory.js",
+      "bytes": 31324,
+      "sha256": "5bf90671d637ba4f0dde3816635b88b0eef6d88278eac588dbc4dbbfd15839eb",
+      "git_blob_sha1": "43ec7fbff049f14a1ecf5dc97f75bd801f548393"
+    },
+    {
+      "path": "src/next/provenance/metricEffects.js",
+      "bytes": 5637,
+      "sha256": "7cb9fe24b2d8aefd3560d8089544bfe5431f124256c35023ff6b8e126283f5fb",
+      "git_blob_sha1": "7d461af02addac9509bb518e5c7a91b4fb98d210"
+    },
+    {
+      "path": "src/next/provenance/materialFieldTypes.js",
+      "bytes": 1246,
+      "sha256": "f7f4ecaba152ddebf4503469ba61851add59c0a0c697ea6f73503a5ca03a1c0c",
+      "git_blob_sha1": "41bbf1f15ff41c1560791c74fdd7694fbada4c47"
+    },
+    {
+      "path": "src/next/kernel/canonicalValue.js",
+      "bytes": 2146,
+      "sha256": "f6d571ddc1c7917f6a0ec8e25b17368c3e23ba10111ea5aa591c692d6739205b",
+      "git_blob_sha1": "75aa19edcf5ab77540d49c4973e10c48d9dcf9c1"
+    }
+  ],
+  "documentary_identities": [
+    {
+      "path": "docs/plans/workstreams/financasbot-next-02-n02g-selected-event-day-path-profile-proposal-v1.md",
+      "bytes": 14243,
+      "sha256": "55f4fa20e501961812026e4be8a63811f590e923099fc6ab1ab7ffd5fb2411f1",
+      "git_blob_sha1": "48c488b18f0b77104b93eb026254345ecd6e9033"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/verify-selected-event-day-path-profile-witness.cjs",
+      "bytes": 14211,
+      "sha256": "57817945ccaae3a3531ea800d763c9ef80093f1d41821533513550c3b34459b1",
+      "git_blob_sha1": "b4234f6ef07cfa7238a2f9e55ea05ca05d0dea3b"
+    }
+  ],
+  "mutation_id": "sha256:f494ce619e7883d1e340d3c0496f048d6c49f8bdb05abd25fa478b75211121a4",
+  "candidate_id": "sha256:c7ccc906aa93d6126cb5fdf955616d6e592c99066e5e7d1b7017057e8b655a9d",
+  "patch": {
+    "location": [
+      "args",
+      0,
+      "field"
+    ],
+    "before": {
+      "node": "evt_refund_b",
+      "segments": [
+        "date"
+      ]
+    },
+    "after": {
+      "node": "evt_restaurant_b",
+      "segments": [
+        "date"
+      ]
+    }
+  },
+  "authored_graph_hashes": {
+    "C": "sha256:c507755492ab06149c335a5981079dfd6fb653a9ae0dc61c97ea54fd888843fe",
+    "M": "sha256:1e2be4ea9307254458e8acb6d5b09f153eb4942acd7fc3ce002b3ea94f22a436",
+    "S": "sha256:c507755492ab06149c335a5981079dfd6fb653a9ae0dc61c97ea54fd888843fe"
+  },
+  "target_predicate": {
+    "id": "p0055_selected_period",
+    "obligation": "period",
+    "atom": "period",
+    "op": "date_in_period",
+    "args": [
+      {
+        "field": {
+          "node": "evt_refund_b",
+          "segments": [
+            "date"
+          ]
+        }
+      },
+      {
+        "claim": {
+          "segments": [
+            "period"
+          ]
+        }
+      }
+    ]
+  },
+  "proposed_plan": {
+    "selector": {
+      "fact_key": "F-06#2#1",
+      "predicate_id": "p0055_selected_period"
+    },
+    "claim_period": {
+      "kind": "date",
+      "value": "2042-06-09"
+    },
+    "original_date": "2042-06-09",
+    "alternate_date": "2042-06-07",
+    "selection": {
+      "candidate_set": "candidates",
+      "selected_set": "selected",
+      "selected_predicates": [
+        "p0055_selected_period",
+        "p0056_selected_state"
+      ],
+      "excluded": []
+    },
+    "candidate_alias": "evt_refund_b",
+    "incidence": {
+      "id": "e0005",
+      "source": "evt_refund_b",
+      "field": "compensates",
+      "target": "evt_restaurant_b",
+      "relation": "material_ref",
+      "proof_predicates": [
+        "p0023_target"
+      ]
+    },
+    "unchanged_guard": {
+      "id": "p0056_selected_state",
+      "obligation": "evidence_state",
+      "atom": "evidence_state",
+      "op": "state_is",
+      "args": [
+        {
+          "field": {
+            "node": "evt_refund_b",
+            "segments": [
+              "state"
+            ]
+          }
+        },
+        {
+          "literal": {
+            "type": "enum",
+            "value": "confirmed"
+          }
+        }
+      ]
+    },
+    "derivation_mode": "formula_only",
+    "explicit_authored_selected_set_consumers": [],
+    "executable_closure_absence_proved": false,
+    "truth": {
+      "C": true,
+      "M": false,
+      "S": true
+    },
+    "expected_proof_selected": {
+      "C": [
+        "evt_refund_b"
+      ],
+      "M": [],
+      "S": [
+        "evt_refund_b"
+      ]
+    },
+    "expected_derivation_selected": {
+      "C": [
+        "evt_refund_b"
+      ],
+      "M": [
+        "evt_refund_b"
+      ],
+      "S": [
+        "evt_refund_b"
+      ]
+    },
+    "fringe_construction": {
+      "C": [
+        {
+          "site": "selection/0/candidate/0/guard/p0055_selected_period",
+          "operand": 0,
+          "tuple": [
+            "I",
+            "get",
+            "evt_refund_b",
+            "proof/set/candidates",
+            [
+              "date"
+            ],
+            "data",
+            [
+              "scalar",
+              "2042-06-09"
+            ]
+          ]
+        },
+        {
+          "site": "selection/0/member/0",
+          "operand": null,
+          "tuple": [
+            "I",
+            "select_member",
+            "operand/proof/set/candidates",
+            "proof/set/candidates",
+            [
+              0
+            ],
+            "operand_set",
+            [
+              "decision",
+              "evt_refund_b",
+              true
+            ]
+          ]
+        },
+        {
+          "site": "selection/0/return",
+          "operand": null,
+          "tuple": [
+            "I",
+            "select_return",
+            "operand/proof/set/candidates",
+            "proof/set/candidates",
+            [],
+            "operand_set",
+            [
+              "selected",
+              "view_105b2f8bf740cb90755eb7fb0cf0f050456ee336affb477cb995f505c1a45472",
+              "evt_refund_b"
+            ]
+          ]
+        },
+        {
+          "site": "assertion/p0055_selected_period",
+          "operand": 0,
+          "tuple": [
+            "I",
+            "get",
+            "evt_refund_b",
+            "proof/snapshot",
+            [
+              "date"
+            ],
+            "data",
+            [
+              "scalar",
+              "2042-06-09"
+            ]
+          ]
+        }
+      ],
+      "M": [
+        {
+          "site": "selection/0/candidate/0/guard/p0055_selected_period",
+          "operand": 0,
+          "tuple": [
+            "I",
+            "get",
+            "evt_restaurant_b",
+            "proof/snapshot",
+            [
+              "date"
+            ],
+            "data",
+            [
+              "scalar",
+              "2042-06-07"
+            ]
+          ]
+        },
+        {
+          "site": "selection/0/member/0",
+          "operand": null,
+          "tuple": [
+            "I",
+            "select_member",
+            "operand/proof/set/candidates",
+            "proof/set/candidates",
+            [
+              0
+            ],
+            "operand_set",
+            [
+              "decision",
+              "evt_refund_b",
+              false
+            ]
+          ]
+        },
+        {
+          "site": "selection/0/return",
+          "operand": null,
+          "tuple": [
+            "I",
+            "select_return",
+            "operand/proof/set/candidates",
+            "proof/set/candidates",
+            [],
+            "operand_set",
+            [
+              "selected",
+              "view_f2f91cc8d8caaeab9aed103e35eadbfc3085b0a69492a29ef7861ae45424b06b"
+            ]
+          ]
+        },
+        {
+          "site": "assertion/p0055_selected_period",
+          "operand": 0,
+          "tuple": [
+            "I",
+            "get",
+            "evt_restaurant_b",
+            "proof/snapshot",
+            [
+              "date"
+            ],
+            "data",
+            [
+              "scalar",
+              "2042-06-07"
+            ]
+          ]
+        }
+      ],
+      "S": [
+        {
+          "site": "selection/0/candidate/0/guard/p0055_selected_period",
+          "operand": 0,
+          "tuple": [
+            "I",
+            "get",
+            "evt_refund_b",
+            "proof/set/candidates",
+            [
+              "date"
+            ],
+            "data",
+            [
+              "scalar",
+              "2042-06-09"
+            ]
+          ]
+        },
+        {
+          "site": "selection/0/member/0",
+          "operand": null,
+          "tuple": [
+            "I",
+            "select_member",
+            "operand/proof/set/candidates",
+            "proof/set/candidates",
+            [
+              0
+            ],
+            "operand_set",
+            [
+              "decision",
+              "evt_refund_b",
+              true
+            ]
+          ]
+        },
+        {
+          "site": "selection/0/return",
+          "operand": null,
+          "tuple": [
+            "I",
+            "select_return",
+            "operand/proof/set/candidates",
+            "proof/set/candidates",
+            [],
+            "operand_set",
+            [
+              "selected",
+              "view_105b2f8bf740cb90755eb7fb0cf0f050456ee336affb477cb995f505c1a45472",
+              "evt_refund_b"
+            ]
+          ]
+        },
+        {
+          "site": "assertion/p0055_selected_period",
+          "operand": 0,
+          "tuple": [
+            "I",
+            "get",
+            "evt_refund_b",
+            "proof/snapshot",
+            [
+              "date"
+            ],
+            "data",
+            [
+              "scalar",
+              "2042-06-09"
+            ]
+          ]
+        }
+      ]
+    },
+    "complete_core_plan_implemented": false,
+    "external_site_leases_implemented": false
+  },
+  "construction_self_checks": {
+    "civil_dates": "PASS",
+    "non_singleton_rejected": true,
+    "changed_guard_rejected": true,
+    "non_date_period_rejected": true,
+    "missing_incidence_rejected": true,
+    "restoration_exact": true,
+    "runtime_conformance_tested": false
+  },
+  "local_reported_evidence_not_read_or_rerun": {
+    "census_sha256": "e528833a3f067514b80149498c31b273a472b55014f2c2c6437c5fe6430f6e93",
+    "preflight_sha256": "ed006be1fe83522dd38bd9fca3bd3c23fed95765e799165ba427b643ae09f7df",
+    "normal_dp_sha256": "1bb48dcea29c2e4b420008b7704db0025cfa3480ba76e3d019d14d0bb27f04ce",
+    "rows": 125,
+    "first_candidates": 106,
+    "compiler_admitted": 1,
+    "compiler_refused": 105,
+    "no_discriminator": 19,
+    "normal_dp_counts": [
+      1,
+      1,
+      1,
+      0
+    ],
+    "normal_exit": 1,
+    "normal_violations": [
+      "period",
+      "trace"
+    ],
+    "normal_failed_components": [
+      "read_edges",
+      "selection"
+    ]
+  },
+  "implementation_blockers": [
+    "normative_ratification_absent",
+    "independent_full_ir_conformance_not_qualified",
+    "external_dispatch_leases_not_implemented",
+    "full_core_fringe_coverage_not_implemented",
+    "external_dependency_closure_not_proved",
+    "measured_quarantine_identity_not_qualified",
+    "profile_code_not_independently_audited",
+    "no_profile_runtime_invocation"
+  ],
+  "unchanged_scope": {
+    "compiler_transport": false,
+    "sources_modified": false,
+    "corpus_extension": false,
+    "normal_trace_waiver": false,
+    "historical_rows_rewritten": false,
+    "receipt": false,
+    "validated_parent": false,
+    "financial_response": false,
+    "global_go": false
+  }
+}
