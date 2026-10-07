@@ -12,6 +12,7 @@ const fail = code => { throw new Error('selected_day_build_' + code); };
 const receipts = new WeakSet();
 const entrypoints = Object.freeze(['scripts/agent/buildSelectedEventDayProofExecution.mjs',
     'scripts/agent/executeSelectedEventDayCandidate.mjs',
+    'scripts/agent/selectedEventDayQualification.mjs',
     'scripts/agent/prepareSelectedEventDayAdmission.mjs', 'scripts/agent/captureSelectedEventDayCompiler.mjs',
     'scripts/agent/prepareSelectedEventDayPacket.mjs', 'scripts/agent/buildSelectedEventDayDispatchCapsule.mjs',
     'scripts/agent/selectedEventDayProgramContract.mjs', 'scripts/agent/sealSelectedEventDayOracle.mjs',

@@ -1015,6 +1015,129 @@ test('N02G:SELECTED-DAY-035 complete candidate executor composes fresh native wo
     assert.equal(output.code_audit_required, true);
 });
 
+test('N02G:SELECTED-DAY-037 reviewed boundary admits an opaque preparation only against an independently supplied freeze before handles', async () => {
+    const driver = await import('../../../scripts/agent/executeSelectedEventDayCandidate.mjs');
+    const prepared = await driver.prepareSelectedEventDayCandidate({ mutation_id: witness.mutation_id });
+    const boundary = driver.selectedEventDayCandidateBoundary(prepared);
+    assert.equal(boundary.stage, 'selected_day_candidate_review_snapshot_only');
+    assert.equal(boundary.financial_release_eligible, false);
+    assert.equal(boundary.profile_witness_qualified, false);
+    assert.throws(() => driver.selectedEventDayCandidateBoundary({ ...prepared }), /selected_day_candidate_authority/);
+    const source = require('../../../src/next/kernel/canonicalValue').canonicalValue(structuredClone(boundary));
+    const digest = value => 'sha256:' + require('node:crypto').createHash('sha256').update(value).digest('hex');
+    const admit = (value, expected = digest(source)) => driver.admitSelectedEventDayReviewedCandidate({
+        prepared, reviewBytes: Buffer.from(value), expectedReviewHash: expected
+    });
+    assert.throws(() => admit(source, 'sha256:' + '0'.repeat(64)), /selected_day_candidate_review_hash/);
+    const leafPaths = value => value && typeof value === 'object'
+        ? Object.keys(value).flatMap(key => leafPaths(value[key]).map(tail => [key, ...tail])) : [[]];
+    const leaves = leafPaths(boundary);
+    assert.ok(leaves.length > 300);
+    // Every scalar leaf of the actual review snapshot, including every BUILD
+    // path/hash, is perturbed independently and rehashed. This tests complete
+    // byte binding rather than a whitelist of a few known root fields.
+    for (const keys of leaves) {
+        const changed = structuredClone(boundary);
+        const parent = keys.slice(0, -1).reduce((value, key) => value[key], changed);
+        const key = keys.at(-1), old = parent[key];
+        parent[key] = typeof old === 'string' ? old + 'tampered' : typeof old === 'boolean' ? !old : old + 1;
+        const text = require('../../../src/next/kernel/canonicalValue').canonicalValue(changed);
+        assert.throws(() => admit(text, digest(text)), /selected_day_candidate_review_binding/);
+    }
+    for (const transform of [rows => rows.slice(1), rows => [...rows, rows[0]], rows => [...rows].reverse()]) {
+        const changed = structuredClone(boundary); changed.build_sources = transform(changed.build_sources);
+        const text = require('../../../src/next/kernel/canonicalValue').canonicalValue(changed);
+        assert.throws(() => admit(text, digest(text)), /selected_day_candidate_review_binding/);
+    }
+    const artifact = driver.selectedEventDayCandidateArtifacts(prepared);
+    assert.equal(artifact.stage, 'selected_day_review_artifact_bytes_only');
+    const manifest = JSON.parse(boundary.manifest);
+    assert.deepEqual(artifact.entries.map(row => ({ path: row.path, sha256: digest(row.source) })),
+        manifest.files.map(row => ({ path: row.path, sha256: row.sha256 })));
+    assert.equal(digest(boundary.manifest), boundary.negative_component_root);
+    assert.throws(() => driver.selectedEventDayCandidateArtifacts({ ...prepared }), /selected_day_candidate_authority/);
+    const reviewed = admit(source);
+    assert.equal(reviewed.stage, 'selected_day_reviewed_boundary_bytes_only');
+    assert.equal(reviewed.financial_release_eligible, false);
+    await assert.rejects(driver.executeSelectedEventDayReviewedCandidate({ reviewed: { ...reviewed } }), /selected_day_candidate_authority/);
+    // Trusted bootstrap supplied the digest for this construction test. This
+    // does NOT claim an independent audit of these newly changed test bytes.
+    const output = await driver.executeSelectedEventDayReviewedCandidate({ reviewed });
+    assert.equal(output.reviewed_boundary_admitted_before_handles, true);
+    assert.equal(output.review_snapshot_sha256, digest(source));
+    assert.deepEqual(output.worlds.map(w => w.proof_satisfied), [true, false, true]);
+    assert.equal(output.semantic_mutation_credit, 0);
+    assert.equal(output.profile_witness_qualified, false);
+    await assert.rejects(driver.executeSelectedEventDayReviewedCandidate({ reviewed }), /selected_day_candidate_reused/);
+});
+
+test('N02G:SELECTED-DAY-038 trusted reviewed bootstrap exposes only mutation ID and qualifies a fresh nonfinancial profile row once', async () => {
+    const driver = await import('../../../scripts/agent/executeSelectedEventDayCandidate.mjs');
+    const qualification = await import('../../../scripts/agent/selectedEventDayQualification.mjs');
+    const prepared = await driver.prepareSelectedEventDayCandidate({ mutation_id: witness.mutation_id });
+    const source = require('../../../src/next/kernel/canonicalValue').canonicalValue(
+        structuredClone(driver.selectedEventDayCandidateBoundary(prepared)));
+    const digest = 'sha256:' + require('node:crypto').createHash('sha256').update(source).digest('hex');
+    const create = () => qualification.createSelectedEventDayQualification({
+        reviewBytes: Buffer.from(source), expectedReviewHash: digest
+    });
+    assert.throws(() => qualification.createSelectedEventDayQualification({
+        reviewBytes: Buffer.from(source), expectedReviewHash: 'sha256:' + '0'.repeat(64)
+    }), /selected_day_qualification_review_hash/);
+    let effects = 0;
+    const active = {}; Object.defineProperty(active, 'reviewBytes', { enumerable: true, get() { effects++; return Buffer.from(source); } });
+    active.expectedReviewHash = digest;
+    assert.throws(() => qualification.createSelectedEventDayQualification(active), /selected_day_qualification_input/);
+    for (const field of ['approved', 'expected', 'candidate', 'scope', 'outcomes', 'reviewBytes', 'expectedReviewHash']) {
+        const instance = create();
+        await assert.rejects(instance.execute({ mutation_id: witness.mutation_id, [field]: true }), /selected_day_qualification_input/);
+        await assert.rejects(instance.execute({ mutation_id: witness.mutation_id }), /selected_day_qualification_reused/);
+    }
+    const instance = create();
+    const guest = {}; Object.defineProperty(guest, 'mutation_id', { enumerable: true, get() { effects++; return witness.mutation_id; } });
+    await assert.rejects(instance.execute(guest), /selected_day_qualification_input/);
+    assert.equal(effects, 0);
+    const supplied = Buffer.from(source);
+    for (const name of ['length', 'constructor', 'valueOf']) Object.defineProperty(supplied, name, {
+        get() { effects++; throw Error('active_bootstrap_buffer'); }
+    });
+    const nominal = qualification.createSelectedEventDayQualification({ reviewBytes: supplied, expectedReviewHash: digest });
+    Uint8Array.prototype.fill.call(supplied, 0);
+    const row = await nominal.execute({ mutation_id: witness.mutation_id });
+    assert.equal(effects, 0);
+    assert.equal(row.profile_witness_qualified, true);
+    assert.equal(row.semantic_mutation_credit, 1);
+    assert.equal(row.credit_scope, 'one_fresh_profile_invocation_not_a_consolidated_ledger');
+    assert.equal(row.ordinary_v2_witness_qualified, false);
+    assert.equal(row.financial_release_eligible, false);
+    assert.equal(row.receipt_created, false);
+    assert.equal(row.validated_parent_created, false);
+    assert.deepEqual(row.normal_diagnosis.M.observed_violations, ['period', 'trace']);
+    assert.equal(row.normal_diagnosis.M.phases_covered, false);
+    assert.equal(row.review_snapshot_sha256, digest);
+    await assert.rejects(nominal.execute({ mutation_id: witness.mutation_id }), /selected_day_qualification_reused/);
+    // Synthetic trusted-bootstrap byte authority proves the protocol, not an
+    // external review or operational credit for this as-yet unaudited delta.
+});
+
+test('N02G:SELECTED-DAY-039 review byte capture uses native typed-array slots without executing own getters or coercions', async () => {
+    const driver = await import('../../../scripts/agent/executeSelectedEventDayCandidate.mjs');
+    let effects = 0;
+    const bytes = Buffer.from('canonical-review-bytes');
+    for (const name of ['length', 'byteLength', 'buffer', 'byteOffset', 'constructor', 'valueOf']) {
+        Object.defineProperty(bytes, name, { get() { effects++; throw Error('active_review_bytes'); } });
+    }
+    const captured = driver.captureSelectedEventDayReviewBytes(bytes);
+    assert.equal(captured.toString(), 'canonical-review-bytes');
+    Uint8Array.prototype.fill.call(bytes, 0); assert.equal(captured.toString(), 'canonical-review-bytes');
+    assert.throws(() => driver.captureSelectedEventDayReviewBytes(new Proxy(bytes, {
+        get() { effects++; throw Error('active_proxy'); }
+    })), /selected_day_candidate_review_input/);
+    assert.throws(() => driver.captureSelectedEventDayReviewBytes(Buffer.alloc(256 * 1024 + 1)), /selected_day_candidate_review_size/);
+    assert.throws(() => driver.captureSelectedEventDayReviewBytes(Buffer.alloc(0)), /selected_day_candidate_review_size/);
+    assert.equal(effects, 0);
+});
+
 test('N02G:SELECTED-DAY-036 candidate executor rejects caller outcomes and active inputs before BUILD or handles', async () => {
     const driver = await import('../../../scripts/agent/executeSelectedEventDayCandidate.mjs');
     for (const field of ['candidate_id', 'expected', 'ir', 'validator', 'code_audit', 'scope', 'actual']) {

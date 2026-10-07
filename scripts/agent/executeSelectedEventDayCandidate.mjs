@@ -19,9 +19,32 @@ import { prepareSelectedEventDayPrecommit, sealSelectedEventDayIrExpectation, se
 import { admitPhaseCompositionProfile, PROFILE_PATH } from '../../src/next/provenance/phaseCompositionProfile.js';
 import { admitArtifact } from '../../src/next/provenance/artifactLoader.js';
 import { canonicalValue, freezeDeep } from '../../src/next/kernel/canonicalValue.js';
+import { copyData } from '../../src/next/provenance/observationContract.js';
+import { admitExecutionFreeze, admitFrozenArtifact } from '../../src/next/provenance/freezeContract.js';
+import { verifyNativeRuntime } from '../../src/next/provenance/nativeRuntime.js';
 const sha = value => 'sha256:' + createHash('sha256').update(value).digest('hex');
 const prefix = 'docs/contracts/next/provenance-v2/';
 const fail = code => { throw new Error('selected_day_candidate_' + code); };
+const preparations = new WeakMap(), reviewedCandidates = new WeakMap();
+function own(raw, names) {
+    if (!raw || types.isProxy(raw) || ![Object.prototype, null].includes(Object.getPrototypeOf(raw))) fail('input');
+    const descriptors = Object.getOwnPropertyDescriptors(raw);
+    if (Reflect.ownKeys(descriptors).length !== names.length || names.some(name =>
+        !descriptors[name]?.enumerable || !Object.hasOwn(descriptors[name], 'value'))) fail('input');
+    return Object.fromEntries(names.map(name => [name, descriptors[name].value]));
+}
+function preparation(receipt) {
+    const row = preparations.get(receipt); if (!row) fail('authority'); return row;
+}
+// Same native-slot transport boundary as execution freeze admission. Buffer
+// own properties are never consulted, including length/constructor/coercions.
+export function captureSelectedEventDayReviewBytes(value) {
+    if (!value || types.isProxy(value) || !Buffer.isBuffer(value)
+        || Object.getPrototypeOf(value) !== Buffer.prototype) fail('review_input');
+    const size = Reflect.getOwnPropertyDescriptor(Object.getPrototypeOf(Uint8Array.prototype), 'byteLength').get.call(value);
+    if (!size || size > 256 * 1024) fail('review_size');
+    const bytes = Buffer.alloc(size); Uint8Array.prototype.set.call(bytes, value); return bytes;
+}
 function target(raw) {
     if (!raw || types.isProxy(raw) || ![Object.prototype, null].includes(Object.getPrototypeOf(raw))) fail('input');
     const descriptors = Object.getOwnPropertyDescriptors(raw);
@@ -85,8 +108,85 @@ export async function captureSelectedEventDayCandidateImports() {
     assertCurrentSelectedEventDayBuildRecipe(recipe);
     return execution.captured_import_bundles;
 }
+// BUILD capability only. It carries no guest handle, approval or witness credit.
+export async function prepareSelectedEventDayCandidate(raw) {
+    const row = await prepareCandidate(raw);
+    const receipt = Object.freeze({ stage: 'selected_day_prepared_candidate_only', financial_release_eligible: false });
+    preparations.set(receipt, { ...row, used: false, review: undefined }); return receipt;
+}
+export function selectedEventDayCandidateBoundary(receipt) {
+    const row = preparation(receipt);
+    assertCurrentSelectedEventDayBuildRecipe(row.recipe);
+    return reviewSnapshot(row);
+}
+function reviewSnapshot({ mutation_id, recipe, precommit, execution }) {
+    return freezeDeep({ stage: 'selected_day_candidate_review_snapshot_only', profile: PROFILE,
+        normative_commit: NORMATIVE_COMMIT, mutation_id, candidate_id: precommit.candidate_id,
+        precommit_hash: sha(canonicalValue(structuredClone(precommit))),
+        freeze_source: execution.negative_bootstrap_candidate.freeze_source,
+        manifest: execution.manifest, negative_component_root: execution.artifact_root,
+        execution_ticket_sha256: execution.execution_ticket_sha256,
+        compiler_artifact_root: execution.compiler_artifact_root, adjudicator_artifact_root: execution.adjudicator_artifact_root,
+        build_sources_sha256: sha(canonicalValue(recipe.sources)), build_sources: structuredClone(recipe.sources),
+        profile_witness_qualified: false, semantic_mutation_credit: 0, financial_release_eligible: false });
+}
+// Passive BUILD export for immutable review. These are the exact captured
+// bytes underlying the snapshot manifest, not new execution capabilities.
+export function selectedEventDayCandidateArtifacts(receipt) {
+    const { recipe, execution } = preparation(receipt);
+    assertCurrentSelectedEventDayBuildRecipe(recipe);
+    return freezeDeep({ stage: 'selected_day_review_artifact_bytes_only', financial_release_eligible: false,
+        entries: execution.negative_bootstrap_candidate.entries.map(file => ({ path: file.path, source: file.source })) });
+}
+// The trusted bootstrap supplies expectedReviewHash from the independently
+// reviewed immutable snapshot, NEVER from this candidate or model input.
+// This API admits bytes only; it does not authenticate its caller or prove a
+// human audit. The public guest-facing wrapper must not forward these inputs.
+export function admitSelectedEventDayReviewedCandidate(raw) {
+    const { prepared, reviewBytes, expectedReviewHash } = own(raw, ['prepared', 'reviewBytes', 'expectedReviewHash']);
+    const row = preparation(prepared);
+    if (row.used || row.review) fail('reused');
+    if (typeof expectedReviewHash !== 'string' || !/^sha256:[a-f0-9]{64}$/.test(expectedReviewHash)) fail('review_input');
+    const bytes = captureSelectedEventDayReviewBytes(reviewBytes);
+    if (sha(bytes) !== expectedReviewHash) fail('review_hash');
+    const source = bytes.toString('utf8'); if (!Buffer.from(source).equals(bytes)) fail('review_input');
+    let snapshot;
+    try { snapshot = structuredClone(copyData(JSON.parse(source))); } catch { fail('review_input'); }
+    if (canonicalValue(snapshot) !== source) fail('review_input');
+    const actual = reviewSnapshot(row);
+    if (source !== canonicalValue(structuredClone(actual))) fail('review_binding');
+    // Invalid external snapshots need no repeated AST/source scan. A genuine
+    // matching snapshot still remeasures the complete BUILD before admission.
+    assertCurrentSelectedEventDayBuildRecipe(row.recipe);
+    // Root expectation comes from the admitted external snapshot. The exact
+    // current captured artifact must match it before any runtime factory runs.
+    const freezeReceipt = admitExecutionFreeze({ bytes: Buffer.from(snapshot.freeze_source),
+        expectedHash: sha(snapshot.freeze_source) });
+    const bootstrap = row.execution.negative_bootstrap_candidate;
+    admitFrozenArtifact({ freezeReceipt, kind: 'tcb', programId: null, manifestBytes: Buffer.from(bootstrap.manifest),
+        entries: bootstrap.entries.map(file => ({ path: file.path, bytes: Buffer.from(file.source) })) });
+    verifyNativeRuntime(freezeReceipt);
+    const receipt = Object.freeze({ stage: 'selected_day_reviewed_boundary_bytes_only',
+        observed_review_sha256: expectedReviewHash, financial_release_eligible: false });
+    row.review = receipt; reviewedCandidates.set(receipt, { prepared, freezeReceipt, expectedReviewHash }); return receipt;
+}
+export async function executeSelectedEventDayReviewedCandidate(raw) {
+    const { reviewed } = own(raw, ['reviewed']), admitted = reviewedCandidates.get(reviewed);
+    if (!admitted) fail('authority');
+    const row = preparation(admitted.prepared);
+    if (row.used) fail('reused');
+    assertCurrentSelectedEventDayBuildRecipe(row.recipe);
+    verifyNativeRuntime(admitted.freezeReceipt);
+    return executePrepared(admitted.prepared, admitted.expectedReviewHash);
+}
 export async function executeSelectedEventDayCandidate(raw) {
-    const { mutation_id, recipe, precommit, admission, execution } = await prepareCandidate(raw);
+    return executePrepared(await prepareSelectedEventDayCandidate(raw), null);
+}
+async function executePrepared(prepared, reviewHash) {
+    const row = preparation(prepared);
+    if (row.used) fail('reused'); row.used = true;
+    const { mutation_id, recipe, precommit, admission, execution } = row;
+    assertCurrentSelectedEventDayBuildRecipe(recipe);
     const executionId = 'selected-day/' + randomUUID(), results = {}, worlds = [];
     for (const variant of ['C', 'M', 'S']) {
         const invocationId = executionId + '/' + variant + '/' + randomUUID();
@@ -111,7 +211,8 @@ export async function executeSelectedEventDayCandidate(raw) {
         compiler_artifact_root: execution.compiler_artifact_root, program_artifact_root: admission.program_artifact_root,
         build_sources_sha256: sha(canonicalValue(recipe.sources)), measured_sources_unchanged: true,
         measured_scope: 'transitive_BUILD_source_inventory_not_the_global_suite_inventory',
-        adjudication, code_audit_required: true, validation_tcb_complete: false,
+        adjudication, reviewed_boundary_admitted_before_handles: reviewHash !== null,
+        review_snapshot_sha256: reviewHash, code_audit_required: true, validation_tcb_complete: false,
         ordinary_v2_witness_qualified: false, profile_witness_qualified: false, semantic_mutation_credit: 0,
         financial_release_eligible: false, receipt_created: false, validated_parent_created: false });
 }
