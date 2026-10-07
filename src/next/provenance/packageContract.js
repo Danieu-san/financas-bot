@@ -2,6 +2,7 @@
 
 const { createHash } = require('node:crypto');
 const admittedPackages = new WeakSet();
+const admittedBytes = new WeakMap();
 
 function fail(code) {
     throw new Error(`package_${code}`);
@@ -58,6 +59,7 @@ function admitPackage(input) {
 
     const seen = new Set();
     const documents = [];
+    const byteEntries = [];
     for (const item of entries) {
         const [path, source] = record(item, ['path', 'bytes']);
         pathKey(path);
@@ -75,10 +77,12 @@ function admitPackage(input) {
         try { value = JSON.parse(text); } catch { fail('json_invalid'); }
         if (!value || typeof value !== 'object' || Array.isArray(value)) fail('json_invalid');
         documents.push({ path, sha256, value });
+        byteEntries.push({ path, bytes });
     }
     documents.sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
     const result = freeze({ stage: 'admitted_bytes_only', documents });
     admittedPackages.add(result);
+    admittedBytes.set(result, byteEntries);
     return result;
 }
 
@@ -87,4 +91,11 @@ function admittedDocuments(value) {
     return value.documents;
 }
 
-module.exports = { admitPackage, admittedDocuments };
+// Privileged BUILD bridge between closed byte tables. Admission/checking rules
+// are unchanged; snapshots never expose the retained buffers or confer review.
+function admittedPackageEntries(value) {
+    const entries = admittedBytes.get(value);
+    if (!entries) fail('not_admitted');
+    return entries.map(row => ({ path: row.path, bytes: Buffer.from(row.bytes) }));
+}
+module.exports = { admitPackage, admittedDocuments, admittedPackageEntries };

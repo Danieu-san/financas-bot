@@ -46,6 +46,13 @@ const PENDING_PROVENANCE_PATHS = Object.freeze([
     'proofOperatorContracts.js', 'proofOperators.js', 'proofParentBinding.js',
     'proofProgramData.js', 'proofSha256.js', 'scalarProofCore.js',
     'scalarProofOperators.js', 'schemaRegistryProjection.js', 'selectionBindings.js',
+    // Explicit negative-profile development candidates, NOT reviewed sources.
+    'selectedEventDayAdjudicator.js', 'selectedEventDayCoreComparison.js', 'selectedEventDayCoverage.js',
+    'selectedEventDayDerivationOperands.js', 'selectedEventDayDispatchCore.js', 'selectedEventDayDispatcher.js',
+    'selectedEventDayExecutionTicket.js', 'selectedEventDayIrContract.js', 'selectedEventDayLauncher.js',
+    'selectedEventDayOracle.js', 'selectedEventDayPacket.js', 'selectedEventDayProfile.js',
+    'selectedEventDayProofChild.cjs', 'selectedEventDayProofHost.js', 'selectedEventDayProofOperands.js',
+    'selectedEventDayProofProtocol.js',
     'templateReferences.js', 'validationTcbEntry.js'
 ].map(file => 'provenance/' + file).concat('kernel/canonicalJson.js').sort());
 

@@ -82,8 +82,8 @@ test('inventory accounts for every source module without silently dropping graph
         inventory.scope.source_files
     );
     assert.deepStrictEqual(inventory.unresolved_product_imports, []);
-    assert.strictEqual(inventory.captured_only_relative_imports.length, 1);
-    const captured = inventory.captured_only_relative_imports[0];
+    assert.strictEqual(inventory.captured_only_relative_imports.length, 3);
+    const captured = inventory.captured_only_relative_imports.find(row => row.from === 'src/next/provenance/validationTcbEntry.js');
     assert.strictEqual(captured.from, 'src/next/provenance/validationTcbEntry.js');
     assert.strictEqual(captured.specifier, '../vendor/schemaValidators');
     assert.strictEqual(captured.target, 'vendor/schemaValidators.js');
@@ -92,6 +92,15 @@ test('inventory accounts for every source module without silently dropping graph
     assert.strictEqual(captured.financial_acceptance, false);
     assert.strictEqual(captured.reviewed_source_admission, false);
     for (const key of ['source_sha256', 'target_sha256', 'artifact_root']) assert.match(captured[key], /^sha256:[a-f0-9]{64}$/);
+    for (const [from, specifier] of [
+        ['src/next/provenance/selectedEventDayProofHost.js', './selectedDayCapturedProofRecipe'],
+        ['src/next/provenance/selectedEventDayAdjudicator.js', './selectedDayCapturedAdjudicationRecipe']
+    ]) {
+        const row = inventory.captured_only_relative_imports.find(edge => edge.from === from && edge.specifier === specifier);
+        assert.ok(row); assert.equal(resolveImport(path.join(ROOT, from), specifier), null);
+        assert.equal(row.financial_acceptance, false); assert.equal(row.reviewed_source_admission, false);
+        for (const key of ['source_sha256', 'target_sha256', 'artifact_root']) assert.match(row[key], /^sha256:[a-f0-9]{64}$/);
+    }
     for (const module of inventory.modules) {
         assert.ok(['runtime', 'operational_only', 'test_only', 'unreferenced'].includes(module.classification));
         assert.strictEqual(module.test_reachable, module.covering_test_count > 0);
@@ -112,4 +121,35 @@ test('captured-only import accounting refuses forged roots, drift, ambient reach
         const result = accountCapturedImports({ ...input, ...change });
         assert.strictEqual(result.captured.length, 0); assert.strictEqual(result.remaining.length, 1);
     }
+});
+
+test('captured-only certificate composes genuine bundle recipes and fails closed for every resolved edge', async () => {
+    const { captureImportCertificate, accountCapturedImports } = require('../scripts/agent/capturedImportInventory.cjs');
+    const cp = require('node:child_process');
+    const originals = { spawn: cp.spawn, spawnSync: cp.spawnSync }; let spawns = 0, certificate;
+    try {
+        for (const key of Object.keys(originals)) cp[key] = () => { spawns++; throw new Error('inventory_must_not_spawn'); };
+        certificate = await captureImportCertificate();
+    } finally { for (const [key, value] of Object.entries(originals)) cp[key] = value; }
+    assert.equal(spawns, 0); assert.equal(certificate.artifact_roots.length, 3);
+    const edges = [
+        { from: 'src/next/provenance/validationTcbEntry.js', specifier: '../vendor/schemaValidators' },
+        { from: 'src/next/provenance/selectedEventDayProofHost.js', specifier: './selectedDayCapturedProofRecipe' },
+        { from: 'src/next/provenance/selectedEventDayAdjudicator.js', specifier: './selectedDayCapturedAdjudicationRecipe' }
+    ];
+    const input = { unresolved: edges, certificate, readSource: file => fs.readFileSync(path.join(ROOT, file)), ambientReachable: () => false };
+    const result = accountCapturedImports(input);
+    assert.equal(result.captured.length, edges.length); assert.deepEqual(result.remaining, []);
+    assert.equal(new Set(result.captured.map(row => row.artifact_root)).size, 3);
+    for (const edge of edges) {
+        const scoped = { ...input, unresolved: [edge] };
+        for (const change of [{ readSource: () => Buffer.from('module.exports={};') },
+            { ambientReachable: () => true }, { unresolved: [{ ...edge, specifier: edge.specifier + '-unknown' }] },
+            { unresolved: [{ ...edge, from: 'src/unknown.js' }] }]) {
+            const rejected = accountCapturedImports({ ...scoped, ...change });
+            assert.equal(rejected.captured.length, 0); assert.equal(rejected.remaining.length, 1);
+        }
+    }
+    for (const clone of [{ ...certificate }, structuredClone(certificate)])
+        assert.throws(() => accountCapturedImports({ ...input, certificate: clone }), /captured_import_inventory_certificate/);
 });

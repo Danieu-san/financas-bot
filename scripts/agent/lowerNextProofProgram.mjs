@@ -16,6 +16,7 @@ import { phaseCompositionCommitment } from '../../src/next/provenance/phaseCompo
 import { assertClaimMonthIsolatedProgram, sealClaimMonthIsolatedLowering, admitClaimMonthIsolatedProof } from '../../src/next/provenance/graphCompiler.js';
 import { admitArtifact } from '../../src/next/provenance/artifactLoader.js';
 import { QUALIFICATION_PATH, decodeClaimMonthProfile } from '../../src/next/provenance/claimMonthIsolatedProfile.js';
+import { selectedEventDayProgramInputs, selectedEventDayProgramFamily } from '../../src/next/provenance/selectedEventDayProfile.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const fail = code => { throw new Error(`proof_program_${code}`); };
@@ -80,7 +81,7 @@ export function buildScalarAssertionFaultProgram(raw, predicateId) {
     return lowerScalarProofProgram(raw, 'proof', predicateId);
 }
 
-function lowerScalarProofProgram(raw, phase, faultId, qualification = null) {
+function lowerScalarProofProgram(raw, phase, faultId, qualification = null, selectedDay = null) {
     if (!['proof', 'derivation'].includes(phase)) fail('phase');
     let input; try { input = copyData(raw); } catch { fail('input'); }
     fields(input, ['predicates', 'windows', ...['materials', 'operators', 'selections'].filter(name => Object.hasOwn(input, name))]);
@@ -366,7 +367,9 @@ function lowerScalarProofProgram(raw, phase, faultId, qualification = null) {
             return `if (fingerprint(checkedNode(operands.node(${q(node.expression.alias)}),${q(node.type.kind)}),`
                 + `${q(descriptor)},"enumerated_presence") !== ${literal}) all = false;`;
         }
-        const values = predicate.operands.map(operand => `{type:${q(operand.type)},value:${read(operand.expression, operand.type)}}`);
+        const values = predicate.operands.map(operand => `{type:${q(operand.type)},value:${selectedDay
+            && predicate.id === selectedDay.target_predicate_id
+            ? `rootOperands.operand(()=>${read(operand.expression, operand.type)})` : read(operand.expression, operand.type)}}`);
         return `if (!scalar(${q(predicate.operator)},[${values.join(',')}])) all = false;`;
     });
     const lowered = new Map(input.predicates.map((predicate, index) => [predicate.id, lines[index]]));
@@ -376,7 +379,8 @@ function lowerScalarProofProgram(raw, phase, faultId, qualification = null) {
         const site = siteId(role, predicate.id, suffix);
         sites.push({ site, role, predicate_id: predicate.id, operator: predicate.operator.id,
             operands: predicate.operands });
-        return `${site}:{${line}}`;
+        return `${site}:{${selectedDay
+            ? `if(!rootOperands.dispatch(()=>{let all=true;${line}return all;}))all=false;` : line}}`;
     };
     let faultFound = false;
     const assertions = input.predicates.map((predicate, index) => {
@@ -444,7 +448,8 @@ function lowerScalarProofProgram(raw, phase, faultId, qualification = null) {
         + `function checkedNode(handle,kind) { if (identity(handle).kind!==kind) throw new Error('proof_program_node_kind'); return handle; }\n`
         + `function checkedPeriod(value) { scalar({id:"period_eq",args:["period","period"],semantics:"equal_period_kind_and_fields"},`
         + `[{type:{form:"period"},value},{type:{form:"period"},value}]); return value; }\n`
-        + `function run(operands) { const rootOperands=operands;\n${selections.join('\n')}\nlet all = true;\n${assertions.join('\n')}\nreturn all; }\nmodule.exports = {run};\n`;
+        + `function run(operands) { const rootOperands=operands;${selectedDay
+            ? `if(rootOperands.selectedDayOrigin()!==true)throw new Error('proof_program_selected_day_origin');` : ''}\n${selections.join('\n')}\nlet all = true;\n${assertions.join('\n')}\nreturn all; }\nmodule.exports = {run};\n`;
     const recipe = ['scalarProofCore', 'proofProgramData', 'proofObservedValues', 'observationScalars', 'operatorTypes', 'literalTypes', 'civilCalendar',
         'materialFingerprintCore', 'proofSha256', 'collectionProofCore'];
     const sources = recipe.map(name => ({ path: `provenance/${name}.js`,
@@ -461,6 +466,53 @@ function lowerScalarProofProgram(raw, phase, faultId, qualification = null) {
 // TCB control value, never a metric/fact-key dispatcher or expected trace.
 export function buildPhaseProofProgram(raw, phaseProfileReceipt) {
     return lowerPhaseProofProgram(raw, phaseProfileReceipt, null);
+}
+
+// BUILD candidate only. Normal compiler admission and measured ticket/child
+// are separate requirements; this adapter cannot qualify or release a root.
+// No predicate/site/operand labels are supplied by the guest: callback order
+// must be owned and checked by the future measured dispatcher.
+export function buildSelectedEventDayPhaseProofProgram(raw, phaseProfileReceipt, expectation) {
+    const planned = selectedEventDayProgramInputs(expectation);
+    let input; try { input = JSON.parse(JSON.stringify(copyData(raw))); } catch { throw new Error('selected_day_program_input'); }
+    if (canonicalValue(input) !== canonicalValue({ derivation: planned.derivation, proof: planned.proof }))
+        throw new Error('selected_day_program_input');
+    const phase = phaseCompositionCommitment(phaseProfileReceipt);
+    if (phase.sha256 !== planned.phase.sha256 || phase.registry_sha256 !== planned.phase.registry_sha256)
+        throw new Error('selected_day_program_phase');
+    const built = lowerPhaseProofProgram(input, phaseProfileReceipt, null, null, null, planned);
+    return Object.freeze({ ...built, stage: 'selected_day_dispatch_program_candidate_only', negative_witness_only: true,
+        profile_witness_qualified: false, financial_release_eligible: false });
+}
+
+// One measured program root is intended for the entire C/M/S family. The
+// external TCB selects the variant, not a fact/metric dispatcher or the guest.
+// Separate per-variant roots would violate exact core measurement equality.
+export function buildSelectedEventDayCommonProofProgram(raw, phaseProfileReceipt, expectations) {
+    const family = selectedEventDayProgramFamily(expectations);
+    let input; try { input = JSON.parse(JSON.stringify(copyData(raw))); } catch { throw new Error('selected_day_program_input'); }
+    if (canonicalValue(input) !== canonicalValue(Object.fromEntries(['C', 'M', 'S'].map(v => [v,
+        { derivation: family[v].derivation, proof: family[v].proof }])))) throw new Error('selected_day_program_input');
+    const profile = phaseCompositionCommitment(phaseProfileReceipt);
+    if (profile.sha256 !== family.C.phase.sha256 || profile.registry_sha256 !== family.C.phase.registry_sha256)
+        throw new Error('selected_day_program_phase');
+    const derivation = buildScalarProofProgram(input.C.derivation, 'derivation');
+    const proofs = Object.fromEntries(['C', 'M', 'S'].map(v => [v,
+        lowerScalarProofProgram(input[v].proof, 'proof', null, null, family[v])]));
+    const source = `/* selected-event-day-path/v1 common ${family.C.precommit_hash} */\n`
+        + `/* phase-profile ${profile.sha256}; registry ${profile.registry_sha256} */\n`
+        + `(function(operands){'use strict';if(operands.phase==="derivation")return (${derivation.source})(operands);`
+        + `if(operands.phase==="proof"){const variant=operands.selectedDayVariant();`
+        + ['C', 'M', 'S'].map(v => `if(variant===${q(v)})return (${proofs[v].source})(operands);`).join('')
+        + `throw new Error('proof_program_selected_day_variant');}throw new Error('proof_program_phase');})`;
+    validateGuestBundle(source);
+    const files = [{ path: 'bundle.js', media_type: 'text/javascript', sha256: `sha256:${createHash('sha256').update(source).digest('hex')}` },
+        { path: profile.path, media_type: 'application/json', sha256: profile.sha256 }];
+    const manifest = canonicalValue({ format: 'financasbot.provenance.artifact', version: 1, kind: 'proof', entry: 'bundle.js', files });
+    return Object.freeze({ stage: 'selected_day_common_program_candidate_only', executable: false, source, manifest,
+        artifact_root: `sha256:${createHash('sha256').update(manifest).digest('hex')}`, profileInput: profile,
+        common_program_identity: true, negative_witness_only: true,
+        profile_witness_qualified: false, financial_release_eligible: false });
 }
 
 // Full M input must come from the private compiler plan. The artifact retains
@@ -493,15 +545,17 @@ export function buildPhaseAssertionFaultProgram(raw, phaseProfileReceipt, predic
     return lowerPhaseProofProgram(raw, phaseProfileReceipt, predicateId);
 }
 
-function lowerPhaseProofProgram(raw, phaseProfileReceipt, predicateId, qualification = null, capturedCommitment = null) {
+function lowerPhaseProofProgram(raw, phaseProfileReceipt, predicateId, qualification = null, capturedCommitment = null, selectedDay = null) {
     let input; try { input = copyData(raw); } catch { fail('input'); }
     fields(input, ['derivation', 'proof']);
     const profile = capturedCommitment ?? phaseCompositionCommitment(phaseProfileReceipt);
     const derivation = buildScalarProofProgram(input.derivation, 'derivation');
-    const proof = qualification ? lowerScalarProofProgram(input.proof, 'proof', null, qualification.data)
+    const proof = selectedDay ? lowerScalarProofProgram(input.proof, 'proof', null, null, selectedDay)
+        : qualification ? lowerScalarProofProgram(input.proof, 'proof', null, qualification.data)
         : predicateId === null ? buildScalarProofProgram(input.proof)
         : buildScalarAssertionFaultProgram(input.proof, predicateId);
-    const source = `/* phase-profile ${profile.sha256}; registry ${profile.registry_sha256} */\n`
+    const source = (selectedDay ? `/* selected-event-day-path/v1 ${selectedDay.variant} ${selectedDay.precommit_hash} */\n` : '')
+        + `/* phase-profile ${profile.sha256}; registry ${profile.registry_sha256} */\n`
         + `(function(operands){'use strict';if(operands.phase==="derivation")return (${derivation.source})(operands);`
         + `if(operands.phase==="proof")return (${proof.source})(operands);throw new Error('proof_program_phase');})`;
     validateGuestBundle(source);

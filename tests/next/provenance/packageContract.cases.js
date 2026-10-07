@@ -32,6 +32,22 @@ test('N02G:PACKAGE-001 exact bytes admitted without execution or caller mutation
     assert.throws(() => admittedDocuments(structuredClone(result)), /package_not_admitted/);
 });
 
+test('N02G:PACKAGE-007 privileged byte snapshots retain admission identity without exposing mutable storage', () => {
+    const { admittedPackageEntries } = require('../../../src/next/provenance/packageContract');
+    const input = fixture(), receipt = admitPackage(input);
+    const expected = input.entries.map(row => ({ path: row.path, bytes: Buffer.from(row.bytes) }));
+    input.entries[0].bytes.fill(0);
+    const snapshot = admittedPackageEntries(receipt);
+    assert.deepEqual(snapshot, expected);
+    snapshot[0].bytes.fill(0);
+    assert.deepEqual(admittedPackageEntries(receipt), expected);
+    assert.throws(() => admittedPackageEntries(structuredClone(receipt)), /package_not_admitted/);
+    let effects = 0;
+    assert.throws(() => admittedPackageEntries(new Proxy(receipt, { get() { effects++; } })), /package_not_admitted/);
+    assert.equal(effects, 0);
+    assert.equal(Object.hasOwn(receipt, 'bytes'), false);
+});
+
 test('N02G:PACKAGE-002 any missing, extra or duplicate entry fails', () => {
     for (const mutate of [
         f => f.entries.pop(),

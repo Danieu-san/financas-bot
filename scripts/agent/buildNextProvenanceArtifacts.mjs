@@ -47,7 +47,8 @@ function buildClosedCommonJsBundle({ sources, entry, exportName, constants = [],
         if (!row || Object.keys(row).sort().join(',') !== 'source,specifier' || !files.has(row.source)
             || !(['node:child_process', 'node:path'].includes(row.specifier)
                 || row.source === 'provenance/nativeRuntime.js' && row.specifier === 'node:fs'
-                || row.source === 'provenance/capturedTcbLauncher.js' && row.specifier === 'node:vm')) fail('native_imports');
+                || ['provenance/capturedTcbLauncher.js', 'provenance/selectedEventDayLauncher.js'].includes(row.source)
+                    && row.specifier === 'node:vm')) fail('native_imports');
         const key = JSON.stringify([row.source, row.specifier]);
         if (declaredNative.has(key)) fail('native_imports'); declaredNative.add(key);
     }

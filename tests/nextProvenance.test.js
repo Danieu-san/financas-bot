@@ -17,6 +17,7 @@ require('./next/provenance/obligationBindings.cases');
 require('./next/provenance/operandBindings.cases');
 require('./next/provenance/claimRequirements.cases');
 require('./next/provenance/claimMonthPathProfile.cases');
+require('./next/provenance/selectedEventDayProfile.cases');
 require('./next/provenance/selectionBindings.cases');
 require('./next/provenance/collectionRequirements.cases');
 require('./next/provenance/artifactLoader.cases');
