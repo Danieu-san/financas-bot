@@ -1,0 +1,1075 @@
+{
+  "schema": "financasbot-scope-baseline-v1",
+  "head": "04eb9545516d100aa45e1ac6d8ebfda444fafbd7",
+  "branch": "codex/n02g-month-profile-code-20261004",
+  "rows": [
+    {
+      "path": ".agents/skills/execute-financasbot-gate/SKILL.md",
+      "sha256": "0ff8462d8c5320342a09d5ea034a38fee60b4012350e7123ba4e2015832eb064"
+    },
+    {
+      "path": ".gitattributes",
+      "sha256": "41ec78b2321d5a067f0f36978c3ea95b147433b9c4474fe4cdac443ff9de7e7e"
+    },
+    {
+      "path": "docs/agent-memory/workstreams/financasbot-n02g-month-code-audit-20261004.md",
+      "sha256": "b0d3512317702d6d1b20e8a07613f8ef68ef6ea2562e8a8676825602f0a932af"
+    },
+    {
+      "path": "docs/agent-memory/workstreams/financasbot-n02g-scope-reconciliation-20261007.md",
+      "sha256": "533508babfe1bdea65e083c38b7d0a4d32aaad3a62b10639a095721d91da9fc9"
+    },
+    {
+      "path": "docs/agent-memory/workstreams/financasbot-wait-cadence-20261007.md",
+      "sha256": "ea47b1fb1f827cef1b9a62f5658a327065bfba1b79157c3a60abcb780d9534d5"
+    },
+    {
+      "path": "docs/agent-memory/workstreams/index.md",
+      "sha256": "c10d29bf0b3478bff8fe5f69fdd7060bc1d277bb9982d5107fed2d9752f51354"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/claim-month-code-audit-scope-v1.md",
+      "sha256": "cf0497d186e1d411b49235275dd671a02cd9faf51b0d2b93c16338be038d8db0"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/claim-month-code-independent-review-20261005.md",
+      "sha256": "fc99f8d6111c5ae3ec761a62db40026ab29072398206c4a554606d4071a7050e"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/claim-month-code-measured-sources-20261005.json",
+      "sha256": "ec1efd64b5e13bacc11fb36e74c3f2720db407e194935ae40dd6b510b25825ef"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/claim-month-code-validation-20261005.json",
+      "sha256": "f1a56912f77ffe263bf6a43dc08fde433b12bff64de62f1081c89724e8e837dc"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/claim-month-profile-local-implementation-20261004.md",
+      "sha256": "d3353af00750b7b2c1fec4a605c73eac72c0eafb40e45102a5c9d90762b86fcc"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/compositional-path-proposal-audit-20261008.md",
+      "sha256": "760738e6097ae032bdeee593a4f82f580eb0eca952aa9b8ca163c09d07374fe3"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/coverage-mechanism-controls-20261005.md",
+      "sha256": "3d4267b3db67616957dbac03c0ccd3f4fe2ff2a15b56f355195bd82af739261a"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/graph-process-coverage-repair-20261005.md",
+      "sha256": "ea9174c833348f7f750bf70519384ff9bbbb7044bcda5b9a5255a33b56e4baca"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/graph-process-final-wide-red-20261005.md",
+      "sha256": "b762182757efc5a75302a06ad002fba962f2218df358599c5cd7250b368b251b"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/graph-process-fixture-audit-scope-20261006.md",
+      "sha256": "34ed17ae2695e6f00e71fcefc86489ce268cde636b0fbd42ad9bef7a8a0fad91"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/graph-process-fixture-final-evidence-20261006.json",
+      "sha256": "c08d8b6c78ec896a0f2858d0196f92db5686d42d6c7e289c1f72aa0d38495eaf"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/graph-process-fixture-independent-review-20261006.md",
+      "sha256": "df2a4f3ef7f613fd50db633d011fd81b8a6613fd352eb08b1966bf824fb3b12b"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/graph-process-fixture-publication-20261006.md",
+      "sha256": "9a835d0b31b89a904559e9ab028855ca63a2c84c39a15348139b4844e28fb4c2"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-authorship-v1-frozen.json",
+      "sha256": "e9c852034d8cc887e1d8645a61d9597176409f72a28eaf0de4c95f17c0c8358d"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-civil-preflight-and-scoped-red-20261006.md",
+      "sha256": "b972132041b72c2ad1f433c3c562550181ad182dd08ca6b99d9aed155d5a4001"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-civil-reference-audit-scope-20261006.md",
+      "sha256": "8c790dc77cc80bd66f4de88493f2d9def83f28c46806520b602c315f91cdaf39"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-civil-reference-final-evidence-20261006.json",
+      "sha256": "c34ac553cd0db2f9ceccd732fa6032cbd28ccf8b2436084c5c641f529e016e3e"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-civil-reference-independent-review-20261006.md",
+      "sha256": "d6488377a9c116cce852274b5355100ca4cf78fd5fa7cf56abe925f0a8d0a759"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-civil-reference-publication-20261006.md",
+      "sha256": "a23b18c76acf1848663fe2a541904c0ee5ce0bb9d9ebdac72c82a3c52f38504b"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-civil-scoped-dp-driver-20261006.mjs.txt",
+      "sha256": "8a3913d58c304713a88cb3bdc2f70c073207ad609a7c9ea59d706fd2fb3ea19e"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-date-preflight-capture-interruption-20261006.md",
+      "sha256": "9339abb88381c6b47f61552a34fc4117d3d8f50445f73e77e084716cdcf90c0c"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-date-preflight-dp-local-evidence-20261006.md",
+      "sha256": "863d52928634a8020de301ea22c2ee42c8589f840c84828a87f85b60e87bc114"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-domain-v2-independent-review.md",
+      "sha256": "7af718685904aee371718e346fced917651f85f6a019f820d30229e7813c6231"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-equality-reference-local-evidence-20261006.md",
+      "sha256": "4c381270dabb11067f8d1e38dcac7fbae2823eab1bdf4e878e218b42ad330379"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-inventory-v1-frozen.json",
+      "sha256": "2509cb7df02a98a1217a416c70b5f729b40ca331314ce2d925005ec15a779a9d"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-inventory-v1-v2-migration-r2.json",
+      "sha256": "9cdeb313ddbb951392da692ce59bc9456a3d76b4f37d3d1deead841527a6db76"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-inventory-v1-v2-migration.json",
+      "sha256": "e8a5ff563e759c28d7b524b525ee869c662b96f84a65d220c4728fc64c42d38a"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-inventory-v2-candidate.json",
+      "sha256": "ca8850c35cf8032dd76e3112c54390f80ec46c6bda10d3de26d04a5929a7ddd5"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-scoped-execution-audit-scope-20261006.md",
+      "sha256": "289a45cb46c39209955de6dc71957b3837f8e9d194751352671e999449211e49"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-scoped-final-evidence-20261006.json",
+      "sha256": "2d342b2965c32d06dd67d2fb13d4fd29b5ed2eb815b14c9e16a052fd34f3606f"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-scoped-harness-independent-review-20261006.md",
+      "sha256": "a65c84167b8a68f286a5db94ca94e24823e342a7257e7857a3d4e8d6b3aa4dbd"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-semantic-singleton-independent-review.md",
+      "sha256": "532db66e9c291a7444a9d12676c3ff26aa5fdae44021f2cc9cba04bbcaecead7"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-singleton-month-profile-independent-review.md",
+      "sha256": "5a5a7ff1c95bd44af1d780358bcac812021d004b0e6cd8c682c91b71b45c1d59"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-template-diagnostic-final-evidence-20261006.json",
+      "sha256": "834dbb67d0abd85adaa93ab1874beb20ad4d445c23d4c1ed4c90cb92a11e9016"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-template-diagnostic-independent-review-20261006.md",
+      "sha256": "f8e00e80de77a6860272914296a6f94b5ab202e7e7591b5526471597b6243c70"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-template-diagnostic-publication-20261006.md",
+      "sha256": "50f78c70f704f82e417052ac9fe4012ae4e63df209ba623a1846199ce5abeb10"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-template-diagnostic-scope-20261006.md",
+      "sha256": "2dc2aad64c36799038924d000135a83e8e71fe7776b4a70e3cee6628d5ff8e2a"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-timezone-reference-20261007/iana-tzdb-2025b-southamerica.txt",
+      "sha256": "57cc4ee3dc4bd575f126ba76f284a9ee67330c6fbb7576792eda27f41451ff22"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-timezone-static-local-evidence-20261007.md",
+      "sha256": "78315a78a65ea7d66a92793517241657a55bf9573d1119b6a13498c92fe4c412"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-history-20261008/.gitattributes",
+      "sha256": "787d3ae4e59e60582eb69d0d32eb6c1168dfa38bf4e2a21c98ce5d87226b6ef4"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-history-20261008/capture.json",
+      "sha256": "3338e0dedcf90f65ec3758af48507cfb8c5cee4c954e93e9aa518354a374fc75"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-history-20261008/historical-v2-report.json",
+      "sha256": "3187e36259bc11fcd2c9063a6a4ba25987f1e1acca18a81a96aee87834b007d0"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-window-admission-preflight-20261006.mjs.txt",
+      "sha256": "c7650fcae156fc955e88b4dd4bedabf8d81541d5bd9377c959d18ea42eb35ce3"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-window-final-evidence-20261006.json",
+      "sha256": "0e3374d690a2f56ddeb16a4a44d07a7f32482f69f622cc85215882ca801e68bc"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-window-reference-audit-scope-20261006.md",
+      "sha256": "b6568deff1ac5791ce3b293b2e177d81a42018bb048ea79da8313338405e3845"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-window-reference-census-20261006.mjs.txt",
+      "sha256": "214ee11bcaf8d5b6ba841dfa828645172d587dfa15c114f30fa07044188f141f"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-window-reference-independent-review-20261006.md",
+      "sha256": "087d34e0d4d53160dea037f0318428e27efe5f2f9e6d80144f6c0c56ecb10595"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-window-reference-local-evidence-20261006.md",
+      "sha256": "fa8990068a04a71be8e619edf6d12ddb874184b18c0a693385edd4c6a158a6d3"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-window-scoped-dp-20261006.mjs.txt",
+      "sha256": "90c95823a8b2ad670d35af7eb7824d12b2ec081a2e36e1ed7daacd46d4100ccc"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/prepare-account-installment-application.cjs",
+      "sha256": "1880a614434d3d1efeba50af3e8bce3bb1f0ec6f22ecf34ed9ece94803391ecc"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/provenance-aggregate-diagnostic-20261005.json",
+      "sha256": "a97ed23dfc702761f9d2e697b19c8d73112794529a7c13d2d0aad3b9ea0dd37e"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/provenance-aggregate-diagnostic-20261005.md",
+      "sha256": "ca6defe364f21b3eb38e54287d9c6ceead7c1d69b54114cf3b42f090b0d4f888"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/selected-day-reviewed-admission-audit-request-20261007.md",
+      "sha256": "ddb59c58bdaea90b6267582193ac8baa1d0a0c4be2ac8c62ade20df70c7a9cad"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/selected-day-reviewed-admission-audit-scope-20261007.md",
+      "sha256": "29bd4e498807cf7a069edb51727bfbff7e18f912ee31e38f0634978ae0b53132"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/selected-day-reviewed-admission-candidate-evidence-20261007.json",
+      "sha256": "9130733d75bd0fe153e036e14779fffeda9bb79c078fbc2d77b7562da713cd7b"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/selected-day-reviewed-admission-independent-review-20261007.md",
+      "sha256": "04ca016428b62ae3aed9cce3ccdffe482a301a8b1c12f85e51b197e5d2e425e2"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/selected-day-reviewed-admission-local-evidence-20261007.md",
+      "sha256": "52b9b70b982718ae4c4ba420c4bd11fb8022bf9bf06e98e9f5c74f76106c7c55"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/selected-day-reviewed-execution-20261007/.gitattributes",
+      "sha256": "21bd891ba4f2c351d369ca6642d35b3e309e006462c1cdc66e289cd15cd24bc6"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/selected-day-reviewed-execution-20261007/README.md",
+      "sha256": "c5d79cb3f105c4925ce2e37235227c686f2f48e62e35e714b49b98078c76011b"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/selected-day-reviewed-execution-20261007/artifact-manifest.json",
+      "sha256": "58958e8b65ae8587eef1ce275075d9da991714f72f31554735dc4d74287269c5"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/selected-day-reviewed-execution-20261007/execution-freeze.json",
+      "sha256": "ffbb27eadeeb1d6854a87182a560b48d4d693fb276a902916b6d461b7f387796"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/selected-day-reviewed-execution-20261007/review-snapshot.json",
+      "sha256": "c706906b8d3b0a594765a0faef024178cea85941031f094c4af30115d9b6f030"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/selected-day-reviewed-execution-20261007/selected-day-adjudicator.js",
+      "sha256": "7d72153c75af7eeccee9d916b8f2a15e4500746ebecb73fd3de5fe16f0580f4c"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/selected-day-reviewed-execution-20261007/selected-day-build-recipe.json",
+      "sha256": "7b1b655dc4f2281ac47f4159f9ea543ec5ef23af572dafc25c7f6babd6ed9bd9"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/selected-day-reviewed-execution-20261007/selected-day-compiler-binding.json",
+      "sha256": "ff39ee348a311ec631283e4d669fcb321a0558806ad924985ab79ac9f5eabdfb"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/selected-day-reviewed-execution-20261007/selected-day-compiler-recipe.json",
+      "sha256": "5404208701a79b6940067612b07ba4e95b612dfc00f3d008bfd4037bf8aa4b9e"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/selected-day-reviewed-execution-20261007/selected-day-compiler.js",
+      "sha256": "7af08886ce2c72c714f2b8457575b8cf8b3bb54d22e219bd0a5771dd3d98dd08"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/selected-day-reviewed-execution-20261007/selected-day-launcher.js",
+      "sha256": "b66582993dd723f2fb546b2819009820b8fb9d93eb13eaaa2a078a016af94158"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/selected-day-reviewed-execution-20261007/selected-day-proof-child.js",
+      "sha256": "5e019f809a2619de669cef3dc98b980355eaf839536eb2576afa197cbc4e4ae6"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/selected-day-reviewed-execution-20261007/selected-day-proof-host.js",
+      "sha256": "922c2dcefa7de2ced5c21ef18542f84fa847359e0484d4a181cc5d6f076b6209"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/selected-day-reviewed-execution-20261007/selected-day-recipe.json",
+      "sha256": "6cd2d5bc6b6a27fe9ee51e53a4bd2a93484c9c8218209ff8367cd920c50128d7"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/selected-day-reviewed-execution-20261007/selected-day-ticket.json",
+      "sha256": "dd29668e24fb7958e721152c8cef2b50c36c82466f932ba5475b004122cffa18"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/selected-day-reviewed-qualified-invocation-local-evidence-20261007.md",
+      "sha256": "ce19f0d107a95e9c3aecc1d1546b532392557565feca1e827be7232779e4b055"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/selected-event-day-code-audit-request-20261007.md",
+      "sha256": "e61e3ae39d4c4346df2a50d728f7b999aab805daa95094091415be0223f83c5d"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/selected-event-day-code-audit-scope-20261007.md",
+      "sha256": "fd295ac1d29c39fee2b9a11728277af967187b504bd95c654dd206bc444d07b0"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/selected-event-day-code-candidate-evidence-20261007.json",
+      "sha256": "0dbb216d14d25918d525a734569222ccd6223e299549984e3ac18412a1de8ade"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/selected-event-day-code-independent-review-20261007.md",
+      "sha256": "121a8aebc801d14978187b46bf99de04967b2da5190a7ef92fa47db90df3139f"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/selected-event-day-path-profile-audit-request-20261006.md",
+      "sha256": "2cae1f72347d8d0929fd7ab9ae55303ff07eb30ad34a20bf1e67ce304c82552a"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/selected-event-day-path-profile-independent-review-20261006.md",
+      "sha256": "fc6c7045966f72b34fdfa91d07d3173af8dc2207668baf72c8b6677f40d88d9e"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/selected-event-day-path-profile-witness.json",
+      "sha256": "73440f47e2c711808795ab43b02ccfcdaaea81e0ea21b9cf99a749d8751a7c60"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/selected-event-day-post-audit-invocation-local-evidence-20261007.md",
+      "sha256": "9f29b24c4bf4b94b15aa812005459fd15b4c6e270260f80662420b7f8e103452"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/selected-event-day-profile-local-evidence-20261006.md",
+      "sha256": "63d4d2cd7241ec88468bfb727b0f9d1e3bcf0b54c9953409de3ad3a92a1fa94f"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/source-state-phase-independent-review.md",
+      "sha256": "1d3b8d9a209d313fcb91e421c4282e8193e8b49717c4537260eff7a0a3483dcc"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/verify-graph-process-final-evidence-20261006.cjs",
+      "sha256": "518bf6e9db82ce88402012b873326e39a1ebf765d85305fcc3b20cff75059e5a"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/verify-path-civil-final-evidence-20261006.cjs",
+      "sha256": "f1ace00feb798960ea2c904a4d22beecba3bfb5fb4ed5675f4f7d1366950b76f"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/verify-path-scoped-final-evidence-20261006.cjs",
+      "sha256": "88aa1de267d0825cad5ff87b970456f13c20ea5b9b4c3c603a65c10ba30c03c6"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/verify-path-template-final-evidence-20261006.cjs",
+      "sha256": "3672c0331d88c01407a1c1dddc723c25c913633f47f24b35a00bbe1f4b11d888"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/verify-path-window-final-evidence-20261006.cjs",
+      "sha256": "de73c420e2ec957ec39f9f386637c20507e668b8c040108a05505b7224bf8045"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/verify-selected-day-reviewed-boundary-20261007.cjs",
+      "sha256": "a318af54a1882ed91491ad47bd4059900ee2d6a646e3bdb24cfd18aab3dd40e5"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/verify-selected-event-day-code-candidate-evidence-20261007.cjs",
+      "sha256": "9459eabff82a1e3eac938f0f505b993331e674901d37cfc495b5fa186d9f2d7f"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/verify-selected-event-day-path-profile-witness.cjs",
+      "sha256": "57817945ccaae3a3531ea800d763c9ef80093f1d41821533513550c3b34459b1"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-parent-observation/prepare-parent-observation.cjs",
+      "sha256": "49904875d98e1b5aeaf4fb326ad63da4a271c1b4ca502efea7fa201b27c921fa"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/eligible_event_count.json",
+      "sha256": "f338fef9c95fa8ec005b95b6aa8b21069bb1c04f03ccc777d672bf5f161f4951"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/source_coverage.json",
+      "sha256": "fab2872015cb21a449c05e355f7ba967865078ed963c869e84dd96da4b1e0111"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+      "sha256": "e9c852034d8cc887e1d8645a61d9597176409f72a28eaf0de4c95f17c0c8358d"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/metric-evaluator-registry-v1.json",
+      "sha256": "a1fde4b01b9f68bdd2550305305ca2ffe8f750af0351b29b12bf3bb5afdb3c88"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/phase-composition-profile-v1.json",
+      "sha256": "204962b56fd0833f3d15ac030e6c55dd3866c8fd18ded5e24784f729e41be2bc"
+    },
+    {
+      "path": "docs/plans/workstreams/financasbot-cp02-closure-inventory-v1.md",
+      "sha256": "040284188b5ba9d0d8982587f76527095c33e1e03ccd4520ad5cdbec3c604be2"
+    },
+    {
+      "path": "docs/plans/workstreams/financasbot-domestic-roadmap-review-20261007.md",
+      "sha256": "3b34389557e620da9e8e0d8d3227766a5f9956950cf8ec99029538bb083d6143"
+    },
+    {
+      "path": "docs/plans/workstreams/financasbot-n02g-path-civil-reference-20261006.md",
+      "sha256": "4716b183d14016cfa9ca201a05d18da6e3777378519a95a379525acfcc72d62d"
+    },
+    {
+      "path": "docs/plans/workstreams/financasbot-n02g-path-scoped-execution-20261006.md",
+      "sha256": "b23bb15708906f7f54652975688a5c6be190a29d21b399ac2fcb133152b96fa8"
+    },
+    {
+      "path": "docs/plans/workstreams/financasbot-n02g-path-window-reference-20261006.md",
+      "sha256": "6ede08e13a3c37e5d836b7de8699c83e3fbb0e022ad29fea0b68b34804348dff"
+    },
+    {
+      "path": "docs/plans/workstreams/financasbot-next-00-provenance-graph-design-v1.md",
+      "sha256": "f5f15a96999750a5dbc3c9b975ab78008ae7c8388b042f7bee1acd472e4ebcb0"
+    },
+    {
+      "path": "docs/plans/workstreams/financasbot-next-02-n02g-compositional-path-qualification-proposal-v1.md",
+      "sha256": "0c831d290c0ae47960d1fc11b9ea530d792a926cb2211a1313d7d070f0d24eba"
+    },
+    {
+      "path": "docs/plans/workstreams/financasbot-next-02-n02g-selected-event-day-implementation-20261006.md",
+      "sha256": "dcd3d3ba5b0b2a021fddb3db5f75c61b3ab665f3d3e7cd668f5fd88b2e952334"
+    },
+    {
+      "path": "docs/plans/workstreams/financasbot-next-02-n02g-selected-event-day-path-profile-proposal-v1.md",
+      "sha256": "55f4fa20e501961812026e4be8a63811f590e923099fc6ab1ab7ffd5fb2411f1"
+    },
+    {
+      "path": "docs/plans/workstreams/financasbot-next-02-n02g-timezone-reference-20261007.md",
+      "sha256": "33a6c6cebbde37f07a9dd6813a43598901883eecd260dd9c1494b9b1af51f383"
+    },
+    {
+      "path": "docs/plans/workstreams/financasbot-next-02-n02g-v1.md",
+      "sha256": "a55d93f3a852b41e52d9a5881512d5b7b32d5b3a99152604b8d28224affe204d"
+    },
+    {
+      "path": "scripts/agent/analyzeSelectedEventDayExecutableClosure.mjs",
+      "sha256": "16bc2320946fc1e8eb5bbf9544b035a08f786a463f1a39c33f4e6e1eeb7838ad"
+    },
+    {
+      "path": "scripts/agent/applyN02gParentObservation.cjs",
+      "sha256": "c6ca5e55fda914f9a912ad54a7ae5dee0f9f71f3e88170989c1343c9a942bb31"
+    },
+    {
+      "path": "scripts/agent/buildNextMetricArtifacts.mjs",
+      "sha256": "5ce85a2c284946b37b33820fbc1722140515a196a7f93544e4a5fd2e478a906c"
+    },
+    {
+      "path": "scripts/agent/buildNextProvenanceArtifacts.mjs",
+      "sha256": "a563450252a995a0a35d83dc921c8af931bcb330c642e6de7a92857cd3a2fb2b"
+    },
+    {
+      "path": "scripts/agent/buildNextValidationTcb.mjs",
+      "sha256": "05fc2d65d7c44f42ea889720e992a95a57b2a24d270c36485ac0de9b3f9464b7"
+    },
+    {
+      "path": "scripts/agent/buildSelectedEventDayDispatchCapsule.mjs",
+      "sha256": "8bb2e12b5b8cbc23bdb5f34bdf58f59ee0704040d80aa592860c5f4e0734a227"
+    },
+    {
+      "path": "scripts/agent/buildSelectedEventDayProofExecution.mjs",
+      "sha256": "3be5969923ac75101320ccd4f46c1ae99aa94b878200fccad1c3367b97019f0c"
+    },
+    {
+      "path": "scripts/agent/capturePathQualificationCompiler.mjs",
+      "sha256": "8c7ad0d83f8eb17d2b2ae0746553646c71653cb075b62f25a9a45178a187bb8a"
+    },
+    {
+      "path": "scripts/agent/captureSelectedEventDayBuildRecipe.mjs",
+      "sha256": "2b8450e41ac804f398addce5c26f8334e61a3198bf3e03420fa5f99e464bd156"
+    },
+    {
+      "path": "scripts/agent/captureSelectedEventDayCompiler.mjs",
+      "sha256": "2cf1effe56422c14265670438d7d09fbabb458c641b18de26aa0957e4d4176a3"
+    },
+    {
+      "path": "scripts/agent/capturedImportInventory.cjs",
+      "sha256": "9ddc379db155945045314fb04971bd6a2bdf41ff7007a9aa1c42a746b9fd5578"
+    },
+    {
+      "path": "scripts/agent/executeClaimMonthProfileScope.mjs",
+      "sha256": "4a6ed8b26e7d9e036a5621393af271cf801199596e435678c0efd1d7565729b3"
+    },
+    {
+      "path": "scripts/agent/executeNextDomainInvariantMatrix.mjs",
+      "sha256": "61b5c65973589926a1fb66f36630008daefb38114658026baeae290a53fbf2fe"
+    },
+    {
+      "path": "scripts/agent/executeNextPredicateStrategyMatrix.mjs",
+      "sha256": "d92f2680d7b75c3ebec8e9fa0634b436ee583f0c600660d7767a8ed0fd01f32e"
+    },
+    {
+      "path": "scripts/agent/executeNextSourceStateMutationMatrix.mjs",
+      "sha256": "9170391c2850328ed93f7e02095c48724bf0b125b7eef9a4a3cab1512dc340c8"
+    },
+    {
+      "path": "scripts/agent/executeNextTraceOmissionMatrix.mjs",
+      "sha256": "3438150c859f2e38f0c5f5842d3cdafe1d49c5c6ea98b853b337e59bee4ec438"
+    },
+    {
+      "path": "scripts/agent/executePathAdmissionV2.mjs",
+      "sha256": "f97754ace807fc565dcc0a4f00b2cfbb55d5dc6fe428e198185ac6b7408c97de"
+    },
+    {
+      "path": "scripts/agent/executePathSemanticV2Qualification.mjs",
+      "sha256": "dd83b0139a161ddafd2da62aba89e584da8c43ea17e9a7b8ff1af58f30a2ce89"
+    },
+    {
+      "path": "scripts/agent/executePredicateStrategyBoundaryQualification.mjs",
+      "sha256": "0f3eec297afefc3f9fe097d936d5887e383a6660ca60fe49451e6b125e546933"
+    },
+    {
+      "path": "scripts/agent/executePredicateStrategyQualification.mjs",
+      "sha256": "a26f289ef0d237f242f7976f98de9a58a0c3bd055a3cc8b022f3630c99ba83a3"
+    },
+    {
+      "path": "scripts/agent/executeSelectedEventDayCandidate.mjs",
+      "sha256": "d28e602be0a3357be89d1df8c9e1fd71ca837234f75eb2eb44e8e306e9e9e292"
+    },
+    {
+      "path": "scripts/agent/executeSourceStatePhaseValidation.mjs",
+      "sha256": "e1a53d936703176a2c0d86b22f207c81c23f6ae330e645806f56eecce21d35b9"
+    },
+    {
+      "path": "scripts/agent/executeUnknownOperatorAdmissionMatrix.mjs",
+      "sha256": "54aff6418a35c3f0917c179bfa22dc39726a2997efff03a7e69850a6aa4c19d1"
+    },
+    {
+      "path": "scripts/agent/executeUnknownPathAdmissionMatrix.mjs",
+      "sha256": "6a504225bf4053e32d7aed91e47362a8a50e2fdc6126875e6cd62b01240cf9b8"
+    },
+    {
+      "path": "scripts/agent/financasBotNext02ValidationPolicy.js",
+      "sha256": "9856be47eecc5bfaf02d7300190c62e766613be4b405bb60b2081e3e39ab84db"
+    },
+    {
+      "path": "scripts/agent/historicalAuthoringChain.cjs",
+      "sha256": "a33a25522c456fdf1b62b07c79e679bad01e1421e73c93b7c31e8a99223772c8"
+    },
+    {
+      "path": "scripts/agent/immutableGitBlob.cjs",
+      "sha256": "5b7b0784b9e7008229f2901a077ab24a1a7c9897ce1c36058393da51ee4dbb52"
+    },
+    {
+      "path": "scripts/agent/lowerNextProofProgram.mjs",
+      "sha256": "d141273f2156bab19392c66c2cca660f0f196f7d5b5af4721ac595307aa5cab4"
+    },
+    {
+      "path": "scripts/agent/pathCapabilityEffectContract.mjs",
+      "sha256": "0c05ebf16775639a28ee19b6629dd855865f5000ee23fb3006fbeaf5305907c5"
+    },
+    {
+      "path": "scripts/agent/pathExecutableClosureContract.mjs",
+      "sha256": "c766a81c4f9fd6e013c22e67ffa220469304f0435eb06d7dd6f0f399c0e0f686"
+    },
+    {
+      "path": "scripts/agent/pathProofProgramContract.mjs",
+      "sha256": "f9cb5a4b0317bc2caac2384685c4fbaa131c396181a574d98810f128152e5be6"
+    },
+    {
+      "path": "scripts/agent/pathReceiverOriginContract.mjs",
+      "sha256": "17f5a0357bd03a9742f37465c83024b40c302fbf5d1a5e4b4c0b0da273a613ec"
+    },
+    {
+      "path": "scripts/agent/prepareN02gPhaseCompositionProfile.cjs",
+      "sha256": "61793948f60b511e402f8c526afd1bec55580b9cac194b56670f66b90106dc67"
+    },
+    {
+      "path": "scripts/agent/preparePathInventoryV2.mjs",
+      "sha256": "edf77b1cfb5fe18b298477fb0afa50acb5f3854a6b7adf0c4cbbc9d3d75ca968"
+    },
+    {
+      "path": "scripts/agent/preparePathQualificationHistory.mjs",
+      "sha256": "26de466db0bcd9274c969681c0285396f04abfb7879efc764d33bbdb4192b84a"
+    },
+    {
+      "path": "scripts/agent/prepareSelectedEventDayAdmission.mjs",
+      "sha256": "00b537c3b5de23a8ace681a5d983d49e8f11afe1fd67e73dcafa0ee6e2cd09ee"
+    },
+    {
+      "path": "scripts/agent/prepareSelectedEventDayPacket.mjs",
+      "sha256": "c1b97dbd29714c53b2f7461e38cb3ef8fc1e0d4a7dcbdb761f4d4bd97b707573"
+    },
+    {
+      "path": "scripts/agent/prepareSourceStatePhaseAuthoring.cjs",
+      "sha256": "98f8d18610a890527d541ba2f6a331675108c3329dc87e5f188d628826c86c07"
+    },
+    {
+      "path": "scripts/agent/sealSelectedEventDayOracle.mjs",
+      "sha256": "d8049f8f07153c58ef1bf0f9699a92bf842ffc4a4a82e640c813ae345c62e253"
+    },
+    {
+      "path": "scripts/agent/selectedEventDayProgramContract.mjs",
+      "sha256": "0ecee202f7380f29fee872d870957636b5c24f8ff8abe2f55c4d8a68edbc207b"
+    },
+    {
+      "path": "scripts/agent/selectedEventDayQualification.mjs",
+      "sha256": "0a48a786e2b25581f0e301fadfb1e8bfcb47e1ab74ab2f8c8cec5be2cb1adfb0"
+    },
+    {
+      "path": "scripts/agent/sourceStateNegativeReference.cjs",
+      "sha256": "18c1fcadf8ef5550fd7e16a953425be258ea5e9412757b5911bb42bdb96e1b27"
+    },
+    {
+      "path": "scripts/agent/verifyNextProofStrategySites.mjs",
+      "sha256": "4d60e6994953e9ad9d464fe256e4b96f9c6397b90565d50275d49ee46936c131"
+    },
+    {
+      "path": "scripts/runExhaustiveLocalTestCoverage.js",
+      "sha256": "83c6c0729170dbb298cd4460eb471353625495c90fb6564e524eea443a7eb2bc"
+    },
+    {
+      "path": "scripts/runExhaustiveRuntimeInventory.js",
+      "sha256": "9795bd72149c9123c4e254a4e0bd3d720f3ec018abae3a80fa70a41b17a65f09"
+    },
+    {
+      "path": "src/next/kernel/canonicalJson.js",
+      "sha256": "f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592"
+    },
+    {
+      "path": "src/next/provenance/capturedTcbLauncher.js",
+      "sha256": "6cc10029fb8cb58148f3e2652d3ce5c6adfd12188b468e6b857dfbbcc6bdc4ce"
+    },
+    {
+      "path": "src/next/provenance/claimBinding.js",
+      "sha256": "0efce18cc72c601060e740319dc4be460a3e85a93578719de2734ea62d628885"
+    },
+    {
+      "path": "src/next/provenance/claimMonthIsolatedProfile.js",
+      "sha256": "10ea15eb5e2d84a3872926bd9d6255a429348de655ac778751a9c7859491bdcb"
+    },
+    {
+      "path": "src/next/provenance/claimMonthPathProfile.js",
+      "sha256": "3edc321974864e842c7bca5d1753feac0a23911cc65755cca682646673ffa664"
+    },
+    {
+      "path": "src/next/provenance/claimMonthProofConformance.js",
+      "sha256": "40c6cb9c1b2122447e5cdb1fa0da762a3adb39c1a6d474e7420d5cd5e3e36f37"
+    },
+    {
+      "path": "src/next/provenance/claimMonthTraceContract.js",
+      "sha256": "7fc3a01ccf8b195a0e473b7cf8e9ef50e7f698ca97cc6ad73d0090b482b7cf7c"
+    },
+    {
+      "path": "src/next/provenance/claimNominalTypes.js",
+      "sha256": "f37c4367c027d119caf81afcb1de898a05b5edfd6651c8c3a17d3177cff95096"
+    },
+    {
+      "path": "src/next/provenance/claimRequirementCore.js",
+      "sha256": "1f23d4c8fb117bb5bd6bf992cc1bf4ea0806c01372853395fb2c341b9968de23"
+    },
+    {
+      "path": "src/next/provenance/claimRequirements.js",
+      "sha256": "2a42d47868a57fad697a0caec0ae0678a338f06dca0ebf77064fab6def182468"
+    },
+    {
+      "path": "src/next/provenance/collectionProofCore.js",
+      "sha256": "4cc88bf36458e46783dfbc1ae24c3f0fc2855e28f29663094ca48be0fe72a8ec"
+    },
+    {
+      "path": "src/next/provenance/collectionRequirements.js",
+      "sha256": "4d6af2b5d830929910622f504126dfea29c3ba6866ff99e21c90e23f12961de3"
+    },
+    {
+      "path": "src/next/provenance/executionHost.js",
+      "sha256": "2e43e4568233e658bdb1e9ec4ca9360b9d3234b42d7811dbfd4907be73c0589f"
+    },
+    {
+      "path": "src/next/provenance/executionHostChild.cjs",
+      "sha256": "4d6d6efc6933e68874fafb34b30b1f6ff9b910a779c90ef0194d88a679a8f900"
+    },
+    {
+      "path": "src/next/provenance/executionRegistry.js",
+      "sha256": "951038a898e979ac25f79d9f5ca944cff8a83f2863074100eaced7e32fa56b29"
+    },
+    {
+      "path": "src/next/provenance/financialHost.js",
+      "sha256": "6fb0c1f874d23e333c3eb0bfaf4f66f5f89ca27b6ad410008cb121f72326b0a1"
+    },
+    {
+      "path": "src/next/provenance/freezeContract.js",
+      "sha256": "b452ce4ffb2688dc578ae0901eabd07c1d48b1d00e8e375a53f82bae63326305"
+    },
+    {
+      "path": "src/next/provenance/graphCompiler.js",
+      "sha256": "fe938a128cfd4dccda0d8ddc1f2e6965b623feecc6d1854ef0306700efda1016"
+    },
+    {
+      "path": "src/next/provenance/graphStructure.js",
+      "sha256": "927a4e76b6a7c9f8ad8656e21a44766a745c2edd3113b82ff7231a1c2bc79e50"
+    },
+    {
+      "path": "src/next/provenance/instrumentedAccess.js",
+      "sha256": "0a226802919420fc1e90d07847b96cc120121e230905c0f5cef484c034dedf92"
+    },
+    {
+      "path": "src/next/provenance/materialFieldTypes.js",
+      "sha256": "f7f4ecaba152ddebf4503469ba61851add59c0a0c697ea6f73503a5ca03a1c0c"
+    },
+    {
+      "path": "src/next/provenance/materialFingerprintCore.js",
+      "sha256": "7f0b50ffb0f0a6762f60f2c0b5101e5a9606e44f6241d7d40260e21e051c3d37"
+    },
+    {
+      "path": "src/next/provenance/metricDirectReads.js",
+      "sha256": "7a78501221230a8991354d47a63f8e131807b995f6a7e5e10e8dab0664f01d4b"
+    },
+    {
+      "path": "src/next/provenance/metricParents.js",
+      "sha256": "32464e029ba27ccf5a45b4ee35b1568033ef159a802ed156c014a1aa217030bb"
+    },
+    {
+      "path": "src/next/provenance/mutationWitnesses.js",
+      "sha256": "433db7f58a7e79cd04e71cdac2491c498a15108df7f6544cd24c3def0a340f29"
+    },
+    {
+      "path": "src/next/provenance/nativeRuntime.js",
+      "sha256": "7d04d107c24a350ba9a3ccd25a7e899629c4d965301e9063f8c7dbe534d7e64b"
+    },
+    {
+      "path": "src/next/provenance/obligationBindings.js",
+      "sha256": "580f9b97e6ef216e5598de5c97aa8d96cc7cda713a5547e249a27f24144baf87"
+    },
+    {
+      "path": "src/next/provenance/observationContract.js",
+      "sha256": "60d73c6bfe13fe91325920bc289454d233cd6efea034c093a1d4c18cee469e1e"
+    },
+    {
+      "path": "src/next/provenance/observationScalars.js",
+      "sha256": "cf344f72a703e7be55fc165322860d84792fae82822f3daad1f557834faa4f09"
+    },
+    {
+      "path": "src/next/provenance/operatorTypes.js",
+      "sha256": "573db750922769a1626fe11c938458271b7cd09fdc5571df5c7b6786fa8d493c"
+    },
+    {
+      "path": "src/next/provenance/packageContract.js",
+      "sha256": "bdb085d5a2502aebdfc7640f58d6319831812d83898034271ac3fd7ee373d00e"
+    },
+    {
+      "path": "src/next/provenance/pathLocatorDomainV3.js",
+      "sha256": "5e63d13db01a652d38c1888ac652435eb20e8b3b7c371f5d85c121141f36500f"
+    },
+    {
+      "path": "src/next/provenance/pathMutationInventory.js",
+      "sha256": "095d9e6daec7c73ffd8ae940e00a401e899915c4f35477b50c8595e909d72275"
+    },
+    {
+      "path": "src/next/provenance/pathQualificationV3.js",
+      "sha256": "87f1f86bf1df8fccae84fb821b65af7ebcb4a36b27f50c929196daa5f79860dd"
+    },
+    {
+      "path": "src/next/provenance/pathSemanticReference.js",
+      "sha256": "6880b8cf205fbb337be18c8f607aecb6a28d6d6255de5a36399de955629e812d"
+    },
+    {
+      "path": "src/next/provenance/phaseCompositionProfile.js",
+      "sha256": "adbaf56525ea86c67ce3885107144131e2abfd3030054dc05eba9af55ce4abb8"
+    },
+    {
+      "path": "src/next/provenance/phaseProgramIdentity.js",
+      "sha256": "165723d79795a2b7960a9689842c38a51c6b1ffb0272c5f58afcd7ef353b1687"
+    },
+    {
+      "path": "src/next/provenance/predicateTypes.js",
+      "sha256": "7ec5e1dc0348599bf42aa642a575233bb3642371fb2a48bea77b2558de6a25b8"
+    },
+    {
+      "path": "src/next/provenance/proofAcceptance.js",
+      "sha256": "6ddc6138fc0485c1278f52fad545bbdd9cd908975e000efa98863fddd86f3cea"
+    },
+    {
+      "path": "src/next/provenance/proofContextBinding.js",
+      "sha256": "3e2e8d34b0fb7c3e7d697208c9a56b7879f72c53c2108d9a75dd783b93222593"
+    },
+    {
+      "path": "src/next/provenance/proofObservedValues.js",
+      "sha256": "e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced"
+    },
+    {
+      "path": "src/next/provenance/proofOperatorContracts.js",
+      "sha256": "2e68d093bd5cbbe8283478ebf32428925149c68e290952d9fcdfb2f470e9fde8"
+    },
+    {
+      "path": "src/next/provenance/proofOperators.js",
+      "sha256": "6d7ed8142652c1c3e3240e58c9333ee5890a9c5cdd62801258b02c4f91dde63b"
+    },
+    {
+      "path": "src/next/provenance/proofParentBinding.js",
+      "sha256": "3b928733cc0adc169071a8991295b9cdfb6782adc54351e7e2879d975614a080"
+    },
+    {
+      "path": "src/next/provenance/proofProgramData.js",
+      "sha256": "368761e082fbe51d5ec150875af47ffb0f19cdca48f974223a6674f60ff7bea9"
+    },
+    {
+      "path": "src/next/provenance/proofSha256.js",
+      "sha256": "5e911bfa787507bdba6beafc5bc84160492dbcd0b10f838d80924827775dfe2f"
+    },
+    {
+      "path": "src/next/provenance/scalarProofCore.js",
+      "sha256": "82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf"
+    },
+    {
+      "path": "src/next/provenance/scalarProofOperators.js",
+      "sha256": "924e5f5953bb02dc02b4b8affcba79a5aefc6a3cad3242738f1b44c364bfb461"
+    },
+    {
+      "path": "src/next/provenance/schemaRegistryProjection.js",
+      "sha256": "282b949ff0c546b3b20ec7cbe6a3b00a3ab28ed19e8d951d5379f011b2ddd84d"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayAdjudicator.js",
+      "sha256": "c7f9e99d32492f527db7cd22dae695284337737b68792361ba449dbd5634fda0"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayCoreComparison.js",
+      "sha256": "926afd33cfd567e39f1a22f173f7c7150a73ce455361bc877eefdee461b5ef8e"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayCoverage.js",
+      "sha256": "ab468e23f42c6a7b6b2356b5dedaa1143d8f2ef8d39c0275e86a465038ffeeb4"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayDerivationOperands.js",
+      "sha256": "ab0fe3d3fad4dacfc133d85f343564021ad15493ffaa3a7d50aba89247b1c395"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayDispatchCore.js",
+      "sha256": "c083464fff9aff3493a5df7d6bd6547efd483df6034358e4763de448bd1b1cc0"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayDispatcher.js",
+      "sha256": "c4ee665150a52cb93b2a208daab52504d4975b5a624916b40be748bb333f8b15"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayExecutionTicket.js",
+      "sha256": "523f4041bc5631458bfba07c50cf9dfb4071debdeff469d9677496907e9e9d99"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayIrContract.js",
+      "sha256": "207c9d5027e093a0885ec3490f29325f29f375917d4c0aff08196f17ec6fc64f"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayLauncher.js",
+      "sha256": "ab98cb161bddf27819014bc2fb66be86b0d0915b49e695c10b47761ede4deb18"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayOracle.js",
+      "sha256": "a4fdcd0285af0e78f876b6182f0178ade830307558013f2b97a3a8ccd8f3443f"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayPacket.js",
+      "sha256": "7c2c331a6236921ed602e0bb4dd3ec95fe25d3a9a3111fb5669e0f9ee7e7f18f"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayProfile.js",
+      "sha256": "bc3961335ea7b5a30025160350a3e930755c928c3de405dbeba3aeec079106ae"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayProofChild.cjs",
+      "sha256": "69f1a5385e95b83a1f3258a60bd191eae9bcef06cf3ebaa515f54ecd131610f6"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayProofHost.js",
+      "sha256": "098bc5ded69be29eb715598c0fcf0e4022a525ea1009b9d4012b33f0002ce9e7"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayProofOperands.js",
+      "sha256": "25e33bb96b1bdfa9118e9d46fd926663640f47e8d37a56309835a93a8ef572bf"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayProofProtocol.js",
+      "sha256": "6b7752a4edfe521b4a896ccd48a1bfae288c213f43c5e19194ec33d3a03b56c9"
+    },
+    {
+      "path": "src/next/provenance/selectionBindings.js",
+      "sha256": "dafa79661a2474ad05c2390c86adcf136dc8ac395d10a28a6a4d7deeccac9815"
+    },
+    {
+      "path": "src/next/provenance/templateReferences.js",
+      "sha256": "bd5c186192b41d991f8fc1bf74dce0f372d8ff8ac63a845eaa029640a7d3f34f"
+    },
+    {
+      "path": "src/next/provenance/validationTcbEntry.js",
+      "sha256": "0a2dd2140a49247e75974a808697cba9bbe9183b3365d6b5d44c27ca11517fcb"
+    },
+    {
+      "path": "tests/canonicalCodecBoundary.test.js",
+      "sha256": "463c550e8511e4dac77cb8cd35310279d738599cf1aa09725b6631595f556afa"
+    },
+    {
+      "path": "tests/exhaustiveLocalTestCoverageRunner.test.js",
+      "sha256": "6952c54b3ac38f024935775e9c2e8a8954cfa3cabf5710ee4e22bfd540bda986"
+    },
+    {
+      "path": "tests/exhaustiveRuntimeInventory.test.js",
+      "sha256": "d1f0b4e5e63d95cd02a1791c9fbac368719a56b8c44ea60c793150cb45dce66c"
+    },
+    {
+      "path": "tests/immutableGitBlob.test.js",
+      "sha256": "3b47ac5f1c785d9e54f68db500826fc8090663e36d67ea4392e4a8e306eaf0c6"
+    },
+    {
+      "path": "tests/next/provenance/authoringIndex.cases.js",
+      "sha256": "0c339523af45572cfeca07ca08af63b989359709c644bf7fdca2edff7ae4f2d8"
+    },
+    {
+      "path": "tests/next/provenance/claimBinding.cases.js",
+      "sha256": "8559a74896f89e87113cdaa8c41de774e512733055195e5159fe160e5f7dbec1"
+    },
+    {
+      "path": "tests/next/provenance/claimMonthPathProfile.cases.js",
+      "sha256": "889c0873525beb26a3e25abf342e7ce20d0bb6d1aca3032aa1fe3a45cadaace7"
+    },
+    {
+      "path": "tests/next/provenance/evaluatorWitnesses.cases.js",
+      "sha256": "91858a254ac5e3d19270a77575e1549d20cd6c28014eef99a5ccfb30a4abc19b"
+    },
+    {
+      "path": "tests/next/provenance/executionHost.cases.js",
+      "sha256": "7a484aab818ba855f3e7765e2739c383ed7e7ec49f3a90e86129e13eb8cf7c27"
+    },
+    {
+      "path": "tests/next/provenance/executionRegistry.cases.js",
+      "sha256": "e981fcf0322ba5d54740780d07cf9bbde4dd71e9b8de31219f45abd2f69091e6"
+    },
+    {
+      "path": "tests/next/provenance/financialHost.cases.js",
+      "sha256": "6ace9c3389bd20b6fd3954896775b8538a60feb2f3c3b6d0432fa70209f2cc7c"
+    },
+    {
+      "path": "tests/next/provenance/freezeContract.cases.js",
+      "sha256": "fc3fcfd509d5c8784de923504db8d4b38ef0e72fad344157eb67ded6eebd2abb"
+    },
+    {
+      "path": "tests/next/provenance/guestBundle.cases.js",
+      "sha256": "2d961a9c04f7445f7312cf92cc61d4bb2c33ee14221bb562f3b54ece14015a58"
+    },
+    {
+      "path": "tests/next/provenance/historicalAuthoringChain.cases.js",
+      "sha256": "b233ecc6356ab8f955b3d81af6afaa6ec2bd906f22dc7b222dfca5cabe0295a6"
+    },
+    {
+      "path": "tests/next/provenance/metricDirectReads.cases.js",
+      "sha256": "d1ef737335856578b7bf26e49a9a7c73719ed1f4f7af0c1ba4fe838ffd592e9e"
+    },
+    {
+      "path": "tests/next/provenance/metricParents.cases.js",
+      "sha256": "b96d6e4f7cb6cb610fd07bb4697463a2b24180ff5c158bf04903ecd559c79aa9"
+    },
+    {
+      "path": "tests/next/provenance/metricSelection.cases.js",
+      "sha256": "5a522598fd54556fefd06b98949b8512df3d33035f2afce62402d9b18caf3e7c"
+    },
+    {
+      "path": "tests/next/provenance/mutationWitnesses.cases.js",
+      "sha256": "a10bfcea62b4ac49e0d6f2ee9f0c90e29757e5a1864d8fce0badeac338dd83c8"
+    },
+    {
+      "path": "tests/next/provenance/nativeRuntime.cases.js",
+      "sha256": "c6994bce44f69655c1dea4cfc37524bfe4b2175755913474762b852899d352d3"
+    },
+    {
+      "path": "tests/next/provenance/operatorTypes.cases.js",
+      "sha256": "e98972f24c6920b0bb3f50c85fe365106d10dfb328f70aa37f4d21391b298df7"
+    },
+    {
+      "path": "tests/next/provenance/packageContract.cases.js",
+      "sha256": "7f09dfc3ebfa314bee5bd0e387b433140aa5729379e468628a96a79bc5879daa"
+    },
+    {
+      "path": "tests/next/provenance/pathInventoryV2.cases.js",
+      "sha256": "9ed3ab51875a6943448a09cfb3e6c3dc1bf4c92fff96fcccdca5e193e364f93f"
+    },
+    {
+      "path": "tests/next/provenance/pathQualificationV3.cases.js",
+      "sha256": "f39f26ad0504f8a0d68f271cba53e70d19f52ab667f14718541b922dd2578a50"
+    },
+    {
+      "path": "tests/next/provenance/pathSemanticV2.cases.js",
+      "sha256": "af45849af0217f704da75e6d8f8fab7454dd239c9f39ea406b2b16ee2182d76d"
+    },
+    {
+      "path": "tests/next/provenance/phaseComposition.cases.js",
+      "sha256": "5bfe7314a93592c6e044c794e832f421186231d0faac16986b9efeca14d150b9"
+    },
+    {
+      "path": "tests/next/provenance/predicateStrategyMatrix.cases.js",
+      "sha256": "90cc9be50785d2f1ecff69669a70045dc8b85098decb9b1e67701936e84168bf"
+    },
+    {
+      "path": "tests/next/provenance/predicateStrategySites.cases.js",
+      "sha256": "8643c20c6cf00ce71137c34a1646641bbb6ae5b97bcf73986ccfc222958e75ea"
+    },
+    {
+      "path": "tests/next/provenance/proofAcceptance.cases.js",
+      "sha256": "0d8f1f5ff2281fee7596b23477c08309e85cfffbe8cf4efc544eceec8fd13ae0"
+    },
+    {
+      "path": "tests/next/provenance/proofOperators.cases.js",
+      "sha256": "26e08842094669513ee06dc7ff7c658ae022ddf6fe8c390f9f35602b5ceb107a"
+    },
+    {
+      "path": "tests/next/provenance/proofProgram.cases.js",
+      "sha256": "984360d8cf25b26f47c7ac0b2fe0b365f2e4f3ceea61d13f3aeed07593356693"
+    },
+    {
+      "path": "tests/next/provenance/schemaBuild.cases.js",
+      "sha256": "600d1fe3ac6b406c17362f1875b86a747efd91008e5c679c68ab4de0e34ec412"
+    },
+    {
+      "path": "tests/next/provenance/selectedEventDayProfile.cases.js",
+      "sha256": "217ea784ae764404d32ecad885c3dc4e71fa4eab903a580e97bea3d46fefa427"
+    },
+    {
+      "path": "tests/next/provenance/selectionBindings.cases.js",
+      "sha256": "31c927998c85716b144a7726a4f3aa17b2a044de74d47ef1f151e6773153ec99"
+    },
+    {
+      "path": "tests/next/provenance/sourceStateMatrix.cases.js",
+      "sha256": "e69ffd4fc1d9ec512377afaec864663bf6cdde75ca4a1353bf13256011a8167e"
+    },
+    {
+      "path": "tests/next/provenance/sourceStateReference.cases.js",
+      "sha256": "6aa8cdc5fb43f5a39b380173f7ddd06ccc2684cbb1acdb7f81e36d818e45fe9d"
+    },
+    {
+      "path": "tests/next/provenance/templateReferences.cases.js",
+      "sha256": "59b0b59127d71d2e3e31533e0472956698ceb0a85bb5d94ff0d6a781ac0f95bb"
+    },
+    {
+      "path": "tests/next/provenance/unknownPathAdmission.cases.js",
+      "sha256": "258a172e322772468cdf789bc44f8b512037ce81f916a3fee74256088ff1f59d"
+    },
+    {
+      "path": "tests/next/provenance/validationTcb.cases.js",
+      "sha256": "0426f4c8e249d4d7966864c98c87339fe6220321827b4060f1bebb55486b8ffb"
+    },
+    {
+      "path": "tests/next02DevelopmentInventory.test.js",
+      "sha256": "854f1716ceb89b9c3bf26ffab3b84493cc569ec7c37027cfb3c2e423b9e91c52"
+    },
+    {
+      "path": "tests/nextProvenance.test.js",
+      "sha256": "5fa81064c8fcf38efe913e8502042c59924182366fc2aa5742525fe4201b3ce9"
+    }
+  ]
+}

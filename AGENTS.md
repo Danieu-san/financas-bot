@@ -10,6 +10,29 @@ Essa pasta é a memória curta e atualizável do projeto. Ela evita reler o hist
 
 ## Modo de Trabalho Portátil
 
+### Trava de produto doméstico e reaproveitamento
+
+O produto serve às finanças da casa de Daniel, não à construção de uma
+plataforma bancária genérica. Antes de CADA etapa, começar pelo bot original:
+confirmar versão e WIP, localizar comportamento/consumidores/testes existentes,
+aproveitar evidência compatível e registrar o menor delta necessário. Sem esse
+inventário dirigido, não iniciar implementação nem recriar capacidade existente.
+Escolher explicitamente manter, reutilizar, adaptar, substituir com justificativa
+ou adiar; ausência de leitura não prova ausência de capacidade. Reuso não permite
+import proibido, efeito real ou reaproveitamento de autoridade inválida.
+Reuso exige exatidão e follow-ups corretos. Menor delta não reduz garantias:
+preservar a robustez do Next, não apenas paridade com falhas do original.
+
+Toda tarefa deve ligar problema doméstico, benefício, delta e critério finito de
+saída. Avaliar melhorias por impacto/frequência, alternativa simples, confiança,
+custo inicial/manutenção e benefício verificável. Achado lateral vai à fila;
+inclusão no gate exige necessidade causal ou decisão humana explícita.
+Generalidade futura não vira requisito por inércia. Duas recorrências da mesma
+causa acionam a trava anti-remendo. Não reduzir segurança, privacidade, correção
+financeira ou critérios ratificados silenciosamente; mudança material exige
+revisão explícita. Evidência histórica e gates incompletos permanecem rotulados.
+Detalhes e revisão do roadmap: `docs/plans/workstreams/financasbot-domestic-roadmap-review-20261007.md`.
+
 Para qualquer tarefa não trivial, usar o workflow versionado no SSD:
 
 1. confirmar raiz Git, branch, HEAD completo e árvore de trabalho;
@@ -20,6 +43,10 @@ Para qualquer tarefa não trivial, usar o workflow versionado no SSD:
 5. atualizar o checkpoint antes de pausar, trocar de conversa/computador ou
    encerrar;
 6. separar implementação de auditoria e nunca declarar GO sem evidência factual.
+
+### Escopo
+
+Rodar validateAgentWorkflow com active-scope.json; não ampliar/rebaseline nem reduzir qualidade.
 
 ### Trava anti-remendo
 

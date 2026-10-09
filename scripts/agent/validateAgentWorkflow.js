@@ -42,6 +42,13 @@ const checks = [
 const errors = [];
 const loaded = new Map();
 
+// The active stage is explicit. Passing this check is not a code/financial GO.
+const scopeResult = require('./agentScopeGuard').checkRepository(root);
+if (!scopeResult.ok) {
+    for (const reason of scopeResult.violations.slice(0, 12)) errors.push(`active-scope: ${reason}`);
+    if (scopeResult.violations.length > 12) errors.push(`active-scope: ${scopeResult.violations.length - 12} additional violations (blocked)`);
+}
+
 for (const [relativePath, maxBytes, requiredFragments] of checks) {
     const absolutePath = path.join(root, relativePath);
     if (!fs.existsSync(absolutePath)) {
@@ -87,7 +94,7 @@ function git(args) {
     let lastError;
     for (const executable of candidates) {
         try {
-            return execFileSync(executable, args, { cwd: root, encoding: 'utf8' }).trim();
+            return execFileSync(executable, ['-c', `safe.directory=${root}`, ...args], { cwd: root, encoding: 'utf8' }).trim();
         } catch (error) {
             lastError = error;
         }
@@ -117,6 +124,7 @@ const startupBytes = startupFiles.reduce((total, file) => total + (loaded.get(fi
 const estimatedTokens = Math.ceil(startupBytes / 4);
 
 console.log(`agent-workflow: ${errors.length ? 'FALHOU' : 'OK'}`);
+console.log(`active-scope: ${scopeResult.ok ? 'OK' : 'FALHOU'} (${scopeResult.stage_id || 'missing/invalid'}; no semantic/audit/GO claim)`);
 console.log(`git: ${gitSummary}`);
 console.log(`contexto inicial dirigido: ${startupBytes} bytes (~${estimatedTokens} tokens, estimativa grosseira)`);
 
