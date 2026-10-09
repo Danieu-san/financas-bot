@@ -17,6 +17,22 @@ implementação BUILD de qualificação PATHv3 somente na worktree candidata.
 
 ## VIGENTE — trava executável de escopo; expansão PATHv3 suspensa
 
+Auditoria d09df34 CONCLUIU NO-GO FOCAL em2026-10-09: SG-01 ALTA único
+bloqueante (índice staged diverge apesar de disco igual baseline). Nove paths
+integrais/commit/pai/tree/deps confirmados; baseline267/hash877c71bc conferido.
+Reprodução independente do mecanismo Git, não rerun da suíte ou WIP local.
+Monitor temporário da auditoria EXCLUÍDO antes corrigir;5h preservada.
+Recibo/confronto completos no plano financasbot-scope-guard-20261009.md.
+Correção mesmo recorte: índice fora dos nove paths ligado por digest ordenado
+path/mode/object/stage f47e118282695768c5c0068e223f57d95d3b13dacc207dd7b35af5ae06675add,
+sem recapturar baseline físico/hash877c71bc e sem mover índice/HEAD.136paths
+staged anteriores preservados. RED causal2FAIL→focal3PASS19146.7962ms;
+afetados11PASS/zero demais/exit0/34813.5955ms; syntax/workflow/diffcheck OK.
+Staged autorizado conta no orçamento e excluído/nonfile/unmerged recusado.
+UMA final workflow estável CONCLUIU63PASS/zero demais/exit0/37406.7038ms,
+sessão39976 concluída. Próximo: novo commit corretivo parentd09df34,
+auditoria focal SG-01+invariantes por novo hash. Não repetir verde/d09df34/PATHv3.
+
 Daniel retornou e autorizou implementar a trava contra scope creep e reconciliar
 o residual antes de novos incrementos. Objetivo único: contrato finito de etapa,
 delta causal necessário/reuso/evidência/saída, triagem de melhorias e rejeição
@@ -46,6 +62,40 @@ encaminhamento novo encurtado, coletor corrigido e somente344entradas temporári
 retiradas do baseline, sem recapturar hashes públicos. Configuração Git mantida
 no processo; nenhum ajuste global. Próxima ação: sanitizar/publicar o candidato
 completo da trava e UMA auditoria independente, não retomar PATHv3 por inércia.
+
+Candidato publicado d09df34c913cbe967c3a7f58b3a227522d0bfcca,
+parent único72fc5a5b707909687da9b5cec892be2dcc892a62,
+tree8a289670694aa7f5f55e4991143694aff764f17c,
+branchcodex/domestic-scope-guard-audit-d09df34:9paths/2modificados7adicionados,
+zero exclusões/9blobs confrontados/raw SHA separados de UTF8 CRLF→LF publicado,
+baseline publicado877c71bc... exato. HEAD/índice locais não movidos.
+Auditoria NÃO ENVIADA: helper navegador `trusted Node process exited
+unexpectedly` na abertura e na recuperação readonly; nenhuma mensagem/prompt
+submetida, nenhuma resposta pendente. Não reenviar hash antigo, não buscar
+resposta inexistente, não criar monitor de espera. Retomar auditoria deste NOVO
+hash somente após recuperação do aplicativo/navegador; verificar Alta efetiva
+e modelo exposto, uma conversa limpa/uma tentativa. Se Daniel executar manual,
+confrontar recibo/9paths/código/testes/limites antes de qualquer encerramento.
+Recorrência5h preservada e atualizada; bloqueio inalterado silencioso.
+
+Retomada2026-10-09 após Daniel confirmar “reiniciado”: comandos locais e navegador
+recuperados. HEAD/branch anteriores confirmados,261entradas WIP preservadas.
+Falha transitória de conta resolveu pelo botão Recarregar, sem autenticação,
+ACL/UAC ou mudança global. Auditoria do candidato d09df34 ENVIADA UMA vez,
+às15:56Z, em conversa limpa NEXT:
+https://chatgpt.com/g/g-p-6aa305ab1f8c8191a3f89baff00cc701-next/c/6ac90eb3-41f0-83e9-ac01-5b9eb4acabe0
+URL definitiva+Parar e início da resposta confirmaram transporte. Alta3de3
+efetiva confirmada antes do envio; nome efetivo do modelo NÃO exposto.
+Não reenviar o mesmo hash nem consultar auditorias históricas. Pendente é espera,
+não aprovação. Nenhuma suíte ou executor novo; candidato máximo até confronto.
+Monitor único `continuar-ap-s-auditoria-da-trava-dom-stica`, ACTIVE10min,
+criado2026-10-09T15:57:50.587Z; stagefirst;
+next_check_at2026-10-09T16:07:50.587Z (13h07 São Paulo).
+Antes da janela sem consulta redundante; conclusão/aviso humano tem preferência.
+Se pendente, atualizar MESMO monitor backoff5/10/20min; ao concluir/bloquear,
+excluir SOMENTE temporário e confrontar SHA/parent/9paths/deps/findings/limites.
+Recorrência5h ACTIVE/âncora2026-10-07T13:40Z preservada e prompt atualizado.
+Não retomar causal106/PATHv3 por inércia, não transformar recomendações em requisitos.
 
 ## Registro anterior — método PATHv3 ratificado; implementação iniciada
 

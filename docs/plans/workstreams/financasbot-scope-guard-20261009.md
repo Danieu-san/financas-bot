@@ -1,8 +1,49 @@
 # DOMESTIC-SCOPE-01 — trava operacional contra expansão silenciosa
 
-Estado: candidato local validado, sem auditoria ou GO. Autorização humana:
+Estado: d09df34 NO-GO FOCAL por SG-01; correção local em validação, sem GO. Autorização humana:
 Daniel pediu prevenção de scope creep, respondeu “faça” e “corrija o erro e siga”.
 Não ratifica roadmap total nem altera a norma PATHv3 congelada.
+
+## Recibo2026-10-09 — auditoria d09df34 e correção SG-01
+
+Auditoria independente concluída na conversa NEXT
+https://chatgpt.com/g/g-p-6aa305ab1f8c8191a3f89baff00cc701-next/c/6ac90eb3-41f0-83e9-ac01-5b9eb4acabe0
+Alta3de3 confirmada no envio; modelo efetivo não exposto. Confirmou commit
+d09df34c913cbe967c3a7f58b3a227522d0bfcca/pai72fc5a5b707909687da9b5cec892be2dcc892a62/
+tree8a289670694aa7f5f55e4991143694aff764f17c/9paths integrais e dependências.
+Veredito NO-GO FOCAL por SG-01 ALTA, único bloqueante: paths obtidos por diff
+HEAD eram medidos somente no disco; conteúdo/exclusão staged ocultos pelos bytes
+do baseline escapavam. Auditor reproduziu mecanismo Git em fixture isolada,
+NÃO executou suíte original ou WIP local. Benefício/necessidade/menor delta e
+demais controles adequados no domínio declarado. Baseline267/hash877c71bc...
+conferidos independentemente, histórico611→267 não reexecutado. Nenhum GO global.
+
+Confronto local: SG-01 confirmado por RED2FAIL causais (true indevido) depois de
+uma tentativa sem evidência causal por bloqueio de escrita .git da fixture no
+sandbox. Execução aprovada isolada reproduziu a causa sem ACL/UAC/config global.
+Original-first reconfirmado: main/e00f6ebc/54WIP e hash do validador b958180a...
+inalterados. Índice desta worktree contém136paths staged preexistentes; não
+remover/resetar nem rejeitar indiscriminadamente esse WIP para mascarar SG-01.
+
+Menor delta: digest SHA-256 de JSON ordenado dos registros REAIS do índice
+(path/mode/object/stage), exceto nove paths autorizados e .codex-temp, ligado
+explicitamente ao contrato. Pin medido readonly durante correção, não alegado
+como prova histórica do índice8d37249 nem de necessidade humana:
+f47e118282695768c5c0068e223f57d95d3b13dacc207dd7b35af5ae06675add.
+Baseline físico267 e SHA877c71bc... permanecem EXATOS, sem recaptura.
+Drift fora do recorte bloqueia independentemente do disco; staged autorizado
+conta no mesmo orçamento; exclusões/merge não resolvido nos paths autorizados
+recusados. Metadados/objects Git são identidade do índice, não SHA raw do disco.
+Mesmo limite contra adulteração deliberada do próprio contrato, sem segurança
+geral ou autenticação nova. Novos casos Git real preservam staged anterior e
+recusam alteração/exclusão/add/mode hidden; allowed staging positivo+orçamento.
+Focal3PASS19146.7962ms/afetados11PASS34813.5955ms/zero demais/exit0.
+UMA final proporcional corrigida:63tests/63PASS/zero demais/exit0/37406.7038ms,
+sessão39976 concluída. Não repetir esse verde sem delta causal. Próximo candidato
+completo herda d09df34 e altera cinco paths deste mesmo recorte, sem exclusões;
+baseline267/hash877c71bc e demais quatro paths publicados permanecem iguais.
+Só guard/teste/contrato/recibo/checkpoint dentro dos MESMOS nove paths; nenhum
+incremento PATHv3 ou novo requisito lateral. Auditoria nova exige novo hash.
 
 ## Necessidade, original primeiro e menor delta suficiente
 
@@ -97,3 +138,5 @@ RED2FAIL→focal2PASS; bateria adversarial8PASS; UMA final ampla do recorte de
 workflow60PASS/zero demais/exit0/21027.3879ms. Syntax/workflow/active-scope OK.
 Preparar candidato sanitizado completo e auditoria independente. Até isso: candidato,
 nenhum novo executor PATHv3, sem GO global e sem simplificação das garantias.
+Atualização após SG-01: a final63PASS acima substitui somente o estado do NOVO
+candidato corretivo, não retifica a evidência60PASS ou NO-GO do hash d09df34.

@@ -26,7 +26,8 @@ function contract() {
         exit_criteria: ['negative causal tests', 'local workflow', 'independent audit before closure'],
         non_scope: ['runtime changes', 'general JS solver', 'production'],
         max_changed_paths: 2, unresolved_policy: 'blocked_not_automatic_requirement',
-        baseline_path: 'baseline.json', baseline_sha256: 'b'.repeat(64)
+        baseline_path: 'baseline.json', baseline_sha256: 'b'.repeat(64),
+        baseline_index_outside_scope_sha256: 'c'.repeat(64)
     };
 }
 
@@ -64,6 +65,7 @@ test('SCOPE-04: absent cause, original-first, quality or exit and unsafe paths b
         c => { c.allowed_paths.push('scripts/*'); }, c => { c.allowed_paths.push('scripts/CON'); },
         c => { c.allowed_paths.push('scripts/alias.'); },
         c => { c.changes[0].paths.pop(); }, c => { c.max_changed_paths = 1000; },
+        c => { delete c.baseline_index_outside_scope_sha256; },
         c => { c.changes.push({ ...c.changes[0] }); }
     ];
     for (const mutate of variants) {
@@ -76,7 +78,7 @@ test('SCOPE-04: absent cause, original-first, quality or exit and unsafe paths b
     ]).ok, false);
 });
 
-function gitFixture(t) {
+function gitFixture(t, { preexistingStaged = false } = {}) {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'financasbot-scope-test-'));
     t.after(() => fs.rmSync(root, { recursive: true, force: true }));
     const g = args => execFileSync(process.env.GIT_BIN || 'git', ['-c', `safe.directory=${root}`, ...args],
@@ -84,13 +86,20 @@ function gitFixture(t) {
     const write = (p, bytes) => { fs.mkdirSync(path.dirname(path.join(root, p)), { recursive: true }); fs.writeFileSync(path.join(root, p), bytes); };
     g(['init', '-q', '-b', 'codex/test']);
     write('old/wip.js', 'committed\n');
-    g(['add', '--', 'old/wip.js']);
+    write('scripts/guard.js', 'committed allowed\n');
+    g(['add', '--', 'old/wip.js', 'scripts/guard.js']);
     g(['-c', 'user.name=Scope Test', '-c', 'user.email=scope-test@example.invalid', 'commit', '-q', '-m', 'fixture']);
+    if (preexistingStaged) {
+        write('old/wip.js', 'prior staged WIP\n');
+        g(['add', '--', 'old/wip.js']);
+    }
     write('old/wip.js', 'prior WIP\n');
-    const snapshot = guard.captureRepo(root);
+    const c = contract();
+    const snapshot = guard.captureRepo(root, c.allowed_paths);
     const baseline = Buffer.from(JSON.stringify({ schema: 'financasbot-scope-baseline-v1', ...snapshot }) + '\n');
     write('baseline.json', baseline);
-    const c = contract(); c.base_head = snapshot.head; c.baseline_sha256 = sha(baseline);
+    c.base_head = snapshot.head; c.baseline_sha256 = sha(baseline);
+    c.baseline_index_outside_scope_sha256 = snapshot.index_outside_scope_sha256;
     // These control artifacts are themselves declared, never ignored by the collector.
     c.allowed_paths.push('baseline.json', 'contract.json'); c.max_changed_paths = 4;
     c.changes[0].paths.push('baseline.json', 'contract.json');
@@ -149,4 +158,45 @@ test('SCOPE-08: local raw temp is excluded explicitly; inherited Git exclusions 
     assert.equal(guard.captureRepo(f.root).rows.some(row => row.path.startsWith('.codex-temp/') || row.path.startsWith('ignored-runtime/')), false);
     assert.equal(f.check().ok, true);
     assert.equal(process.env.GIT_CONFIG_KEY_0, 'core.excludesFile');
+});
+
+test('SCOPE-SG01-09: staged outside-scope content cannot hide behind unchanged working bytes', t => {
+    const f = gitFixture(t, { preexistingStaged: true });
+    assert.equal(f.check().ok, true, 'existing staged WIP is preserved, not blanket-rejected');
+    f.write('old/wip.js', 'unauthorized staged content\n');
+    f.g(['add', '--', 'old/wip.js']);
+    f.write('old/wip.js', 'prior WIP\n');
+    assert.equal(sha(fs.readFileSync(path.join(f.root, 'old/wip.js'))), sha('prior WIP\n'));
+    assert.equal(f.check().ok, false, 'different index must be rejected despite working-tree baseline match');
+});
+
+test('SCOPE-SG01-10: staged deletion cannot hide behind a file retained on disk', t => {
+    for (const p of ['old/wip.js', 'scripts/guard.js']) {
+        const f = gitFixture(t);
+        f.g(['rm', '--cached', '--', p]);
+        assert.equal(fs.existsSync(path.join(f.root, p)), true);
+        assert.equal(f.check().ok, false, 'staged deletion is forbidden inside and outside declared scope');
+    }
+});
+
+test('SCOPE-SG01-11: declared staging passes, still counts against budget; outside mode and additions block', t => {
+    const f = gitFixture(t);
+    f.write('scripts/guard.js', 'authorized staged\n');
+    f.g(['add', '--', 'scripts/guard.js']);
+    f.write('scripts/guard.js', 'committed allowed\n');
+    assert.equal(f.check().ok, true);
+    assert.ok(f.check().changed_paths.includes('scripts/guard.js'));
+    f.c.max_changed_paths = 2; f.write('contract.json', JSON.stringify(f.c));
+    assert.ok(f.check().violations.includes('scope_budget_exceeded'));
+    f.c.max_changed_paths = 4; f.write('contract.json', JSON.stringify(f.c));
+    const stagedObject = f.g(['rev-parse', ':scripts/guard.js']);
+    f.g(['update-index', '--cacheinfo', `120000,${stagedObject},scripts/guard.js`]);
+    assert.ok(f.check().violations.includes('index_not_regular_file:scripts/guard.js'));
+    f.g(['update-index', '--cacheinfo', `100644,${stagedObject},scripts/guard.js`]);
+    f.g(['update-index', '--chmod=+x', '--', 'old/wip.js']);
+    assert.ok(f.check().violations.includes('index_out_of_scope_changed'));
+    const addition = gitFixture(t);
+    addition.write('old/new.js', 'outside\n'); addition.g(['add', '--', 'old/new.js']);
+    fs.unlinkSync(path.join(addition.root, 'old/new.js'));
+    assert.ok(addition.check().violations.includes('index_out_of_scope_changed'));
 });

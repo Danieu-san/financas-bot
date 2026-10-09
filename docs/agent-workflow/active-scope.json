@@ -81,5 +81,6 @@
   "max_changed_paths": 9,
   "unresolved_policy": "blocked_not_automatic_requirement",
   "baseline_path": "docs/agent-workflow/scope-baselines/domestic-scope-20261009.json",
-  "baseline_sha256": "877c71bc1600646988c003a47ecefda6bf7e970359ec94f73adb40fde88b330d"
+  "baseline_sha256": "877c71bc1600646988c003a47ecefda6bf7e970359ec94f73adb40fde88b330d",
+  "baseline_index_outside_scope_sha256": "f47e118282695768c5c0068e223f57d95d3b13dacc207dd7b35af5ae06675add"
 }

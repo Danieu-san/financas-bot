@@ -35,6 +35,7 @@ function validateContract(c) {
     }
     if (!/^[a-f0-9]{40}$/.test(c.base_head || '')) errors.push('invalid_base_head');
     if (!/^[a-f0-9]{64}$/.test(c.baseline_sha256 || '') || !validPath(c.baseline_path)) errors.push('invalid_baseline_binding');
+    if (!/^[a-f0-9]{64}$/.test(c.baseline_index_outside_scope_sha256 || '')) errors.push('invalid_index_baseline_binding');
     if (c.unresolved_policy !== 'blocked_not_automatic_requirement') errors.push('unresolved_policy_must_block');
     if (!c.original_first || !/^[a-f0-9]{40}$/.test(c.original_first.head || '')
         || !['keep', 'reuse', 'adapt', 'replace', 'defer'].includes(c.original_first.disposition)
@@ -97,7 +98,7 @@ function git(root, args) {
         { cwd: root, encoding: 'utf8', maxBuffer: 4 * 1024 * 1024, windowsHide: true });
 }
 
-function captureRepo(root) {
+function captureRepo(root, allowedPaths = []) {
     root = fs.realpathSync(root);
     const head = git(root, ['rev-parse', 'HEAD']).trim();
     const branch = git(root, ['branch', '--show-current']).trim();
@@ -110,7 +111,24 @@ function captureRepo(root) {
         const absolute = path.join(root, p);
         return { path: p, sha256: fs.existsSync(absolute) ? sha256(readBytes(root, p)) : null };
     });
-    return { head, branch, rows };
+    // Bind index object identity/mode/stage independently of current disk bytes.
+    // Existing staged WIP outside this stage remains preserved, not blanket-rejected.
+    const indexRows = git(root, ['ls-files', '--stage', '-z']).split('\0').filter(Boolean).map(record => {
+        const tab = record.indexOf('\t'), p = record.slice(tab + 1);
+        const meta = /^([0-7]{6}) ([a-f0-9]{40}|[a-f0-9]{64}) ([0-3])$/.exec(record.slice(0, tab));
+        if (tab < 0 || !meta || !validPath(p)) throw new Error('invalid_index_record');
+        return { path: p, mode: meta[1], object: meta[2], stage: Number(meta[3]) };
+    }).filter(row => !row.path.startsWith('.codex-temp/'));
+    indexRows.sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : a.stage - b.stage);
+    const outside = indexRows.filter(row => !allowedPaths.includes(row.path));
+    const staged = git(root, ['diff', '--cached', '--name-only', '--no-renames', '-z', 'HEAD', '--'])
+        .split('\0').filter(p => p && allowedPaths.includes(p));
+    const deleted = git(root, ['diff', '--cached', '--name-only', '--no-renames', '--diff-filter=D', '-z', 'HEAD', '--'])
+        .split('\0').filter(p => p && allowedPaths.includes(p));
+    return { head, branch, rows, index_outside_scope_sha256: sha256(JSON.stringify(outside)),
+        staged_allowed_paths: staged, staged_allowed_deletions: deleted,
+        nonfile_allowed_paths: indexRows.filter(row => allowedPaths.includes(row.path) && !['100644', '100755'].includes(row.mode)).map(row => row.path),
+        unmerged_allowed_paths: [...new Set(indexRows.filter(row => row.stage !== 0 && allowedPaths.includes(row.path)).map(row => row.path))] };
 }
 
 function checkRepository(root, contractPath = DEFAULT_CONTRACT) {
@@ -122,13 +140,19 @@ function checkRepository(root, contractPath = DEFAULT_CONTRACT) {
         const bytes = readBytes(root, contract.baseline_path);
         if (sha256(bytes) !== contract.baseline_sha256) return { ok: false, violations: ['baseline_hash_mismatch'] };
         const baseline = JSON.parse(bytes);
-        const current = captureRepo(root);
+        const current = captureRepo(root, contract.allowed_paths);
         if (current.head !== contract.base_head || baseline.head !== current.head || current.branch !== contract.branch
             || baseline.branch !== current.branch || baseline.schema !== 'financasbot-scope-baseline-v1') {
             return { ok: false, violations: ['git_or_baseline_identity_mismatch'] };
         }
         const result = compareScope(contract, baseline.rows, current.rows);
-        return { ...result, stage_id: contract.stage_id, baseline_entries: baseline.rows.length,
+        if (current.index_outside_scope_sha256 !== contract.baseline_index_outside_scope_sha256) result.violations.push('index_out_of_scope_changed');
+        for (const p of current.staged_allowed_deletions) result.violations.push(`staged_deletion_not_authorized:${p}`);
+        for (const p of current.nonfile_allowed_paths) result.violations.push(`index_not_regular_file:${p}`);
+        for (const p of current.unmerged_allowed_paths) result.violations.push(`unmerged_index_not_authorized:${p}`);
+        result.changed_paths = [...new Set([...result.changed_paths, ...current.staged_allowed_paths])].sort();
+        if (result.changed_paths.length > contract.max_changed_paths && !result.violations.includes('scope_budget_exceeded')) result.violations.push('scope_budget_exceeded');
+        return { ...result, ok: !result.violations.length, stage_id: contract.stage_id, baseline_entries: baseline.rows.length,
             semantic_necessity_proved: false, audited: false, global_go: false };
     } catch (error) { return { ok: false, violations: [`scope_check_failed:${error.message}`] }; }
 }
