@@ -18,6 +18,7 @@ const namespaces = Object.freeze({ node: 'nodes', edge: 'edges', set: 'sets',
 const inventoryContexts = new WeakMap();
 const admissionContexts = new WeakMap();
 const semanticContexts = new WeakMap();
+const singleSiteProjections = new WeakMap();
 function fields(raw, names) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw) || types.isProxy(raw)
         || ![Object.prototype, null].includes(Object.getPrototypeOf(raw))) fail('input');
@@ -448,6 +449,145 @@ function verifyMaterializedPathMigration(raw) {
     return freezeDeep({ verified: true, activated: false, executed: 0, matched: 0,
         rows: expected.rows.length, rows_sha256: expected.rows_sha256 });
 }
+// Trusted BUILD projection from the same admitted authored documents and
+// declared nominal-type foundation used by the inventory. It does not read
+// observed IR, a lowerer source, a trace or a semantic result as expected.
+function projectPathInventoryAuthoredProof(raw) {
+    const { inventoryCandidate, factKey } = fields(raw, ['inventoryCandidate', 'factKey']);
+    const context = inventoryContexts.get(inventoryCandidate);
+    if (!context || typeof factKey !== 'string' || !context.graphs.has(factKey)) fail('proof_authorship_authority');
+    const graph = context.graphs.get(factKey), documents = context.documents;
+    const templates = new Map(context.native.templates.templates.map(row => [canonicalValue([row.id, row.version]), row]));
+    const operators = new Map(context.native.operatorRegistry.operators.map(row => [row.id, row]));
+    const typed = context.typeMap.get(factKey);
+    const predicates = graph.predicates.map((predicate, index) => ({ id: predicate.id,
+        operator: clone(operators.get(predicate.op)), operands: predicate.args.map((arg, operandIndex) => ({
+            type: clone(typed[index].operands[operandIndex].type), expression: expectedExpression(arg, templates) })) }));
+    const windows = Object.fromEntries(Object.entries(graph.windows || {}).map(([name, window]) => [name,
+        window.kind === 'month' ? { kind: 'month', value: expectedExpression(window.value, templates) }
+            : { kind: 'range', start: expectedExpression(window.start, templates), end: expectedExpression(window.end, templates),
+                start_inclusive: window.start_inclusive, end_inclusive: window.end_inclusive }]));
+    const materials = Object.fromEntries(Object.entries(graph.nodes).map(([alias, node]) => [alias, {
+        registry_version: context.native.materialRegistry.registry_version, kind: node.kind,
+        fields: clone(context.native.materialRegistry.kinds[node.kind].fields) }]));
+    return freezeDeep({ graph: clone(graph), input: { predicates, windows, materials,
+        operators: clone(context.native.operatorRegistry.operators) },
+        basis: 'authored_expressions_shared_declared_nominal_projection_not_observed_IR',
+        authority_refs: [...documents].map(([path]) => inventoryCandidate.authority_refs.find(row => row.path === path)) });
+}
+// Whole finite authoring-IR projection. This is a conformance specification,
+// not a second admission/compiler implementation or independent type authority.
+// No lowerAuthoringIR/observed IR/compiler outputs/trace observations are read.
+function projectPathInventoryAuthoredIR(raw) {
+    const { inventoryCandidate } = fields(raw, ['inventoryCandidate']);
+    const context = inventoryContexts.get(inventoryCandidate);
+    if (!context) fail('whole_ir_authorship_origin');
+    const corpus = context.documents.get(prefix + 'graphs-v2.json');
+    const claims = new Map(context.native.claims.map(row => [row.fact_key, row]));
+    const registry = context.documents.get(corpus.metric_evaluator_registry.path);
+    const evaluators = new Map(registry.entries.map(row => [canonicalValue([row.evaluator_id, row.evaluator_version]), row]));
+    const rows = new Map();
+    for (const [factKey, graph] of context.graphs) {
+        const claim = claims.get(factKey);
+        const evaluator = evaluators.get(canonicalValue([claim.evaluator_ref.evaluator_id, claim.evaluator_ref.evaluator_version]));
+        if (!evaluator || claim.claim_id !== graph.claim_id) fail('whole_ir_authority');
+        const parents = [], operands = evaluator.roles.map(role => {
+            const binding = claim.operand_bindings[role.role_id];
+            if (!binding || binding.kind !== role.input_kind) fail('whole_ir_role');
+            const resolved = { role_ref: { evaluator_id: evaluator.evaluator_id,
+                evaluator_version: evaluator.evaluator_version, role_id: role.role_id }, kind: binding.kind };
+            if (binding.kind === 'claim_context') resolved.claim_id = claim.claim_id;
+            else if (binding.kind === 'node') resolved.alias = binding.alias;
+            else if (binding.kind === 'node_set') resolved.aliases = clone(binding.aliases);
+            else if (binding.kind === 'parent_claim') {
+                const edges = graph.edges.filter(edge => edge.relation === 'derived_from'
+                    && edge.source === 'claim' && edge.field === role.role_id);
+                if (edges.length !== 1 || graph.nodes[edges[0].target]?.fact_key !== binding.fact_key
+                    || !context.graphs.has(binding.fact_key)) fail('whole_ir_parent');
+                resolved.alias = edges[0].target; resolved.fact_key = binding.fact_key;
+                parents.push({ role: role.role_id, fact_key: binding.fact_key, alias: resolved.alias });
+            } else fail('whole_ir_role_kind');
+            return resolved;
+        });
+        const descriptor = {};
+        for (const key of ['claim_id', 'fact_key', 'metric', 'unit', 'subject', 'period', 'time_basis',
+            'coverage', 'evidence_state', 'filters', 'evaluator_ref'])
+            if (Object.hasOwn(claim, key)) descriptor[key] = clone(claim[key]);
+        const projected = projectPathInventoryAuthoredProof({ inventoryCandidate, factKey });
+        const predicates = graph.predicates.map((predicate, index) => ({ id: predicate.id, op: predicate.op,
+            obligation: predicate.obligation, atom: predicate.atom, operands: projected.input.predicates[index].operands }));
+        const requiredStateChecks = graph.selections.flatMap(selection => graph.sets[selection.selected_set].flatMap(node => {
+            const fields = context.native.materialRegistry.kinds[graph.nodes[node].kind].fields;
+            const field = ['evidence_state', 'state'].find(name => fields[name]?.type === 'enum'
+                && fields[name].values.includes('confirmed'));
+            return field ? [{ node, field, expected: selection.input_evidence_state ?? claim.evidence_state }] : [];
+        }));
+        rows.set(factKey, { fact_key: factKey, claim_id: graph.claim_id,
+            evaluator_ref: { evaluator_id: evaluator.evaluator_id, evaluator_version: evaluator.evaluator_version },
+            claim: descriptor, parents, operands, nodes: clone(graph.nodes), sets: clone(graph.sets),
+            windows: projected.input.windows, edges: clone(graph.edges), predicates,
+            obligations: clone(graph.obligations), selections: clone(graph.selections),
+            expected_trace: clone(graph.trace_contract), required_state_checks: requiredStateChecks });
+    }
+    // Closed authorial dependency topology, sorted roots and registry role
+    // order. This does not grant parent receipts or resolve live parent values.
+    const order = [], active = new Set(), seen = new Set();
+    function visit(key) {
+        if (active.has(key) || !rows.has(key)) fail('whole_ir_topology');
+        if (seen.has(key)) return;
+        active.add(key); rows.get(key).parents.forEach(parent => visit(parent.fact_key));
+        active.delete(key); seen.add(key); order.push(key);
+    }
+    [...rows.keys()].sort().forEach(visit);
+    return freezeDeep({ format: 'financasbot.provenance.authoring-ir', version: 1,
+        stage: 'typed_authoring_ir_only', executable: false,
+        authority_refs: clone(inventoryCandidate.authority_refs), order, graphs: order.map(key => rows.get(key)) });
+}
+// Trusted BUILD single-site projection. Reuse the immutable baseline context,
+// recomputing only the changed graph's declared nominal types BEFORE normal
+// compiler admission. No observed IR or candidate result is an input here.
+function projectPathSingleSiteAuthoredIR(raw) {
+    const { inventoryCandidate, packageReceipt, factKey } = fields(raw, ['inventoryCandidate', 'packageReceipt', 'factKey']);
+    return projectPathInventoryAuthoredIR({ inventoryCandidate: singleSiteProjection(inventoryCandidate, packageReceipt, factKey) });
+}
+function projectPathSingleSiteAuthoredProof(raw) {
+    const { inventoryCandidate, packageReceipt, changedFactKey, factKey } = fields(raw,
+        ['inventoryCandidate', 'packageReceipt', 'changedFactKey', 'factKey']);
+    return projectPathInventoryAuthoredProof({ inventoryCandidate: singleSiteProjection(inventoryCandidate, packageReceipt, changedFactKey), factKey });
+}
+function singleSiteProjection(inventoryCandidate, packageReceipt, factKey) {
+    const baseline = inventoryContexts.get(inventoryCandidate);
+    if (!baseline || typeof factKey !== 'string' || !baseline.graphs.has(factKey)) fail('single_site_origin');
+    const cached = singleSiteProjections.get(packageReceipt);
+    if (cached) {
+        if (cached.inventoryCandidate !== inventoryCandidate || cached.factKey !== factKey) fail('single_site_cache_identity');
+        return cached.projection;
+    }
+    const docs = admittedDocuments(packageReceipt);
+    const authority = docs.map(({ path, sha256 }) => ({ path, sha256 }));
+    if (authority.length !== inventoryCandidate.authority_refs.length || authority.some((row, index) =>
+        row.path !== inventoryCandidate.authority_refs[index].path
+        || row.path !== prefix + 'graphs-v2.json' && row.sha256 !== inventoryCandidate.authority_refs[index].sha256))
+        fail('single_site_package');
+    const documents = new Map(docs.map(row => [row.path, row.value]));
+    const corpus = documents.get(prefix + 'graphs-v2.json'), original = baseline.documents.get(prefix + 'graphs-v2.json');
+    const { graphs, ...header } = corpus, { graphs: originalGraphs, ...originalHeader } = original;
+    if (!equal(header, originalHeader) || graphs.length !== originalGraphs.length
+        || graphs.some((graph, index) => graph.fact_key !== originalGraphs[index].fact_key
+            || graph.fact_key !== factKey && !equal(graph, originalGraphs[index]))) fail('single_site_graphs');
+    const graph = graphs.find(row => row.fact_key === factKey);
+    const { compilePredicateTypes } = require('./predicateTypes');
+    const typed = compilePredicateTypes({ ...baseline.native, graphs: [graph] });
+    const typeMap = new Map(baseline.typeMap);
+    typeMap.set(factKey, typed.typedGraphs[0].predicates);
+    const projection = freezeDeep({ authority_refs: authority });
+    inventoryContexts.set(projection, { ...baseline, documents,
+        graphs: new Map(graphs.map(row => [row.fact_key, row])), typeMap,
+        native: { ...baseline.native, graphs } });
+    singleSiteProjections.set(packageReceipt, { inventoryCandidate, factKey, projection });
+    return projection;
+}
 module.exports = { enumeratePathSites, enumeratePathInventoryCandidate, materializePathMigration,
     verifyMaterializedPathMigration, materializePathAdmissionCandidate, readPathAdmissionCandidate,
-    enumeratePathSemanticCandidates, readPathSemanticCandidate, FROZEN_V1_HASH, ADDENDUM };
+    enumeratePathSemanticCandidates, readPathSemanticCandidate, projectPathInventoryAuthoredProof,
+    projectPathInventoryAuthoredIR, projectPathSingleSiteAuthoredIR, projectPathSingleSiteAuthoredProof, FROZEN_V1_HASH, ADDENDUM };

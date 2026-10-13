@@ -29,8 +29,8 @@ test('development inventory preserves reviewed hashes and reports pending source
     assert.equal(result.reviewedSourceMatches, 15);
     assert.equal(result.releaseEligible, false);
     assert.equal(result.scope, 'development-regression');
-    assert.equal(result.pendingReviewPaths.length, 79);
-    assert.equal(new Set(result.pendingReviewPaths).size, 79);
+    assert.equal(result.pendingReviewPaths.length, 81);
+    assert.equal(new Set(result.pendingReviewPaths).size, 81);
     for (const file of result.pendingReviewPaths) assert.equal(Object.hasOwn(prior.REVIEWED_SOURCE_SHA256, file), false);
     assert.ok(result.pendingReviewPaths.includes('kernel/canonicalJson.js'));
     assert.ok(result.pendingReviewPaths.includes('provenance/executionHostChild.cjs'));
@@ -116,4 +116,22 @@ test('development inventory does not promote pending bytes to reviewed sources',
     assert.equal(result.releaseEligible, false);
     assert.ok(result.pendingReviewPaths.includes('provenance/civilCalendar.js'));
     assert.ok(policy.inspectSources(root, 'N02-E').errors.length > 0);
+});
+
+test('path-v3 development candidates are explicit pending-only and omission never implies review', t => {
+    const root = fixture(t);
+    const pending = ['provenance/pathQualificationV3.js', 'provenance/pathLocatorDomainV3.js'];
+    const result = policy.inspectDevelopmentSources(root, 'N02-E');
+    assert.deepEqual(result.errors, []);
+    assert.equal(result.releaseEligible, false);
+    assert.equal(result.reviewedSourceMatches, 15);
+    for (const relative of pending) {
+        assert.ok(result.pendingReviewPaths.includes(relative));
+        assert.equal(Object.hasOwn(prior.REVIEWED_SOURCE_SHA256, relative), false);
+        const file = path.join(root, relative), bytes = fs.readFileSync(file);
+        fs.unlinkSync(file);
+        assert.ok(policy.inspectDevelopmentSources(root, 'N02-E').errors.includes('missing_executable_source:' + relative));
+        fs.writeFileSync(file, bytes);
+        assert.ok(policy.inspectSources(root, 'N02-E').errors.includes('unexpected_executable_source:' + relative));
+    }
 });

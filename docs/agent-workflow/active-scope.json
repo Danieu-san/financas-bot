@@ -1,15 +1,15 @@
 {
   "schema": "financasbot-stage-scope-v1",
-  "stage_id": "DOMESTIC-SCOPE-01",
+  "stage_id": "PATH-V3-COMPOSITION-01",
   "base_head": "04eb9545516d100aa45e1ac6d8ebfda444fafbd7",
   "branch": "codex/n02g-month-profile-code-20261004",
-  "authorization": "Daniel: prevenção contra scope creep; faça; corrija o erro e siga (2026-10-09). Registro operacional, não autenticação criptográfica.",
-  "objective": "Trava finita de escopo e reconciliação residual, sem expandir PATHv3 nem reduzir qualidade Next",
+  "authorization": "Daniel confirmou INTERNAL 11+2 e PATH-ADMISSION-FOUNDATION-01; em2026-10-12 respondeu 'autorizado' ao pedido explícito de tests/helpers/exhaustiveNetworkTripwire.js e tests/exhaustiveLocalTestCoverageRunner.test.js. Quinze paths exatos, continuidade autônoma; compatibilidade finita de fixtures Git, sem liberação genérica de subprocessos. Registro operacional, não autenticação.",
+  "objective": "Composição finita da referência normal de programas/efeitos/capacidades/consumers sob método72fc, sem motor geralJS ou promoção de provas parciais",
   "original_first": {
     "head": "e00f6ebcf97e6bfdb2b7791939c22e879917f3f0",
-    "disposition": "adapt",
-    "asset": "scripts/agent/validateAgentWorkflow.js no original main,54WIP preservados",
-    "evidence": "Inspeção estática dirigida e hashes registrados no plano financasbot-scope-guard-20261009.md"
+    "disposition": "reuse",
+    "asset": "Autoria/IR/programas e contratos normais existentes; original main/54WIP preservados, sem reconstruir produto",
+    "evidence": "Reconfirmação readonly e confronto dirigido dos seis módulos no plano PATHv3; censo consumer-first existente não repetido"
   },
   "invariants": [
     "accuracy",
@@ -22,65 +22,83 @@
     "ratified_contracts"
   ],
   "allowed_paths": [
-    "AGENTS.md",
-    "scripts/agent/agentScopeGuard.js",
-    "scripts/agent/validateAgentWorkflow.js",
-    "tests/agentScopeGuard.test.js",
-    "docs/agent-workflow/active-scope.json",
-    "docs/agent-workflow/scope-baselines/domestic-scope-20261009.json",
-    "docs/plans/workstreams/financasbot-scope-guard-20261009.md",
+    "src/next/provenance/pathQualificationV3.js",
+    "scripts/agent/pathProofProgramContract.mjs",
+    "scripts/agent/capturePathQualificationCompiler.mjs",
+    "scripts/agent/pathExecutableClosureContract.mjs",
+    "scripts/agent/pathCapabilityEffectContract.mjs",
+    "scripts/agent/pathReceiverOriginContract.mjs",
+    "tests/next/provenance/pathQualificationV3.cases.js",
+    "docs/plans/workstreams/financasbot-pathv3-implementation-20261008.md",
     "docs/agent-memory/workstreams/financasbot-domestic-roadmap-review-20261007.md",
-    "docs/plans/workstreams/financasbot-pathv3-implementation-20261008.md"
+    "docs/agent-workflow/active-scope.json",
+    "docs/agent-workflow/scope-baselines/path-v3-composition-20261009.json",
+    "src/next/provenance/capturedTcbLauncher.js",
+    "src/next/provenance/validationTcbEntry.js",
+    "tests/helpers/exhaustiveNetworkTripwire.js",
+    "tests/exhaustiveLocalTestCoverageRunner.test.js"
   ],
   "changes": [
     {
-      "id": "SCOPE-DELTA-01",
+      "id": "PATH-COMPOSITION-01",
       "paths": [
-        "scripts/agent/agentScopeGuard.js",
-        "scripts/agent/validateAgentWorkflow.js",
-        "tests/agentScopeGuard.test.js",
+        "src/next/provenance/pathQualificationV3.js",
+        "scripts/agent/pathProofProgramContract.mjs",
+        "scripts/agent/capturePathQualificationCompiler.mjs",
+        "scripts/agent/pathExecutableClosureContract.mjs",
+        "scripts/agent/pathCapabilityEffectContract.mjs",
+        "scripts/agent/pathReceiverOriginContract.mjs",
+        "tests/next/provenance/pathQualificationV3.cases.js",
+        "docs/plans/workstreams/financasbot-pathv3-implementation-20261008.md",
+        "docs/agent-memory/workstreams/financasbot-domestic-roadmap-review-20261007.md",
         "docs/agent-workflow/active-scope.json",
-        "docs/agent-workflow/scope-baselines/domestic-scope-20261009.json"
+        "docs/agent-workflow/scope-baselines/path-v3-composition-20261009.json"
       ],
-      "cause": "Workflow anterior não rejeita delta fora do escopo e permite expansão silenciosa da fila",
-      "control": "Comparador de paths e bytes versus WIP anterior, contrato finito, orçamento e testes negativos",
-      "reuse": "Adaptar validateAgentWorkflow existente, sem substituir runtime ou controles do produto",
-      "evidence": "SCOPE-RED-01/02 e SCOPE-03..07 com Git real; baseline de metadados anterior",
-      "exit": "Fora de escopo/WIP drift/exclusão/renomeação/hash/HEAD/branch/causa ausente são recusados; auditoria independente antes de pronto",
-      "minimum_sufficient_delta": "Um guard pequeno integrado ao workflow e uma bateria causal",
-      "maintenance_cost": "Um contrato finito por etapa; não construir autenticação, solver ou motor geral JS"
+      "cause": "Conformance de bytes/vínculos não compõe prova completa de efeitos e consumidores72fc §§4–6; PATH-ADMISSION-FOUNDATION-01 autorizado acrescenta fundamento completo de A, pois concern de seleção/L nominal/M aceito não provam todas restrições relacionais",
+      "control": "Referência finita selada antesC/M/S e verificador ligado aos bytes reais; regras e instâncias normais de A seladas pré-M, frames exigem fundamento causal; premissa ausente blocked, contradição retida e captura inutilizada",
+      "reuse": "Compor módulos existentes e ABI/observação normal; reutilizar regras de graphStructure/predicateTypes/templates/obligation/claim/selection/collection, sem novo helper ou mudanças no compiler/runtime",
+      "evidence": "Classes RED de campo/alias/callback/efeito/consumer/helper, origem/clones/replay/active transports; cobertura de A e guarda/coordenada/regra/instância, focal/afetados e integração anteshandles",
+      "exit": "Fundamentos e premissas pertinentes completos e confrontados, A fundado antesM e exclusões com controles normais; nenhum flag parcial vira prova/crédito, auditoria inteira quando candidato estável",
+      "minimum_sufficient_delta": "Composição finita no domínio normal já capturado; não ampliar gramáticaJS nem perseguir unknowns por modelos sucessivos",
+      "maintenance_cost": "Onze paths fixos e reuso hash-bound de fundamentos completos; forma ou autoridade nova é fronteira de parada, não requisito automático"
     },
     {
-      "id": "SCOPE-DELTA-02",
-      "paths": [
-        "AGENTS.md",
-        "docs/plans/workstreams/financasbot-scope-guard-20261009.md",
-        "docs/agent-memory/workstreams/financasbot-domestic-roadmap-review-20261007.md",
-        "docs/plans/workstreams/financasbot-pathv3-implementation-20261008.md"
-      ],
-      "cause": "Fila residual e checkpoint obsoletos autorizariam causal106 por inércia",
-      "control": "Reconciliação de necessário versus adiável versus fronteira humana; apontar objetivo único vigente",
-      "reuse": "Preservar planos/evidências históricos e norma72fc imutável",
-      "evidence": "Causal104 e focal57105 já concluídos; não reexecutados para documentação",
-      "exit": "Próxima ação só DOMESTIC-SCOPE-01; nenhum requisito novo por unresolved, sem requalificar históricos",
-      "minimum_sufficient_delta": "Atualizar encaminhamento operacional e registrar residual uma vez",
-      "maintenance_cost": "Um checkpoint curto e um plano ativo, sem duplicar narrativas completas"
+      "id": "PATH-INTERNAL-IDENTITY-01",
+      "paths": ["src/next/provenance/capturedTcbLauncher.js", "src/next/provenance/validationTcbEntry.js"],
+      "cause": "Launcher só liga initializeFinancialHost, que gera identidade própria e exige proof positivo; não preserva a invocação v3 negativa",
+      "control": "Entrada INTERNAL one-use com ticket e payload exatos pinados externamente antes avaliação/handles, identidades e artefatos re-admitidos pelo host normal",
+      "reuse": "Reusar launcher, freeze, nativeRuntime e runAdmittedGraph existentes; manter initialize financeiro intacto",
+      "evidence": "RED/focal/adversarial de pins, transportes ativos, clones, replay, IDs, roots e bloqueio antes handles; auditoria inteira futura",
+      "exit": "Ligação de identidade sem raw runner/autoridade guest; A/W ausentes bloqueiam, nenhuma promoção de crédito por construção",
+      "minimum_sufficient_delta": "Dois arquivos existentes mais integração nos onze já autorizados, sem novo helper analítico/engine/compiler/norma",
+      "maintenance_cost": "Uma entrada confiada finita, formatos fechados e executor normal reutilizado; fora quinze exige decisão correspondente"
+    },
+    {
+      "id": "PATH-HARNESS-SCOPE-FIXTURE-01",
+      "paths": ["tests/helpers/exhaustiveNetworkTripwire.js", "tests/exhaustiveLocalTestCoverageRunner.test.js"],
+      "cause": "Causal34 corrigiu27falhas ambientais;7fixtures da trava de escopo permanecem bloqueados porque o tripwire não reconhece seu diretório/gramática Git e elimina exclusões locais necessárias",
+      "control": "Git pinado, fixture físico filho direto da raiz temporária auditada, arrays de comandos fechados e configuração de exclusão exclusivamente fixture-local; rede/shell/escapes/global configs continuam bloqueados",
+      "reuse": "Adaptar o tripwire e seus testes existentes; nenhum helper, runner original ou produto alterado",
+      "evidence": "RED7 preservado; positivos reais, mutações de comandos/paths/roots/configs e teste de exclusões; afetados herméticos antes uma única ampla final inteira",
+      "exit": "Sete fixtures e adversariais passam com tripwire ativo, sem permitir operações na raiz real ou ampliar autoridades do produto",
+      "minimum_sufficient_delta": "Dois arquivos existentes e alinhamento TEMP do subprocesso no wrapper mecânico temporário",
+      "maintenance_cost": "Contrato finito declarado do fixture real, sem Git genérico; novo domínio exige decisão explícita"
     }
   ],
   "exit_criteria": [
-    "Syntax, RED/focal e bateria causal adversarial PASS",
-    "Comparador real e workflow integrado PASS com rejeição negativa demonstrada",
-    "Uma validação final proporcional ao workflow estável e auditoria independente do candidato completo antes de pronto"
+    "Referências C/M/S precomprometidas e reais confrontadas com provas e premissas pertinentes completas",
+    "Syntax/RED/focal/afetados e revisão adversarial suficientes; uma ampla final somente no candidato inteiro estável",
+    "Auditoria independente completa por novo hash; fresh qualification própria somente se todos os pré-requisitos forem satisfeitos"
   ],
   "non_scope": [
-    "Novos incrementos PATHv3 ou causal106",
-    "Normas/compilers/checkers/oracle/trace/IDs/quotas/perfis",
-    "Produção/dados reais/auth/UAC/ACL/deploy/finance/GO global",
-    "Solver ou interpretador geral JS"
+    "Novo helper, gramática geralJS, modelos nominativos sucessivos por unknowns, causal106 por inércia",
+    "Normas/compilers/engine/financialHost/guards/checkers/oracle/trace/IDs/quotas/perfis/contratos congelados; somente entrada INTERNAL autorizada",
+    "Produção/dados reais/auth/UAC/ACL/subagentes/deploy/finance/receipt/validated_parent/GOglobal/NEXT03",
+    "Expansão de paths/orçamento/rebaseline para esconder drift ou requalificação de históricos"
   ],
-  "max_changed_paths": 9,
+  "max_changed_paths": 15,
   "unresolved_policy": "blocked_not_automatic_requirement",
-  "baseline_path": "docs/agent-workflow/scope-baselines/domestic-scope-20261009.json",
-  "baseline_sha256": "877c71bc1600646988c003a47ecefda6bf7e970359ec94f73adb40fde88b330d",
-  "baseline_index_outside_scope_sha256": "f47e118282695768c5c0068e223f57d95d3b13dacc207dd7b35af5ae06675add"
+  "baseline_path": "docs/agent-workflow/scope-baselines/path-v3-composition-20261009.json",
+  "baseline_sha256": "b5aec333b7366d2c93dc1e1c89ff0c3d4f3e3b75636778fa39db3e5b53bc87db",
+  "baseline_index_outside_scope_sha256": "c3cdcbf422484910aee9a3d00df326b62099029ca0f4025df3730759f2ff7678"
 }

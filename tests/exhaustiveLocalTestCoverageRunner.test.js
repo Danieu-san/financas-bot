@@ -104,6 +104,119 @@ test('hermetic Git blob reads require immutable objects and the audited root; co
     assert.strictEqual(child.status, 0, `${child.stdout || ''}\n${child.stderr || ''}`);
 });
 
+test('coverage tripwire admits only the finite scope fixture contract and local exclusions', t => {
+    const inherited = process.env.EXHAUSTIVE_AUDIT_TEMP_ROOT;
+    const auditRoot = inherited ? fs.realpathSync(inherited)
+        : fs.mkdtempSync(path.join(os.tmpdir(), 'fb-scope-audit-'));
+    if (!inherited) t.after(() => fs.rmSync(auditRoot, { recursive: true, force: true }));
+    const fixture = fs.mkdtempSync(path.join(auditRoot, 'financasbot-scope-test-'));
+    const outside = fs.mkdtempSync(path.join(path.dirname(auditRoot), 'financasbot-scope-test-'));
+    const nested = fs.mkdtempSync(path.join(fixture, 'financasbot-scope-test-'));
+    const link = path.join(auditRoot, 'financasbot-scope-test-linked');
+    fs.symlinkSync(outside, link, 'junction');
+    t.after(() => { fs.rmSync(link, { force: true }); fs.rmSync(outside, { recursive: true, force: true });
+        if (inherited) fs.rmSync(fixture, { recursive: true, force: true }); });
+    const context = { fixture, outside, nested, link, root: ROOT,
+        tripwire: path.join(ROOT, 'tests/helpers/exhaustiveNetworkTripwire.js') };
+    function probe(context) {
+        const assert = require('node:assert/strict'), fs = require('node:fs'), path = require('node:path');
+        const cp = require('node:child_process'), wire = require(context.tripwire);
+        const git = process.env.EXHAUSTIVE_LOCAL_GIT_PATH;
+        assert.ok(git, 'pinned Git is required for the scope fixture');
+        const object = 'a'.repeat(40), prefix = ['-c', 'safe.directory=' + context.fixture];
+        const commands = [
+            ['init', '-q', '-b', 'codex/test'], ['add', '--', 'old/wip.js', 'scripts/guard.js'],
+            ['add', '--', 'old/wip.js'], ['add', '--', 'scripts/guard.js'], ['add', '--', 'old/new.js'],
+            ['-c', 'user.name=Scope Test', '-c', 'user.email=scope-test@example.invalid', 'commit', '-q', '-m', 'fixture'],
+            ['-c', 'user.name=Scope Test', '-c', 'user.email=scope-test@example.invalid', 'commit', '-q', '--allow-empty', '-m', 'new head'],
+            ['switch', '-q', '-c', 'codex/other'], ['switch', '-q', 'codex/test'],
+            ['rm', '--cached', '--', 'old/wip.js'], ['rm', '--cached', '--', 'scripts/guard.js'],
+            ['rev-parse', 'HEAD'], ['rev-parse', ':scripts/guard.js'],
+            ['update-index', '--cacheinfo', '120000,' + object + ',scripts/guard.js'],
+            ['update-index', '--cacheinfo', '100644,' + object + ',scripts/guard.js'],
+            ['update-index', '--chmod=+x', '--', 'old/wip.js'], ['branch', '--show-current'],
+            ['diff', '--name-only', '--no-renames', '-z', 'HEAD', '--'],
+            ['ls-files', '--others', '--exclude-standard', '-z'], ['ls-files', '--stage', '-z'],
+            ['diff', '--cached', '--name-only', '--no-renames', '-z', 'HEAD', '--'],
+            ['diff', '--cached', '--name-only', '--no-renames', '--diff-filter=D', '-z', 'HEAD', '--']
+        ];
+        const allowed = (command, args, cwd, extra = {}) =>
+            wire.isAuditedLocalGitCommand(command, args, { cwd, ...extra });
+        let mutations = 0;
+        for (const command of commands) {
+            const args = [...prefix, ...command];
+            assert.equal(allowed(git, args, context.fixture), true, JSON.stringify(args));
+            for (const cwd of [context.root, context.outside, context.nested, context.link]) {
+                assert.equal(allowed(git, args, cwd), false, cwd); mutations++;
+            }
+            assert.equal(allowed(process.execPath, args, context.fixture), false); mutations++;
+            assert.equal(allowed(git, args, context.fixture, { shell: true }), false); mutations++;
+            assert.equal(allowed(git, args.slice(2), context.fixture), false); mutations++;
+            assert.equal(allowed(git, [...args, '--unapproved'], context.fixture), false); mutations++;
+            for (let i = 0; i < args.length; i++) {
+                const changed = [...args]; changed[i] = 'unapproved-token';
+                assert.equal(allowed(git, changed, context.fixture), false, JSON.stringify(changed)); mutations++;
+            }
+        }
+        for (const command of [['fetch'], ['push'], ['clone', 'anything'], ['reset', '--hard'],
+            ['config', '--global', 'core.hooksPath', 'anything'], ['add', '--', '../escape'],
+            ['add', '--', '.git/config'], ['switch', '-q', 'main'],
+            ['update-index', '--cacheinfo', '100755,' + object + ',scripts/guard.js'],
+            ['rev-parse', ':../escape'], ['-c', 'core.sshCommand=anything', 'rev-parse', 'HEAD']]) {
+            assert.equal(allowed(git, [...prefix, ...command], context.fixture), false); mutations++;
+        }
+        const g = (args, env = process.env) => cp.execFileSync(git, [...prefix, ...args],
+            { cwd: context.fixture, encoding: 'utf8', env });
+        g(commands[0]);
+        const exclude = path.join(context.fixture, '.git/info/scope-test.exclude');
+        fs.writeFileSync(exclude, 'ignored-runtime/\n');
+        fs.mkdirSync(path.join(context.fixture, 'ignored-runtime'));
+        fs.writeFileSync(path.join(context.fixture, 'ignored-runtime/private.txt'), 'synthetic');
+        const exclusions = { ...process.env, GIT_CONFIG_COUNT: '1',
+            GIT_CONFIG_KEY_0: 'core.excludesFile', GIT_CONFIG_VALUE_0: exclude };
+        const query = ['ls-files', '--others', '--exclude-standard', '-z'];
+        assert.equal(g(query, exclusions).includes('ignored-runtime/'), false, 'fixture-local exclusions preserved');
+        const externalExclude = path.join(context.outside, 'scope-test.exclude');
+        fs.writeFileSync(externalExclude, 'ignored-runtime/\n');
+        const nonCanonicalExclude = path.join(context.fixture, '.git', 'info') +
+            path.sep + '..' + path.sep + 'info' + path.sep + 'scope-test.exclude';
+        for (const value of [externalExclude, nonCanonicalExclude]) {
+            assert.equal(g(query, { ...exclusions, GIT_CONFIG_VALUE_0: value }).includes('ignored-runtime/'),
+                true, 'non-exact exclusion path must not survive');
+        }
+        assert.equal(g(query, { ...exclusions, GIT_CONFIG_COUNT: '2',
+            GIT_CONFIG_KEY_1: 'core.hooksPath', GIT_CONFIG_VALUE_1: externalExclude }).includes('ignored-runtime/'),
+            true, 'arbitrary config vector must be scrubbed');
+        assert.equal(g(query, { ...exclusions, GIT_CONFIG_PARAMETERS: "'core.excludesFile=" + externalExclude + "'" })
+            .includes('ignored-runtime/'), true, 'alternate config channel must be scrubbed');
+        for (const key of ['GIT_DIR', 'GIT_COMMON_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE',
+            'GIT_OBJECT_DIRECTORY', 'GIT_ALTERNATE_OBJECT_DIRECTORIES', 'GIT_EXEC_PATH', 'GIT_TEMPLATE_DIR']) {
+            assert.equal(g(query, { ...process.env, [key]: context.outside }).includes('ignored-runtime/'),
+                true, 'Git path redirection must not survive: ' + key);
+        }
+        const info = path.dirname(exclude), retainedInfo = info + '-physical';
+        fs.renameSync(info, retainedInfo);
+        fs.symlinkSync(context.outside, info, 'junction');
+        try {
+            assert.equal(g(query, exclusions).includes('ignored-runtime/'), true, 'linked exclusion directory refused');
+        } finally {
+            fs.rmSync(info, { recursive: true, force: true });
+            fs.renameSync(retainedInfo, info);
+        }
+        assert.throws(() => g(['fetch']), /EXHAUSTIVE_AUDIT_SUBPROCESS_BLOCKED/);
+        assert.throws(() => cp.execFileSync(git, [...prefix, 'rev-parse', 'HEAD'],
+            { cwd: context.fixture, shell: true }), /EXHAUSTIVE_AUDIT_SUBPROCESS_BLOCKED/);
+        assert.ok(mutations > 250, 'generated finite-command mutations covered');
+        process.stdout.write('scope-fixture-contract-ok:' + mutations);
+    }
+    const environment = buildHermeticTestEnvironment(process.env, { auditTempRoot: auditRoot });
+    const child = spawnSync(process.execPath, ['-e',
+        '(' + probe.toString() + ')(' + JSON.stringify(context) + ');'],
+        { cwd: ROOT, env: environment, encoding: 'utf8' });
+    assert.strictEqual(child.status, 0, (child.stdout || '') + '\n' + (child.stderr || ''));
+    assert.match(child.stdout, /^scope-fixture-contract-ok:\d+$/);
+});
+
 test('local coverage runner excludes the real WhatsApp controller and nested duplicate entries', () => {
     const files = listLocalTestFiles().map(file => file.replace(/\\/g, '/'));
     assert.strictEqual(Object.keys(EXCLUDED).length, 1);
@@ -355,10 +468,10 @@ test('coverage runner confines Git and Tar to exact controlled roots', () => {
         );
     const ownsAuditRoot = !inheritedAuditRoot;
     const outsideRepo = fs.mkdtempSync(
-        path.join(os.tmpdir(), 'financasbot-release-repo-')
+        path.join(path.dirname(auditRoot), 'financasbot-release-repo-')
     );
     const outsideTarget = fs.mkdtempSync(
-        path.join(os.tmpdir(), 'financasbot-release-escape-')
+        path.join(path.dirname(auditRoot), 'financasbot-release-escape-')
     );
     let fixtureRepo = null;
     let buildRoot = null;

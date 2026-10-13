@@ -1,7 +1,15 @@
 'use strict';
 
 const { freezeDeep } = require('../kernel/canonicalValue');
-const fail = code => { throw new Error(`selection_binding_${code}`); };
+// Native DEVELOPMENT diagnostics preserve the normal guards, error text and
+// pass order. Only these thrown errors acquire origin, never caller labels.
+const diagnostics = new WeakMap();
+const fail = (code, coordinate = null) => {
+    const error = new Error(`selection_binding_${code}`);
+    if (coordinate) diagnostics.set(error, freezeDeep({ checker: 'selection_bindings', ...coordinate }));
+    throw error;
+};
+const readSelectionBindingDiagnostic = error => diagnostics.get(error) ?? null;
 const REASONS = Object.freeze({ period: 'period', state: 'evidence_state', identity: 'node_identity',
     ownership: 'subject_scope', scope: 'subject_scope', instrument: 'subject_scope', plan: 'subject_scope',
     merchant: 'subject_scope', category: 'subject_scope', budget_class: 'subject_scope', economic_kind: 'subject_scope' });
@@ -69,7 +77,7 @@ function validateSelectionBindings({ graphs, claims, materialRegistry }) {
                 && predicate.args[1 - i]?.literal?.type === 'enum'
                 && predicate.args[1 - i].literal.value === expected);
         }
-        for (const selection of graph.selections) {
+        for (const [selectionIndex, selection] of graph.selections.entries()) {
             selections++;
             const candidates = graph.sets[selection.candidate_set];
             const selected = graph.sets[selection.selected_set];
@@ -80,10 +88,15 @@ function validateSelectionBindings({ graphs, claims, materialRegistry }) {
             const included = selection.selected_predicates.map(id => predicates.get(id));
             for (const predicate of included) {
                 if (!predicate || !INCLUDED_OBLIGATIONS.has(predicate.obligation)
-                    || !selected.some(alias => concerns(predicate, alias))) fail('selected');
+                    || !selected.some(alias => concerns(predicate, alias))) fail('selected', predicate
+                        && INCLUDED_OBLIGATIONS.has(predicate.obligation) ? {
+                            fact_key: graph.fact_key, predicate_id: predicate.id, selection_index: selectionIndex,
+                            mode: 'included_predicate_concerns_selected_member', node: null } : null);
             }
             for (const alias of selected) {
-                if (!included.some(predicate => concerns(predicate, alias))) fail('selected');
+                if (!included.some(predicate => concerns(predicate, alias))) fail('selected', {
+                    fact_key: graph.fact_key, predicate_id: null, selection_index: selectionIndex,
+                    mode: 'selected_member_retains_authored_reason', node: alias });
                 const field = stateField(alias);
                 // `state` is a selection discriminator; `evidence_state` is
                 // also enforced by the generic typed_evidence_state check.
@@ -103,7 +116,9 @@ function validateSelectionBindings({ graphs, claims, materialRegistry }) {
                 const reasons = excluded.predicates.map(id => predicates.get(id));
                 if (!obligation || !reasons.length || reasons.some(predicate => !predicate || predicate.obligation !== obligation)) fail('reason');
                 for (const predicate of reasons) if (!concerns(predicate, excluded.node)) {
-                    fail(`candidate:${graph.fact_key}:${excluded.node}:${predicate.id}`);
+                    fail(`candidate:${graph.fact_key}:${excluded.node}:${predicate.id}`, {
+                        fact_key: graph.fact_key, predicate_id: predicate.id, selection_index: selectionIndex,
+                        mode: 'excluded_reason_concerns_own_candidate', node: excluded.node });
                 }
                 if (excluded.reason === 'state') {
                     const field = stateField(excluded.node);
@@ -127,4 +142,4 @@ function validateSelectionBindings({ graphs, claims, materialRegistry }) {
     return freezeDeep({ stage: 'selection_bindings_checked_only', graphs: graphs.length, selections, stateChecks, programs });
 }
 
-module.exports = { validateSelectionBindings };
+module.exports = { validateSelectionBindings, readSelectionBindingDiagnostic };

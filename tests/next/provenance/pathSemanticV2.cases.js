@@ -4,6 +4,84 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 let cached;
+test('N02G:PATH-SEMANTIC-V2-013 independent pinned civil instant reference covers timezone boundaries', () => {
+    const { referenceCivilRelation } = require('../../../src/next/provenance/pathSemanticReference');
+    const zone = 'America/Sao_Paulo', calendar = 'proleptic_gregorian';
+    const compare = (instant, date, z = zone, c = calendar) =>
+        referenceCivilRelation('civil_date_matches', [instant, date, z, c]);
+    const source = fs.readFileSync(path.resolve(__dirname,
+        '../../../docs/audit-evidence/n02g-causal-authoring-profile/path-timezone-reference-20261007/iana-tzdb-2025b-southamerica.txt'));
+    const hash = require('node:crypto').createHash('sha256').update(source).digest('hex');
+    assert.equal(hash, '57cc4ee3dc4bd575f126ba76f284a9ee67330c6fbb7576792eda27f41451ff22');
+    const lines = source.toString('utf8').split('\n');
+    const rules = lines.filter(line => /^Rule\s+Brazil\s/.test(line)).map(line => line.split(/\s+/));
+    assert.equal(rules.length, 57);
+    assert.ok(rules.every(rule => /^\d{4}$/.test(rule[2])
+        && (rule[3] === 'only' || /^\d{4}$/.test(rule[3]))));
+    const latest = Math.max(...rules.map(rule => Number(rule[3] === 'only' ? rule[2] : rule[3])));
+    assert.equal(latest, 2019);
+    assert.equal(rules.filter(rule => Number(rule[3] === 'only' ? rule[2] : rule[3]) === latest)[0][8], '0');
+    const index = lines.findIndex(line => line.startsWith('Zone America/Sao_Paulo'));
+    assert.match(lines[index + 3], /^\s+-3:00\s+Brazil\s+%z$/);
+    for (const [instant, date] of [
+        ['2042-06-15T12:00:00-03:00', '2042-06-15'],
+        ['2042-06-16T01:00:00Z', '2042-06-15'],
+        ['2020-01-01T00:00:00Z', '2019-12-31'],
+        ['2024-03-01T02:59:59.999999Z', '2024-02-29'],
+        ['2024-03-01T03:00:00Z', '2024-03-01'],
+        ['2100-03-01T02:59:59Z', '2100-02-28'],
+        ['9999-12-31T23:59:59Z', '9999-12-31']
+    ]) assert.equal(compare(instant, date), true, instant);
+    assert.equal(compare('2042-06-16T01:00:00Z', '2042-06-16'), false);
+    assert.equal(compare('2042-06-15T12:00:00-03:00', '2042-06-30'), false);
+    for (const offset of [-1439, -180, 0, 330, 1439]) {
+        // Independent equivalence fixture: every spelling denotes 2024-03-01T03:00Z.
+        const minute = 3 * 60 + offset;
+        const date = minute < 0 ? '2024-02-29' : minute >= 1440 ? '2024-03-02' : '2024-03-01';
+        const time = (minute % 1440 + 1440) % 1440;
+        const hh = String(Math.floor(time / 60)).padStart(2, '0'), mm = String(time % 60).padStart(2, '0');
+        const off = Math.abs(offset), oh = String(Math.floor(off / 60)).padStart(2, '0'), om = String(off % 60).padStart(2, '0');
+        assert.equal(compare(`${date}T${hh}:${mm}:00${offset < 0 ? '-' : '+'}${oh}:${om}`, '2024-03-01'), true);
+    }
+    for (const instant of ['2019-12-31T23:59:59Z', '9999-12-31T23:59:59-23:59',
+        '2024-02-30T00:00:00Z', '2024-01-01T24:00:00Z', '2024-01-01T00:00:60Z',
+        '2024-01-01T00:00:00+24:00', '2024-01-01T00:00:00', '0000-01-01T00:00:00Z'])
+        assert.equal(compare(instant, '2024-01-01'), null, instant);
+    assert.equal(compare('2024-01-01T00:00:00Z', '2023-12-31', 'UTC'), null);
+    assert.equal(compare('2024-01-01T00:00:00Z', '2023-12-31', zone, 'gregorian'), null);
+    let effects = 0;
+    const hostile = { toString() { effects++; return '2024-01-01T00:00:00Z'; } };
+    assert.equal(compare(hostile, '2023-12-31'), null);
+    const getter = ['2024-01-01T00:00:00Z', '2023-12-31', zone, calendar];
+    Object.defineProperty(getter, 0, { enumerable: true, get() { effects++; return 'ignored'; } });
+    assert.equal(referenceCivilRelation('civil_date_matches', getter), null);
+    assert.equal(referenceCivilRelation('civil_date_matches', new Proxy([], { ownKeys() { effects++; return []; } })), null);
+    assert.equal(effects, 0);
+});
+
+test('N02G:PATH-SEMANTIC-V2-014 authored civil clock references preserve first alternatives without execution credit', async () => {
+    const { packageReceipt, inventoryCandidate } = await fixture();
+    const { enumeratePathSemanticCandidates } = require('../../../src/next/provenance/pathMutationInventory');
+    const { sealPathSemanticReference } = require('../../../src/next/provenance/pathSemanticReference');
+    const ids = ['M-13#1#3', 'M-13#1#6'];
+    for (const fact_key of ids) {
+        const requirement = inventoryCandidate.requirements.find(row => row.family === 'predicate_path_semantic'
+            && row.target.fact_key === fact_key && row.target.predicate_id === 'calendar_clock_cutoff');
+        assert.ok(requirement);
+        const candidates = enumeratePathSemanticCandidates({ inventoryCandidate, mutation_id: requirement.mutation_id }).candidates;
+        assert.equal(candidates.length, 2);
+        assert.equal(candidates[0].patch.after.segments.at(-1), 'daily_pace_end');
+        for (const candidate of candidates) {
+            const ref = sealPathSemanticReference({ packageReceipt, candidate });
+            assert.equal(ref.available, true);
+            assert.equal(ref.baseline_satisfied, true);
+            assert.equal(ref.mutant_satisfied, false);
+            assert.equal(ref.financial_receipt, false);
+            assert.deepEqual(ref.expected_violations, ['period']);
+        }
+    }
+});
+
 test('N02G:PATH-SEMANTIC-V2-012 independent authored windows resolve only frozen civil operands', async () => {
     const { packageReceipt, inventoryCandidate } = await fixture();
     const { enumeratePathSemanticCandidates } = require('../../../src/next/provenance/pathMutationInventory');

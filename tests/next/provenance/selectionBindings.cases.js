@@ -24,6 +24,45 @@ test('N02G:SELECTION-BINDINGS-001 all 73 selections bind reasons and input guard
     assert.ok(Object.isFrozen(result.stateChecks));
 });
 
+test('N02G:SELECTION-BINDINGS-011 native concern diagnostics distinguish selected predicate member coverage and excluded reason without accepting labels', () => {
+    const { readSelectionBindingDiagnostic } = require('../../../src/next/provenance/selectionBindings');
+    const mutations = [
+        f => {
+            const g = f.graphs[0], selection = g.selections[0];
+            const excluded = selection.excluded.find(row => row.reason === 'state');
+            selection.selected_predicates.push(excluded.predicates[0]);
+            return { checker: 'selection_bindings', fact_key: g.fact_key, predicate_id: excluded.predicates[0],
+                selection_index: 0, mode: 'included_predicate_concerns_selected_member', node: null };
+        },
+        f => {
+            const g = f.graphs[0], selection = g.selections[0];
+            selection.selected_predicates = [];
+            return { checker: 'selection_bindings', fact_key: g.fact_key, predicate_id: null, selection_index: 0,
+                mode: 'selected_member_retains_authored_reason', node: g.sets[selection.selected_set][0] };
+        },
+        f => {
+            const g = f.graphs[0], selection = g.selections[0];
+            const [a, b] = selection.excluded.filter(row => row.reason === 'state');
+            a.predicates = [...b.predicates];
+            return { checker: 'selection_bindings', fact_key: g.fact_key, predicate_id: b.predicates[0], selection_index: 0,
+                mode: 'excluded_reason_concerns_own_candidate', node: a.node };
+        }
+    ];
+    for (const mutate of mutations) {
+        const f = fixture(), expected = mutate(f);
+        let thrown;
+        try { validateSelectionBindings(f); } catch (error) { thrown = error; }
+        assert.ok(thrown);
+        assert.deepEqual(readSelectionBindingDiagnostic(thrown), expected);
+        assert.equal(readSelectionBindingDiagnostic(new Error(thrown.message)), null);
+        assert.equal(readSelectionBindingDiagnostic({ message: thrown.message, ...expected }), null);
+        assert.ok(Object.isFrozen(readSelectionBindingDiagnostic(thrown)));
+    }
+    let effects = 0;
+    assert.equal(readSelectionBindingDiagnostic(new Proxy({}, { get() { effects++; return true; } })), null);
+    assert.equal(effects, 0);
+});
+
 test('N02G:SELECTION-BINDINGS-002 another candidate proof cannot justify an exclusion', () => {
     reject(g => {
         const excluded = g.selections[0].excluded;

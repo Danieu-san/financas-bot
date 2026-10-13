@@ -1,0 +1,3745 @@
+{
+  "format": "financasbot.path-v3.complete-code-reference-review",
+  "version": 1,
+  "parent_commit": "fa42fb7a545d7cc29121a04fbc1768b15d905d19",
+  "parent_tree": "50109c6893eb5e2f6eb8f0bc7399fd23dfeb1a1e",
+  "method_authority": "72fc5a5b707909687da9b5cec892be2dcc892a62",
+  "proposed_normative_blob": "82112f0c4d6eeed21d4823c8b1dd3d3ca8ce1bf2",
+  "proposed_normative_UTF8_LF_sha256": "0c831d290c0ae47960d1fc11b9ea530d792a926cb2211a1313d7d070f0d24eba",
+  "review_scope": "entire_CODE_and_normal_reference_BINDINGS_with_pertinent_BUILD_TCB_dependencies_not_helper_only",
+  "active_source_scope": [
+    "src/next/provenance/pathQualificationV3.js",
+    "scripts/agent/pathProofProgramContract.mjs",
+    "scripts/agent/capturePathQualificationCompiler.mjs",
+    "scripts/agent/pathExecutableClosureContract.mjs",
+    "scripts/agent/pathCapabilityEffectContract.mjs",
+    "scripts/agent/pathReceiverOriginContract.mjs",
+    "tests/next/provenance/pathQualificationV3.cases.js",
+    "docs/plans/workstreams/financasbot-pathv3-implementation-20261008.md",
+    "docs/agent-memory/workstreams/financasbot-domestic-roadmap-review-20261007.md",
+    "docs/agent-workflow/active-scope.json",
+    "docs/agent-workflow/scope-baselines/path-v3-composition-20261009.json",
+    "src/next/provenance/capturedTcbLauncher.js",
+    "src/next/provenance/validationTcbEntry.js",
+    "tests/helpers/exhaustiveNetworkTripwire.js",
+    "tests/exhaustiveLocalTestCoverageRunner.test.js"
+  ],
+  "normal_capture": {
+    "report_sha256": "50ee461bca85a2e4a73173e2df73c303d2aacdcf728f063e3ded1e7b9ca3745f",
+    "snapshot_sha256": "247e948fec72ef6370fc7c74314b341ad7a4f61d8a20f244d5515cc995414748",
+    "compiler_artifact_root": "sha256:c529c09bf0b3fe02bf315f6fad19e4e46a2141c2337f5faed8b76a68ba543921",
+    "validation_tcb_artifact_root": "sha256:00498cfb57f61b8f56946166308d106cab141012be850e4bd68a4771bca9acb1",
+    "artifacts": [
+      {
+        "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/normal-rule-review-snapshot.json",
+        "bytes": 579162,
+        "sha256": "247e948fec72ef6370fc7c74314b341ad7a4f61d8a20f244d5515cc995414748",
+        "git_blob_sha1": "25f4c091e7d3daad9f0c1006d45a8a6bbbc1eea1"
+      },
+      {
+        "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/compiler-manifest.json",
+        "bytes": 442,
+        "sha256": "c529c09bf0b3fe02bf315f6fad19e4e46a2141c2337f5faed8b76a68ba543921",
+        "git_blob_sha1": "ca3ebccb2d1875234cb62fb70536d6fc396e4864"
+      },
+      {
+        "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/path-qualification-compiler-recipe.json",
+        "bytes": 276716,
+        "sha256": "5404208701a79b6940067612b07ba4e95b612dfc00f3d008bfd4037bf8aa4b9e",
+        "git_blob_sha1": "40910cf554cb47a956f6970d26d168ccd1a0abd7"
+      },
+      {
+        "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/path-qualification-compiler.js",
+        "bytes": 1445999,
+        "sha256": "4888cfbe33ce324220c4a2438be305214d0e57cdc03fb116384f05d3256e0b00",
+        "git_blob_sha1": "fe23959fb9379b10106815afa00d2641dc24e846"
+      },
+      {
+        "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/validation-tcb-manifest.json",
+        "bytes": 683,
+        "sha256": "00498cfb57f61b8f56946166308d106cab141012be850e4bd68a4771bca9acb1",
+        "git_blob_sha1": "3da90c074c43762007dd5cfd82c2428d465b0f5b"
+      },
+      {
+        "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/child-bootstrap.js",
+        "bytes": 639971,
+        "sha256": "97413ddff2e9fd8a1c5368a96aed2a3000401476da2ce9b795631958dc8c0a92",
+        "git_blob_sha1": "b9ab10bbbd5ddc70a2fcf61ea7a04c0edf4c65cb"
+      },
+      {
+        "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/host-bootstrap.js",
+        "bytes": 1445695,
+        "sha256": "da1ca7194b2db4e19dcf5a06c9e43009e014331f78f51727e177249bef3e8251",
+        "git_blob_sha1": "77b492b5986b8d987dc946a730894080a9ea7883"
+      },
+      {
+        "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/launcher-bootstrap.js",
+        "bytes": 33890,
+        "sha256": "2f8a10d658d5748cdbcdbbad79abb4dd29c3364816d6f4504e219682429e4119",
+        "git_blob_sha1": "705ab3896f5e515fe19fd732e6a6c5c8e5b392a9"
+      },
+      {
+        "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/recipe.json",
+        "bytes": 276716,
+        "sha256": "5404208701a79b6940067612b07ba4e95b612dfc00f3d008bfd4037bf8aa4b9e",
+        "git_blob_sha1": "40910cf554cb47a956f6970d26d168ccd1a0abd7"
+      }
+    ],
+    "sources": [
+      {
+        "path": "docs/audit-evidence/n02g-causal-authoring-profile/compositional-path-proposal-audit-20261008.md",
+        "sha256": "760738e6097ae032bdeee593a4f82f580eb0eca952aa9b8ca163c09d07374fe3",
+        "bytes": 9612,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-authorship-v1-frozen.json",
+        "sha256": "e9c852034d8cc887e1d8645a61d9597176409f72a28eaf0de4c95f17c0c8358d",
+        "bytes": 4954513,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-inventory-v1-frozen.json",
+        "sha256": "2509cb7df02a98a1217a416c70b5f729b40ca331314ce2d925005ec15a779a9d",
+        "bytes": 10931712,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-timezone-reference-20261007/iana-tzdb-2025b-southamerica.txt",
+        "sha256": "57cc4ee3dc4bd575f126ba76f284a9ee67330c6fbb7576792eda27f41451ff22",
+        "bytes": 95298,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-history-20261008/.gitattributes",
+        "sha256": "787d3ae4e59e60582eb69d0d32eb6c1168dfa38bf4e2a21c98ce5d87226b6ef4",
+        "bytes": 51,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-history-20261008/capture.json",
+        "sha256": "3338e0dedcf90f65ec3758af48507cfb8c5cee4c954e93e9aa518354a374fc75",
+        "bytes": 12850,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-history-20261008/historical-v2-report.json",
+        "sha256": "3187e36259bc11fcd2c9063a6a4ba25987f1e1acca18a81a96aee87834b007d0",
+        "bytes": 3472204,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/authoring-contract-v1.md",
+        "sha256": "7040d3cee24341a15af3fb3ca6acf84df6a207b10af13828739f545f87ae1328",
+        "bytes": 9498,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/causal-authoring-candidates/README.md",
+        "sha256": "1c018f2e87d96ea4bb504574751171e1ad192820aa60a1e32976d83964bd9b1b",
+        "bytes": 7330,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/causal-authoring-candidates/consumption-by-instrument-profile-v1.json",
+        "sha256": "4c2be2d8f773b85e008d8f476d37196bdab9b0bac58848c616294f685fcda99a",
+        "bytes": 1205,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/causal-authoring-candidates/statement-total-profile-v1.json",
+        "sha256": "12cd0fa53fb62121068cdb85ededa91a0b5faec6976d2a9eb3a8045502485723",
+        "bytes": 1358,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/claim-contract.schema.json",
+        "sha256": "b69ef61b562061f057a9bf08f47623ae432c723f565e8775f3dbe6eb942ea998",
+        "bytes": 6124,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/claims-v2.json",
+        "sha256": "4810612761ea7f232e4445c0d192ae53ebf0761f0ba8752da758efb826b30494",
+        "bytes": 64240,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluation-policy-v1.json",
+        "sha256": "4b6ee6a6fb365aa97a22a087de032e998dbb31ffd929d3ea2b094544f28f40dd",
+        "bytes": 454,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-authoring-semantics-v1.md",
+        "sha256": "720e31b2a8a7c0490adf620a8ccaedbe54e06d0502e518e61c8c69252a006a7f",
+        "bytes": 4875,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contract.schema.json",
+        "sha256": "2c3bc0a86bf45da2c4466118bb6ad9506f1824a209c419c3c7180718e294a183",
+        "bytes": 2668,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/account_balance.json",
+        "sha256": "b509b72bf341c36f60cc7fda7030602a0fdfcc1dae24a0687cb899d4b15a35ed",
+        "bytes": 1539,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/balance_delta.json",
+        "sha256": "39a1a87663a54e5d37c8e1a35f02596330d48b71e70a431fa27fe58193339a1e",
+        "bytes": 1162,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/bills_open.json",
+        "sha256": "9fed67d44d48c3965043964769ce6481b876a793decf16901e7e666261593faf",
+        "bytes": 1164,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/budget_class_consumption.json",
+        "sha256": "e336d72e581c06401fd6ef3cc5b041b6c2b7ad56745fe25ff5980ca763ed8561",
+        "bytes": 1274,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/calendar_event_count.json",
+        "sha256": "fa3f00c0a019ab0702f94b2c97f2e575509c308343d2208c992ac677e98097b8",
+        "bytes": 1156,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/category_budget_remaining.json",
+        "sha256": "4e4f9e38d7495397799578d1f73366d067ef5a5a7ca47879071dacd3669436c5",
+        "bytes": 1485,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/category_consumption.json",
+        "sha256": "b6e8edf05cb8acc7155bea56d84c4827c4fa9c97b54cacdc13805602468564a3",
+        "bytes": 1237,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/category_spent.json",
+        "sha256": "f168ac80d9ac17abf516e76729105c03a6efcf1743bdd4459e94f0c75f851baa",
+        "bytes": 1207,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_by_instrument.json",
+        "sha256": "e32bc36ae9642c1db0d0eb6dce05c3861a80d967b974613eafc8fc6a341dbd37",
+        "bytes": 1218,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_difference.json",
+        "sha256": "f5d8eda523ba66305010fed07ca6c657b76c486774eac052c3151ddcc85546f7",
+        "bytes": 1159,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_effect.json",
+        "sha256": "7dd62b47dcc336828376d44ed54c996f4ef21d27f9f21cfa142cd3722e24eab1",
+        "bytes": 1248,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_total.json",
+        "sha256": "4e07fd44f09a99168cd92d6a9caa664ef5c847146aae64905b859c4cf313be3a",
+        "bytes": 1365,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/due_bill_ids.json",
+        "sha256": "a9ddce797a0f90184dad2e3fd50cb20d6534648485ed9f27592cbfe03782ebf4",
+        "bytes": 1162,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/due_bills_total.json",
+        "sha256": "aaa1e469986731240f28f22ffe4559c4a663b13d2a01718f61e866c3e1f62e86",
+        "bytes": 1143,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/eligible_event_count.json",
+        "sha256": "f338fef9c95fa8ec005b95b6aa8b21069bb1c04f03ccc777d672bf5f161f4951",
+        "bytes": 1884,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/gross_consumption.json",
+        "sha256": "787b125062623e9ffaea8d248ef0554a93e23458275566390c88e88b5e3d00d6",
+        "bytes": 1192,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/income_minus_open_bills.json",
+        "sha256": "1d87b903b2e41e0bdfa4edc5ec1708c1e10e81dfa9cff30560dd5206b4637b86",
+        "bytes": 1215,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/income_realized.json",
+        "sha256": "3098c37340e1c22e6137691c498c1e1b3756a8319f2187eb17fa0c16e8abedea",
+        "bytes": 1155,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/installments_projected.json",
+        "sha256": "924d883d776a5f0da128ee931d96ff27aa1f9effa5ca86d3c81f21af35bf4988",
+        "bytes": 1171,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/installments_projected_amount.json",
+        "sha256": "6cd3f810f260c6fa94b4509c1d8e043866accc8a0314446fde59d51b28763f0a",
+        "bytes": 1209,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/installments_realized.json",
+        "sha256": "0115cf8a9d922e43b6b393cecc521a9659a41f75b68591b579eed01490c5d3f7",
+        "bytes": 1162,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/installments_realized_amount.json",
+        "sha256": "8987257b8976651b8e82c7e414fda6472ba5aa60ce58befaef3a5661956eb8a7",
+        "bytes": 1194,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/invoice_payment_amount.json",
+        "sha256": "8b0b104d9d9623fc65847611532eb69810464f2869b5f9421557f07441562928",
+        "bytes": 1206,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/invoice_payment_consumption_effect.json",
+        "sha256": "613b290689de669c2e5ab437fe12ce6f495bdfb766ed848d7716ea50f6b9c7c6",
+        "bytes": 1261,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/invoice_payment_target_card.json",
+        "sha256": "a58d6ee1480662230142a532903facd36cbbe3b7f67705dc01345574a324acfa",
+        "bytes": 1207,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/merchant_rule_ids.json",
+        "sha256": "b3ec5d6c4003258cd25431a709197c37a1cf7f70e10125b2f0c8d15bba95abbe",
+        "bytes": 1179,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/movement_ids.json",
+        "sha256": "4c41b92c8bcf511536461ec676441babe401ef3906144beb960150605a786b96",
+        "bytes": 1210,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/net_consumption.json",
+        "sha256": "1bbf9d81f52b9766156ab60ddd4d8da961b958440e32df12dc0ce315c76fe891",
+        "bytes": 1244,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/owned_cards.json",
+        "sha256": "67b68e3e0d27a0973127411a960953345eeff0c8adc001ea25001fa2ddbbfc3a",
+        "bytes": 1188,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/projected_installments.json",
+        "sha256": "d5c649bcaf00627f23d1930ac78de03dfb41f2fb5e0c11cb26d1e177f57feaee",
+        "bytes": 1224,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/ranking_winner.json",
+        "sha256": "aabe7e1423046863612c8d0ca4816bdc91e98d02c0f1cd2ce1a8a0e4f2b51889",
+        "bytes": 1403,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/refund_amount.json",
+        "sha256": "2dafc200e53dfa069e3b7e12d42c0ead14db1f2b020768ec5fd2a6fcda4c515c",
+        "bytes": 1772,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/reminder_count.json",
+        "sha256": "16b84262decf1b92536ed697b09844e0c76f5153f4570e8ec49bc550010f8514",
+        "bytes": 1183,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/safe_daily_pace.json",
+        "sha256": "195e3968cc2f7f7dd2e46fdcb2619c19892b5c56a27d0e3c62f76fe08ba9a14d",
+        "bytes": 2090,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/side_effect_count.json",
+        "sha256": "7813782950888e8af5c51403d313fc9b950c463e7109681e9cf30d4cd97345a2",
+        "bytes": 1227,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/similar_event_ids.json",
+        "sha256": "1f994c3caaea2a7c7fa968a49f872bb2b3f4d8ce0b959fc25bf26bbe5dac6817",
+        "bytes": 1228,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/source_coverage.json",
+        "sha256": "fab2872015cb21a449c05e355f7ba967865078ed963c869e84dd96da4b1e0111",
+        "bytes": 1750,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/statement_payment_correspondence.json",
+        "sha256": "3ffc3131e77bc4ead3248a3a5b49108093d16ddbbcb94635d49d7fc59d1171ec",
+        "bytes": 1436,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-contracts/statement_total.json",
+        "sha256": "cca2c51e9d89ef572d069eb019d30924fc41409724c1d07abc7d2a215ce1d002",
+        "bytes": 1797,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-witness-contracts-v1.json",
+        "sha256": "5a1a9d3b31357009f6e89d8a397c3fa6c7f079d58d06af5b0991c2cc65df5093",
+        "bytes": 26374,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evaluator-witness-contracts.schema.json",
+        "sha256": "dd5af1b4ab9d29f67d87b7b979076f8b4695cd917062d63ec34da6c12240adaa",
+        "bytes": 2320,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/evidence-snapshot.schema.json",
+        "sha256": "054a48930a5f25760f201e8b401f0f34f5a83672366acad6c9c09bdc0ce0b5ef",
+        "bytes": 17718,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/graph-authoring-review-v1.md",
+        "sha256": "b68e673b0f4edc38d023c6440db3afcb02264f7789a89d486abff8182e01e39e",
+        "bytes": 10949,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/graph-binding-contract-v1.md",
+        "sha256": "da90befb1f526048cfe14122cd8522690292508bebf42d60ea4ecd5838513a40",
+        "bytes": 19080,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+        "sha256": "e9c852034d8cc887e1d8645a61d9597176409f72a28eaf0de4c95f17c0c8358d",
+        "bytes": 4954513,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/material-field-registry-v1.json",
+        "sha256": "ee7ef3eff146bc2e9cea2cc986c398371acbff3cf35d858ced8386a9758a4d62",
+        "bytes": 10998,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/metric-evaluator-registry-v1.json",
+        "sha256": "a1fde4b01b9f68bdd2550305305ca2ffe8f750af0351b29b12bf3bb5afdb3c88",
+        "bytes": 45195,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/metric-evaluator-registry.schema.json",
+        "sha256": "de5eb3828b8faaf58eeddc9f90d9342b509f86fd32ea8b66f9174448c536e066",
+        "bytes": 3354,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/n02f-correction-review-v1.md",
+        "sha256": "814ddcb57991b6b315fa102a38df0b118447015398b10d934c8967b1e7f5b4ff",
+        "bytes": 5417,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/operator-registry-v1.json",
+        "sha256": "24427e9dd30a5b2d5eaf6f9e2651869e8582df4b5dc9eab54b924a0b687e33b6",
+        "bytes": 3034,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/operator-registry-v2.json",
+        "sha256": "d28eb3dfbf7ea6949c1ff696e9f9bc7aa572c3ab8433a06d316936092a2dcac7",
+        "bytes": 5531,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/phase-composition-profile-v1.json",
+        "sha256": "204962b56fd0833f3d15ac030e6c55dd3866c8fd18ded5e24784f729e41be2bc",
+        "bytes": 15194,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/predicate-templates-v1.json",
+        "sha256": "15a1adfe3290b26808d3ee8cb1e1db36175f122df54cd2ef1474873ad5d8833f",
+        "bytes": 1387,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/provenance-graph.schema.json",
+        "sha256": "9e3c148c95d6fecd3d93f019ad5a5967126f8bf1cb9bde9d152c70c057a1740b",
+        "bytes": 14785,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/registry-semantics-v1.md",
+        "sha256": "9dad2d3833eee30b46c36899ff9bd3fc1b708112495edf8e3db075ac7f3302c4",
+        "bytes": 14387,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/snapshot-manifest-v1.json",
+        "sha256": "2547229db3c07f2dd0941601ab5164bf89981ce966e4e23a2e3058124edba8c4",
+        "bytes": 52403,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/temporal-and-selection-witnesses-v1.json",
+        "sha256": "92329f779a5b08f46f4554d129b934dcc2acf176741bf66ba82ab794f2c095bf",
+        "bytes": 7193,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/temporal-relations-decision-v1.md",
+        "sha256": "a6581b9533f25d6a8864091ffacda0119e2d93df323c37918bddb0c56e297f1e",
+        "bytes": 5865,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/contracts/next/provenance-v2/type-and-identity-contract-v2.md",
+        "sha256": "41082ed25096b7289028d632e2ba7db86aa5400f9c5fbeb73da4ce7e3d9f560b",
+        "bytes": 9362,
+        "external_vendor": false
+      },
+      {
+        "path": "docs/plans/workstreams/financasbot-next-02-n02g-compositional-path-qualification-proposal-v1.md",
+        "sha256": "0c831d290c0ae47960d1fc11b9ea530d792a926cb2211a1313d7d070f0d24eba",
+        "bytes": 18783,
+        "external_vendor": false
+      },
+      {
+        "path": "node_modules/acorn/dist/acorn.js",
+        "sha256": "fdb08546776ec6228b03e8d02b40d4ab3255bae5f401adba7ff5dad927ac5c9c",
+        "bytes": 241575,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv-formats/dist/formats.js",
+        "sha256": "b61693a26869970a92cc1fe832c931ccd3afe8b6d66802b19c48306349e84880",
+        "bytes": 12263,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv-formats/dist/index.js",
+        "sha256": "3f3014150293846086d11058bb8bf43e669e354a98b37adcf10281454d5e753b",
+        "bytes": 1508,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv-formats/dist/limit.js",
+        "sha256": "ffc374031a55c3f6e39dc3fe69e663f8251b9d9d7ddb8f513a6807c985c18bb8",
+        "bytes": 2900,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/ajv.js",
+        "sha256": "edaed56fc546f5551b0d6dc2ff2a9cc25c2d6c83318a086eaa8c3ad0b2479297",
+        "bytes": 2841,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/compile/codegen/code.js",
+        "sha256": "1287153722f1fc3c5342647de7ae1d7b6fb68bdb3378a0776a937d273fc97e0d",
+        "bytes": 4676,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/compile/codegen/index.js",
+        "sha256": "f03b2b72597ef86878d1d4030580c2d0964046efad4867f3d05aa91065ba034c",
+        "bytes": 23127,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/compile/codegen/scope.js",
+        "sha256": "d2a0a97af2faa2cad88702314fe421e235ab17f11e0d62883d58d8d4dc734286",
+        "bytes": 5198,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/compile/errors.js",
+        "sha256": "53990f8f2cc05922bba410ae68231d3f869de4f8343277ede5b4834fa564c6c2",
+        "bytes": 5771,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/compile/index.js",
+        "sha256": "05b34da22814f3787bfa3ac68dad59c9047f56e55a607e0a20719ebf5afe69ac",
+        "bytes": 10046,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/compile/names.js",
+        "sha256": "3cab37a2240b996b9bed92fe7a041d91689cfe3ad2e9ae4c0ab99e4146408493",
+        "bytes": 1440,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/compile/ref_error.js",
+        "sha256": "81c98fdf34c3037c91bfcc02277ec32156c71e34048f36cfe4e084416e916cb7",
+        "bytes": 543,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/compile/resolve.js",
+        "sha256": "df75af0e0cf03fa1c6452e8dc61019f5aec645a8a5f6f494dc4e13cb5502d2d9",
+        "bytes": 5006,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/compile/rules.js",
+        "sha256": "ec1d86500f497aa8e20f9f0c1695951159d9a909669d00a261ce1bb22b3cf0a9",
+        "bytes": 918,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/compile/util.js",
+        "sha256": "fa911f5631f29d4d6420adfe086cb693b94b08de2719475c78c54bcb82f831a5",
+        "bytes": 7103,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/compile/validate/applicability.js",
+        "sha256": "50c5cba5894a7fb9874b3432355b46ec71b73c9368dafb1323ded8567cca8fc0",
+        "bytes": 853,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/compile/validate/boolSchema.js",
+        "sha256": "c08abdbdbd3d8b1dcc0552a20fbc7d837ed44f4ca6abb2e464985590ac94377f",
+        "bytes": 1531,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/compile/validate/dataType.js",
+        "sha256": "697bd7005361ec7066a23c18830a10b0ef28aec1a33138b4e3098bf78c4fae52",
+        "bytes": 8409,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/compile/validate/defaults.js",
+        "sha256": "05721971df94faa57b09c8cfd60c2eef81b6d14910a7dea5f539d693a029c428",
+        "bytes": 1448,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/compile/validate/index.js",
+        "sha256": "cb2103e5f890e04592c10d24b45857dad91155bae9f9460138a2459bdaaea2cd",
+        "bytes": 20552,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/compile/validate/keyword.js",
+        "sha256": "ab8f070c75c25eee9be5c837f364748909b58f5db66149a2beccbd2f66afeb76",
+        "bytes": 5695,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/compile/validate/subschema.js",
+        "sha256": "ca783d6052af91e65ebb59a5b48b47fb459a2241d37ca6a042f767d4ce451bdc",
+        "bytes": 3858,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/core.js",
+        "sha256": "7fdd03e949ecb3d020e560f669da71ce69a70f4bca28e5aff2ebc34d15bc2134",
+        "bytes": 25185,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/refs/data.json",
+        "sha256": "d24ab8a97c18b3f5afdde7d7024a0e0ac1df0614a16a41cb88f81379edcc2db3",
+        "bytes": 409,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/refs/json-schema-draft-07.json",
+        "sha256": "f7e8b13cad4fecff9771f3626fef33e20e59027b90938a28fd9d2f6c17cd0773",
+        "bytes": 3811,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/runtime/equal.js",
+        "sha256": "c94467da09ee94e5d194483a7ab821b9bb3bf1c04397270f2ab53dea9de59274",
+        "bytes": 286,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/runtime/ucs2length.js",
+        "sha256": "1df012dd3d23fced07255a7204798004509687cb1f431ae0ab976db436bbd890",
+        "bytes": 808,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/runtime/uri.js",
+        "sha256": "d1d61baf97ed87d7310df847a78ed73d19c8cc003207bf5aaec977500bdb1578",
+        "bytes": 218,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/runtime/validation_error.js",
+        "sha256": "11bf5b4affc8114e5e7cdf65b93006c2d997ab60ada1152c22e136f9b828b815",
+        "bytes": 337,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/standalone/index.js",
+        "sha256": "361d58a7523548bb1b9c782135fae27e76d93c8feaba8c4d613331dbcd3b888f",
+        "bytes": 4480,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/applicator/additionalItems.js",
+        "sha256": "7beb0fbda5e349907067c8398bb8cc3260a6267b6e5dff9793a5ab2171934099",
+        "bytes": 1931,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/applicator/additionalProperties.js",
+        "sha256": "e237cb180cd2e3f2e676feb714d7dcc6a42116640f9db2ad830cd20d9dfc540a",
+        "bytes": 4309,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/applicator/allOf.js",
+        "sha256": "98f46a6434ebe5f851b406480e18b776dd7f1bcc275e28c16a13bfef3cc067c7",
+        "bytes": 756,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/applicator/anyOf.js",
+        "sha256": "8d7368d4aebad0514b713191b934993b4f0bf570e1bab93b07dc69712db2cec5",
+        "bytes": 343,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/applicator/contains.js",
+        "sha256": "56165dc93cd8b0b4611db50a97f1e7d7f9af6c5ffe95a7a5b054d6eeaa7f6a8c",
+        "bytes": 3680,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/applicator/dependencies.js",
+        "sha256": "c1a83bf484b6fde4d268935f079ddba5e74a2f589dfc6d15ca2e20ba4d06ee5b",
+        "bytes": 3198,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/applicator/if.js",
+        "sha256": "42374ee5dc681433579cc689b0c4ae5343f5bf78d4d6a561722b9277c5335ec4",
+        "bytes": 2438,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/applicator/index.js",
+        "sha256": "5a61978f6d81bbabfa8b9ccb71d7de816ed6dd1fd7de5c72657439a76c2a7cb3",
+        "bytes": 1529,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/applicator/items.js",
+        "sha256": "fa87f74adc3aac1f1b5e3e7dddf73294e6850e1dd49ed131fca4352e9645c54e",
+        "bytes": 1993,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/applicator/items2020.js",
+        "sha256": "c449ef64aec16263c7935293ed450cfc2da3ba66f6df5f99c3198c05f169838f",
+        "bytes": 1037,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/applicator/not.js",
+        "sha256": "ab2f2758d4ea97ac8763fe5540dd0f4d877859676fe5d6c750a18deca387f718",
+        "bytes": 773,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/applicator/oneOf.js",
+        "sha256": "e2aeb6c22d49fd5f348bedcf7f5c4d7b31f5a05dd7ff1a0c531374c6968792a2",
+        "bytes": 2257,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/applicator/patternProperties.js",
+        "sha256": "0d43da49a82452c439ba990de7372ad5cedb663717918a5f6dae07025abff655",
+        "bytes": 3236,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/applicator/prefixItems.js",
+        "sha256": "16264f7b3233a6dcb98b48700643efbd3ebc4d11e27b3eacffc83ccb5f44fb23",
+        "bytes": 354,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/applicator/properties.js",
+        "sha256": "c896873ae7251093a2c8880545b69b6e8cb55c44817a53ec830a49818d74104f",
+        "bytes": 2153,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/applicator/propertyNames.js",
+        "sha256": "b3411cfeaff8efd5e6de12971bb5dc339e64b61fbe62d3b950794c077315c2e7",
+        "bytes": 1221,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/applicator/thenElse.js",
+        "sha256": "9bc42eb8699d57188a7ec2a710d3f38052f92bd78c5d4d0442cf98cf2ebbe22d",
+        "bytes": 446,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/code.js",
+        "sha256": "9212ddf8bd0a4c3b1c4b44cdadd141183b2b36f561b91d13df53c83911e3bf63",
+        "bytes": 6216,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/core/id.js",
+        "sha256": "49c8eff694ce4371450c1f9986e934fcbf4bd143311caef5332113f29175bc11",
+        "bytes": 267,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/core/index.js",
+        "sha256": "f420e1011b95e27b54c58323a7ed4ffbd0a88cdb4496f771bb6782c2aa22d23e",
+        "bytes": 357,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/core/ref.js",
+        "sha256": "1422c1454b3621d890066042048f37746fe1cf213088307099816199889bbfd1",
+        "bytes": 5234,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/discriminator/index.js",
+        "sha256": "b58b58025d2dbe5a6967376faec9295b860a338664c47037e9a1035c1e8fb88e",
+        "bytes": 4845,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/discriminator/types.js",
+        "sha256": "2365341d1f30dc72cece7703e908e47aacb8f904b9f66ec4019fe889ae1e57fa",
+        "bytes": 308,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/draft7.js",
+        "sha256": "8c62022c6c3aa302c3ea6f6709a697fc9eb6385d243fa7c2156dbe9f02228170",
+        "bytes": 557,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/format/format.js",
+        "sha256": "6fae0d5124fd821b1a9959492f7d6d7b528bee8830d49a7a4759fc9a9ab81d5f",
+        "bytes": 4317,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/format/index.js",
+        "sha256": "d5dad5f95c9c5f48f8ca956cdbb927aafc7b56baabfca8c0b0403d92c5ebeb67",
+        "bytes": 209,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/metadata.js",
+        "sha256": "45c178744a7ec57e20c85ceeaea8d9f36b5663636ab7e495ea2c3c1bf4a58609",
+        "bytes": 427,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/validation/const.js",
+        "sha256": "ace994e9ab97a70899a9484794794f4be5ee03bfb3cf32242d3f091d77f0329a",
+        "bytes": 852,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/validation/enum.js",
+        "sha256": "61062b318a40eb52fc5a8283e7f4781db98349841744961ef4fe04a4722ebf22",
+        "bytes": 1901,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/validation/index.js",
+        "sha256": "4a1839832de5f10ff423c1c0c6cb232b5b6e1b34980a28862cf56b2763136de4",
+        "bytes": 1036,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/validation/limitItems.js",
+        "sha256": "49f0427d29b38aef2fa8aead26e68bda12deb9a2da22f7a7804ba0fed44e1fec",
+        "bytes": 852,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/validation/limitLength.js",
+        "sha256": "379c28317faaf7784680b6049c3562692d3df6d65cce33f48e6c6c723beeeec2",
+        "bytes": 1130,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/validation/limitNumber.js",
+        "sha256": "3dd4bd41dbfc76c522078ff54b6479683485c4e97faa04cfcfaf2d8cb0fb8e65",
+        "bytes": 1036,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/validation/limitProperties.js",
+        "sha256": "8523a3f7b36c34882ca32b0ec71a2157d7930907cb86b778a97c1514fa6258ac",
+        "bytes": 896,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/validation/multipleOf.js",
+        "sha256": "df128c2a6ca74ae57c65fbfe3aea8a101447a3ae8c41fd53cfc5693fa23cc8bd",
+        "bytes": 1023,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/validation/pattern.js",
+        "sha256": "592f7966bb9dea6256dc8c0242ab9e05cdfef2b1d6dd27ef478c7a20c9a0471b",
+        "bytes": 905,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/validation/required.js",
+        "sha256": "b953bc18d94274bd73374dd5b4282d7a21159cec8c0e7a357e1eaf3f326b9054",
+        "bytes": 3188,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/ajv/dist/vocabularies/validation/uniqueItems.js",
+        "sha256": "666d1a2aa25c0dfe3cf41312d0f9d40e9f99eb2c19be7469134ad89005aadd52",
+        "bytes": 3037,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/fast-deep-equal/index.js",
+        "sha256": "eb469e206280321a3878f2335ec98aa2104a155079d8ed83a23029098dccd215",
+        "bytes": 1177,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/fast-uri/index.js",
+        "sha256": "e82d3e55d954483e4927f9740bc3113a24d19ef5a73c7962d8a93c499fc982ff",
+        "bytes": 22061,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/fast-uri/lib/schemes.js",
+        "sha256": "c2c61d3fd0bc63a587100928a399e75be8c420d210c439d75f7346da4aa4f3c3",
+        "bytes": 7367,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/fast-uri/lib/utils.js",
+        "sha256": "610a6cfa7b1c9d5689443b3a3d14af4c24afed51ef5852495ae1489ae455a9f4",
+        "bytes": 20835,
+        "external_vendor": true
+      },
+      {
+        "path": "node_modules/json-schema-traverse/index.js",
+        "sha256": "024191b747afac01b28ff11d744e9f82720bbad5f716163ba5c962eb62aa2350",
+        "bytes": 2428,
+        "external_vendor": true
+      },
+      {
+        "path": "package-lock.json",
+        "sha256": "465d94b1f7b7d9eb5f0b4535a96d02f5cfb1fe70d10d66fac31ec16c06645126",
+        "bytes": 165694,
+        "external_vendor": false
+      },
+      {
+        "path": "package.json",
+        "sha256": "7873299481779f07cfbb76247fd7c5a895dacd5214ee79863baadd6b0b9d0205",
+        "bytes": 13709,
+        "external_vendor": false
+      },
+      {
+        "path": "scripts/agent/analyzeSelectedEventDayExecutableClosure.mjs",
+        "sha256": "16bc2320946fc1e8eb5bbf9544b035a08f786a463f1a39c33f4e6e1eeb7838ad",
+        "bytes": 12410,
+        "external_vendor": false
+      },
+      {
+        "path": "scripts/agent/buildNextMetricArtifacts.mjs",
+        "sha256": "5ce85a2c284946b37b33820fbc1722140515a196a7f93544e4a5fd2e478a906c",
+        "bytes": 9866,
+        "external_vendor": false
+      },
+      {
+        "path": "scripts/agent/buildNextProvenanceArtifacts.mjs",
+        "sha256": "a563450252a995a0a35d83dc921c8af931bcb330c642e6de7a92857cd3a2fb2b",
+        "bytes": 13450,
+        "external_vendor": false
+      },
+      {
+        "path": "scripts/agent/buildNextValidationTcb.mjs",
+        "sha256": "05fc2d65d7c44f42ea889720e992a95a57b2a24d270c36485ac0de9b3f9464b7",
+        "bytes": 7279,
+        "external_vendor": false
+      },
+      {
+        "path": "scripts/agent/buildSelectedEventDayDispatchCapsule.mjs",
+        "sha256": "8bb2e12b5b8cbc23bdb5f34bdf58f59ee0704040d80aa592860c5f4e0734a227",
+        "bytes": 3371,
+        "external_vendor": false
+      },
+      {
+        "path": "scripts/agent/buildSelectedEventDayProofExecution.mjs",
+        "sha256": "3be5969923ac75101320ccd4f46c1ae99aa94b878200fccad1c3367b97019f0c",
+        "bytes": 23158,
+        "external_vendor": false
+      },
+      {
+        "path": "scripts/agent/capturePathQualificationCompiler.mjs",
+        "sha256": "486f0154003e71c0284887a3c9735c1f2896fd84134a3667d99edc8586085611",
+        "bytes": 52261,
+        "external_vendor": false
+      },
+      {
+        "path": "scripts/agent/captureSelectedEventDayBuildRecipe.mjs",
+        "sha256": "2b8450e41ac804f398addce5c26f8334e61a3198bf3e03420fa5f99e464bd156",
+        "bytes": 6638,
+        "external_vendor": false
+      },
+      {
+        "path": "scripts/agent/captureSelectedEventDayCompiler.mjs",
+        "sha256": "2cf1effe56422c14265670438d7d09fbabb458c641b18de26aa0957e4d4176a3",
+        "bytes": 7125,
+        "external_vendor": false
+      },
+      {
+        "path": "scripts/agent/executeNextDomainInvariantMatrix.mjs",
+        "sha256": "61b5c65973589926a1fb66f36630008daefb38114658026baeae290a53fbf2fe",
+        "bytes": 7755,
+        "external_vendor": false
+      },
+      {
+        "path": "scripts/agent/executeNextPredicateStrategyMatrix.mjs",
+        "sha256": "d92f2680d7b75c3ebec8e9fa0634b436ee583f0c600660d7767a8ed0fd01f32e",
+        "bytes": 38077,
+        "external_vendor": false
+      },
+      {
+        "path": "scripts/agent/executePathAdmissionV2.mjs",
+        "sha256": "f97754ace807fc565dcc0a4f00b2cfbb55d5dc6fe428e198185ac6b7408c97de",
+        "bytes": 14102,
+        "external_vendor": false
+      },
+      {
+        "path": "scripts/agent/executeSelectedEventDayCandidate.mjs",
+        "sha256": "d28e602be0a3357be89d1df8c9e1fd71ca837234f75eb2eb44e8e306e9e9e292",
+        "bytes": 17174,
+        "external_vendor": false
+      },
+      {
+        "path": "scripts/agent/financasBotNext02ValidationPolicy.js",
+        "sha256": "9856be47eecc5bfaf02d7300190c62e766613be4b405bb60b2081e3e39ab84db",
+        "bytes": 8460,
+        "external_vendor": false
+      },
+      {
+        "path": "scripts/agent/lowerNextProofProgram.mjs",
+        "sha256": "d141273f2156bab19392c66c2cca660f0f196f7d5b5af4721ac595307aa5cab4",
+        "bytes": 44572,
+        "external_vendor": false
+      },
+      {
+        "path": "scripts/agent/nextProvenanceGuestProfile.js",
+        "sha256": "ea14fe64e52c9ec5aa06336a31e281ec7b87bbeb239fde4d5385d2342f6fc8de",
+        "bytes": 1989,
+        "external_vendor": false
+      },
+      {
+        "path": "scripts/agent/pathCapabilityEffectContract.mjs",
+        "sha256": "0c05ebf16775639a28ee19b6629dd855865f5000ee23fb3006fbeaf5305907c5",
+        "bytes": 25714,
+        "external_vendor": false
+      },
+      {
+        "path": "scripts/agent/pathExecutableClosureContract.mjs",
+        "sha256": "7facc69858c80a5fb07522a16c2b51e04935c4675f9924ebe37de478e2712b21",
+        "bytes": 45988,
+        "external_vendor": false
+      },
+      {
+        "path": "scripts/agent/pathProofProgramContract.mjs",
+        "sha256": "e8fe3ed84368ee154383748879e4b70490b7114fd764efed8db9a586343c956d",
+        "bytes": 58942,
+        "external_vendor": false
+      },
+      {
+        "path": "scripts/agent/pathReceiverOriginContract.mjs",
+        "sha256": "fbdd1e751445af8110574e0416930955884073a31392240935b10d235a9f1870",
+        "bytes": 36915,
+        "external_vendor": false
+      },
+      {
+        "path": "scripts/agent/preparePathQualificationHistory.mjs",
+        "sha256": "26de466db0bcd9274c969681c0285396f04abfb7879efc764d33bbdb4192b84a",
+        "bytes": 3667,
+        "external_vendor": false
+      },
+      {
+        "path": "scripts/agent/prepareSelectedEventDayAdmission.mjs",
+        "sha256": "00b537c3b5de23a8ace681a5d983d49e8f11afe1fd67e73dcafa0ee6e2cd09ee",
+        "bytes": 11958,
+        "external_vendor": false
+      },
+      {
+        "path": "scripts/agent/prepareSelectedEventDayPacket.mjs",
+        "sha256": "c1b97dbd29714c53b2f7461e38cb3ef8fc1e0d4a7dcbdb761f4d4bd97b707573",
+        "bytes": 3239,
+        "external_vendor": false
+      },
+      {
+        "path": "scripts/agent/sealSelectedEventDayOracle.mjs",
+        "sha256": "d8049f8f07153c58ef1bf0f9699a92bf842ffc4a4a82e640c813ae345c62e253",
+        "bytes": 3597,
+        "external_vendor": false
+      },
+      {
+        "path": "scripts/agent/selectedEventDayProgramContract.mjs",
+        "sha256": "0ecee202f7380f29fee872d870957636b5c24f8ff8abe2f55c4d8a68edbc207b",
+        "bytes": 14597,
+        "external_vendor": false
+      },
+      {
+        "path": "scripts/agent/selectedEventDayQualification.mjs",
+        "sha256": "0a48a786e2b25581f0e301fadfb1e8bfcb47e1ab74ab2f8c8cec5be2cb1adfb0",
+        "bytes": 7614,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/kernel/canonicalJson.js",
+        "sha256": "f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+        "bytes": 1985,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/kernel/canonicalValue.js",
+        "sha256": "f6d571ddc1c7917f6a0ec8e25b17368c3e23ba10111ea5aa591c692d6739205b",
+        "bytes": 2146,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/kernel/expenseReadModel.js",
+        "sha256": "39bbdb7809cef065878bae8c67878fc90b91f0404dc5ecd6f37e5e9c1a4a773f",
+        "bytes": 16729,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/kernel/installmentSchedule.js",
+        "sha256": "4af898bd4b96cb29c802f2b22c85da981e4c697db6b3b6bd20d32a18c65a7329",
+        "bytes": 4405,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/kernel/observationKernel.js",
+        "sha256": "4dce0de726ed8f8606bd279f903c6b8bdf4fa4016b6f5033a5938842aff8b130",
+        "bytes": 22778,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/artifactLoader.js",
+        "sha256": "24d108c16a30e03d96e826da64e94c1ada9a9ef8d4a9edef8e20411dd9a0099f",
+        "bytes": 6689,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/authoringIR.js",
+        "sha256": "aa3e98a1ebf2d11118ba75dda5e0f89457e31d04eb5b457a5266bd41b099afb4",
+        "bytes": 7273,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/capturedTcbLauncher.js",
+        "sha256": "bab76b97d53a368f08dfd24d74041d3a760819a229dd1bf432fb5d9a8f758141",
+        "bytes": 6744,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/causalRecorder.js",
+        "sha256": "838aa38083ead2e5301751b901435011e483c3ae31e485e346c468a88f84d491",
+        "bytes": 3291,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/civilCalendar.js",
+        "sha256": "b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+        "bytes": 3345,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/claimBinding.js",
+        "sha256": "0efce18cc72c601060e740319dc4be460a3e85a93578719de2734ea62d628885",
+        "bytes": 14300,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/claimContext.js",
+        "sha256": "908e44c14d3602fc06284a4e956e0e29fb68497b32f5321200672c6329efa4ae",
+        "bytes": 3236,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/claimMonthIsolatedProfile.js",
+        "sha256": "10ea15eb5e2d84a3872926bd9d6255a429348de655ac778751a9c7859491bdcb",
+        "bytes": 3431,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/claimMonthPathProfile.js",
+        "sha256": "3edc321974864e842c7bca5d1753feac0a23911cc65755cca682646673ffa664",
+        "bytes": 6337,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/claimMonthProofConformance.js",
+        "sha256": "40c6cb9c1b2122447e5cdb1fa0da762a3adb39c1a6d474e7420d5cd5e3e36f37",
+        "bytes": 5123,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/claimMonthTraceContract.js",
+        "sha256": "7fc3a01ccf8b195a0e473b7cf8e9ef50e7f698ca97cc6ad73d0090b482b7cf7c",
+        "bytes": 7669,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/claimNominalTypes.js",
+        "sha256": "f37c4367c027d119caf81afcb1de898a05b5edfd6651c8c3a17d3177cff95096",
+        "bytes": 774,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/claimRequirementCore.js",
+        "sha256": "1f23d4c8fb117bb5bd6bf992cc1bf4ea0806c01372853395fb2c341b9968de23",
+        "bytes": 7910,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/claimRequirements.js",
+        "sha256": "2a42d47868a57fad697a0caec0ae0678a338f06dca0ebf77064fab6def182468",
+        "bytes": 802,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/collectionProofCore.js",
+        "sha256": "4cc88bf36458e46783dfbc1ae24c3f0fc2855e28f29663094ca48be0fe72a8ec",
+        "bytes": 2840,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/collectionRequirements.js",
+        "sha256": "4d6af2b5d830929910622f504126dfea29c3ba6866ff99e21c90e23f12961de3",
+        "bytes": 4597,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/executionHost.js",
+        "sha256": "2e43e4568233e658bdb1e9ec4ca9360b9d3234b42d7811dbfd4907be73c0589f",
+        "bytes": 39012,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/executionHostChild.cjs",
+        "sha256": "4d6d6efc6933e68874fafb34b30b1f6ff9b910a779c90ef0194d88a679a8f900",
+        "bytes": 24098,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/executionProfile.js",
+        "sha256": "8030b1f4a120ba37e6713057e9c5aa5b7d413183df4c26e3e8833814ad323abd",
+        "bytes": 1688,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/executionRegistry.js",
+        "sha256": "951038a898e979ac25f79d9f5ca944cff8a83f2863074100eaced7e32fa56b29",
+        "bytes": 9312,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/financialHost.js",
+        "sha256": "6fb0c1f874d23e333c3eb0bfaf4f66f5f89ca27b6ad410008cb121f72326b0a1",
+        "bytes": 16627,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/freezeContract.js",
+        "sha256": "b452ce4ffb2688dc578ae0901eabd07c1d48b1d00e8e375a53f82bae63326305",
+        "bytes": 6536,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/graphCompiler.js",
+        "sha256": "fe938a128cfd4dccda0d8ddc1f2e6965b623feecc6d1854ef0306700efda1016",
+        "bytes": 82211,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/graphStructure.js",
+        "sha256": "927a4e76b6a7c9f8ad8656e21a44766a745c2edd3113b82ff7231a1c2bc79e50",
+        "bytes": 17159,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/instrumentedAccess.js",
+        "sha256": "0a226802919420fc1e90d07847b96cc120121e230905c0f5cef484c034dedf92",
+        "bytes": 23516,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/literalTypes.js",
+        "sha256": "c99b3a919c995638702325dcb7c2cb1f8e338388700429b3bc9f1cce7a00b4ec",
+        "bytes": 1669,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/materialFieldTypes.js",
+        "sha256": "f7f4ecaba152ddebf4503469ba61851add59c0a0c697ea6f73503a5ca03a1c0c",
+        "bytes": 1246,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/materialFingerprintCore.js",
+        "sha256": "7f0b50ffb0f0a6762f60f2c0b5101e5a9606e44f6241d7d40260e21e051c3d37",
+        "bytes": 2507,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/metricDirectReads.js",
+        "sha256": "7a78501221230a8991354d47a63f8e131807b995f6a7e5e10e8dab0664f01d4b",
+        "bytes": 12815,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/metricEffects.js",
+        "sha256": "7cb9fe24b2d8aefd3560d8089544bfe5431f124256c35023ff6b8e126283f5fb",
+        "bytes": 5637,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/metricInstallments.js",
+        "sha256": "559dae3a98d3dd90670e15d35ca93824bf89d478c974dcd07d9da17abcac7a09",
+        "bytes": 4957,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/metricParents.js",
+        "sha256": "32464e029ba27ccf5a45b4ee35b1568033ef159a802ed156c014a1aa217030bb",
+        "bytes": 3219,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/metricReferences.js",
+        "sha256": "0a96471a46324599c92c8c2f604e5761749902c6b9393eb738b09aad868d5e7b",
+        "bytes": 2995,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/metricSelection.js",
+        "sha256": "8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+        "bytes": 11711,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/mutationWitnesses.js",
+        "sha256": "433db7f58a7e79cd04e71cdac2491c498a15108df7f6544cd24c3def0a340f29",
+        "bytes": 60387,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/nativeRuntime.js",
+        "sha256": "7d04d107c24a350ba9a3ccd25a7e899629c4d965301e9063f8c7dbe534d7e64b",
+        "bytes": 2370,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/obligationBindings.js",
+        "sha256": "580f9b97e6ef216e5598de5c97aa8d96cc7cda713a5547e249a27f24144baf87",
+        "bytes": 6925,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/observationContract.js",
+        "sha256": "60d73c6bfe13fe91325920bc289454d233cd6efea034c093a1d4c18cee469e1e",
+        "bytes": 6685,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/observationScalars.js",
+        "sha256": "cf344f72a703e7be55fc165322860d84792fae82822f3daad1f557834faa4f09",
+        "bytes": 559,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/operandBindings.js",
+        "sha256": "50cacfb104e9e792d1118428f81fe659b4ae9c07407b979a1c2b122141303e60",
+        "bytes": 5232,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/operatorTypes.js",
+        "sha256": "573db750922769a1626fe11c938458271b7cd09fdc5571df5c7b6786fa8d493c",
+        "bytes": 6064,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/packageContract.js",
+        "sha256": "bdb085d5a2502aebdfc7640f58d6319831812d83898034271ac3fd7ee373d00e",
+        "bytes": 4168,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/pathLocatorDomainV3.js",
+        "sha256": "5e63d13db01a652d38c1888ac652435eb20e8b3b7c371f5d85c121141f36500f",
+        "bytes": 11793,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/pathMutationInventory.js",
+        "sha256": "095d9e6daec7c73ffd8ae940e00a401e899915c4f35477b50c8595e909d72275",
+        "bytes": 42026,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/pathQualificationV3.js",
+        "sha256": "71755d8044006ffae70f80248db87ddaa2aa45f5346fa4ea69b0ec7937683a0d",
+        "bytes": 100438,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/pathSemanticReference.js",
+        "sha256": "6880b8cf205fbb337be18c8f607aecb6a28d6d6255de5a36399de955629e812d",
+        "bytes": 18997,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/phaseCompositionProfile.js",
+        "sha256": "adbaf56525ea86c67ce3885107144131e2abfd3030054dc05eba9af55ce4abb8",
+        "bytes": 5907,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/phaseProgramIdentity.js",
+        "sha256": "165723d79795a2b7960a9689842c38a51c6b1ffb0272c5f58afcd7ef353b1687",
+        "bytes": 806,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/pinnedCivilTimezone.js",
+        "sha256": "55dcb62295a7e314756fb36c3f0e45c0eb71273e494e223a81d08f74fad7756d",
+        "bytes": 3297,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/predicateTypes.js",
+        "sha256": "7ec5e1dc0348599bf42aa642a575233bb3642371fb2a48bea77b2558de6a25b8",
+        "bytes": 22140,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/proofAcceptance.js",
+        "sha256": "6ddc6138fc0485c1278f52fad545bbdd9cd908975e000efa98863fddd86f3cea",
+        "bytes": 38138,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/proofContextBinding.js",
+        "sha256": "3e2e8d34b0fb7c3e7d697208c9a56b7879f72c53c2108d9a75dd783b93222593",
+        "bytes": 979,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/proofObservedValues.js",
+        "sha256": "e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+        "bytes": 5085,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/proofOperatorContracts.js",
+        "sha256": "2e68d093bd5cbbe8283478ebf32428925149c68e290952d9fcdfb2f470e9fde8",
+        "bytes": 1636,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/proofOperators.js",
+        "sha256": "6d7ed8142652c1c3e3240e58c9333ee5890a9c5cdd62801258b02c4f91dde63b",
+        "bytes": 18512,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/proofParentBinding.js",
+        "sha256": "3b928733cc0adc169071a8991295b9cdfb6782adc54351e7e2879d975614a080",
+        "bytes": 1318,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/proofProgramData.js",
+        "sha256": "368761e082fbe51d5ec150875af47ffb0f19cdca48f974223a6674f60ff7bea9",
+        "bytes": 2232,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/proofSha256.js",
+        "sha256": "5e911bfa787507bdba6beafc5bc84160492dbcd0b10f838d80924827775dfe2f",
+        "bytes": 4105,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/scalarProofCore.js",
+        "sha256": "82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+        "bytes": 13694,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/scalarProofOperators.js",
+        "sha256": "924e5f5953bb02dc02b4b8affcba79a5aefc6a3cad3242738f1b44c364bfb461",
+        "bytes": 447,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/schemaRegistryProjection.js",
+        "sha256": "282b949ff0c546b3b20ec7cbe6a3b00a3ab28ed19e8d951d5379f011b2ddd84d",
+        "bytes": 8687,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/selectedEventDayAdjudicator.js",
+        "sha256": "c7f9e99d32492f527db7cd22dae695284337737b68792361ba449dbd5634fda0",
+        "bytes": 3837,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/selectedEventDayCoreComparison.js",
+        "sha256": "926afd33cfd567e39f1a22f173f7c7150a73ce455361bc877eefdee461b5ef8e",
+        "bytes": 4906,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/selectedEventDayCoverage.js",
+        "sha256": "ab468e23f42c6a7b6b2356b5dedaa1143d8f2ef8d39c0275e86a465038ffeeb4",
+        "bytes": 3335,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/selectedEventDayDerivationOperands.js",
+        "sha256": "ab0fe3d3fad4dacfc133d85f343564021ad15493ffaa3a7d50aba89247b1c395",
+        "bytes": 2286,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/selectedEventDayDispatchCore.js",
+        "sha256": "c083464fff9aff3493a5df7d6bd6547efd483df6034358e4763de448bd1b1cc0",
+        "bytes": 8330,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/selectedEventDayDispatcher.js",
+        "sha256": "c4ee665150a52cb93b2a208daab52504d4975b5a624916b40be748bb333f8b15",
+        "bytes": 1134,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/selectedEventDayExecutionTicket.js",
+        "sha256": "523f4041bc5631458bfba07c50cf9dfb4071debdeff469d9677496907e9e9d99",
+        "bytes": 12885,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/selectedEventDayIrContract.js",
+        "sha256": "207c9d5027e093a0885ec3490f29325f29f375917d4c0aff08196f17ec6fc64f",
+        "bytes": 8347,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/selectedEventDayLauncher.js",
+        "sha256": "ab98cb161bddf27819014bc2fb66be86b0d0915b49e695c10b47761ede4deb18",
+        "bytes": 8522,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/selectedEventDayOracle.js",
+        "sha256": "a4fdcd0285af0e78f876b6182f0178ade830307558013f2b97a3a8ccd8f3443f",
+        "bytes": 3512,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/selectedEventDayPacket.js",
+        "sha256": "7c2c331a6236921ed602e0bb4dd3ec95fe25d3a9a3111fb5669e0f9ee7e7f18f",
+        "bytes": 6435,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/selectedEventDayProfile.js",
+        "sha256": "bc3961335ea7b5a30025160350a3e930755c928c3de405dbeba3aeec079106ae",
+        "bytes": 28204,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/selectedEventDayProofChild.cjs",
+        "sha256": "69f1a5385e95b83a1f3258a60bd191eae9bcef06cf3ebaa515f54ecd131610f6",
+        "bytes": 9402,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/selectedEventDayProofHost.js",
+        "sha256": "098bc5ded69be29eb715598c0fcf0e4022a525ea1009b9d4012b33f0002ce9e7",
+        "bytes": 9263,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/selectedEventDayProofOperands.js",
+        "sha256": "25e33bb96b1bdfa9118e9d46fd926663640f47e8d37a56309835a93a8ef572bf",
+        "bytes": 5139,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/selectedEventDayProofProtocol.js",
+        "sha256": "6b7752a4edfe521b4a896ccd48a1bfae288c213f43c5e19194ec33d3a03b56c9",
+        "bytes": 1082,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/selectionBindings.js",
+        "sha256": "dafa79661a2474ad05c2390c86adcf136dc8ac395d10a28a6a4d7deeccac9815",
+        "bytes": 9352,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/templateReferences.js",
+        "sha256": "bd5c186192b41d991f8fc1bf74dce0f372d8ff8ac63a845eaa029640a7d3f34f",
+        "bytes": 11620,
+        "external_vendor": false
+      },
+      {
+        "path": "src/next/provenance/validationTcbEntry.js",
+        "sha256": "35366bec38beda91299f97d4448872e56efbf5a406389aed1c9ac9e40e54293f",
+        "bytes": 32235,
+        "external_vendor": false
+      },
+      {
+        "path": "tests/fixtures/financasbot-next/golden-claim-oracles-v1.json",
+        "sha256": "0e68ed70b10fdde5c90dc14aa3caf2ef72a4842bbbc6db8779287900567994d8",
+        "bytes": 22765,
+        "external_vendor": false
+      },
+      {
+        "path": "tests/fixtures/financasbot-next/golden-conversation-set-v1.json",
+        "sha256": "21b999b7f9bdb835d9acf8f8dcbfe1cf32dbb8c63300f39d667bec3550f559f0",
+        "bytes": 32842,
+        "external_vendor": false
+      },
+      {
+        "path": "tests/fixtures/financasbot-next/golden-fact-contracts-v1.json",
+        "sha256": "377373a33f9042a3ea0cfb0a368b4bf2b32a1529d873de7525edb38f92d8e8c2",
+        "bytes": 30752,
+        "external_vendor": false
+      },
+      {
+        "path": "tests/fixtures/financasbot-next/golden-financial-fixture-v1.json",
+        "sha256": "09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+        "bytes": 7936,
+        "external_vendor": false
+      },
+      {
+        "path": "tests/fixtures/financasbot-next/next02-expense-expectations-v1.json",
+        "sha256": "07d68caa5b6e606381683cfad3bc4732d8f165a116b1ba382ececd1b69fe0717",
+        "bytes": 6209,
+        "external_vendor": false
+      },
+      {
+        "path": "tests/fixtures/financasbot-next/next02-expense-observations-v1.json",
+        "sha256": "a76c3512ef7b4c4af07b445d9be67757e62a1540c2551235cfea716ea9ccf956",
+        "bytes": 6035,
+        "external_vendor": false
+      },
+      {
+        "path": "tests/fixtures/financasbot-next/next02-golden-traceability-v1.json",
+        "sha256": "cee0bdd591b46305bb6ef76122b3a5320c44abc83d9abbdfea726c622638e685",
+        "bytes": 6274,
+        "external_vendor": false
+      },
+      {
+        "path": "tests/next/provenance/financialHost.cases.js",
+        "sha256": "6ace9c3389bd20b6fd3954896775b8538a60feb2f3c3b6d0432fa70209f2cc7c",
+        "bytes": 13810,
+        "external_vendor": false
+      },
+      {
+        "path": "tests/next/provenance/graphStructure.cases.js",
+        "sha256": "dc3bc495dc695cd9968a75bd65b6da419982fb301f2d664f63e8412efefc2f66",
+        "bytes": 8704,
+        "external_vendor": false
+      },
+      {
+        "path": "tests/next/provenance/pathInventoryV2.cases.js",
+        "sha256": "9ed3ab51875a6943448a09cfb3e6c3dc1bf4c92fff96fcccdca5e193e364f93f",
+        "bytes": 14109,
+        "external_vendor": false
+      },
+      {
+        "path": "tests/next/provenance/pathQualificationV3.cases.js",
+        "sha256": "94e7d6da406e7cc26cd817fe7bdd1276bad0498e9fca2f72dbb3b43e4d81988e",
+        "bytes": 329476,
+        "external_vendor": false
+      },
+      {
+        "path": "tests/next/provenance/pathSemanticV2.cases.js",
+        "sha256": "af45849af0217f704da75e6d8f8fab7454dd239c9f39ea406b2b16ee2182d76d",
+        "bytes": 35762,
+        "external_vendor": false
+      },
+      {
+        "path": "tests/next/provenance/phaseComposition.cases.js",
+        "sha256": "5bfe7314a93592c6e044c794e832f421186231d0faac16986b9efeca14d150b9",
+        "bytes": 4662,
+        "external_vendor": false
+      },
+      {
+        "path": "tests/next/provenance/selectionBindings.cases.js",
+        "sha256": "31c927998c85716b144a7726a4f3aa17b2a044de74d47ef1f151e6773153ec99",
+        "bytes": 7155,
+        "external_vendor": false
+      },
+      {
+        "path": "tests/next/provenance/unknownPathAdmission.cases.js",
+        "sha256": "258a172e322772468cdf789bc44f8b512037ce81f916a3fee74256088ff1f59d",
+        "bytes": 13998,
+        "external_vendor": false
+      },
+      {
+        "path": "tests/next/provenance/validationTcb.cases.js",
+        "sha256": "0426f4c8e249d4d7966864c98c87339fe6220321827b4060f1bebb55486b8ffb",
+        "bytes": 8258,
+        "external_vendor": false
+      },
+      {
+        "path": "tests/next02DevelopmentInventory.test.js",
+        "sha256": "854f1716ceb89b9c3bf26ffab3b84493cc569ec7c37027cfb3c2e423b9e91c52",
+        "bytes": 7958,
+        "external_vendor": false
+      }
+    ],
+    "shared_foundation": "existing_normal_compiler_packager_types_and_declared_helpers_not_independent_compiler_or_BUILD_execution"
+  },
+  "local_validation": {
+    "kind": "actual_local_execution_and_readonly_reconciliation_not_independent_rerun",
+    "final_wide_report_sha256": "4943e130e189ac06a5d1f77bf7c91d6384fc45ccab9e17195db7e3d01bbf8c45",
+    "preflight_sha256": "8beb412d026938a7d8d6f13021d5d1f14823d5bdcb0bcac979994cf69c5225b3",
+    "duration_ms": 13068835,
+    "exit_status": 0,
+    "signal": null,
+    "valid": true,
+    "validation_reasons": [],
+    "matrix_green": true,
+    "tap": {
+      "tests": 2784,
+      "suites": 0,
+      "pass": 2774,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 10,
+      "todo": 0
+    },
+    "coverage": {
+      "line_percent": 92.87,
+      "branch_percent": 81.78,
+      "function_percent": 92.99,
+      "uncovered_lines": ""
+    },
+    "exact_path_v3_titles": true,
+    "path_v3_titles": [
+      "N02G:PATH-V3-001 preparation preserves every v2 target and authored site without semantic credit",
+      "N02G:PATH-V3-002 exact migration rejects omissions, duplicates, redirected targets and forged proof flags",
+      "N02G:PATH-V3-003 preparations and reconciliations never execute getters, proxies or caller coercion",
+      "N02G:PATH-V3-004 locator domains retain equal-value anchors and every same nominal registry field before admission filtering",
+      "N02G:PATH-V3-005 optional declared claim locators do not disappear merely because absent in current authorship",
+      "N02G:PATH-V3-006 the domain boundary rejects active targets and sites without evaluating them",
+      "N02G:PATH-V3-007 candidate bytes change exactly one sealed locator and preserve the entire baseline package",
+      "N02G:PATH-V3-008 candidate construction and consumption reject caller payloads, clones, replay and active indices",
+      "N02G:PATH-V3-009 independent reference is sealed before M bytes are released and unavailable is never a witness",
+      "N02G:PATH-V3-010 captured normal compiler controls whole C/M/S without caller validators or operational credit",
+      "N02G:PATH-V3-011 captured compiler ignores ambient replacement and refuses forged capabilities or extra APIs",
+      "N02G:PATH-V3-012 a disjoint declared reference nominal cannot make a scalar locator domain incomplete",
+      "N02G:PATH-V3-013 empty L uses a genuine v2 unknown-path control and full native rejection without static credit",
+      "N02G:PATH-V3-014 empty-domain preparation never absorbs mixed sites or caller claims and rejects cloned controls",
+      "N02G:PATH-V3-015 structural diagnostics carry the first native authored site and forged same-text errors remain unauthoritative",
+      "N02G:PATH-V3-016 historical migration preserves every old target, state and evidence without importing credit",
+      "N02G:PATH-V3-017 historical migration refuses changed source, same-count redirection, forged state and active boundaries",
+      "N02G:PATH-V3-018 captured barrier controls detect removed inverted redirected guards and an excluded member accepted from cached C",
+      "N02G:PATH-V3-019 authored selection constraints seal exclusions before M without calling unclassified members admitted",
+      "N02G:PATH-V3-020 admission foundations reject caller rules clones reclassification omission and active inputs",
+      "N02G:PATH-V3-021 every selection exclusion precommits its native instance and remains unqualified after a captured barrier",
+      "N02G:PATH-V3-022 selection controls reject caller coordinates source authority clones replay getters and proxies",
+      "N02G:PATH-V3-023 selection barrier controls detect removed inverted redirected guards and cached positive admission",
+      "N02G:PATH-V3-024 proof program expectations precede normal lowering and cover the whole authored baseline without caller IR",
+      "N02G:PATH-V3-025 program conformance refuses changed paths selection returns helper bytes caller expectations and active boundaries",
+      "N02G:PATH-V3-026 whole normal phase program seals authored role associations and reviewed mode before lowering all baseline graphs",
+      "N02G:PATH-V3-027 phase conformance rejects phase bypass guards profile manifest source table and active caller authority",
+      "N02G:PATH-V3-028 whole authoring IR is sealed from authored documents including topology roles trace and state requirements",
+      "N02G:PATH-V3-029 whole IR rejects every graph metadata class order forged flags and active transports before mutant preparation",
+      "N02G:PATH-V3-030 single-site whole C M S references bind authored package bytes before captured compilation",
+      "N02G:PATH-V3-031 whole C M S seals reject cached baseline active transports clones and compiler metadata corruption",
+      "N02G:PATH-V3-032 whole admitted C M S normal programs match prelowering authorial seals with hash-bound common reuse",
+      "N02G:PATH-V3-033 whole program family rejects missing reordered duplicated graphs cached C and active or cloned authority",
+      "N02G:PATH-V3-034 complete common functional D assets and every authored evaluator binding seal before C M S compilation",
+      "N02G:PATH-V3-035 functional D reference rejects asset binding drift omissions aliases and active or cloned authority",
+      "N02G:PATH-V3-036 every actual phase and functional bundle links complete modules imports and lexical consumers without claiming absence",
+      "N02G:PATH-V3-037 external module closure rejects loader drift dynamic edges free captures and active inputs even with self consistent hashes",
+      "N02G:PATH-V3-038 whole family call bindings are sealed before M and retain unresolved dispatch without granting value flow proof",
+      "N02G:PATH-V3-039 callable linkage resolves renamed imports namespace and local aliases but never assumes mutable or dynamic dispatch",
+      "N02G:PATH-V3-040 normal capability authority binds every real exposed surface and complete source before C M S",
+      "N02G:PATH-V3-041 capability source or full surface drift and rehash cannot replace private authority and active transports are inert",
+      "N02G:PATH-V3-042 child ABI and all authorial input capability seeds are sealed before C M S without fixture selected rosters",
+      "N02G:PATH-V3-043 child ABI bytes rehash or active transport cannot replace authority and altered capsule is refused before C",
+      "N02G:PATH-V3-044 finite function boundaries bind formal arguments returns and callback forwarding across real closed modules",
+      "N02G:PATH-V3-045 return linkage blocks effects branches writes recursion and fake same-name capabilities",
+      "N02G:PATH-V3-046 genuine child roots compose finite receivers and callback origins over every real program before C M S",
+      "N02G:PATH-V3-047 receiver references cannot be replaced by caller roots clones outputs parent receipts or active scopes",
+      "N02G:PATH-V3-048 admitted return shapes preserve conditional child handles absence projections and scalar distinctions",
+      "N02G:PATH-V3-049 return shape propagation cannot manufacture payload presence membership edges or same-name authority",
+      "N02G:PATH-V3-050 real common factories bind passive returned methods to exact captured definitions before C M S",
+      "N02G:PATH-V3-051 passive factory grammar cannot hide getters prototypes effects branches or mutated intrinsic authority",
+      "N02G:PATH-V3-052 claim context shape reuses the admitted normal projection before C M S without copying payload or output",
+      "N02G:PATH-V3-053 claim shape linkage cannot admit output qualification foreign source rehash or fake same name receivers",
+      "N02G:PATH-V3-054 shared helpers retain every known conditional node origin and only common admitted fields",
+      "N02G:PATH-V3-055 conditional node joins reject fake or scalar inputs and do not collapse ownership or unknown shapes",
+      "N02G:PATH-V3-056 material reference returns retain genuine source edge target and native preconditions without proving runtime ownership",
+      "N02G:PATH-V3-057 material reference linkage rejects fake ownership nonroot handles invalid references and undeclared edges",
+      "N02G:PATH-V3-058 composition retains indirect effect sites even without recognized capability calls",
+      "N02G:PATH-V3-059 effect inventory is whole syntax not observed branches and changes with real helper bytes",
+      "N02G:PATH-V3-060 finite composition preserves indirect obligations and cannot promote conditional links or caller clones",
+      "N02G:PATH-V3-061 genuine pre M family binds whole effect compositions but missing premises remain blocked",
+      "N02G:PATH-V3-062 witness preselection seals independent references over authored L before compile without promoting unknown admission",
+      "N02G:PATH-V3-063 empty or forged witness preselection cannot supply execution authority or fallback candidates",
+      "N02G:PATH-V3-064 preselected reference is bound to whole real normal C M S programs without caller choice or qualification",
+      "N02G:PATH-V3-065 invalid phase authority poisons the witness bridge before compile and keeps genuine failure evidence",
+      "N02G:PATH-V3-066 captured INTERNAL witness entry binds external pins and blocks incomplete prerequisites before handles",
+      "N02G:PATH-V3-067 admission foundation seals normal pass obligations and exact single site frames before M without claiming complete A",
+      "N02G:PATH-V3-068 relational rule dependency frames distinguish unchanged queries from argument sensitive bindings before M",
+      "N02G:PATH-V3-069 normal admission checker bytes bind the genuine family before C without discharging semantic rules",
+      "N02G:PATH-V3-070 pinned normal read frames prove only conditional preservation and reject a changed checker before family sealing",
+      "N02G:PATH-V3-071 structural constraints classify only genuine locator members and preserve declared optional paths before M",
+      "N02G:PATH-V3-072 unchanged schema registry documents bind the normal projection rule before C without general schema claims",
+      "N02G:PATH-V3-073 template read frames retain all named bindings and set peers before C without type admission claims",
+      "N02G:PATH-V3-074 primitive material type constraints preserve nominal peers but leave reference and claim bases blocked before C",
+      "N02G:PATH-V3-075 obligation read frames bind all participating arguments roots and pinned normal body before C",
+      "N02G:PATH-V3-076 ordinary claim read frames retain all descriptor subject period arguments and roots before C",
+      "N02G:PATH-V3-077 collection read frames retain all fixture membership candidate anchors and graph roots before C",
+      "N02G:PATH-V3-078 selection read frames retain every referenced predicate and preserve only unchanged selection inputs before C",
+      "N02G:PATH-V3-079 document schema preservation binds normal schemas recipe and every genuine locator shape before C",
+      "N02G:PATH-V3-080 complete normal rule composition covers each genuine locator before M and blocks any missing premise",
+      "N02G:PATH-V3-081 witness preparation seals one genuine normal unknown path control per site without empty domain or execution credit",
+      "N02G:PATH-V3-082 witness site unknown path controls use full native C M S admission and exact precommitted coordinates with zero handles",
+      "N02G:PATH-V3-083 witness bridge verifies genuine native site controls before selected normal M without semantic or execution credit",
+      "N02G:PATH-V3-084 consumed native site control poisons the witness bridge before first normal C without fallback or replay authority",
+      "N02G:PATH-V3-085 necessary selection controls do not recompute full twelve rule admission foundation while full admission keeps it",
+      "N02G:PATH-V3-086 finite conditional L A W partition binds every rule and independent reference before M and cannot select an uncovered discriminant",
+      "N02G:PATH-V3-087 trusted external rule review is a closed byte transport and never raw approval flags or active data",
+      "N02G:PATH-V3-088 reusable external rule scope seals complete A W before compile and retains fresh identity without audit or execution credit"
+    ],
+    "expected_skip_titles": [
+      "instalador executa install e uninstall restaurando bytes preexistentes",
+      "install adota bloco existente e preserva integralmente os bytes atuais",
+      "install recusa adocao quando backup diverge apenas por BOM sem mutar config",
+      "uninstall recusa configuracao alterada e preserva o arquivo atual",
+      "uninstall recusa divergencia somente de BOM e preserva bytes atuais",
+      "functional: consent, onboarding, settings and dashboard",
+      "functional: expenses, income and credit card installments",
+      "functional: goals, debts, payments and reminders",
+      "functional: analytics, deletion, admin and fallback",
+      "functional: complex analytics handles typos, counts, duplicates and min/max"
+    ],
+    "measured_sources_before_sha256": "24ac5eb565c2bd99246f8e02e63b90e1369af23b4e262fb834b229b198fd15e9",
+    "measured_sources_after_sha256": "24ac5eb565c2bd99246f8e02e63b90e1369af23b4e262fb834b229b198fd15e9",
+    "measured_source_count": 893,
+    "sources_unchanged": true,
+    "retained_native_coverage_files": 751,
+    "invalid_native_coverage_files": 0,
+    "stdout": {
+      "bytes": 832996,
+      "sha256": "116eb672ab6868157b3132cb23695c427ced36450946f9b5368fc89a677b9024"
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "capture_complete": true,
+    "subprocess_error": null,
+    "corrected_fixture_077_focal_report_sha256": "f23f070684ce0c0f06494349b3cd0873f1965c0287699ff922bf3d62e661942f",
+    "earlier_r3_report_sha256": "a7244c2d768b930958e62f1105a9d61df0c3d2949310f0efc1029cb7fd27fdd3",
+    "earlier_r3_verdict": "valid_red_sole_failure_incomplete_selection_fixture_no_history_requalification"
+  },
+  "changed_or_added_files": [
+    {
+      "path": "docs/agent-memory/workstreams/financasbot-domestic-roadmap-review-20261007.md",
+      "bytes": 4163,
+      "sha256": "27abcabdab31e4a8d8449af4d12dfe528709474c9ee55014e042360767b00b37",
+      "git_blob_sha1": "fc4dd8140b560a8a69f4eaf29305d5e86a7fc0ed",
+      "role": "compact_operational_documentation_no_runtime_authority"
+    },
+    {
+      "path": "docs/agent-workflow/active-scope.json",
+      "bytes": 8313,
+      "sha256": "faf38c49b151c9fc77d498608c40953e5a95e2d0cc519144a865ea3ab2781650",
+      "git_blob_sha1": "95c14bdba49a68028b0ba1ab11f35bf9e9dafade",
+      "role": "code_or_declared_documentation"
+    },
+    {
+      "path": "docs/agent-workflow/scope-baselines/path-v3-composition-20261009.json",
+      "bytes": 49622,
+      "sha256": "b5aec333b7366d2c93dc1e1c89ff0c3d4f3e3b75636778fa39db3e5b53bc87db",
+      "git_blob_sha1": "bee243c8c21ce5bb3b3edfbc797f575ab8743617",
+      "role": "code_or_declared_documentation"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/compositional-path-proposal-audit-20261008.md",
+      "bytes": 9840,
+      "sha256": "14a209e6de986dfe5c47476625a067477898dfaa3fd40f22f1c0ab6ef9204c45",
+      "git_blob_sha1": "f3de7a8dfc558a884086390da7d6ce84b1d81a61",
+      "role": "supplemental_documentary_receipt_private_URL_redacted_not_compiler_input"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-timezone-reference-20261007/iana-tzdb-2025b-southamerica.txt",
+      "bytes": 95298,
+      "sha256": "57cc4ee3dc4bd575f126ba76f284a9ee67330c6fbb7576792eda27f41451ff22",
+      "git_blob_sha1": "06fee598baf41851c073cdfb0fd582b9ac645342",
+      "role": "code_or_declared_documentation"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-history-20261008/.gitattributes",
+      "bytes": 51,
+      "sha256": "787d3ae4e59e60582eb69d0d32eb6c1168dfa38bf4e2a21c98ce5d87226b6ef4",
+      "git_blob_sha1": "169e43f2eab9e82855af060268bbdb4bc884031d",
+      "role": "code_or_declared_documentation"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-history-20261008/capture.json",
+      "bytes": 12850,
+      "sha256": "3338e0dedcf90f65ec3758af48507cfb8c5cee4c954e93e9aa518354a374fc75",
+      "git_blob_sha1": "78733d554eb078daac72a8d781deb3fdcead94c7",
+      "role": "code_or_declared_documentation"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-history-20261008/historical-v2-report.json",
+      "bytes": 3472204,
+      "sha256": "3187e36259bc11fcd2c9063a6a4ba25987f1e1acca18a81a96aee87834b007d0",
+      "git_blob_sha1": "cc1e01b4a206180827c00922f68237472a940e91",
+      "role": "code_or_declared_documentation"
+    },
+    {
+      "path": "docs/plans/workstreams/financasbot-pathv3-implementation-20261008.md",
+      "bytes": 4221,
+      "sha256": "dcb04aa4da411164b5e384f167b7b1e4e9df3de2837ca7a5b691e2c152a40a92",
+      "git_blob_sha1": "e1dd1635593c3d051858ba7fbdc9129f199543cb",
+      "role": "compact_operational_documentation_no_normative_change"
+    },
+    {
+      "path": "scripts/agent/capturePathQualificationCompiler.mjs",
+      "bytes": 52261,
+      "sha256": "486f0154003e71c0284887a3c9735c1f2896fd84134a3667d99edc8586085611",
+      "git_blob_sha1": "37f8bbfef08ed5f960b5c61b4e21d489401bd418",
+      "role": "code_or_declared_documentation"
+    },
+    {
+      "path": "scripts/agent/financasBotNext02ValidationPolicy.js",
+      "bytes": 8460,
+      "sha256": "9856be47eecc5bfaf02d7300190c62e766613be4b405bb60b2081e3e39ab84db",
+      "git_blob_sha1": "ce40cdac2b8c5df0c097abc31aa9d64ba9de9da7",
+      "role": "code_or_declared_documentation"
+    },
+    {
+      "path": "scripts/agent/pathCapabilityEffectContract.mjs",
+      "bytes": 25714,
+      "sha256": "0c05ebf16775639a28ee19b6629dd855865f5000ee23fb3006fbeaf5305907c5",
+      "git_blob_sha1": "b28e78de3f3bf2ef0a2c6d698c4d6c0b40d1d4b7",
+      "role": "code_or_declared_documentation"
+    },
+    {
+      "path": "scripts/agent/pathExecutableClosureContract.mjs",
+      "bytes": 45988,
+      "sha256": "7facc69858c80a5fb07522a16c2b51e04935c4675f9924ebe37de478e2712b21",
+      "git_blob_sha1": "ccbadb5ca02def67c508fb234f744282e76f0b44",
+      "role": "code_or_declared_documentation"
+    },
+    {
+      "path": "scripts/agent/pathProofProgramContract.mjs",
+      "bytes": 58942,
+      "sha256": "e8fe3ed84368ee154383748879e4b70490b7114fd764efed8db9a586343c956d",
+      "git_blob_sha1": "d6e972b855898ca4ae1708725744acce9b1c3724",
+      "role": "code_or_declared_documentation"
+    },
+    {
+      "path": "scripts/agent/pathReceiverOriginContract.mjs",
+      "bytes": 36915,
+      "sha256": "fbdd1e751445af8110574e0416930955884073a31392240935b10d235a9f1870",
+      "git_blob_sha1": "ef751d731e613250b77fd4988b7c55ea84c9fb32",
+      "role": "code_or_declared_documentation"
+    },
+    {
+      "path": "scripts/agent/preparePathQualificationHistory.mjs",
+      "bytes": 3667,
+      "sha256": "26de466db0bcd9274c969681c0285396f04abfb7879efc764d33bbdb4192b84a",
+      "git_blob_sha1": "360104f0c37b237a03e24a43166cd2ca0b53d409",
+      "role": "code_or_declared_documentation"
+    },
+    {
+      "path": "src/next/provenance/capturedTcbLauncher.js",
+      "bytes": 6744,
+      "sha256": "bab76b97d53a368f08dfd24d74041d3a760819a229dd1bf432fb5d9a8f758141",
+      "git_blob_sha1": "95a5e62588d02b129e77e32d4d8ccff4183b395b",
+      "role": "code_or_declared_documentation"
+    },
+    {
+      "path": "src/next/provenance/graphStructure.js",
+      "bytes": 17159,
+      "sha256": "927a4e76b6a7c9f8ad8656e21a44766a745c2edd3113b82ff7231a1c2bc79e50",
+      "git_blob_sha1": "549473a5b632c3a8544552d1ac88e7dd85047304",
+      "role": "code_or_declared_documentation"
+    },
+    {
+      "path": "src/next/provenance/pathLocatorDomainV3.js",
+      "bytes": 11793,
+      "sha256": "5e63d13db01a652d38c1888ac652435eb20e8b3b7c371f5d85c121141f36500f",
+      "git_blob_sha1": "ba1f2a371a52dde29dc3b2c5d51e132acc429ba6",
+      "role": "code_or_declared_documentation"
+    },
+    {
+      "path": "src/next/provenance/pathMutationInventory.js",
+      "bytes": 42026,
+      "sha256": "095d9e6daec7c73ffd8ae940e00a401e899915c4f35477b50c8595e909d72275",
+      "git_blob_sha1": "4bff604d73db4794ff52c814bb5408c7950597ba",
+      "role": "code_or_declared_documentation"
+    },
+    {
+      "path": "src/next/provenance/pathQualificationV3.js",
+      "bytes": 100438,
+      "sha256": "71755d8044006ffae70f80248db87ddaa2aa45f5346fa4ea69b0ec7937683a0d",
+      "git_blob_sha1": "6b2617986c425edea53a3600ac1d1a5835c3123d",
+      "role": "code_or_declared_documentation"
+    },
+    {
+      "path": "src/next/provenance/pathSemanticReference.js",
+      "bytes": 18997,
+      "sha256": "6880b8cf205fbb337be18c8f607aecb6a28d6d6255de5a36399de955629e812d",
+      "git_blob_sha1": "b9338bc70e3e440eae276aaa51b6ae0d04b5f877",
+      "role": "code_or_declared_documentation"
+    },
+    {
+      "path": "src/next/provenance/selectionBindings.js",
+      "bytes": 9352,
+      "sha256": "dafa79661a2474ad05c2390c86adcf136dc8ac395d10a28a6a4d7deeccac9815",
+      "git_blob_sha1": "e168cbc02dbd2712702cf4b65bcbc9f18da5926d",
+      "role": "code_or_declared_documentation"
+    },
+    {
+      "path": "src/next/provenance/validationTcbEntry.js",
+      "bytes": 32235,
+      "sha256": "35366bec38beda91299f97d4448872e56efbf5a406389aed1c9ac9e40e54293f",
+      "git_blob_sha1": "fb2995939e30f98ce3a075d26a3757d0f2445761",
+      "role": "code_or_declared_documentation"
+    },
+    {
+      "path": "tests/exhaustiveLocalTestCoverageRunner.test.js",
+      "bytes": 32280,
+      "sha256": "5b1d104ad84690f0f527c20f0e032d7cbb976c4928ceab250ed7d4a7515e27c9",
+      "git_blob_sha1": "3c392eb513e106232a7c021170add0f2895484d7",
+      "role": "code_or_declared_documentation"
+    },
+    {
+      "path": "tests/helpers/exhaustiveNetworkTripwire.js",
+      "bytes": 21939,
+      "sha256": "0e617850ce48a52dc88cfa05f8ab55b6e3f866638f932077536c4760217839e0",
+      "git_blob_sha1": "ffc1c17c630bd9e262075ecde940e870879e1653",
+      "role": "code_or_declared_documentation"
+    },
+    {
+      "path": "tests/next/provenance/pathQualificationV3.cases.js",
+      "bytes": 329476,
+      "sha256": "94e7d6da406e7cc26cd817fe7bdd1276bad0498e9fca2f72dbb3b43e4d81988e",
+      "git_blob_sha1": "c548adcafc652023498bbc958570fba5bfffb606",
+      "role": "code_or_declared_documentation"
+    },
+    {
+      "path": "tests/next/provenance/pathSemanticV2.cases.js",
+      "bytes": 35762,
+      "sha256": "af45849af0217f704da75e6d8f8fab7454dd239c9f39ea406b2b16ee2182d76d",
+      "git_blob_sha1": "85315a6d97de4db9c46651560e2726aeedd85148",
+      "role": "code_or_declared_documentation"
+    },
+    {
+      "path": "tests/next/provenance/selectionBindings.cases.js",
+      "bytes": 7155,
+      "sha256": "31c927998c85716b144a7726a4f3aa17b2a044de74d47ef1f151e6773153ec99",
+      "git_blob_sha1": "0ba9fea248017e9ee68ff7e8a0ffd41047762115",
+      "role": "code_or_declared_documentation"
+    },
+    {
+      "path": "tests/next02DevelopmentInventory.test.js",
+      "bytes": 7958,
+      "sha256": "854f1716ceb89b9c3bf26ffab3b84493cc569ec7c37027cfb3c2e423b9e91c52",
+      "git_blob_sha1": "f7a5d25fff6c2179be84228acdd6b108a221524b",
+      "role": "code_or_declared_documentation"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/acorn/dist/acorn.js",
+      "bytes": 241575,
+      "sha256": "fdb08546776ec6228b03e8d02b40d4ab3255bae5f401adba7ff5dad927ac5c9c",
+      "git_blob_sha1": "cb5628bf83cf0bcb63514b797a38e0442c383ea8",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv-formats/dist/formats.js",
+      "bytes": 12263,
+      "sha256": "b61693a26869970a92cc1fe832c931ccd3afe8b6d66802b19c48306349e84880",
+      "git_blob_sha1": "cf01ed84529c9465e8e19f0f454c85acbc3d16ed",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv-formats/dist/index.js",
+      "bytes": 1508,
+      "sha256": "3f3014150293846086d11058bb8bf43e669e354a98b37adcf10281454d5e753b",
+      "git_blob_sha1": "a3b71f91dd3dc738cdbdbe79aca2a373d9e645b4",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv-formats/dist/limit.js",
+      "bytes": 2900,
+      "sha256": "ffc374031a55c3f6e39dc3fe69e663f8251b9d9d7ddb8f513a6807c985c18bb8",
+      "git_blob_sha1": "64979f839783feceddc0386cbe98ca97e8e39717",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/ajv.js",
+      "bytes": 2841,
+      "sha256": "edaed56fc546f5551b0d6dc2ff2a9cc25c2d6c83318a086eaa8c3ad0b2479297",
+      "git_blob_sha1": "8eecf1bea7979d28682960a45abb1af0e90e6708",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/codegen/code.js",
+      "bytes": 4676,
+      "sha256": "1287153722f1fc3c5342647de7ae1d7b6fb68bdb3378a0776a937d273fc97e0d",
+      "git_blob_sha1": "f9ea5259a70b0e2517885fe9504f8abb9603e7c6",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/codegen/index.js",
+      "bytes": 23127,
+      "sha256": "f03b2b72597ef86878d1d4030580c2d0964046efad4867f3d05aa91065ba034c",
+      "git_blob_sha1": "a6c805af14539cf6180f2536992ce13a8a4d0615",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/codegen/scope.js",
+      "bytes": 5198,
+      "sha256": "d2a0a97af2faa2cad88702314fe421e235ab17f11e0d62883d58d8d4dc734286",
+      "git_blob_sha1": "4bc7794e3215d7b22edd0b43a7d5ee7d034d801b",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/errors.js",
+      "bytes": 5771,
+      "sha256": "53990f8f2cc05922bba410ae68231d3f869de4f8343277ede5b4834fa564c6c2",
+      "git_blob_sha1": "24d721d80e17418eaf298fbced2aac260ac7bb24",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/index.js",
+      "bytes": 10046,
+      "sha256": "05b34da22814f3787bfa3ac68dad59c9047f56e55a607e0a20719ebf5afe69ac",
+      "git_blob_sha1": "9e42a55880d77f51c4b21c92bee27a88b98cac4d",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/names.js",
+      "bytes": 1440,
+      "sha256": "3cab37a2240b996b9bed92fe7a041d91689cfe3ad2e9ae4c0ab99e4146408493",
+      "git_blob_sha1": "3bce5aaa9a63cdbdab5e10e3dc053fcccffede1b",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/ref_error.js",
+      "bytes": 543,
+      "sha256": "81c98fdf34c3037c91bfcc02277ec32156c71e34048f36cfe4e084416e916cb7",
+      "git_blob_sha1": "3916dec8a369a8df657b94c9e79d41a588c805fe",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/resolve.js",
+      "bytes": 5006,
+      "sha256": "df75af0e0cf03fa1c6452e8dc61019f5aec645a8a5f6f494dc4e13cb5502d2d9",
+      "git_blob_sha1": "f12f968dc07d94a435186b32108551f4d429f23a",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/rules.js",
+      "bytes": 918,
+      "sha256": "ec1d86500f497aa8e20f9f0c1695951159d9a909669d00a261ce1bb22b3cf0a9",
+      "git_blob_sha1": "82a591ff4dbdd8cec80b533c6df9854403162f29",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/util.js",
+      "bytes": 7103,
+      "sha256": "fa911f5631f29d4d6420adfe086cb693b94b08de2719475c78c54bcb82f831a5",
+      "git_blob_sha1": "73c87c854d2a8f61483e7a15ba186f81e72d1bc4",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/validate/applicability.js",
+      "bytes": 853,
+      "sha256": "50c5cba5894a7fb9874b3432355b46ec71b73c9368dafb1323ded8567cca8fc0",
+      "git_blob_sha1": "6187dbbeeebb3f9a1b3f74cba4b669685a6d49f0",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/validate/boolSchema.js",
+      "bytes": 1531,
+      "sha256": "c08abdbdbd3d8b1dcc0552a20fbc7d837ed44f4ca6abb2e464985590ac94377f",
+      "git_blob_sha1": "8eeb7b5eee3d137c0f85b4a9405bca8181e60f19",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/validate/dataType.js",
+      "bytes": 8409,
+      "sha256": "697bd7005361ec7066a23c18830a10b0ef28aec1a33138b4e3098bf78c4fae52",
+      "git_blob_sha1": "6d03e0dc0ee4b009c075f037940dbe7b41004c90",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/validate/defaults.js",
+      "bytes": 1448,
+      "sha256": "05721971df94faa57b09c8cfd60c2eef81b6d14910a7dea5f539d693a029c428",
+      "git_blob_sha1": "cd9c42d9aa4a49adda2c844d2e1f9386e626399e",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/validate/index.js",
+      "bytes": 20552,
+      "sha256": "cb2103e5f890e04592c10d24b45857dad91155bae9f9460138a2459bdaaea2cd",
+      "git_blob_sha1": "0d683322abf18fc5b418bf776dc53f00a49e00ed",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/validate/keyword.js",
+      "bytes": 5695,
+      "sha256": "ab8f070c75c25eee9be5c837f364748909b58f5db66149a2beccbd2f66afeb76",
+      "git_blob_sha1": "1109d3a4519ead22d62104f47151377d5f78299c",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/validate/subschema.js",
+      "bytes": 3858,
+      "sha256": "ca783d6052af91e65ebb59a5b48b47fb459a2241d37ca6a042f767d4ce451bdc",
+      "git_blob_sha1": "9de2828690d6c41170d734c66b1a214cb0b9925c",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/core.js",
+      "bytes": 25185,
+      "sha256": "7fdd03e949ecb3d020e560f669da71ce69a70f4bca28e5aff2ebc34d15bc2134",
+      "git_blob_sha1": "7e30c83af91b622a2740478f5624531660c4ed83",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/refs/data.json",
+      "bytes": 409,
+      "sha256": "d24ab8a97c18b3f5afdde7d7024a0e0ac1df0614a16a41cb88f81379edcc2db3",
+      "git_blob_sha1": "9ffc9f5ce05484799308bc4c78fd3a8822e9af53",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/refs/json-schema-draft-07.json",
+      "bytes": 3811,
+      "sha256": "f7e8b13cad4fecff9771f3626fef33e20e59027b90938a28fd9d2f6c17cd0773",
+      "git_blob_sha1": "6a74851043623c67cbe2e1cd206da447aff752c3",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/runtime/equal.js",
+      "bytes": 286,
+      "sha256": "c94467da09ee94e5d194483a7ab821b9bb3bf1c04397270f2ab53dea9de59274",
+      "git_blob_sha1": "774bba05af0aad577fa2a92dc37a0456cce1a318",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/runtime/ucs2length.js",
+      "bytes": 808,
+      "sha256": "1df012dd3d23fced07255a7204798004509687cb1f431ae0ab976db436bbd890",
+      "git_blob_sha1": "92ea0c08a2e4de486bfc52a3807c6c258b63b725",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/runtime/uri.js",
+      "bytes": 218,
+      "sha256": "d1d61baf97ed87d7310df847a78ed73d19c8cc003207bf5aaec977500bdb1578",
+      "git_blob_sha1": "bbd2f05244d65c1f0e5bfe0f2dc2a71ab2348a9c",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/runtime/validation_error.js",
+      "bytes": 337,
+      "sha256": "11bf5b4affc8114e5e7cdf65b93006c2d997ab60ada1152c22e136f9b828b815",
+      "git_blob_sha1": "353502c089d058921f7cb0723541ccbfa42d45b9",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/standalone/index.js",
+      "bytes": 4480,
+      "sha256": "361d58a7523548bb1b9c782135fae27e76d93c8feaba8c4d613331dbcd3b888f",
+      "git_blob_sha1": "b44bb5db5c25b72748e6304e15ac588d3e4562a5",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/additionalItems.js",
+      "bytes": 1931,
+      "sha256": "7beb0fbda5e349907067c8398bb8cc3260a6267b6e5dff9793a5ab2171934099",
+      "git_blob_sha1": "608d51eb6a0b21cb29bca281e8259933c1d867b1",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/additionalProperties.js",
+      "bytes": 4309,
+      "sha256": "e237cb180cd2e3f2e676feb714d7dcc6a42116640f9db2ad830cd20d9dfc540a",
+      "git_blob_sha1": "1d3374bb7650abeaa5037f7495cc14e141e89a39",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/allOf.js",
+      "bytes": 756,
+      "sha256": "98f46a6434ebe5f851b406480e18b776dd7f1bcc275e28c16a13bfef3cc067c7",
+      "git_blob_sha1": "1b1ae737611479c5f3ce00300629a91810658bbc",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/anyOf.js",
+      "bytes": 343,
+      "sha256": "8d7368d4aebad0514b713191b934993b4f0bf570e1bab93b07dc69712db2cec5",
+      "git_blob_sha1": "66cfce2cc573f7158a165643694e0c89f1794a2c",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/contains.js",
+      "bytes": 3680,
+      "sha256": "56165dc93cd8b0b4611db50a97f1e7d7f9af6c5ffe95a7a5b054d6eeaa7f6a8c",
+      "git_blob_sha1": "6c5473f5d9b486b774494033b97978b3c42ca0d4",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/dependencies.js",
+      "bytes": 3198,
+      "sha256": "c1a83bf484b6fde4d268935f079ddba5e74a2f589dfc6d15ca2e20ba4d06ee5b",
+      "git_blob_sha1": "e81f86d1d9e25ef44ff6f096e1a9238a6f05b38e",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/if.js",
+      "bytes": 2438,
+      "sha256": "42374ee5dc681433579cc689b0c4ae5343f5bf78d4d6a561722b9277c5335ec4",
+      "git_blob_sha1": "2c42a3e9c56e0801c71681c38fcf0823c4e2d251",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/index.js",
+      "bytes": 1529,
+      "sha256": "5a61978f6d81bbabfa8b9ccb71d7de816ed6dd1fd7de5c72657439a76c2a7cb3",
+      "git_blob_sha1": "cf592f2795ef281098834ec11f21634bc3b75a13",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/items.js",
+      "bytes": 1993,
+      "sha256": "fa87f74adc3aac1f1b5e3e7dddf73294e6850e1dd49ed131fca4352e9645c54e",
+      "git_blob_sha1": "26f527bc69d233b0ae732531a73383191c2318d7",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/items2020.js",
+      "bytes": 1037,
+      "sha256": "c449ef64aec16263c7935293ed450cfc2da3ba66f6df5f99c3198c05f169838f",
+      "git_blob_sha1": "f2387d7d206f67c44532ae1179e20c714db9f96a",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/not.js",
+      "bytes": 773,
+      "sha256": "ab2f2758d4ea97ac8763fe5540dd0f4d877859676fe5d6c750a18deca387f718",
+      "git_blob_sha1": "89f6fddacf261c7ddb4a40094040239dba77b060",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/oneOf.js",
+      "bytes": 2257,
+      "sha256": "e2aeb6c22d49fd5f348bedcf7f5c4d7b31f5a05dd7ff1a0c531374c6968792a2",
+      "git_blob_sha1": "441db2ac0b178f6297de1fbf85a4d0c1cd79a90e",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/patternProperties.js",
+      "bytes": 3236,
+      "sha256": "0d43da49a82452c439ba990de7372ad5cedb663717918a5f6dae07025abff655",
+      "git_blob_sha1": "48501c6e33e3c492b927ecfc02fb990651ab1b3d",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/prefixItems.js",
+      "bytes": 354,
+      "sha256": "16264f7b3233a6dcb98b48700643efbd3ebc4d11e27b3eacffc83ccb5f44fb23",
+      "git_blob_sha1": "727bc23ce0a575ca888c53fc3094e50eb3c74af7",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/properties.js",
+      "bytes": 2153,
+      "sha256": "c896873ae7251093a2c8880545b69b6e8cb55c44817a53ec830a49818d74104f",
+      "git_blob_sha1": "7347358e29e2f7e6cb7c5f27d6bd381e03fb7c7b",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/propertyNames.js",
+      "bytes": 1221,
+      "sha256": "b3411cfeaff8efd5e6de12971bb5dc339e64b61fbe62d3b950794c077315c2e7",
+      "git_blob_sha1": "f3871152de3cee3702b476e823569e324b50b237",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/thenElse.js",
+      "bytes": 446,
+      "sha256": "9bc42eb8699d57188a7ec2a710d3f38052f92bd78c5d4d0442cf98cf2ebbe22d",
+      "git_blob_sha1": "1ae6390215cdd6091eb76c82df786e15950dbb47",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/code.js",
+      "bytes": 6216,
+      "sha256": "9212ddf8bd0a4c3b1c4b44cdadd141183b2b36f561b91d13df53c83911e3bf63",
+      "git_blob_sha1": "8cb899324c1ab57aab07a1cda647f609b47a30a6",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/core/id.js",
+      "bytes": 267,
+      "sha256": "49c8eff694ce4371450c1f9986e934fcbf4bd143311caef5332113f29175bc11",
+      "git_blob_sha1": "313598aab87eb681dad117567c6ce375839c797f",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/core/index.js",
+      "bytes": 357,
+      "sha256": "f420e1011b95e27b54c58323a7ed4ffbd0a88cdb4496f771bb6782c2aa22d23e",
+      "git_blob_sha1": "87656d7436f4ff9bf4d366a4762a5e3b5845ed96",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/core/ref.js",
+      "bytes": 5234,
+      "sha256": "1422c1454b3621d890066042048f37746fe1cf213088307099816199889bbfd1",
+      "git_blob_sha1": "bac1ae853fc0ae14da87693976bb3f205dd0df22",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/discriminator/index.js",
+      "bytes": 4845,
+      "sha256": "b58b58025d2dbe5a6967376faec9295b860a338664c47037e9a1035c1e8fb88e",
+      "git_blob_sha1": "e113aed7015c2ab1170fd9b337ce36750269c79a",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/discriminator/types.js",
+      "bytes": 308,
+      "sha256": "2365341d1f30dc72cece7703e908e47aacb8f904b9f66ec4019fe889ae1e57fa",
+      "git_blob_sha1": "edf4da5ed1b1fa767be171113574e5354342b485",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/draft7.js",
+      "bytes": 557,
+      "sha256": "8c62022c6c3aa302c3ea6f6709a697fc9eb6385d243fa7c2156dbe9f02228170",
+      "git_blob_sha1": "1e993de0ecea2f52dd26d0d9273cdccf0bc0de91",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/format/format.js",
+      "bytes": 4317,
+      "sha256": "6fae0d5124fd821b1a9959492f7d6d7b528bee8830d49a7a4759fc9a9ab81d5f",
+      "git_blob_sha1": "aa667c1ef13ead4b14f523464fed67cf6f2eb04e",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/format/index.js",
+      "bytes": 209,
+      "sha256": "d5dad5f95c9c5f48f8ca956cdbb927aafc7b56baabfca8c0b0403d92c5ebeb67",
+      "git_blob_sha1": "d19023d24525c8826c752d69833e0681be48f75f",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/metadata.js",
+      "bytes": 427,
+      "sha256": "45c178744a7ec57e20c85ceeaea8d9f36b5663636ab7e495ea2c3c1bf4a58609",
+      "git_blob_sha1": "f07bf28b5a0e6c26a13ac290c85271f12b3357ee",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/const.js",
+      "bytes": 852,
+      "sha256": "ace994e9ab97a70899a9484794794f4be5ee03bfb3cf32242d3f091d77f0329a",
+      "git_blob_sha1": "9564496a658fc6a46552d174984446d8c79fc1db",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/enum.js",
+      "bytes": 1901,
+      "sha256": "61062b318a40eb52fc5a8283e7f4781db98349841744961ef4fe04a4722ebf22",
+      "git_blob_sha1": "eab6487e991d78f9e01839b4ac5655f61af171f6",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/index.js",
+      "bytes": 1036,
+      "sha256": "4a1839832de5f10ff423c1c0c6cb232b5b6e1b34980a28862cf56b2763136de4",
+      "git_blob_sha1": "7b56b4e45359da1f1d087455b2c7133cf048815b",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/limitItems.js",
+      "bytes": 852,
+      "sha256": "49f0427d29b38aef2fa8aead26e68bda12deb9a2da22f7a7804ba0fed44e1fec",
+      "git_blob_sha1": "e1386f887cc8a9030999fd4856e92a2962977b58",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/limitLength.js",
+      "bytes": 1130,
+      "sha256": "379c28317faaf7784680b6049c3562692d3df6d65cce33f48e6c6c723beeeec2",
+      "git_blob_sha1": "6ae5f92e67f1a3ee61aec3274ad5b8ed2f6805f2",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/limitNumber.js",
+      "bytes": 1036,
+      "sha256": "3dd4bd41dbfc76c522078ff54b6479683485c4e97faa04cfcfaf2d8cb0fb8e65",
+      "git_blob_sha1": "a97c0eb9db77364f65e61d65cbb3e1a17894b594",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/limitProperties.js",
+      "bytes": 896,
+      "sha256": "8523a3f7b36c34882ca32b0ec71a2157d7930907cb86b778a97c1514fa6258ac",
+      "git_blob_sha1": "e6fc40cc671989d969022da4f0ce3f37609c4e88",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/multipleOf.js",
+      "bytes": 1023,
+      "sha256": "df128c2a6ca74ae57c65fbfe3aea8a101447a3ae8c41fd53cfc5693fa23cc8bd",
+      "git_blob_sha1": "43cf67b77bf109a60603d57e3e0bbffc816b23b5",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/pattern.js",
+      "bytes": 905,
+      "sha256": "592f7966bb9dea6256dc8c0242ab9e05cdfef2b1d6dd27ef478c7a20c9a0471b",
+      "git_blob_sha1": "f8ccdf295021293823614c88977e2e5708e8f601",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/required.js",
+      "bytes": 3188,
+      "sha256": "b953bc18d94274bd73374dd5b4282d7a21159cec8c0e7a357e1eaf3f326b9054",
+      "git_blob_sha1": "1d8e29263f3b5cd1fe7ce1c58a2007f86c82da1a",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/uniqueItems.js",
+      "bytes": 3037,
+      "sha256": "666d1a2aa25c0dfe3cf41312d0f9d40e9f99eb2c19be7469134ad89005aadd52",
+      "git_blob_sha1": "cdbecea1225ee860e40f428cc54d089cb7295a91",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/fast-deep-equal/index.js",
+      "bytes": 1177,
+      "sha256": "eb469e206280321a3878f2335ec98aa2104a155079d8ed83a23029098dccd215",
+      "git_blob_sha1": "30dd1ba78cb4989e67a32295b3ca1fd9baaa6c96",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/fast-uri/index.js",
+      "bytes": 22061,
+      "sha256": "e82d3e55d954483e4927f9740bc3113a24d19ef5a73c7962d8a93c499fc982ff",
+      "git_blob_sha1": "af921d3fdd23a54a79e52d6bd430d4bf2bd135c6",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/fast-uri/lib/schemes.js",
+      "bytes": 7367,
+      "sha256": "c2c61d3fd0bc63a587100928a399e75be8c420d210c439d75f7346da4aa4f3c3",
+      "git_blob_sha1": "94e574d3fc508c1654776169e4e73d1bfca02139",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/fast-uri/lib/utils.js",
+      "bytes": 20835,
+      "sha256": "610a6cfa7b1c9d5689443b3a3d14af4c24afed51ef5852495ae1489ae455a9f4",
+      "git_blob_sha1": "6353b0b02529c0ddbc8a0bd700e27918fc7f04af",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/json-schema-traverse/index.js",
+      "bytes": 2428,
+      "sha256": "024191b747afac01b28ff11d744e9f82720bbad5f716163ba5c962eb62aa2350",
+      "git_blob_sha1": "e521bfa858a7eed886a3c6f9a26a5479a981401f",
+      "role": "normal_capture_dependency"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ses/dist/ses.cjs",
+      "bytes": 519237,
+      "sha256": "1e40a59ccf5e72da8e260dda007a19ebd20304394b1b7288d0aab21733b9cd95",
+      "git_blob_sha1": "c10f41b6a6a1bfb63032ebe523063dade9048409",
+      "role": "measured_external_runtime_foundation_not_in_normal_capture"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/acorn/LICENSE",
+      "bytes": 1099,
+      "sha256": "76a876cf886ff9be2a8b5e2e86514fed06223c8c9f0c1e9ee9606e93841e00b7",
+      "git_blob_sha1": "9d71cc63a35e7d878787e5159b5b163739486220",
+      "role": "dependency_or_license"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/LICENSE",
+      "bytes": 1090,
+      "sha256": "a05350a88e318e4f5f2c2a1ff1e2e88daa4dd38e6e78b71cccae422bdc762cc3",
+      "git_blob_sha1": "139162ad2c389a18d3d66e159a2821b2e40087fc",
+      "role": "dependency_or_license"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv-formats/LICENSE",
+      "bytes": 1074,
+      "sha256": "9df3bb69929a3b650ed73b3bfa1756725aaff0ac296461605753547004eafeaf",
+      "git_blob_sha1": "a3f8ba0278836d0d02b845aec548a21db114e984",
+      "role": "dependency_or_license"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/fast-deep-equal/LICENSE",
+      "bytes": 1074,
+      "sha256": "7bf9b2de73a6b356761c948d0e9eeb4be6c1270bd04c79cd489c1e400ffdfc1a",
+      "git_blob_sha1": "7f1543566f6abbbf75914db32651cf89919cabed",
+      "role": "dependency_or_license"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/fast-uri/LICENSE",
+      "bytes": 1813,
+      "sha256": "b010b0dfdfdb23d7396e03b82cd4621fc9bb8f95d6b0aea70b9c24e12074c786",
+      "git_blob_sha1": "9c93c1c0e5c1861b77da95d4cfb96504768285bc",
+      "role": "dependency_or_license"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/json-schema-traverse/LICENSE",
+      "bytes": 1074,
+      "sha256": "7bf9b2de73a6b356761c948d0e9eeb4be6c1270bd04c79cd489c1e400ffdfc1a",
+      "git_blob_sha1": "7f1543566f6abbbf75914db32651cf89919cabed",
+      "role": "dependency_or_license"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ses/LICENSE",
+      "bytes": 11347,
+      "sha256": "597e83726ebc5d154b9c2e4259a35fefa9c054304829b8b5d32190b79d8f27a1",
+      "git_blob_sha1": "d0d0455f5ddd7c7c2dbe7e1a6646e922ca574bd8",
+      "role": "dependency_or_license"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ses/LICENSE-aura",
+      "bytes": 646,
+      "sha256": "0c40d2bf25ddfd79e7e5dc36b2828355cf93106d1d9eb367a0b11af09064a421",
+      "git_blob_sha1": "6d9169999993ab1d4d2b05a5b1b4ff81ae55a5b7",
+      "role": "dependency_or_license"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ses/LICENSE-caja",
+      "bytes": 562,
+      "sha256": "450e14ef079ae98aceb82086dbed42f638c49249eef83289ffdcf84545cb8e2d",
+      "git_blob_sha1": "d215e03b166e125f32a64885bad3679615ee8929",
+      "role": "dependency_or_license"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ses/LICENSE-corejs",
+      "bytes": 1064,
+      "sha256": "816ef443abfd73df4d8da0b8027ef16705afdef321fb810a5c9c766ca7bc0327",
+      "git_blob_sha1": "44ff6d0ea1d751f86c24889d7c6500d4f23aec11",
+      "role": "dependency_or_license"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ses/LICENSE-v8",
+      "bytes": 1463,
+      "sha256": "7d1e91adf59b9d0ec6f8f86b6b519206d5df59ef4dfff8f070fe14c28e802a6f",
+      "git_blob_sha1": "d9c4895e22b07d71a610d096f20ee1485f6193fc",
+      "role": "dependency_or_license"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/normal-rule-review-snapshot.json",
+      "bytes": 579162,
+      "sha256": "247e948fec72ef6370fc7c74314b341ad7a4f61d8a20f244d5515cc995414748",
+      "git_blob_sha1": "25f4c091e7d3daad9f0c1006d45a8a6bbbc1eea1",
+      "role": "exact_normal_captured_artifact"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/compiler-manifest.json",
+      "bytes": 442,
+      "sha256": "c529c09bf0b3fe02bf315f6fad19e4e46a2141c2337f5faed8b76a68ba543921",
+      "git_blob_sha1": "ca3ebccb2d1875234cb62fb70536d6fc396e4864",
+      "role": "exact_normal_captured_artifact"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/path-qualification-compiler-recipe.json",
+      "bytes": 276716,
+      "sha256": "5404208701a79b6940067612b07ba4e95b612dfc00f3d008bfd4037bf8aa4b9e",
+      "git_blob_sha1": "40910cf554cb47a956f6970d26d168ccd1a0abd7",
+      "role": "exact_normal_captured_artifact"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/path-qualification-compiler.js",
+      "bytes": 1445999,
+      "sha256": "4888cfbe33ce324220c4a2438be305214d0e57cdc03fb116384f05d3256e0b00",
+      "git_blob_sha1": "fe23959fb9379b10106815afa00d2641dc24e846",
+      "role": "exact_normal_captured_artifact"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/validation-tcb-manifest.json",
+      "bytes": 683,
+      "sha256": "00498cfb57f61b8f56946166308d106cab141012be850e4bd68a4771bca9acb1",
+      "git_blob_sha1": "3da90c074c43762007dd5cfd82c2428d465b0f5b",
+      "role": "exact_normal_captured_artifact"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/child-bootstrap.js",
+      "bytes": 639971,
+      "sha256": "97413ddff2e9fd8a1c5368a96aed2a3000401476da2ce9b795631958dc8c0a92",
+      "git_blob_sha1": "b9ab10bbbd5ddc70a2fcf61ea7a04c0edf4c65cb",
+      "role": "exact_normal_captured_artifact"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/host-bootstrap.js",
+      "bytes": 1445695,
+      "sha256": "da1ca7194b2db4e19dcf5a06c9e43009e014331f78f51727e177249bef3e8251",
+      "git_blob_sha1": "77b492b5986b8d987dc946a730894080a9ea7883",
+      "role": "exact_normal_captured_artifact"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/launcher-bootstrap.js",
+      "bytes": 33890,
+      "sha256": "2f8a10d658d5748cdbcdbbad79abb4dd29c3364816d6f4504e219682429e4119",
+      "git_blob_sha1": "705ab3896f5e515fe19fd732e6a6c5c8e5b392a9",
+      "role": "exact_normal_captured_artifact"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/recipe.json",
+      "bytes": 276716,
+      "sha256": "5404208701a79b6940067612b07ba4e95b612dfc00f3d008bfd4037bf8aa4b9e",
+      "git_blob_sha1": "40910cf554cb47a956f6970d26d168ccd1a0abd7",
+      "role": "exact_normal_captured_artifact"
+    }
+  ],
+  "inherited_exact_sources": [
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-authorship-v1-frozen.json",
+      "sha256": "e9c852034d8cc887e1d8645a61d9597176409f72a28eaf0de4c95f17c0c8358d",
+      "git_blob_sha1": "a3baa82049ef927095458199a71ef0f377870c3c"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-inventory-v1-frozen.json",
+      "sha256": "2509cb7df02a98a1217a416c70b5f729b40ca331314ce2d925005ec15a779a9d",
+      "git_blob_sha1": "d27e578745c3d5ec55c927411ad99e6d0c9971f1"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/authoring-contract-v1.md",
+      "sha256": "7040d3cee24341a15af3fb3ca6acf84df6a207b10af13828739f545f87ae1328",
+      "git_blob_sha1": "24cd320b71e110e6598837067536e8f24810bdf0"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/causal-authoring-candidates/README.md",
+      "sha256": "1c018f2e87d96ea4bb504574751171e1ad192820aa60a1e32976d83964bd9b1b",
+      "git_blob_sha1": "99bb2b0364decd4f5a2bdcbaaf202e311326bd70"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/causal-authoring-candidates/consumption-by-instrument-profile-v1.json",
+      "sha256": "4c2be2d8f773b85e008d8f476d37196bdab9b0bac58848c616294f685fcda99a",
+      "git_blob_sha1": "3ec83767262fcf9f852d6ecb165bb7a80459438a"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/causal-authoring-candidates/statement-total-profile-v1.json",
+      "sha256": "12cd0fa53fb62121068cdb85ededa91a0b5faec6976d2a9eb3a8045502485723",
+      "git_blob_sha1": "d836914cfebe270f03fae81a9f151415444341c3"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claim-contract.schema.json",
+      "sha256": "b69ef61b562061f057a9bf08f47623ae432c723f565e8775f3dbe6eb942ea998",
+      "git_blob_sha1": "40f4a97483a359d77ddf649a167ebc67b9b6286e"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claims-v2.json",
+      "sha256": "4810612761ea7f232e4445c0d192ae53ebf0761f0ba8752da758efb826b30494",
+      "git_blob_sha1": "0f0ade4e0f174966ae9f2660df97cc0b29d2d775"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluation-policy-v1.json",
+      "sha256": "4b6ee6a6fb365aa97a22a087de032e998dbb31ffd929d3ea2b094544f28f40dd",
+      "git_blob_sha1": "9badd708f58db8eec8fb959d7e434d4687dab924"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-authoring-semantics-v1.md",
+      "sha256": "720e31b2a8a7c0490adf620a8ccaedbe54e06d0502e518e61c8c69252a006a7f",
+      "git_blob_sha1": "e3dcbe95fc8d0ed2cbbaa788024d842cf77f8d7f"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contract.schema.json",
+      "sha256": "2c3bc0a86bf45da2c4466118bb6ad9506f1824a209c419c3c7180718e294a183",
+      "git_blob_sha1": "dd6b397e6e7199e0c0f9b1a3e605ce5b4bfa17d7"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/account_balance.json",
+      "sha256": "b509b72bf341c36f60cc7fda7030602a0fdfcc1dae24a0687cb899d4b15a35ed",
+      "git_blob_sha1": "572146a995cae9231ceb7a2f14abc73b69801d00"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/balance_delta.json",
+      "sha256": "39a1a87663a54e5d37c8e1a35f02596330d48b71e70a431fa27fe58193339a1e",
+      "git_blob_sha1": "da45c338a9f231539d029ecd02ac1d840a238110"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/bills_open.json",
+      "sha256": "9fed67d44d48c3965043964769ce6481b876a793decf16901e7e666261593faf",
+      "git_blob_sha1": "62a1808350a2c45c7f0ec08ca3edc498f9d1aac6"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/budget_class_consumption.json",
+      "sha256": "e336d72e581c06401fd6ef3cc5b041b6c2b7ad56745fe25ff5980ca763ed8561",
+      "git_blob_sha1": "3753c5a9e78172a34130efe7e7bbdc402a5dd1e3"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/calendar_event_count.json",
+      "sha256": "fa3f00c0a019ab0702f94b2c97f2e575509c308343d2208c992ac677e98097b8",
+      "git_blob_sha1": "0164a5edf6f00714951194c32b1caf06a4fea559"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/category_budget_remaining.json",
+      "sha256": "4e4f9e38d7495397799578d1f73366d067ef5a5a7ca47879071dacd3669436c5",
+      "git_blob_sha1": "c046b51cb8fee63a8d028c951ae807e7197d0379"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/category_consumption.json",
+      "sha256": "b6e8edf05cb8acc7155bea56d84c4827c4fa9c97b54cacdc13805602468564a3",
+      "git_blob_sha1": "6746662dcdff8845579bfd512c5178273de88db0"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/category_spent.json",
+      "sha256": "f168ac80d9ac17abf516e76729105c03a6efcf1743bdd4459e94f0c75f851baa",
+      "git_blob_sha1": "caf91b480f0b77daefe2b09ebf129ae7a1feb22a"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_by_instrument.json",
+      "sha256": "e32bc36ae9642c1db0d0eb6dce05c3861a80d967b974613eafc8fc6a341dbd37",
+      "git_blob_sha1": "30d4a24f67f161a660d6bc73b2ebfd8dee74af34"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_difference.json",
+      "sha256": "f5d8eda523ba66305010fed07ca6c657b76c486774eac052c3151ddcc85546f7",
+      "git_blob_sha1": "dc5b5d588a869b54c49a5f05d9b735db0f78a64b"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_effect.json",
+      "sha256": "7dd62b47dcc336828376d44ed54c996f4ef21d27f9f21cfa142cd3722e24eab1",
+      "git_blob_sha1": "f292c713f2c6b45bd964cb41b6e1a0ec48f574bf"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_total.json",
+      "sha256": "4e07fd44f09a99168cd92d6a9caa664ef5c847146aae64905b859c4cf313be3a",
+      "git_blob_sha1": "422dd8a4a1e69aa2dc55f59442a5d5de43af4901"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/due_bill_ids.json",
+      "sha256": "a9ddce797a0f90184dad2e3fd50cb20d6534648485ed9f27592cbfe03782ebf4",
+      "git_blob_sha1": "35543a1574ec987d4fc66f87b79b0d0c87d35cb5"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/due_bills_total.json",
+      "sha256": "aaa1e469986731240f28f22ffe4559c4a663b13d2a01718f61e866c3e1f62e86",
+      "git_blob_sha1": "b50171a0e610b9230c981f47fc291d2954daf234"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/eligible_event_count.json",
+      "sha256": "f338fef9c95fa8ec005b95b6aa8b21069bb1c04f03ccc777d672bf5f161f4951",
+      "git_blob_sha1": "902779bd88e5fd115e7a9f2ee6f32a3058d78c41"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/gross_consumption.json",
+      "sha256": "787b125062623e9ffaea8d248ef0554a93e23458275566390c88e88b5e3d00d6",
+      "git_blob_sha1": "a70c202573fcf81cc080057d818dc74e084e6194"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/income_minus_open_bills.json",
+      "sha256": "1d87b903b2e41e0bdfa4edc5ec1708c1e10e81dfa9cff30560dd5206b4637b86",
+      "git_blob_sha1": "77966ed2476ce04160e53decd9b99abc1f23a903"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/income_realized.json",
+      "sha256": "3098c37340e1c22e6137691c498c1e1b3756a8319f2187eb17fa0c16e8abedea",
+      "git_blob_sha1": "e9670929fbf385ffa02070c3e4ca13618477bc39"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/installments_projected.json",
+      "sha256": "924d883d776a5f0da128ee931d96ff27aa1f9effa5ca86d3c81f21af35bf4988",
+      "git_blob_sha1": "9d6c09b259b93012e1595b6e10ca99da1f9910e8"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/installments_projected_amount.json",
+      "sha256": "6cd3f810f260c6fa94b4509c1d8e043866accc8a0314446fde59d51b28763f0a",
+      "git_blob_sha1": "f389ec4eb81944b35bdd9db199189bdb1b8114fb"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/installments_realized.json",
+      "sha256": "0115cf8a9d922e43b6b393cecc521a9659a41f75b68591b579eed01490c5d3f7",
+      "git_blob_sha1": "4887dc14746e92ac401e631476401c1080533b2e"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/installments_realized_amount.json",
+      "sha256": "8987257b8976651b8e82c7e414fda6472ba5aa60ce58befaef3a5661956eb8a7",
+      "git_blob_sha1": "7bb784b2102d84c60cfc7d1ba364383490b1f77c"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/invoice_payment_amount.json",
+      "sha256": "8b0b104d9d9623fc65847611532eb69810464f2869b5f9421557f07441562928",
+      "git_blob_sha1": "a5bba65f19a7af20f44a5f11395d261c42a73d40"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/invoice_payment_consumption_effect.json",
+      "sha256": "613b290689de669c2e5ab437fe12ce6f495bdfb766ed848d7716ea50f6b9c7c6",
+      "git_blob_sha1": "a6a97fb5599c4cb62ecc8261a4b83cff7c7ad3f5"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/invoice_payment_target_card.json",
+      "sha256": "a58d6ee1480662230142a532903facd36cbbe3b7f67705dc01345574a324acfa",
+      "git_blob_sha1": "a09d2605edf0729591c0ecb92f6247e199dde82f"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/merchant_rule_ids.json",
+      "sha256": "b3ec5d6c4003258cd25431a709197c37a1cf7f70e10125b2f0c8d15bba95abbe",
+      "git_blob_sha1": "a44b1ae89e4d47df8aad7aac54dd2afeaf2f8707"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/movement_ids.json",
+      "sha256": "4c41b92c8bcf511536461ec676441babe401ef3906144beb960150605a786b96",
+      "git_blob_sha1": "77ecf9272966b82543a6335ba25a6fe80dc6b742"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/net_consumption.json",
+      "sha256": "1bbf9d81f52b9766156ab60ddd4d8da961b958440e32df12dc0ce315c76fe891",
+      "git_blob_sha1": "e5c4bc796cb7bb97b58bf93e425a21b58ba0061c"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/owned_cards.json",
+      "sha256": "67b68e3e0d27a0973127411a960953345eeff0c8adc001ea25001fa2ddbbfc3a",
+      "git_blob_sha1": "39d53b39d0a7ce65985c5aa98c49ef9b6eb17657"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/projected_installments.json",
+      "sha256": "d5c649bcaf00627f23d1930ac78de03dfb41f2fb5e0c11cb26d1e177f57feaee",
+      "git_blob_sha1": "5dd0aa72e0b0b3a4dfc589f1c10f4e55ba5c11df"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/ranking_winner.json",
+      "sha256": "aabe7e1423046863612c8d0ca4816bdc91e98d02c0f1cd2ce1a8a0e4f2b51889",
+      "git_blob_sha1": "ecd286ac802f4e7c3952c98450a9417948e6d98a"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/refund_amount.json",
+      "sha256": "2dafc200e53dfa069e3b7e12d42c0ead14db1f2b020768ec5fd2a6fcda4c515c",
+      "git_blob_sha1": "7d6baf5e5e43bbf19046e0cddfb5d34ad9d90d7b"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/reminder_count.json",
+      "sha256": "16b84262decf1b92536ed697b09844e0c76f5153f4570e8ec49bc550010f8514",
+      "git_blob_sha1": "360317fa9132251c948080a6f419d816429345b5"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/safe_daily_pace.json",
+      "sha256": "195e3968cc2f7f7dd2e46fdcb2619c19892b5c56a27d0e3c62f76fe08ba9a14d",
+      "git_blob_sha1": "09e091a5ecd607721cab72ca6eecf30285786cd8"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/side_effect_count.json",
+      "sha256": "7813782950888e8af5c51403d313fc9b950c463e7109681e9cf30d4cd97345a2",
+      "git_blob_sha1": "f10a7ebfbfe49dd732fa7a0ce19261ab7ec19579"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/similar_event_ids.json",
+      "sha256": "1f994c3caaea2a7c7fa968a49f872bb2b3f4d8ce0b959fc25bf26bbe5dac6817",
+      "git_blob_sha1": "3624b97206830f978820b0d61251f0dd129c49da"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/source_coverage.json",
+      "sha256": "fab2872015cb21a449c05e355f7ba967865078ed963c869e84dd96da4b1e0111",
+      "git_blob_sha1": "86ccce1c6e4baa4d83b6a0704ad656ac88a3fc24"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/statement_payment_correspondence.json",
+      "sha256": "3ffc3131e77bc4ead3248a3a5b49108093d16ddbbcb94635d49d7fc59d1171ec",
+      "git_blob_sha1": "2649fd2cc2f942623a02d5eb6123048b1c83ec26"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/statement_total.json",
+      "sha256": "cca2c51e9d89ef572d069eb019d30924fc41409724c1d07abc7d2a215ce1d002",
+      "git_blob_sha1": "318c1aab683095b4c4fda0ad5e4744d858363919"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-witness-contracts-v1.json",
+      "sha256": "5a1a9d3b31357009f6e89d8a397c3fa6c7f079d58d06af5b0991c2cc65df5093",
+      "git_blob_sha1": "ffcaadc425e2967e7216e21e8548adec98f058fd"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-witness-contracts.schema.json",
+      "sha256": "dd5af1b4ab9d29f67d87b7b979076f8b4695cd917062d63ec34da6c12240adaa",
+      "git_blob_sha1": "203c5b08a19d5b0fc782c14c9f77f727b2b46df9"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evidence-snapshot.schema.json",
+      "sha256": "054a48930a5f25760f201e8b401f0f34f5a83672366acad6c9c09bdc0ce0b5ef",
+      "git_blob_sha1": "3bbba0aae5c05d2bf0d30a714a5e1faa518f6fb1"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/graph-authoring-review-v1.md",
+      "sha256": "b68e673b0f4edc38d023c6440db3afcb02264f7789a89d486abff8182e01e39e",
+      "git_blob_sha1": "c83eb2128dcadbe5dcfc2f238cef426b0abfb8c0"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/graph-binding-contract-v1.md",
+      "sha256": "da90befb1f526048cfe14122cd8522690292508bebf42d60ea4ecd5838513a40",
+      "git_blob_sha1": "6556cd13008c7c4197a27d668755c5941b3644f7"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+      "sha256": "e9c852034d8cc887e1d8645a61d9597176409f72a28eaf0de4c95f17c0c8358d",
+      "git_blob_sha1": "a3baa82049ef927095458199a71ef0f377870c3c"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/material-field-registry-v1.json",
+      "sha256": "ee7ef3eff146bc2e9cea2cc986c398371acbff3cf35d858ced8386a9758a4d62",
+      "git_blob_sha1": "03d53deb88eae3317dc1c0f58f7af552bd8b12bf"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/metric-evaluator-registry-v1.json",
+      "sha256": "a1fde4b01b9f68bdd2550305305ca2ffe8f750af0351b29b12bf3bb5afdb3c88",
+      "git_blob_sha1": "04d77636b5d491f9c9d00df4f59d9a50d9b54d8d"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/metric-evaluator-registry.schema.json",
+      "sha256": "de5eb3828b8faaf58eeddc9f90d9342b509f86fd32ea8b66f9174448c536e066",
+      "git_blob_sha1": "36b1e9e93d741fb6e2f493c15234869bbe07a09b"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/n02f-correction-review-v1.md",
+      "sha256": "814ddcb57991b6b315fa102a38df0b118447015398b10d934c8967b1e7f5b4ff",
+      "git_blob_sha1": "ba6f3d6090e1217785d50ac5b66954d0223e46d9"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/operator-registry-v1.json",
+      "sha256": "24427e9dd30a5b2d5eaf6f9e2651869e8582df4b5dc9eab54b924a0b687e33b6",
+      "git_blob_sha1": "3e5dc8aa873746c08857fbe4f56862eea48df7ef"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/operator-registry-v2.json",
+      "sha256": "d28eb3dfbf7ea6949c1ff696e9f9bc7aa572c3ab8433a06d316936092a2dcac7",
+      "git_blob_sha1": "78c1b42f4a8075172360c91660b27041e1265787"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/phase-composition-profile-v1.json",
+      "sha256": "204962b56fd0833f3d15ac030e6c55dd3866c8fd18ded5e24784f729e41be2bc",
+      "git_blob_sha1": "425f446669a2eb15fcc3595116c301d6376e453c"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/predicate-templates-v1.json",
+      "sha256": "15a1adfe3290b26808d3ee8cb1e1db36175f122df54cd2ef1474873ad5d8833f",
+      "git_blob_sha1": "f7bbb178d823c38dab2541e1a0778b269deca4bd"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/provenance-graph.schema.json",
+      "sha256": "9e3c148c95d6fecd3d93f019ad5a5967126f8bf1cb9bde9d152c70c057a1740b",
+      "git_blob_sha1": "5aa7ca4bbcc1d5e4e58fea43210aaaddf4716336"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/registry-semantics-v1.md",
+      "sha256": "9dad2d3833eee30b46c36899ff9bd3fc1b708112495edf8e3db075ac7f3302c4",
+      "git_blob_sha1": "cf2f3a21fe9bd2341c740cd61bfc8b3197a3556a"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/snapshot-manifest-v1.json",
+      "sha256": "2547229db3c07f2dd0941601ab5164bf89981ce966e4e23a2e3058124edba8c4",
+      "git_blob_sha1": "f83ff603add9d90b2850a2f05ad87e36923e88ed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/temporal-and-selection-witnesses-v1.json",
+      "sha256": "92329f779a5b08f46f4554d129b934dcc2acf176741bf66ba82ab794f2c095bf",
+      "git_blob_sha1": "70dde64e3e11b94acf11d9eb0f15bb6a3c74dd00"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/temporal-relations-decision-v1.md",
+      "sha256": "a6581b9533f25d6a8864091ffacda0119e2d93df323c37918bddb0c56e297f1e",
+      "git_blob_sha1": "30eb790446fb57d010489bfcef2c04ee813b65dc"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/type-and-identity-contract-v2.md",
+      "sha256": "41082ed25096b7289028d632e2ba7db86aa5400f9c5fbeb73da4ce7e3d9f560b",
+      "git_blob_sha1": "98b670e78a50c3f60348c39dd4f7efda9addd979"
+    },
+    {
+      "path": "docs/plans/workstreams/financasbot-next-02-n02g-compositional-path-qualification-proposal-v1.md",
+      "sha256": "0c831d290c0ae47960d1fc11b9ea530d792a926cb2211a1313d7d070f0d24eba",
+      "git_blob_sha1": "82112f0c4d6eeed21d4823c8b1dd3d3ca8ce1bf2"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "465d94b1f7b7d9eb5f0b4535a96d02f5cfb1fe70d10d66fac31ec16c06645126",
+      "git_blob_sha1": "4822d038cd3b56f45979f8d7e2b97d456012e7c1"
+    },
+    {
+      "path": "package.json",
+      "sha256": "7873299481779f07cfbb76247fd7c5a895dacd5214ee79863baadd6b0b9d0205",
+      "git_blob_sha1": "e18db39c71d2d44f611b4b255da358bfc490910d"
+    },
+    {
+      "path": "scripts/agent/analyzeSelectedEventDayExecutableClosure.mjs",
+      "sha256": "16bc2320946fc1e8eb5bbf9544b035a08f786a463f1a39c33f4e6e1eeb7838ad",
+      "git_blob_sha1": "e50d54814685f53edd51e6c5938509f978a592e5"
+    },
+    {
+      "path": "scripts/agent/buildNextMetricArtifacts.mjs",
+      "sha256": "5ce85a2c284946b37b33820fbc1722140515a196a7f93544e4a5fd2e478a906c",
+      "git_blob_sha1": "cbd21563e381c6e974701415c461863e45070a54"
+    },
+    {
+      "path": "scripts/agent/buildNextProvenanceArtifacts.mjs",
+      "sha256": "a563450252a995a0a35d83dc921c8af931bcb330c642e6de7a92857cd3a2fb2b",
+      "git_blob_sha1": "e6019ce7b832ff2b37311ad6562aea4a79296f1b"
+    },
+    {
+      "path": "scripts/agent/buildNextValidationTcb.mjs",
+      "sha256": "05fc2d65d7c44f42ea889720e992a95a57b2a24d270c36485ac0de9b3f9464b7",
+      "git_blob_sha1": "23eaa5244bb0dfe10d1443214b00c8480eba2a20"
+    },
+    {
+      "path": "scripts/agent/buildSelectedEventDayDispatchCapsule.mjs",
+      "sha256": "8bb2e12b5b8cbc23bdb5f34bdf58f59ee0704040d80aa592860c5f4e0734a227",
+      "git_blob_sha1": "3b6b276115874a994ab8289c6d385d2b79fce059"
+    },
+    {
+      "path": "scripts/agent/buildSelectedEventDayProofExecution.mjs",
+      "sha256": "3be5969923ac75101320ccd4f46c1ae99aa94b878200fccad1c3367b97019f0c",
+      "git_blob_sha1": "317b03f89e021a51f739603cb41d4ebe3075c379"
+    },
+    {
+      "path": "scripts/agent/captureSelectedEventDayBuildRecipe.mjs",
+      "sha256": "2b8450e41ac804f398addce5c26f8334e61a3198bf3e03420fa5f99e464bd156",
+      "git_blob_sha1": "c1fb6343798d7a8e1ca13987f772af60c4c265d1"
+    },
+    {
+      "path": "scripts/agent/captureSelectedEventDayCompiler.mjs",
+      "sha256": "2cf1effe56422c14265670438d7d09fbabb458c641b18de26aa0957e4d4176a3",
+      "git_blob_sha1": "4473ab207de38d29517e0ee2df3ec854198f157e"
+    },
+    {
+      "path": "scripts/agent/executeNextDomainInvariantMatrix.mjs",
+      "sha256": "61b5c65973589926a1fb66f36630008daefb38114658026baeae290a53fbf2fe",
+      "git_blob_sha1": "056dcfcbac03efc665f7d3cec4f574e8c9f6de91"
+    },
+    {
+      "path": "scripts/agent/executeNextPredicateStrategyMatrix.mjs",
+      "sha256": "d92f2680d7b75c3ebec8e9fa0634b436ee583f0c600660d7767a8ed0fd01f32e",
+      "git_blob_sha1": "a69ce05dd6c2f9c37294e88f00cabd9959c0fcef"
+    },
+    {
+      "path": "scripts/agent/executePathAdmissionV2.mjs",
+      "sha256": "f97754ace807fc565dcc0a4f00b2cfbb55d5dc6fe428e198185ac6b7408c97de",
+      "git_blob_sha1": "de6fee8b163b1213295f25c4a786e7335163b225"
+    },
+    {
+      "path": "scripts/agent/executeSelectedEventDayCandidate.mjs",
+      "sha256": "d28e602be0a3357be89d1df8c9e1fd71ca837234f75eb2eb44e8e306e9e9e292",
+      "git_blob_sha1": "532662619678c3a66e0cce21a00b355aced70c1d"
+    },
+    {
+      "path": "scripts/agent/lowerNextProofProgram.mjs",
+      "sha256": "d141273f2156bab19392c66c2cca660f0f196f7d5b5af4721ac595307aa5cab4",
+      "git_blob_sha1": "3b7634b45f893dfc163dd6832357a87188849261"
+    },
+    {
+      "path": "scripts/agent/nextProvenanceGuestProfile.js",
+      "sha256": "ea14fe64e52c9ec5aa06336a31e281ec7b87bbeb239fde4d5385d2342f6fc8de",
+      "git_blob_sha1": "a40be3b427b2e8a10593e5df728238f6d959fc8c"
+    },
+    {
+      "path": "scripts/agent/prepareSelectedEventDayAdmission.mjs",
+      "sha256": "00b537c3b5de23a8ace681a5d983d49e8f11afe1fd67e73dcafa0ee6e2cd09ee",
+      "git_blob_sha1": "c77123bd6f2bcb40ce1bb22fedd05f02caa239b5"
+    },
+    {
+      "path": "scripts/agent/prepareSelectedEventDayPacket.mjs",
+      "sha256": "c1b97dbd29714c53b2f7461e38cb3ef8fc1e0d4a7dcbdb761f4d4bd97b707573",
+      "git_blob_sha1": "a2cad2ec9cb0120b89b5eb8451ec6443941a300b"
+    },
+    {
+      "path": "scripts/agent/sealSelectedEventDayOracle.mjs",
+      "sha256": "d8049f8f07153c58ef1bf0f9699a92bf842ffc4a4a82e640c813ae345c62e253",
+      "git_blob_sha1": "b761e4fdd5dccc07a4c1309595fbd97aeabf58a5"
+    },
+    {
+      "path": "scripts/agent/selectedEventDayProgramContract.mjs",
+      "sha256": "0ecee202f7380f29fee872d870957636b5c24f8ff8abe2f55c4d8a68edbc207b",
+      "git_blob_sha1": "cdf1f5f07c3b4523994ea42a484aa0e975488586"
+    },
+    {
+      "path": "scripts/agent/selectedEventDayQualification.mjs",
+      "sha256": "0a48a786e2b25581f0e301fadfb1e8bfcb47e1ab74ab2f8c8cec5be2cb1adfb0",
+      "git_blob_sha1": "96807bc277889fd44e19d43c2532da8956b7966b"
+    },
+    {
+      "path": "src/next/kernel/canonicalJson.js",
+      "sha256": "f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "git_blob_sha1": "0062e7264f047889294f851dd5e48fc68a266983"
+    },
+    {
+      "path": "src/next/kernel/canonicalValue.js",
+      "sha256": "f6d571ddc1c7917f6a0ec8e25b17368c3e23ba10111ea5aa591c692d6739205b",
+      "git_blob_sha1": "75aa19edcf5ab77540d49c4973e10c48d9dcf9c1"
+    },
+    {
+      "path": "src/next/kernel/expenseReadModel.js",
+      "sha256": "39bbdb7809cef065878bae8c67878fc90b91f0404dc5ecd6f37e5e9c1a4a773f",
+      "git_blob_sha1": "b112310e170e6aa744f376da18690ef9fd03f762"
+    },
+    {
+      "path": "src/next/kernel/installmentSchedule.js",
+      "sha256": "4af898bd4b96cb29c802f2b22c85da981e4c697db6b3b6bd20d32a18c65a7329",
+      "git_blob_sha1": "1d06f7839f756c900d0a62fd7c92eea1d83f86e4"
+    },
+    {
+      "path": "src/next/kernel/observationKernel.js",
+      "sha256": "4dce0de726ed8f8606bd279f903c6b8bdf4fa4016b6f5033a5938842aff8b130",
+      "git_blob_sha1": "11aadfdeca8d585e6bac889b029e6bd1374850ac"
+    },
+    {
+      "path": "src/next/provenance/artifactLoader.js",
+      "sha256": "24d108c16a30e03d96e826da64e94c1ada9a9ef8d4a9edef8e20411dd9a0099f",
+      "git_blob_sha1": "3f1c9fe8fde55f294ef4e0d1b872fe07676c8fcb"
+    },
+    {
+      "path": "src/next/provenance/authoringIR.js",
+      "sha256": "aa3e98a1ebf2d11118ba75dda5e0f89457e31d04eb5b457a5266bd41b099afb4",
+      "git_blob_sha1": "ee2d59cfa38a53ac2910ee0059156f5ca99d501c"
+    },
+    {
+      "path": "src/next/provenance/causalRecorder.js",
+      "sha256": "838aa38083ead2e5301751b901435011e483c3ae31e485e346c468a88f84d491",
+      "git_blob_sha1": "fce502216f048d3866e610c8dc3db049bdb6ee58"
+    },
+    {
+      "path": "src/next/provenance/civilCalendar.js",
+      "sha256": "b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "git_blob_sha1": "c4096c4237760b0d80b8a62ac78ed4eef95576ba"
+    },
+    {
+      "path": "src/next/provenance/claimBinding.js",
+      "sha256": "0efce18cc72c601060e740319dc4be460a3e85a93578719de2734ea62d628885",
+      "git_blob_sha1": "f03875c6d8630321273383c049cdd12130258e4f"
+    },
+    {
+      "path": "src/next/provenance/claimContext.js",
+      "sha256": "908e44c14d3602fc06284a4e956e0e29fb68497b32f5321200672c6329efa4ae",
+      "git_blob_sha1": "85456a2186424b4812239d8a84df2d1fad9c4413"
+    },
+    {
+      "path": "src/next/provenance/claimMonthIsolatedProfile.js",
+      "sha256": "10ea15eb5e2d84a3872926bd9d6255a429348de655ac778751a9c7859491bdcb",
+      "git_blob_sha1": "c1877c01e9eaed8ef2c43afd0522700ac4618430"
+    },
+    {
+      "path": "src/next/provenance/claimMonthPathProfile.js",
+      "sha256": "3edc321974864e842c7bca5d1753feac0a23911cc65755cca682646673ffa664",
+      "git_blob_sha1": "37083a890ea4152fe0408f4e03335dff619d8c28"
+    },
+    {
+      "path": "src/next/provenance/claimMonthProofConformance.js",
+      "sha256": "40c6cb9c1b2122447e5cdb1fa0da762a3adb39c1a6d474e7420d5cd5e3e36f37",
+      "git_blob_sha1": "aa5a03b5232d23d7fac3e4fb188116697de051e2"
+    },
+    {
+      "path": "src/next/provenance/claimMonthTraceContract.js",
+      "sha256": "7fc3a01ccf8b195a0e473b7cf8e9ef50e7f698ca97cc6ad73d0090b482b7cf7c",
+      "git_blob_sha1": "7211038448899d9771c61ac18e3bdecc430ae679"
+    },
+    {
+      "path": "src/next/provenance/claimNominalTypes.js",
+      "sha256": "f37c4367c027d119caf81afcb1de898a05b5edfd6651c8c3a17d3177cff95096",
+      "git_blob_sha1": "a9bea06ab24aa32e571399b1de9404a4d2a6a0de"
+    },
+    {
+      "path": "src/next/provenance/claimRequirementCore.js",
+      "sha256": "1f23d4c8fb117bb5bd6bf992cc1bf4ea0806c01372853395fb2c341b9968de23",
+      "git_blob_sha1": "f97afea9916aa7b4914f7e8defbdb8720e9ff246"
+    },
+    {
+      "path": "src/next/provenance/claimRequirements.js",
+      "sha256": "2a42d47868a57fad697a0caec0ae0678a338f06dca0ebf77064fab6def182468",
+      "git_blob_sha1": "0b2a5234ab88efd6fffbeec13fa79d34a2b41c7e"
+    },
+    {
+      "path": "src/next/provenance/collectionProofCore.js",
+      "sha256": "4cc88bf36458e46783dfbc1ae24c3f0fc2855e28f29663094ca48be0fe72a8ec",
+      "git_blob_sha1": "de36dcfade9dea4108697f9ac14e37a406ec0d93"
+    },
+    {
+      "path": "src/next/provenance/collectionRequirements.js",
+      "sha256": "4d6af2b5d830929910622f504126dfea29c3ba6866ff99e21c90e23f12961de3",
+      "git_blob_sha1": "153605d6aec0e19306934eb0db7a913d9b07acf6"
+    },
+    {
+      "path": "src/next/provenance/executionHost.js",
+      "sha256": "2e43e4568233e658bdb1e9ec4ca9360b9d3234b42d7811dbfd4907be73c0589f",
+      "git_blob_sha1": "ab2a51a6c297f420fbd4e26a5337174170eebfeb"
+    },
+    {
+      "path": "src/next/provenance/executionHostChild.cjs",
+      "sha256": "4d6d6efc6933e68874fafb34b30b1f6ff9b910a779c90ef0194d88a679a8f900",
+      "git_blob_sha1": "dcac05f5f1b5e708de3a119fea449912f3e79759"
+    },
+    {
+      "path": "src/next/provenance/executionProfile.js",
+      "sha256": "8030b1f4a120ba37e6713057e9c5aa5b7d413183df4c26e3e8833814ad323abd",
+      "git_blob_sha1": "45bcf48c400ab121dbbbfe9f43081c36ec07f4da"
+    },
+    {
+      "path": "src/next/provenance/executionRegistry.js",
+      "sha256": "951038a898e979ac25f79d9f5ca944cff8a83f2863074100eaced7e32fa56b29",
+      "git_blob_sha1": "ada1f81e8de7e4367bbc4ffe57a439b489a9242d"
+    },
+    {
+      "path": "src/next/provenance/financialHost.js",
+      "sha256": "6fb0c1f874d23e333c3eb0bfaf4f66f5f89ca27b6ad410008cb121f72326b0a1",
+      "git_blob_sha1": "f9acb440ffe354637a3d53f9061b6fb2748e728c"
+    },
+    {
+      "path": "src/next/provenance/freezeContract.js",
+      "sha256": "b452ce4ffb2688dc578ae0901eabd07c1d48b1d00e8e375a53f82bae63326305",
+      "git_blob_sha1": "5a77cff9b3af7d7135a59ddc308005de071c70bd"
+    },
+    {
+      "path": "src/next/provenance/graphCompiler.js",
+      "sha256": "fe938a128cfd4dccda0d8ddc1f2e6965b623feecc6d1854ef0306700efda1016",
+      "git_blob_sha1": "7fe96f0937faddb5fddba19771889e9500b93a00"
+    },
+    {
+      "path": "src/next/provenance/instrumentedAccess.js",
+      "sha256": "0a226802919420fc1e90d07847b96cc120121e230905c0f5cef484c034dedf92",
+      "git_blob_sha1": "84e25bde306e67c65b45b03d6be0ab1523d21b54"
+    },
+    {
+      "path": "src/next/provenance/literalTypes.js",
+      "sha256": "c99b3a919c995638702325dcb7c2cb1f8e338388700429b3bc9f1cce7a00b4ec",
+      "git_blob_sha1": "76243a36cac975f2a4b4d120fec0fcd7f371140d"
+    },
+    {
+      "path": "src/next/provenance/materialFieldTypes.js",
+      "sha256": "f7f4ecaba152ddebf4503469ba61851add59c0a0c697ea6f73503a5ca03a1c0c",
+      "git_blob_sha1": "41bbf1f15ff41c1560791c74fdd7694fbada4c47"
+    },
+    {
+      "path": "src/next/provenance/materialFingerprintCore.js",
+      "sha256": "7f0b50ffb0f0a6762f60f2c0b5101e5a9606e44f6241d7d40260e21e051c3d37",
+      "git_blob_sha1": "8e65fc55f3faac64074a56de897d5b161d27332c"
+    },
+    {
+      "path": "src/next/provenance/metricDirectReads.js",
+      "sha256": "7a78501221230a8991354d47a63f8e131807b995f6a7e5e10e8dab0664f01d4b",
+      "git_blob_sha1": "d5681f178245a5f28d187adab84e465fa83b1b26"
+    },
+    {
+      "path": "src/next/provenance/metricEffects.js",
+      "sha256": "7cb9fe24b2d8aefd3560d8089544bfe5431f124256c35023ff6b8e126283f5fb",
+      "git_blob_sha1": "7d461af02addac9509bb518e5c7a91b4fb98d210"
+    },
+    {
+      "path": "src/next/provenance/metricInstallments.js",
+      "sha256": "559dae3a98d3dd90670e15d35ca93824bf89d478c974dcd07d9da17abcac7a09",
+      "git_blob_sha1": "f2b45c9684d792597662773a593d79eb91c970c9"
+    },
+    {
+      "path": "src/next/provenance/metricParents.js",
+      "sha256": "32464e029ba27ccf5a45b4ee35b1568033ef159a802ed156c014a1aa217030bb",
+      "git_blob_sha1": "420d5e2ca70e524a11ad7f63f55bcee470d59064"
+    },
+    {
+      "path": "src/next/provenance/metricReferences.js",
+      "sha256": "0a96471a46324599c92c8c2f604e5761749902c6b9393eb738b09aad868d5e7b",
+      "git_blob_sha1": "81858370706a5f4eb59ffb093498c8cca502f1f3"
+    },
+    {
+      "path": "src/next/provenance/metricSelection.js",
+      "sha256": "8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "git_blob_sha1": "56bf033db7d3dbe2159707dc7c195d5af146bb19"
+    },
+    {
+      "path": "src/next/provenance/mutationWitnesses.js",
+      "sha256": "433db7f58a7e79cd04e71cdac2491c498a15108df7f6544cd24c3def0a340f29",
+      "git_blob_sha1": "fd02094979124bfd2a893459f49c61d2e02a8ed7"
+    },
+    {
+      "path": "src/next/provenance/nativeRuntime.js",
+      "sha256": "7d04d107c24a350ba9a3ccd25a7e899629c4d965301e9063f8c7dbe534d7e64b",
+      "git_blob_sha1": "74333361858d841aa2beb9b0873c904e1ede5c4b"
+    },
+    {
+      "path": "src/next/provenance/obligationBindings.js",
+      "sha256": "580f9b97e6ef216e5598de5c97aa8d96cc7cda713a5547e249a27f24144baf87",
+      "git_blob_sha1": "6d56d64df499075e46f202dc587dfd030decc085"
+    },
+    {
+      "path": "src/next/provenance/observationContract.js",
+      "sha256": "60d73c6bfe13fe91325920bc289454d233cd6efea034c093a1d4c18cee469e1e",
+      "git_blob_sha1": "1c2305eaf1973955252a4b9d0acf0adca1113b1d"
+    },
+    {
+      "path": "src/next/provenance/observationScalars.js",
+      "sha256": "cf344f72a703e7be55fc165322860d84792fae82822f3daad1f557834faa4f09",
+      "git_blob_sha1": "5ec8bcfd3f52a853167b9504ad557ee073f3b160"
+    },
+    {
+      "path": "src/next/provenance/operandBindings.js",
+      "sha256": "50cacfb104e9e792d1118428f81fe659b4ae9c07407b979a1c2b122141303e60",
+      "git_blob_sha1": "900c23304e9e4fbc8c053dc9f7703c80d23744f0"
+    },
+    {
+      "path": "src/next/provenance/operatorTypes.js",
+      "sha256": "573db750922769a1626fe11c938458271b7cd09fdc5571df5c7b6786fa8d493c",
+      "git_blob_sha1": "9960ac5fe96452f53fd651617c7529f581ae49ad"
+    },
+    {
+      "path": "src/next/provenance/packageContract.js",
+      "sha256": "bdb085d5a2502aebdfc7640f58d6319831812d83898034271ac3fd7ee373d00e",
+      "git_blob_sha1": "d51c64acc050df6d2902710b61006894c9e1d96d"
+    },
+    {
+      "path": "src/next/provenance/phaseCompositionProfile.js",
+      "sha256": "adbaf56525ea86c67ce3885107144131e2abfd3030054dc05eba9af55ce4abb8",
+      "git_blob_sha1": "8a7aab2ae925cf1aa7d85c449ae9ff1e6cc72d88"
+    },
+    {
+      "path": "src/next/provenance/phaseProgramIdentity.js",
+      "sha256": "165723d79795a2b7960a9689842c38a51c6b1ffb0272c5f58afcd7ef353b1687",
+      "git_blob_sha1": "9994443d7984046dc1d221198094a26cadc0fd59"
+    },
+    {
+      "path": "src/next/provenance/pinnedCivilTimezone.js",
+      "sha256": "55dcb62295a7e314756fb36c3f0e45c0eb71273e494e223a81d08f74fad7756d",
+      "git_blob_sha1": "0d75c2e1ce50d5c514c966c6bcbfc9a7aa673dd3"
+    },
+    {
+      "path": "src/next/provenance/predicateTypes.js",
+      "sha256": "7ec5e1dc0348599bf42aa642a575233bb3642371fb2a48bea77b2558de6a25b8",
+      "git_blob_sha1": "7730da8de30a550ec9602af6fbf6b75e71a76cbf"
+    },
+    {
+      "path": "src/next/provenance/proofAcceptance.js",
+      "sha256": "6ddc6138fc0485c1278f52fad545bbdd9cd908975e000efa98863fddd86f3cea",
+      "git_blob_sha1": "5e47b32cc4a258f7190cd88305dbb79badf0fc6e"
+    },
+    {
+      "path": "src/next/provenance/proofContextBinding.js",
+      "sha256": "3e2e8d34b0fb7c3e7d697208c9a56b7879f72c53c2108d9a75dd783b93222593",
+      "git_blob_sha1": "e72a444ab3cd1f18088f88dc0579bdfc1a6e5917"
+    },
+    {
+      "path": "src/next/provenance/proofObservedValues.js",
+      "sha256": "e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "git_blob_sha1": "8105ebdec58c475e6e23d492c70057bebce454d8"
+    },
+    {
+      "path": "src/next/provenance/proofOperatorContracts.js",
+      "sha256": "2e68d093bd5cbbe8283478ebf32428925149c68e290952d9fcdfb2f470e9fde8",
+      "git_blob_sha1": "ebcbf02caf41ca94cae092048b123fe2ff3c7031"
+    },
+    {
+      "path": "src/next/provenance/proofOperators.js",
+      "sha256": "6d7ed8142652c1c3e3240e58c9333ee5890a9c5cdd62801258b02c4f91dde63b",
+      "git_blob_sha1": "54aa34b802e7383a5fc1a6a15eb2a991c0982169"
+    },
+    {
+      "path": "src/next/provenance/proofParentBinding.js",
+      "sha256": "3b928733cc0adc169071a8991295b9cdfb6782adc54351e7e2879d975614a080",
+      "git_blob_sha1": "1f3b08e0004bd60e5bd39522a182c1d146a6971b"
+    },
+    {
+      "path": "src/next/provenance/proofProgramData.js",
+      "sha256": "368761e082fbe51d5ec150875af47ffb0f19cdca48f974223a6674f60ff7bea9",
+      "git_blob_sha1": "e2e103a43d49dd4f62058362cfcdaf4734d52dd5"
+    },
+    {
+      "path": "src/next/provenance/proofSha256.js",
+      "sha256": "5e911bfa787507bdba6beafc5bc84160492dbcd0b10f838d80924827775dfe2f",
+      "git_blob_sha1": "013fb23eccb6bcf032fa7ab6673e8100b16d8bd8"
+    },
+    {
+      "path": "src/next/provenance/scalarProofCore.js",
+      "sha256": "82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "git_blob_sha1": "e064d4e6ba32424f3dca51ca1cc8e268fb7786c2"
+    },
+    {
+      "path": "src/next/provenance/scalarProofOperators.js",
+      "sha256": "924e5f5953bb02dc02b4b8affcba79a5aefc6a3cad3242738f1b44c364bfb461",
+      "git_blob_sha1": "e35e32715a9633c25f3495eb8cb2c4be4cebb2d4"
+    },
+    {
+      "path": "src/next/provenance/schemaRegistryProjection.js",
+      "sha256": "282b949ff0c546b3b20ec7cbe6a3b00a3ab28ed19e8d951d5379f011b2ddd84d",
+      "git_blob_sha1": "c047bdde5ebd222f06b803fd9bce08f876c9ba77"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayAdjudicator.js",
+      "sha256": "c7f9e99d32492f527db7cd22dae695284337737b68792361ba449dbd5634fda0",
+      "git_blob_sha1": "9f2179fd1a9fb6e41feb1f51399c4407a2f361f5"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayCoreComparison.js",
+      "sha256": "926afd33cfd567e39f1a22f173f7c7150a73ce455361bc877eefdee461b5ef8e",
+      "git_blob_sha1": "245814e0fb548b93b5f77759cff1462335829e9c"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayCoverage.js",
+      "sha256": "ab468e23f42c6a7b6b2356b5dedaa1143d8f2ef8d39c0275e86a465038ffeeb4",
+      "git_blob_sha1": "16c0b4e8d9c826826046513d205a1d3d93e687ea"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayDerivationOperands.js",
+      "sha256": "ab0fe3d3fad4dacfc133d85f343564021ad15493ffaa3a7d50aba89247b1c395",
+      "git_blob_sha1": "0d215656f908e69dbda1703df28a949c996bad56"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayDispatchCore.js",
+      "sha256": "c083464fff9aff3493a5df7d6bd6547efd483df6034358e4763de448bd1b1cc0",
+      "git_blob_sha1": "587730951dd03f89874897e9eb60524ca0f82f91"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayDispatcher.js",
+      "sha256": "c4ee665150a52cb93b2a208daab52504d4975b5a624916b40be748bb333f8b15",
+      "git_blob_sha1": "259820fa6b18518a27e746811aa74155c2794777"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayExecutionTicket.js",
+      "sha256": "523f4041bc5631458bfba07c50cf9dfb4071debdeff469d9677496907e9e9d99",
+      "git_blob_sha1": "5ae3c5ba3809a7d912ddcaefccde331fe55938b8"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayIrContract.js",
+      "sha256": "207c9d5027e093a0885ec3490f29325f29f375917d4c0aff08196f17ec6fc64f",
+      "git_blob_sha1": "cf44cf27fa041200851402e2891ed64089f77be6"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayLauncher.js",
+      "sha256": "ab98cb161bddf27819014bc2fb66be86b0d0915b49e695c10b47761ede4deb18",
+      "git_blob_sha1": "2befe4c187ef1233e8f86e42c87cd6fcce3778d6"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayOracle.js",
+      "sha256": "a4fdcd0285af0e78f876b6182f0178ade830307558013f2b97a3a8ccd8f3443f",
+      "git_blob_sha1": "61678b33ea8f587c98e571eb5de83b5d2a96afa2"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayPacket.js",
+      "sha256": "7c2c331a6236921ed602e0bb4dd3ec95fe25d3a9a3111fb5669e0f9ee7e7f18f",
+      "git_blob_sha1": "5424e495824249f1132c1b6803bec269bedab01f"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayProfile.js",
+      "sha256": "bc3961335ea7b5a30025160350a3e930755c928c3de405dbeba3aeec079106ae",
+      "git_blob_sha1": "eba3757a999d8158a062ff287c660a6b9bee8390"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayProofChild.cjs",
+      "sha256": "69f1a5385e95b83a1f3258a60bd191eae9bcef06cf3ebaa515f54ecd131610f6",
+      "git_blob_sha1": "13669ef81ac02497a95cba32a57f38150b6d48d2"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayProofHost.js",
+      "sha256": "098bc5ded69be29eb715598c0fcf0e4022a525ea1009b9d4012b33f0002ce9e7",
+      "git_blob_sha1": "bbe7581e727b2f5b89a6110cdaf29d81a05ec15f"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayProofOperands.js",
+      "sha256": "25e33bb96b1bdfa9118e9d46fd926663640f47e8d37a56309835a93a8ef572bf",
+      "git_blob_sha1": "3db887b34ded60651b55ec580190a93355bbe3a0"
+    },
+    {
+      "path": "src/next/provenance/selectedEventDayProofProtocol.js",
+      "sha256": "6b7752a4edfe521b4a896ccd48a1bfae288c213f43c5e19194ec33d3a03b56c9",
+      "git_blob_sha1": "9829cd49fb1436d3cd6e7d403e0660b36b04ff8e"
+    },
+    {
+      "path": "src/next/provenance/templateReferences.js",
+      "sha256": "bd5c186192b41d991f8fc1bf74dce0f372d8ff8ac63a845eaa029640a7d3f34f",
+      "git_blob_sha1": "554bb512d28974bdb53f3c5b02bb3631d1b36334"
+    },
+    {
+      "path": "tests/fixtures/financasbot-next/golden-claim-oracles-v1.json",
+      "sha256": "0e68ed70b10fdde5c90dc14aa3caf2ef72a4842bbbc6db8779287900567994d8",
+      "git_blob_sha1": "d20288e05e9d5abadd99cccd7f2cb571140986d2"
+    },
+    {
+      "path": "tests/fixtures/financasbot-next/golden-conversation-set-v1.json",
+      "sha256": "21b999b7f9bdb835d9acf8f8dcbfe1cf32dbb8c63300f39d667bec3550f559f0",
+      "git_blob_sha1": "d995b6e3989921f1a6c77cefcdd0fc4470d66d70"
+    },
+    {
+      "path": "tests/fixtures/financasbot-next/golden-fact-contracts-v1.json",
+      "sha256": "377373a33f9042a3ea0cfb0a368b4bf2b32a1529d873de7525edb38f92d8e8c2",
+      "git_blob_sha1": "e12d34bd934abbe45f7d405b3069d49d97c70b8b"
+    },
+    {
+      "path": "tests/fixtures/financasbot-next/golden-financial-fixture-v1.json",
+      "sha256": "09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+      "git_blob_sha1": "62715a2e4822df07c0b9dc118a2818ed60e435e8"
+    },
+    {
+      "path": "tests/fixtures/financasbot-next/next02-expense-expectations-v1.json",
+      "sha256": "07d68caa5b6e606381683cfad3bc4732d8f165a116b1ba382ececd1b69fe0717",
+      "git_blob_sha1": "f7bb07bd8c799d458839dcd62499f1dc083c2475"
+    },
+    {
+      "path": "tests/fixtures/financasbot-next/next02-expense-observations-v1.json",
+      "sha256": "a76c3512ef7b4c4af07b445d9be67757e62a1540c2551235cfea716ea9ccf956",
+      "git_blob_sha1": "e4870c0e53c197df0078a25b51e58ad9f761c9e0"
+    },
+    {
+      "path": "tests/fixtures/financasbot-next/next02-golden-traceability-v1.json",
+      "sha256": "cee0bdd591b46305bb6ef76122b3a5320c44abc83d9abbdfea726c622638e685",
+      "git_blob_sha1": "6a4bc4df99bfa694cecfffd67c738e078529d5d8"
+    },
+    {
+      "path": "tests/next/provenance/financialHost.cases.js",
+      "sha256": "6ace9c3389bd20b6fd3954896775b8538a60feb2f3c3b6d0432fa70209f2cc7c",
+      "git_blob_sha1": "878192a0607816e0488fda7b7b9e0b282ab742e1"
+    },
+    {
+      "path": "tests/next/provenance/graphStructure.cases.js",
+      "sha256": "dc3bc495dc695cd9968a75bd65b6da419982fb301f2d664f63e8412efefc2f66",
+      "git_blob_sha1": "986ee75b7f76372fba0101efa9f660c599116828"
+    },
+    {
+      "path": "tests/next/provenance/pathInventoryV2.cases.js",
+      "sha256": "9ed3ab51875a6943448a09cfb3e6c3dc1bf4c92fff96fcccdca5e193e364f93f",
+      "git_blob_sha1": "6bf86815e837202922bec0cd9dbefc19fbfbc131"
+    },
+    {
+      "path": "tests/next/provenance/phaseComposition.cases.js",
+      "sha256": "5bfe7314a93592c6e044c794e832f421186231d0faac16986b9efeca14d150b9",
+      "git_blob_sha1": "75bcc08a97b7f00af65da39c70a7e0e9a734c65a"
+    },
+    {
+      "path": "tests/next/provenance/unknownPathAdmission.cases.js",
+      "sha256": "258a172e322772468cdf789bc44f8b512037ce81f916a3fee74256088ff1f59d",
+      "git_blob_sha1": "2adb542e1022ec32ade25a4de9aa9d8d16943850"
+    },
+    {
+      "path": "tests/next/provenance/validationTcb.cases.js",
+      "sha256": "0426f4c8e249d4d7966864c98c87339fe6220321827b4060f1bebb55486b8ffb",
+      "git_blob_sha1": "295663c589e44890c0bb287b5e78393fe467f9e6"
+    }
+  ],
+  "documentation_projections": [
+    {
+      "original_path": "docs/agent-memory/workstreams/financasbot-domestic-roadmap-review-20261007.md",
+      "original_source_sha256": "5b727269b677791f6d95864d42cdb647ef843dd4cda0468182eaff9cc537d5eb",
+      "published_path": "docs/agent-memory/workstreams/financasbot-domestic-roadmap-review-20261007.md",
+      "published_sha256": "27abcabdab31e4a8d8449af4d12dfe528709474c9ee55014e042360767b00b37",
+      "role": "compact_operational_documentation_no_runtime_authority",
+      "original_preserved": true,
+      "not_compiler_or_normative_input_change": true
+    },
+    {
+      "original_path": "docs/audit-evidence/n02g-causal-authoring-profile/compositional-path-proposal-audit-20261008.md",
+      "original_source_sha256": "760738e6097ae032bdeee593a4f82f580eb0eca952aa9b8ca163c09d07374fe3",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/compositional-path-proposal-audit-20261008.md",
+      "published_sha256": "14a209e6de986dfe5c47476625a067477898dfaa3fd40f22f1c0ab6ef9204c45",
+      "role": "supplemental_documentary_receipt_private_URL_redacted_not_compiler_input",
+      "original_preserved": true,
+      "not_compiler_or_normative_input_change": true
+    },
+    {
+      "original_path": "docs/plans/workstreams/financasbot-pathv3-implementation-20261008.md",
+      "original_source_sha256": "197b1da50c490027e3f861ced80065ba3005e4bdd31af3537f5c34b705e7a3ed",
+      "published_path": "docs/plans/workstreams/financasbot-pathv3-implementation-20261008.md",
+      "published_sha256": "dcb04aa4da411164b5e384f167b7b1e4e9df3de2837ca7a5b691e2c152a40a92",
+      "role": "compact_operational_documentation_no_normative_change",
+      "original_preserved": true,
+      "not_compiler_or_normative_input_change": true
+    }
+  ],
+  "exclusions": [
+    "raw_native_coverage_and_stdout_stay_local",
+    "private_conversations_and_machine_paths_not_published",
+    "A_W_provisioned_expectations_not_human_or_auditor_authentication",
+    "synthetic_review_pins_not_operational_review",
+    "no_general_JS_equivalence_or_consumer_absence_claim",
+    "SES_external_runtime_foundation_not_retroactively_in_normal_capture"
+  ],
+  "qualification": {
+    "independent_code_reference_review": false,
+    "operational_TCB_review": false,
+    "fresh_guest_invocation": false,
+    "qualified": false,
+    "credit": 0,
+    "finance": false,
+    "receipt": false,
+    "validated_parent": false,
+    "global_go": false
+  },
+  "manifest_self_hash_and_candidate_commit_intentionally_excluded": true
+}

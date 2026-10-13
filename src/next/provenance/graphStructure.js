@@ -1,6 +1,7 @@
 'use strict';
 
 const { validateLiteral } = require('./literalTypes');
+const { freezeDeep } = require('../kernel/canonicalValue');
 
 // Closed structural pass after JSON Schema validation. These associations are
 // compiler invariants, not claims that the declared predicates have executed.
@@ -17,7 +18,24 @@ const OBLIGATIONS = Object.freeze({
     economic_links: ['edge', 'all_material_edges'],
     derivation_trace: ['trace', 'exact_observed_trace'],
 });
-const fail = code => { throw new Error(`graph_structure_${code}`); };
+const diagnostics = new WeakMap();
+const fail = code => {
+    const error = new Error(`graph_structure_${code}`);
+    diagnostics.set(error, freezeDeep({ checker: 'graph_structure', code }));
+    throw error;
+};
+const readGraphStructureDiagnostic = error => diagnostics.get(error) ?? null;
+function atPath(coordinate, path, resolve) {
+    try { return resolve(); } catch (error) {
+        const diagnostic = diagnostics.get(error);
+        if (coordinate && diagnostic && !Object.hasOwn(diagnostic, 'site_path')) {
+            diagnostics.set(error, freezeDeep({ ...diagnostic, fact_key: coordinate.fact_key,
+                predicate_id: coordinate.predicate_id, operand_index: coordinate.operand_index,
+                site_path: [...coordinate.site_path, ...path] }));
+        }
+        throw error;
+    }
+}
 const own = (object, key) => object !== null && typeof object === 'object' && Object.hasOwn(object, key);
 function unique(values, key = value => value) {
     if (!Array.isArray(values)) fail('array');
@@ -120,31 +138,35 @@ function validateGraphStructureInternal({ graphs, claims, materialRegistry, oper
             activeWindows.delete(id);
             checkedWindows.add(id);
         }
-        function argument(arg) {
+        function argument(arg, coordinate = null) {
             if (own(arg, 'node')) { node(arg.node); return; }
             if (own(arg, 'set')) { set(arg.set); return; }
-            if (own(arg, 'field')) { nodeField(arg.field); return; }
-            if (own(arg, 'presence')) { nodeField(arg.presence); return; }
-            if (own(arg, 'claim')) { claimPath(arg.claim); return; }
-            if (own(arg, 'selector')) { field(arg.selector.kind, arg.selector.segments); return; }
+            if (own(arg, 'field')) { atPath(coordinate, ['field', 'segments'], () => nodeField(arg.field)); return; }
+            if (own(arg, 'presence')) { atPath(coordinate, ['presence', 'segments'], () => nodeField(arg.presence)); return; }
+            if (own(arg, 'claim')) { atPath(coordinate, ['claim', 'segments'], () => claimPath(arg.claim)); return; }
+            if (own(arg, 'selector')) { atPath(coordinate, ['selector', 'segments'], () => field(arg.selector.kind, arg.selector.segments)); return; }
             if (own(arg, 'edge')) { if (!edges.has(arg.edge)) fail('edge_missing'); return; }
             if (own(arg, 'ref_set')) {
-                if (nodeField(arg.ref_set.field).type !== 'ref_list') fail('ref_set_type');
+                if (atPath(coordinate, ['ref_set', 'field', 'segments'], () => nodeField(arg.ref_set.field)).type !== 'ref_list') fail('ref_set_type');
                 return;
             }
             if (own(arg, 'projection')) {
                 const members = set(arg.projection.set);
                 const selector = arg.projection.selector;
-                field(selector.kind, selector.segments);
+                atPath(coordinate, ['projection', 'selector', 'segments'], () => field(selector.kind, selector.segments));
                 for (const alias of members.keys()) if (node(alias).kind !== selector.kind) fail('selector_kind');
                 return;
             }
             if (own(arg, 'sort')) {
-                for (const key of arg.sort.keys) field(key.selector.kind, key.selector.segments);
+                for (let index = 0; index < arg.sort.keys.length; index++) {
+                    const key = arg.sort.keys[index];
+                    atPath(coordinate, ['sort', 'keys', index, 'selector', 'segments'], () => field(key.selector.kind, key.selector.segments));
+                }
                 return;
             }
             if (own(arg, 'template')) {
-                for (const binding of Object.values(arg.bindings)) argument(binding);
+                for (const [name, binding] of Object.entries(arg.bindings)) argument(binding, coordinate
+                    ? { ...coordinate, site_path: [...coordinate.site_path, 'bindings', name] } : null);
                 return; // Template identity/body is resolved by the typed pass.
             }
             if (own(arg, 'period_ref')) { window(arg.period_ref); return; }
@@ -174,7 +196,9 @@ function validateGraphStructureInternal({ graphs, claims, materialRegistry, oper
             const operator = operators.get(predicate.op);
             if (!operator) fail('operator_missing');
             if (predicate.args.length !== operator.args.length) fail('operator_arity');
-            for (const arg of predicate.args) argument(arg);
+            for (let operand_index = 0; operand_index < predicate.args.length; operand_index++)
+                argument(predicate.args[operand_index], { fact_key: graph.fact_key,
+                    predicate_id: predicate.id, operand_index, site_path: ['args', operand_index] });
         }
         for (const edge of edges.values()) {
             if (edge.source !== 'claim') node(edge.source);
@@ -260,4 +284,4 @@ function validateQualificationGraphStructure(input, transport, variant) {
         graphs: input.graphs, claims: input.claims, transport, variant });
     return validateGraphStructureInternal(input, qualification);
 }
-module.exports = { validateGraphStructure, validateQualificationGraphStructure };
+module.exports = { validateGraphStructure, validateQualificationGraphStructure, readGraphStructureDiagnostic };

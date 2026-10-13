@@ -45,6 +45,41 @@ function civilOrdinal(parts) {
 }
 const maximumOrdinal = civilOrdinal({ year: 9999, month: 12, day: 31 });
 const safeInteger = value => Number.isSafeInteger(value) && !Object.is(value, -0);
+// HARNESS-only bounded timezone reference, derived from an external immutable
+// IANA 2025b source, not native ICU or a financial example. All 57 Brazil rules
+// are finite, end by 2019 and leave SAVE=0; Sao Paulo's final era is -03:00.
+// Domains before 2020 and after AD 9999 remain unavailable, never guessed.
+const timezoneReferenceDomain = Object.freeze({
+    version: '2025b', zone: 'America/Sao_Paulo', calendar: 'proleptic_gregorian',
+    utc_start: '2020-01-01T00:00:00Z', utc_end_exclusive: '10000-01-01T00:00:00Z',
+    offset_seconds: -10800,
+    source_commit: '7e1145bfdb9630c127841dc8ce808a937a300938',
+    source_blob: '06fee598baf41851c073cdfb0fd582b9ac645342',
+    source_sha256: '57cc4ee3dc4bd575f126ba76f284a9ee67330c6fbb7576792eda27f41451ff22'
+});
+const utcReferenceStart = (civilOrdinal({ year: 2020, month: 1, day: 1 }) - 1) * 86400;
+const utcReferenceEnd = maximumOrdinal * 86400;
+function civilInstantMatches(instant, date, zone, calendar) {
+    if (typeof instant !== 'string' || zone !== timezoneReferenceDomain.zone
+        || calendar !== timezoneReferenceDomain.calendar) return null;
+    const target = civilParts(date);
+    const parts = /^(?<date>\d{4}-\d{2}-\d{2})T(?<hour>\d{2}):(?<minute>\d{2}):(?<second>\d{2})(?:\.\d+)?(?<zone>Z|(?<sign>[+-])(?<offsetHour>\d{2}):(?<offsetMinute>\d{2}))$/.exec(instant)?.groups;
+    const origin = parts && civilParts(parts.date);
+    if (!target || !origin) return null;
+    const hour = Number(parts.hour), minute = Number(parts.minute), second = Number(parts.second);
+    const offsetHour = parts.zone === 'Z' ? 0 : Number(parts.offsetHour);
+    const offsetMinute = parts.zone === 'Z' ? 0 : Number(parts.offsetMinute);
+    if (hour > 23 || minute > 59 || second > 59 || offsetHour > 23 || offsetMinute > 59) return null;
+    const spellingOffset = parts.zone === 'Z' ? 0
+        : (parts.sign === '+' ? 1 : -1) * (offsetHour * 3600 + offsetMinute * 60);
+    const utcSeconds = (civilOrdinal(origin) - 1) * 86400
+        + hour * 3600 + minute * 60 + second - spellingOffset;
+    if (!safeInteger(utcSeconds) || utcSeconds < utcReferenceStart || utcSeconds >= utcReferenceEnd) return null;
+    // Fractions are nonnegative and below one second. Civil boundaries here
+    // are integral seconds, so discarding them preserves the containing day.
+    const localOrdinal = Math.floor((utcSeconds + timezoneReferenceDomain.offset_seconds) / 86400) + 1;
+    return localOrdinal === civilOrdinal(target);
+}
 function ownRecord(value, names) {
     if (!value || typeof value !== 'object' || Array.isArray(value) || types.isProxy(value)
         || ![Object.prototype, null].includes(Object.getPrototypeOf(value))) return null;
@@ -54,6 +89,8 @@ function ownRecord(value, names) {
     return Object.fromEntries(names.map(name => [name, d[name].value]));
 }
 const civilRelations = Object.freeze({
+    civil_date_matches: { arity: 4, evaluate: ([instant, date, zone, calendar]) =>
+        civilInstantMatches(instant, date, zone, calendar) },
     day_of_month_matches: { arity: 3, evaluate: ([date, day]) => {
         const parts = civilParts(date);
         return parts && safeInteger(day) && day >= 1 && day <= 31 ? parts.day === day : null;
@@ -143,7 +180,10 @@ function sealPathSemanticReference(raw) {
     const { readPathSemanticCandidate } = require('./pathMutationInventory');
     const capability = readPathSemanticCandidate(candidate);
     if (!capability) fail('candidate_authority');
-    const docs = admittedDocuments(d.packageReceipt.value);
+    return sealCandidateReference(d.packageReceipt.value, candidate, capability);
+}
+function sealCandidateReference(packageReceipt, candidate, capability, v3 = null) {
+    const docs = admittedDocuments(packageReceipt);
     if (!equal(docs.map(({ path, sha256 }) => ({ path, sha256 })), capability.authority_refs)) fail('package_authority');
     const byPath = new Map(docs.map(row => [row.path, row.value]));
     const corpus = byPath.get(prefix + 'graphs-v2.json');
@@ -235,10 +275,20 @@ function sealPathSemanticReference(raw) {
         expected_violations: [baseline.atom], financial_receipt: false,
         source: 'admitted_frozen_claim_and_primary_snapshot_only',
         world_sha256: sha(canonicalValue(docs.map(({ path, sha256 }) => ({ path, sha256 })))),
-        operands_sha256: available ? sha(canonicalValue({ before, after })) : null });
+        operands_sha256: available ? sha(canonicalValue({ before, after })) : null,
+        ...(v3 ? { method_version: 3, invocation_id: v3.invocation_id,
+            discriminating: available && baselineSatisfied === true && mutantSatisfied === false,
+            semantic_mutation_credit: 0, qualified: false } : {}),
+        ...(baseline.op === 'civil_date_matches' ? { timezone_reference_domain: timezoneReferenceDomain } : {}) });
     references.set(result, result);
     return result;
 }
+function sealPathQualificationReference(raw) {
+    const { beginPathQualificationReference } = require('./pathQualificationV3');
+    const input = beginPathQualificationReference(raw);
+    return input.complete(sealCandidateReference(input.packageReceipt, input.candidate, input.capability, input));
+}
 const readPathSemanticReference = raw => references.get(raw) ?? null;
 // The pure reference export carries no candidate capability or execution credit.
-module.exports = { sealPathSemanticReference, readPathSemanticReference, referenceCivilDateContained, referenceCivilRelation };
+module.exports = { sealPathSemanticReference, sealPathQualificationReference, readPathSemanticReference,
+    referenceCivilDateContained, referenceCivilRelation };

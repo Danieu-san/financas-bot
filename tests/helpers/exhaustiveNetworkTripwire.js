@@ -119,6 +119,7 @@ function isDirectControlledDirectory(candidate, prefix) {
 function auditedGitDirectoryKind(options) {
     const cwd = resolvedCwd(options);
     if (samePath(cwd, AUDITED_REPO_ROOT)) return 'audited_repo';
+    if (isScopeFixtureDirectory(options)) return 'scope_fixture';
     if (isDirectControlledDirectory(
         cwd,
         'financasbot-release-repo-'
@@ -171,10 +172,71 @@ function isControlledTarSource(candidate) {
     );
 }
 
+// Closed contract of the existing synthetic agentScopeGuard fixture. This is
+// not an authorization for arbitrary Git operations or repositories.
+const SCOPE_FIXTURE_COMMANDS = Object.freeze([
+    ['init', '-q', '-b', 'codex/test'],
+    ['add', '--', 'old/wip.js', 'scripts/guard.js'],
+    ['add', '--', 'old/wip.js'], ['add', '--', 'scripts/guard.js'], ['add', '--', 'old/new.js'],
+    ['-c', 'user.name=Scope Test', '-c', 'user.email=scope-test@example.invalid', 'commit', '-q', '-m', 'fixture'],
+    ['-c', 'user.name=Scope Test', '-c', 'user.email=scope-test@example.invalid', 'commit', '-q', '--allow-empty', '-m', 'new head'],
+    ['switch', '-q', '-c', 'codex/other'], ['switch', '-q', 'codex/test'],
+    ['rm', '--cached', '--', 'old/wip.js'], ['rm', '--cached', '--', 'scripts/guard.js'],
+    ['rev-parse', 'HEAD'], ['rev-parse', ':scripts/guard.js'],
+    ['update-index', '--chmod=+x', '--', 'old/wip.js'],
+    ['branch', '--show-current'],
+    ['diff', '--name-only', '--no-renames', '-z', 'HEAD', '--'],
+    ['ls-files', '--others', '--exclude-standard', '-z'], ['ls-files', '--stage', '-z'],
+    ['diff', '--cached', '--name-only', '--no-renames', '-z', 'HEAD', '--'],
+    ['diff', '--cached', '--name-only', '--no-renames', '--diff-filter=D', '-z', 'HEAD', '--']
+].map(command => Object.freeze(command)));
+
+function isScopeFixtureDirectory(options) {
+    if (!AUDITED_TEMP_ROOT || !AUDITED_REPO_ROOT) return false;
+    const relative = path.relative(AUDITED_REPO_ROOT, AUDITED_TEMP_ROOT);
+    if (!(relative === '..' || relative.startsWith('..' + path.sep) || path.isAbsolute(relative))) return false;
+    if (!options || typeof options.cwd !== 'string' || !path.isAbsolute(options.cwd) ||
+        options.shell || options.cwd.split(/[\\/]/).some(part => part === '.' || part === '..')) return false;
+    const cwd = resolvedCwd(options);
+    if (!samePath(options.cwd, cwd) ||
+        !isDirectControlledDirectory(cwd, 'financasbot-scope-test-')) return false;
+    try { return fs.lstatSync(options.cwd).isDirectory() && !fs.lstatSync(options.cwd).isSymbolicLink(); }
+    catch { return false; }
+}
+
+function isScopeFixtureCommand(args, options) {
+    if (!isScopeFixtureDirectory(options) || !args.every(arg => typeof arg === 'string') ||
+        args[0] !== '-c' || args[1] !== 'safe.directory=' + resolvedCwd(options)) return false;
+    const command = args.slice(2);
+    if (SCOPE_FIXTURE_COMMANDS.some(expected => expected.length === command.length &&
+        expected.every((arg, index) => arg === command[index]))) return true;
+    return command.length === 3 && command[0] === 'update-index' &&
+        command[1] === '--cacheinfo' &&
+        /^(?:120000|100644),[a-f0-9]{40},scripts\/guard\.js$/.test(command[2]);
+}
+
+function scopeFixtureExclusion(options, environment) {
+    if (!isScopeFixtureDirectory(options) || environment.GIT_CONFIG_COUNT !== '1' ||
+        environment.GIT_CONFIG_KEY_0 !== 'core.excludesFile') return null;
+    const keys = Object.keys(environment).filter(key => /^GIT_CONFIG(?:_|$)/.test(key));
+    if (keys.length !== 3 || !keys.every(key =>
+        ['GIT_CONFIG_COUNT', 'GIT_CONFIG_KEY_0', 'GIT_CONFIG_VALUE_0'].includes(key))) return null;
+    const cwd = resolvedCwd(options), expected = path.join(cwd, '.git', 'info', 'scope-test.exclude');
+    if (environment.GIT_CONFIG_VALUE_0 !== expected) return null;
+    try {
+        for (const candidate of [path.join(cwd, '.git'), path.join(cwd, '.git', 'info'), expected]) {
+            if (fs.lstatSync(candidate).isSymbolicLink() ||
+                !samePath(fs.realpathSync(candidate), candidate)) return null;
+        }
+        return fs.lstatSync(expected).isFile() ? expected : null;
+    } catch { return null; }
+}
+
 function isAuditedLocalGitCommand(command, args, options) {
     if (!isAuditedLocalGitExecutable(command) || !Array.isArray(args)) return false;
     const directoryKind = auditedGitDirectoryKind(options);
     if (!directoryKind) return false;
+    if (directoryKind === 'scope_fixture') return isScopeFixtureCommand(args, options);
     if (directoryKind === 'release_fixture' &&
         args.length === 2 && args[0] === 'init' &&
         args[1] === '--quiet') return true;
@@ -241,9 +303,13 @@ function protectedChildOptions(options, protectedNodeOptions, auditedGit = false
     sourceEnvironment.EXHAUSTIVE_AUDIT_TEMP_ROOT =
         AUDITED_TEMP_ROOT || '';
     if (auditedGit) {
+        const fixtureExclusion = scopeFixtureExclusion(source, sourceEnvironment);
         for (const key of Object.keys(sourceEnvironment)) {
-            if (/^GIT_CONFIG_(?:COUNT|KEY_|VALUE_)/.test(key) ||
-                ['GIT_SSH', 'GIT_SSH_COMMAND', 'GIT_ASKPASS', 'GIT_PROXY_COMMAND']
+            if (/^GIT_CONFIG(?:_|$)/.test(key) ||
+                ['GIT_SSH', 'GIT_SSH_COMMAND', 'GIT_ASKPASS', 'GIT_PROXY_COMMAND',
+                    'GIT_DIR', 'GIT_COMMON_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE',
+                    'GIT_OBJECT_DIRECTORY', 'GIT_ALTERNATE_OBJECT_DIRECTORIES',
+                    'GIT_EXEC_PATH', 'GIT_TEMPLATE_DIR']
                     .includes(key)) {
                 delete sourceEnvironment[key];
             }
@@ -263,6 +329,11 @@ function protectedChildOptions(options, protectedNodeOptions, auditedGit = false
         sourceEnvironment.GIT_CONFIG_VALUE_2 = 'false';
         sourceEnvironment.GIT_CONFIG_KEY_3 = 'core.fsmonitor';
         sourceEnvironment.GIT_CONFIG_VALUE_3 = 'false';
+        if (fixtureExclusion) {
+            sourceEnvironment.GIT_CONFIG_COUNT = '5';
+            sourceEnvironment.GIT_CONFIG_KEY_4 = 'core.excludesFile';
+            sourceEnvironment.GIT_CONFIG_VALUE_4 = fixtureExclusion;
+        }
         sourceEnvironment.GIT_TERMINAL_PROMPT = '0';
         sourceEnvironment.GIT_ALLOW_PROTOCOL = 'file';
     }

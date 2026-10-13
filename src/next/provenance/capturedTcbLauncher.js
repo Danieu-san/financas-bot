@@ -1,7 +1,7 @@
 'use strict';
 const { runInThisContext } = require('node:vm');
 const { types } = require('node:util');
-const { canonicalValue } = require('../kernel/canonicalValue');
+const { canonicalValue, digest } = require('../kernel/canonicalValue');
 const { admitExecutionFreeze, admitFrozenArtifact, freezeContents } = require('./freezeContract');
 const { artifactContents } = require('./artifactLoader');
 const { verifyNativeRuntime, nativeRuntimeFileCapability } = require('./nativeRuntime');
@@ -33,9 +33,24 @@ function packageArtifact(contents) {
 // The VM operation below evaluates TRUSTED captured host code, not guest code
 // and not an isolation claim. Guest isolation remains SES + disposable process.
 function launchCapturedTcb(raw) {
-    const { freezeBytes, expectedFreezeHash, tcbArtifact } = own(raw, ['freezeBytes', 'expectedFreezeHash', 'tcbArtifact']);
+    const hasQualification = raw && typeof raw === 'object' && !types.isProxy(raw)
+        && Object.hasOwn(raw, 'qualification');
+    const { freezeBytes, expectedFreezeHash, tcbArtifact, qualification } = own(raw,
+        ['freezeBytes', 'expectedFreezeHash', 'tcbArtifact', ...(hasQualification ? ['qualification'] : [])]);
+    let capturedQualification;
+    if (hasQualification) {
+        const value = own(qualification, ['ticketSource', 'payloadSource', 'expectedTicketCommitment']);
+        if (typeof value.ticketSource !== 'string' || !value.ticketSource.length || value.ticketSource.length > 1048576
+            || typeof value.payloadSource !== 'string' || !value.payloadSource.length || value.payloadSource.length > 16 * 1024 * 1024
+            || typeof value.expectedTicketCommitment !== 'string'
+            || !/^sha256:[a-f0-9]{64}$/.test(value.expectedTicketCommitment)
+            || `sha256:${digest({ source: value.ticketSource })}` !== value.expectedTicketCommitment) fail('qualification_pin');
+        // Exact immutable UTF8 strings. No caller Buffer.from hooks or receipt
+        // brands are transported, and no root is learned from guest input.
+        capturedQualification = Object.freeze(value);
+    }
     const freezeReceipt = admitExecutionFreeze({ bytes: freezeBytes, expectedHash: expectedFreezeHash });
-    verifyNativeRuntime(freezeReceipt);
+    if (!hasQualification) verifyNativeRuntime(freezeReceipt);
     const artifact = own(tcbArtifact, ['manifestBytes', 'entries']);
     const receipt = admitFrozenArtifact({ freezeReceipt, kind: 'tcb', programId: null, ...artifact });
     const contents = artifactContents(receipt);
@@ -50,12 +65,24 @@ function launchCapturedTcb(raw) {
     try { tools = runInThisContext(`(function(require){ return ${host.source}\n})`, { filename: 'captured-host-bootstrap.js' })(requireNative); }
     catch { fail('host_loading'); }
     if (!tools || tools.stage !== 'captured_validation_tools_only' || typeof tools.initializeFinancialHost !== 'function') fail('host_entry');
+    if (hasQualification && typeof tools.initializePathQualification !== 'function') fail('qualification_host_entry');
     // Reconstruct only the exact canonical manifest already admitted; never
     // derive an expected root from it. Fresh Buffers cross opaque receipt tables
     // between the captured launcher and separately captured host closures.
     const capturedArtifact = packageArtifact(contents);
     const capturedFreeze = Buffer.from(canonicalValue(JSON.parse(JSON.stringify(freezeContents(freezeReceipt)))));
     let used = false;
+    if (hasQualification) {
+        const result = Object.freeze({ stage: 'captured_tcb_path_qualification_loaded_only', financial_acceptance: false,
+            initializePathQualification() {
+                if (this !== result || arguments.length) fail('qualification_origin');
+                if (used) fail('already_initialized'); used = true;
+                return tools.initializePathQualification(capturedQualification, { freezeBytes: Buffer.from(capturedFreeze), expectedFreezeHash,
+                    tcbArtifact: { manifestBytes: Buffer.from(capturedArtifact.manifestBytes),
+                        entries: capturedArtifact.entries.map(row => ({ path: row.path, bytes: Buffer.from(row.bytes) })) } });
+            } });
+        return result;
+    }
     return Object.freeze({ stage: 'captured_tcb_loaded_only', financial_acceptance: false,
         initialize(data) {
             if (used) fail('already_initialized'); used = true;
