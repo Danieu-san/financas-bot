@@ -1,0 +1,1118 @@
+{
+  "format": "financasbot.independent-frontier-review-receipt",
+  "version": 1,
+  "delivery_commit": "155f4ef0f76c5f60c7818b9fe9ba25bcf8d752b4",
+  "code_commit": "cf6e43cbaa7c378f2b64590c50d0818700a3bdd0",
+  "frontier": "A_normal_admission_reference",
+  "verdict": "APTO_SOMENTE_A",
+  "review_kind": "independent_static_conditional_claims_with_data_applicability_not_operational_qualification",
+  "complete_unit_count": 84,
+  "units": [
+    {
+      "path": "docs/contracts/next/provenance-v2/authoring-contract-v1.md",
+      "sha256": "7040d3cee24341a15af3fb3ca6acf84df6a207b10af13828739f545f87ae1328",
+      "git_blob_sha1": "24cd320b71e110e6598837067536e8f24810bdf0",
+      "bytes": 9498,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        155
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/causal-authoring-candidates/README.md",
+      "sha256": "1c018f2e87d96ea4bb504574751171e1ad192820aa60a1e32976d83964bd9b1b",
+      "git_blob_sha1": "99bb2b0364decd4f5a2bdcbaaf202e311326bd70",
+      "bytes": 7330,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        122
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/causal-authoring-candidates/consumption-by-instrument-profile-v1.json",
+      "sha256": "4c2be2d8f773b85e008d8f476d37196bdab9b0bac58848c616294f685fcda99a",
+      "git_blob_sha1": "3ec83767262fcf9f852d6ecb165bb7a80459438a",
+      "bytes": 1205,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        17
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/causal-authoring-candidates/statement-total-profile-v1.json",
+      "sha256": "12cd0fa53fb62121068cdb85ededa91a0b5faec6976d2a9eb3a8045502485723",
+      "git_blob_sha1": "d836914cfebe270f03fae81a9f151415444341c3",
+      "bytes": 1358,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        17
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claim-contract.schema.json",
+      "sha256": "b69ef61b562061f057a9bf08f47623ae432c723f565e8775f3dbe6eb942ea998",
+      "git_blob_sha1": "40f4a97483a359d77ddf649a167ebc67b9b6286e",
+      "bytes": 6124,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        70
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claims-v2.json",
+      "sha256": "4810612761ea7f232e4445c0d192ae53ebf0761f0ba8752da758efb826b30494",
+      "git_blob_sha1": "0f0ade4e0f174966ae9f2660df97cc0b29d2d775",
+      "bytes": 64240,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        83
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluation-policy-v1.json",
+      "sha256": "4b6ee6a6fb365aa97a22a087de032e998dbb31ffd929d3ea2b094544f28f40dd",
+      "git_blob_sha1": "9badd708f58db8eec8fb959d7e434d4687dab924",
+      "bytes": 454,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        16
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-authoring-semantics-v1.md",
+      "sha256": "720e31b2a8a7c0490adf620a8ccaedbe54e06d0502e518e61c8c69252a006a7f",
+      "git_blob_sha1": "e3dcbe95fc8d0ed2cbbaa788024d842cf77f8d7f",
+      "bytes": 4875,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        83
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contract.schema.json",
+      "sha256": "2c3bc0a86bf45da2c4466118bb6ad9506f1824a209c419c3c7180718e294a183",
+      "git_blob_sha1": "dd6b397e6e7199e0c0f9b1a3e605ce5b4bfa17d7",
+      "bytes": 2668,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        131
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/account_balance.json",
+      "sha256": "b509b72bf341c36f60cc7fda7030602a0fdfcc1dae24a0687cb899d4b15a35ed",
+      "git_blob_sha1": "572146a995cae9231ceb7a2f14abc73b69801d00",
+      "bytes": 1539,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        33
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/balance_delta.json",
+      "sha256": "39a1a87663a54e5d37c8e1a35f02596330d48b71e70a431fa27fe58193339a1e",
+      "git_blob_sha1": "da45c338a9f231539d029ecd02ac1d840a238110",
+      "bytes": 1162,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        31
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/bills_open.json",
+      "sha256": "9fed67d44d48c3965043964769ce6481b876a793decf16901e7e666261593faf",
+      "git_blob_sha1": "62a1808350a2c45c7f0ec08ca3edc498f9d1aac6",
+      "bytes": 1164,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        31
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/budget_class_consumption.json",
+      "sha256": "e336d72e581c06401fd6ef3cc5b041b6c2b7ad56745fe25ff5980ca763ed8561",
+      "git_blob_sha1": "3753c5a9e78172a34130efe7e7bbdc402a5dd1e3",
+      "bytes": 1274,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        31
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/calendar_event_count.json",
+      "sha256": "fa3f00c0a019ab0702f94b2c97f2e575509c308343d2208c992ac677e98097b8",
+      "git_blob_sha1": "0164a5edf6f00714951194c32b1caf06a4fea559",
+      "bytes": 1156,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        31
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/category_budget_remaining.json",
+      "sha256": "4e4f9e38d7495397799578d1f73366d067ef5a5a7ca47879071dacd3669436c5",
+      "git_blob_sha1": "c046b51cb8fee63a8d028c951ae807e7197d0379",
+      "bytes": 1485,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        32
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/category_consumption.json",
+      "sha256": "b6e8edf05cb8acc7155bea56d84c4827c4fa9c97b54cacdc13805602468564a3",
+      "git_blob_sha1": "6746662dcdff8845579bfd512c5178273de88db0",
+      "bytes": 1237,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        31
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/category_spent.json",
+      "sha256": "f168ac80d9ac17abf516e76729105c03a6efcf1743bdd4459e94f0c75f851baa",
+      "git_blob_sha1": "caf91b480f0b77daefe2b09ebf129ae7a1feb22a",
+      "bytes": 1207,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        31
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_by_instrument.json",
+      "sha256": "e32bc36ae9642c1db0d0eb6dce05c3861a80d967b974613eafc8fc6a341dbd37",
+      "git_blob_sha1": "30d4a24f67f161a660d6bc73b2ebfd8dee74af34",
+      "bytes": 1218,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        31
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_difference.json",
+      "sha256": "f5d8eda523ba66305010fed07ca6c657b76c486774eac052c3151ddcc85546f7",
+      "git_blob_sha1": "dc5b5d588a869b54c49a5f05d9b735db0f78a64b",
+      "bytes": 1159,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        31
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_effect.json",
+      "sha256": "7dd62b47dcc336828376d44ed54c996f4ef21d27f9f21cfa142cd3722e24eab1",
+      "git_blob_sha1": "f292c713f2c6b45bd964cb41b6e1a0ec48f574bf",
+      "bytes": 1248,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        31
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_total.json",
+      "sha256": "4e07fd44f09a99168cd92d6a9caa664ef5c847146aae64905b859c4cf313be3a",
+      "git_blob_sha1": "422dd8a4a1e69aa2dc55f59442a5d5de43af4901",
+      "bytes": 1365,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        32
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/due_bill_ids.json",
+      "sha256": "a9ddce797a0f90184dad2e3fd50cb20d6534648485ed9f27592cbfe03782ebf4",
+      "git_blob_sha1": "35543a1574ec987d4fc66f87b79b0d0c87d35cb5",
+      "bytes": 1162,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        31
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/due_bills_total.json",
+      "sha256": "aaa1e469986731240f28f22ffe4559c4a663b13d2a01718f61e866c3e1f62e86",
+      "git_blob_sha1": "b50171a0e610b9230c981f47fc291d2954daf234",
+      "bytes": 1143,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        31
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/eligible_event_count.json",
+      "sha256": "f338fef9c95fa8ec005b95b6aa8b21069bb1c04f03ccc777d672bf5f161f4951",
+      "git_blob_sha1": "902779bd88e5fd115e7a9f2ee6f32a3058d78c41",
+      "bytes": 1884,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        34
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/gross_consumption.json",
+      "sha256": "787b125062623e9ffaea8d248ef0554a93e23458275566390c88e88b5e3d00d6",
+      "git_blob_sha1": "a70c202573fcf81cc080057d818dc74e084e6194",
+      "bytes": 1192,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        31
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/income_minus_open_bills.json",
+      "sha256": "1d87b903b2e41e0bdfa4edc5ec1708c1e10e81dfa9cff30560dd5206b4637b86",
+      "git_blob_sha1": "77966ed2476ce04160e53decd9b99abc1f23a903",
+      "bytes": 1215,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        31
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/income_realized.json",
+      "sha256": "3098c37340e1c22e6137691c498c1e1b3756a8319f2187eb17fa0c16e8abedea",
+      "git_blob_sha1": "e9670929fbf385ffa02070c3e4ca13618477bc39",
+      "bytes": 1155,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        31
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/installments_projected.json",
+      "sha256": "924d883d776a5f0da128ee931d96ff27aa1f9effa5ca86d3c81f21af35bf4988",
+      "git_blob_sha1": "9d6c09b259b93012e1595b6e10ca99da1f9910e8",
+      "bytes": 1171,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        31
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/installments_projected_amount.json",
+      "sha256": "6cd3f810f260c6fa94b4509c1d8e043866accc8a0314446fde59d51b28763f0a",
+      "git_blob_sha1": "f389ec4eb81944b35bdd9db199189bdb1b8114fb",
+      "bytes": 1209,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        31
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/installments_realized.json",
+      "sha256": "0115cf8a9d922e43b6b393cecc521a9659a41f75b68591b579eed01490c5d3f7",
+      "git_blob_sha1": "4887dc14746e92ac401e631476401c1080533b2e",
+      "bytes": 1162,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        31
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/installments_realized_amount.json",
+      "sha256": "8987257b8976651b8e82c7e414fda6472ba5aa60ce58befaef3a5661956eb8a7",
+      "git_blob_sha1": "7bb784b2102d84c60cfc7d1ba364383490b1f77c",
+      "bytes": 1194,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        31
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/invoice_payment_amount.json",
+      "sha256": "8b0b104d9d9623fc65847611532eb69810464f2869b5f9421557f07441562928",
+      "git_blob_sha1": "a5bba65f19a7af20f44a5f11395d261c42a73d40",
+      "bytes": 1206,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        31
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/invoice_payment_consumption_effect.json",
+      "sha256": "613b290689de669c2e5ab437fe12ce6f495bdfb766ed848d7716ea50f6b9c7c6",
+      "git_blob_sha1": "a6a97fb5599c4cb62ecc8261a4b83cff7c7ad3f5",
+      "bytes": 1261,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        31
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/invoice_payment_target_card.json",
+      "sha256": "a58d6ee1480662230142a532903facd36cbbe3b7f67705dc01345574a324acfa",
+      "git_blob_sha1": "a09d2605edf0729591c0ecb92f6247e199dde82f",
+      "bytes": 1207,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        31
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/merchant_rule_ids.json",
+      "sha256": "b3ec5d6c4003258cd25431a709197c37a1cf7f70e10125b2f0c8d15bba95abbe",
+      "git_blob_sha1": "a44b1ae89e4d47df8aad7aac54dd2afeaf2f8707",
+      "bytes": 1179,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        31
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/movement_ids.json",
+      "sha256": "4c41b92c8bcf511536461ec676441babe401ef3906144beb960150605a786b96",
+      "git_blob_sha1": "77ecf9272966b82543a6335ba25a6fe80dc6b742",
+      "bytes": 1210,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        31
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/net_consumption.json",
+      "sha256": "1bbf9d81f52b9766156ab60ddd4d8da961b958440e32df12dc0ce315c76fe891",
+      "git_blob_sha1": "e5c4bc796cb7bb97b58bf93e425a21b58ba0061c",
+      "bytes": 1244,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        31
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/owned_cards.json",
+      "sha256": "67b68e3e0d27a0973127411a960953345eeff0c8adc001ea25001fa2ddbbfc3a",
+      "git_blob_sha1": "39d53b39d0a7ce65985c5aa98c49ef9b6eb17657",
+      "bytes": 1188,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        31
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/projected_installments.json",
+      "sha256": "d5c649bcaf00627f23d1930ac78de03dfb41f2fb5e0c11cb26d1e177f57feaee",
+      "git_blob_sha1": "5dd0aa72e0b0b3a4dfc589f1c10f4e55ba5c11df",
+      "bytes": 1224,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        31
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/ranking_winner.json",
+      "sha256": "aabe7e1423046863612c8d0ca4816bdc91e98d02c0f1cd2ce1a8a0e4f2b51889",
+      "git_blob_sha1": "ecd286ac802f4e7c3952c98450a9417948e6d98a",
+      "bytes": 1403,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        33
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/refund_amount.json",
+      "sha256": "2dafc200e53dfa069e3b7e12d42c0ead14db1f2b020768ec5fd2a6fcda4c515c",
+      "git_blob_sha1": "7d6baf5e5e43bbf19046e0cddfb5d34ad9d90d7b",
+      "bytes": 1772,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        33
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/reminder_count.json",
+      "sha256": "16b84262decf1b92536ed697b09844e0c76f5153f4570e8ec49bc550010f8514",
+      "git_blob_sha1": "360317fa9132251c948080a6f419d816429345b5",
+      "bytes": 1183,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        31
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/safe_daily_pace.json",
+      "sha256": "195e3968cc2f7f7dd2e46fdcb2619c19892b5c56a27d0e3c62f76fe08ba9a14d",
+      "git_blob_sha1": "09e091a5ecd607721cab72ca6eecf30285786cd8",
+      "bytes": 2090,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        35
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/side_effect_count.json",
+      "sha256": "7813782950888e8af5c51403d313fc9b950c463e7109681e9cf30d4cd97345a2",
+      "git_blob_sha1": "f10a7ebfbfe49dd732fa7a0ce19261ab7ec19579",
+      "bytes": 1227,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        31
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/similar_event_ids.json",
+      "sha256": "1f994c3caaea2a7c7fa968a49f872bb2b3f4d8ce0b959fc25bf26bbe5dac6817",
+      "git_blob_sha1": "3624b97206830f978820b0d61251f0dd129c49da",
+      "bytes": 1228,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        31
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/source_coverage.json",
+      "sha256": "fab2872015cb21a449c05e355f7ba967865078ed963c869e84dd96da4b1e0111",
+      "git_blob_sha1": "86ccce1c6e4baa4d83b6a0704ad656ac88a3fc24",
+      "bytes": 1750,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        38
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/statement_payment_correspondence.json",
+      "sha256": "3ffc3131e77bc4ead3248a3a5b49108093d16ddbbcb94635d49d7fc59d1171ec",
+      "git_blob_sha1": "2649fd2cc2f942623a02d5eb6123048b1c83ec26",
+      "bytes": 1436,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        35
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/statement_total.json",
+      "sha256": "cca2c51e9d89ef572d069eb019d30924fc41409724c1d07abc7d2a215ce1d002",
+      "git_blob_sha1": "318c1aab683095b4c4fda0ad5e4744d858363919",
+      "bytes": 1797,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        33
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-witness-contracts-v1.json",
+      "sha256": "5a1a9d3b31357009f6e89d8a397c3fa6c7f079d58d06af5b0991c2cc65df5093",
+      "git_blob_sha1": "ffcaadc425e2967e7216e21e8548adec98f058fd",
+      "bytes": 26374,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        693
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-witness-contracts.schema.json",
+      "sha256": "dd5af1b4ab9d29f67d87b7b979076f8b4695cd917062d63ec34da6c12240adaa",
+      "git_blob_sha1": "203c5b08a19d5b0fc782c14c9f77f727b2b46df9",
+      "bytes": 2320,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        66
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evidence-snapshot.schema.json",
+      "sha256": "054a48930a5f25760f201e8b401f0f34f5a83672366acad6c9c09bdc0ce0b5ef",
+      "git_blob_sha1": "3bbba0aae5c05d2bf0d30a714a5e1faa518f6fb1",
+      "bytes": 17718,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        49
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/graph-authoring-review-v1.md",
+      "sha256": "b68e673b0f4edc38d023c6440db3afcb02264f7789a89d486abff8182e01e39e",
+      "git_blob_sha1": "c83eb2128dcadbe5dcfc2f238cef426b0abfb8c0",
+      "bytes": 10949,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        183
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/graph-binding-contract-v1.md",
+      "sha256": "da90befb1f526048cfe14122cd8522690292508bebf42d60ea4ecd5838513a40",
+      "git_blob_sha1": "6556cd13008c7c4197a27d668755c5941b3644f7",
+      "bytes": 19080,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        312
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+      "sha256": "e9c852034d8cc887e1d8645a61d9597176409f72a28eaf0de4c95f17c0c8358d",
+      "git_blob_sha1": "a3baa82049ef927095458199a71ef0f377870c3c",
+      "bytes": 4954513,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        2
+      ],
+      "data_applicability_included": true,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/material-field-registry-v1.json",
+      "sha256": "ee7ef3eff146bc2e9cea2cc986c398371acbff3cf35d858ced8386a9758a4d62",
+      "git_blob_sha1": "03d53deb88eae3317dc1c0f58f7af552bd8b12bf",
+      "bytes": 10998,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        36
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/metric-evaluator-registry-v1.json",
+      "sha256": "a1fde4b01b9f68bdd2550305305ca2ffe8f750af0351b29b12bf3bb5afdb3c88",
+      "git_blob_sha1": "04d77636b5d491f9c9d00df4f59d9a50d9b54d8d",
+      "bytes": 45195,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        1500
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/metric-evaluator-registry.schema.json",
+      "sha256": "de5eb3828b8faaf58eeddc9f90d9342b509f86fd32ea8b66f9174448c536e066",
+      "git_blob_sha1": "36b1e9e93d741fb6e2f493c15234869bbe07a09b",
+      "bytes": 3354,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        54
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/n02f-correction-review-v1.md",
+      "sha256": "814ddcb57991b6b315fa102a38df0b118447015398b10d934c8967b1e7f5b4ff",
+      "git_blob_sha1": "ba6f3d6090e1217785d50ac5b66954d0223e46d9",
+      "bytes": 5417,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        96
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/operator-registry-v1.json",
+      "sha256": "24427e9dd30a5b2d5eaf6f9e2651869e8582df4b5dc9eab54b924a0b687e33b6",
+      "git_blob_sha1": "3e5dc8aa873746c08857fbe4f56862eea48df7ef",
+      "bytes": 3034,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        39
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/operator-registry-v2.json",
+      "sha256": "d28eb3dfbf7ea6949c1ff696e9f9bc7aa572c3ab8433a06d316936092a2dcac7",
+      "git_blob_sha1": "78c1b42f4a8075172360c91660b27041e1265787",
+      "bytes": 5531,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        281
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/phase-composition-profile-v1.json",
+      "sha256": "204962b56fd0833f3d15ac030e6c55dd3866c8fd18ded5e24784f729e41be2bc",
+      "git_blob_sha1": "425f446669a2eb15fcc3595116c301d6376e453c",
+      "bytes": 15194,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        322
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/predicate-templates-v1.json",
+      "sha256": "15a1adfe3290b26808d3ee8cb1e1db36175f122df54cd2ef1474873ad5d8833f",
+      "git_blob_sha1": "f7bbb178d823c38dab2541e1a0778b269deca4bd",
+      "bytes": 1387,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        72
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/provenance-graph.schema.json",
+      "sha256": "9e3c148c95d6fecd3d93f019ad5a5967126f8bf1cb9bde9d152c70c057a1740b",
+      "git_blob_sha1": "5aa7ca4bbcc1d5e4e58fea43210aaaddf4716336",
+      "bytes": 14785,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        37
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/registry-semantics-v1.md",
+      "sha256": "9dad2d3833eee30b46c36899ff9bd3fc1b708112495edf8e3db075ac7f3302c4",
+      "git_blob_sha1": "cf2f3a21fe9bd2341c740cd61bfc8b3197a3556a",
+      "bytes": 14387,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        226
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/snapshot-manifest-v1.json",
+      "sha256": "2547229db3c07f2dd0941601ab5164bf89981ce966e4e23a2e3058124edba8c4",
+      "git_blob_sha1": "f83ff603add9d90b2850a2f05ad87e36923e88ed",
+      "bytes": 52403,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        126
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/temporal-and-selection-witnesses-v1.json",
+      "sha256": "92329f779a5b08f46f4554d129b934dcc2acf176741bf66ba82ab794f2c095bf",
+      "git_blob_sha1": "70dde64e3e11b94acf11d9eb0f15bb6a3c74dd00",
+      "bytes": 7193,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        180
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/temporal-relations-decision-v1.md",
+      "sha256": "a6581b9533f25d6a8864091ffacda0119e2d93df323c37918bddb0c56e297f1e",
+      "git_blob_sha1": "30eb790446fb57d010489bfcef2c04ee813b65dc",
+      "bytes": 5865,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        102
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/type-and-identity-contract-v2.md",
+      "sha256": "41082ed25096b7289028d632e2ba7db86aa5400f9c5fbeb73da4ce7e3d9f560b",
+      "git_blob_sha1": "98b670e78a50c3f60348c39dd4f7efda9addd979",
+      "bytes": 9362,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        155
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "docs/plans/workstreams/financasbot-next-02-n02g-compositional-path-qualification-proposal-v1.md",
+      "sha256": "0c831d290c0ae47960d1fc11b9ea530d792a926cb2211a1313d7d070f0d24eba",
+      "git_blob_sha1": "82112f0c4d6eeed21d4823c8b1dd3d3ca8ce1bf2",
+      "bytes": 18783,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        293
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "src/next/provenance/claimRequirementCore.js",
+      "sha256": "1f23d4c8fb117bb5bd6bf992cc1bf4ea0806c01372853395fb2c341b9968de23",
+      "git_blob_sha1": "f97afea9916aa7b4914f7e8defbdb8720e9ff246",
+      "bytes": 7910,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        126
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "src/next/provenance/claimRequirements.js",
+      "sha256": "2a42d47868a57fad697a0caec0ae0678a338f06dca0ebf77064fab6def182468",
+      "git_blob_sha1": "0b2a5234ab88efd6fffbeec13fa79d34a2b41c7e",
+      "bytes": 802,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        14
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "src/next/provenance/collectionRequirements.js",
+      "sha256": "4d6af2b5d830929910622f504126dfea29c3ba6866ff99e21c90e23f12961de3",
+      "git_blob_sha1": "153605d6aec0e19306934eb0db7a913d9b07acf6",
+      "bytes": 4597,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        77
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "src/next/provenance/graphCompiler.js",
+      "sha256": "fe938a128cfd4dccda0d8ddc1f2e6965b623feecc6d1854ef0306700efda1016",
+      "git_blob_sha1": "7fe96f0937faddb5fddba19771889e9500b93a00",
+      "bytes": 82211,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        1200
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "src/next/provenance/graphStructure.js",
+      "sha256": "927a4e76b6a7c9f8ad8656e21a44766a745c2edd3113b82ff7231a1c2bc79e50",
+      "git_blob_sha1": "549473a5b632c3a8544552d1ac88e7dd85047304",
+      "bytes": 17159,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        288
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "src/next/provenance/obligationBindings.js",
+      "sha256": "580f9b97e6ef216e5598de5c97aa8d96cc7cda713a5547e249a27f24144baf87",
+      "git_blob_sha1": "6d56d64df499075e46f202dc587dfd030decc085",
+      "bytes": 6925,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        115
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "src/next/provenance/operandBindings.js",
+      "sha256": "50cacfb104e9e792d1118428f81fe659b4ae9c07407b979a1c2b122141303e60",
+      "git_blob_sha1": "900c23304e9e4fbc8c053dc9f7703c80d23744f0",
+      "bytes": 5232,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        93
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "src/next/provenance/operatorTypes.js",
+      "sha256": "573db750922769a1626fe11c938458271b7cd09fdc5571df5c7b6786fa8d493c",
+      "git_blob_sha1": "9960ac5fe96452f53fd651617c7529f581ae49ad",
+      "bytes": 6064,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        135
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "src/next/provenance/pathLocatorDomainV3.js",
+      "sha256": "5e63d13db01a652d38c1888ac652435eb20e8b3b7c371f5d85c121141f36500f",
+      "git_blob_sha1": "ba1f2a371a52dde29dc3b2c5d51e132acc429ba6",
+      "bytes": 11793,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        188
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "src/next/provenance/pathMutationInventory.js",
+      "sha256": "095d9e6daec7c73ffd8ae940e00a401e899915c4f35477b50c8595e909d72275",
+      "git_blob_sha1": "4bff604d73db4794ff52c814bb5408c7950597ba",
+      "bytes": 42026,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        594
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "src/next/provenance/pathQualificationV3.js",
+      "sha256": "71755d8044006ffae70f80248db87ddaa2aa45f5346fa4ea69b0ec7937683a0d",
+      "git_blob_sha1": "6b2617986c425edea53a3600ac1d1a5835c3123d",
+      "bytes": 100438,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        1377
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "src/next/provenance/pathSemanticReference.js",
+      "sha256": "6880b8cf205fbb337be18c8f607aecb6a28d6d6255de5a36399de955629e812d",
+      "git_blob_sha1": "b9338bc70e3e440eae276aaa51b6ae0d04b5f877",
+      "bytes": 18997,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        295
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "src/next/provenance/predicateTypes.js",
+      "sha256": "7ec5e1dc0348599bf42aa642a575233bb3642371fb2a48bea77b2558de6a25b8",
+      "git_blob_sha1": "7730da8de30a550ec9602af6fbf6b75e71a76cbf",
+      "bytes": 22140,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        366
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "src/next/provenance/schemaRegistryProjection.js",
+      "sha256": "282b949ff0c546b3b20ec7cbe6a3b00a3ab28ed19e8d951d5379f011b2ddd84d",
+      "git_blob_sha1": "c047bdde5ebd222f06b803fd9bce08f876c9ba77",
+      "bytes": 8687,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        154
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    },
+    {
+      "path": "src/next/provenance/templateReferences.js",
+      "sha256": "bd5c186192b41d991f8fc1bf74dce0f372d8ff8ac63a845eaa029640a7d3f34f",
+      "git_blob_sha1": "554bb512d28974bdb53f3c5b02bb3631d1b36334",
+      "bytes": 11620,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        204
+      ],
+      "data_applicability_included": false,
+      "executor_source_identity_confronted": true
+    }
+  ],
+  "interface_coverage": "focal_not_complete_C_D",
+  "tests_rerun_independently": false,
+  "code_changed": false,
+  "norm_changed": false,
+  "all_frontiers_review_complete": false,
+  "qualified": false,
+  "credit": 0,
+  "execution_permitted": false,
+  "pending": [
+    "C34",
+    "D153",
+    "one_final_integrated_verdict",
+    "real_operational_prerequisites_before_handles"
+  ]
+}

@@ -1,0 +1,360 @@
+{
+  "format": "financasbot.frontier-C-reading-delivery",
+  "version": 1,
+  "delivery_parent": "155f4ef0f76c5f60c7818b9fe9ba25bcf8d752b4",
+  "code_commit": "cf6e43cbaa7c378f2b64590c50d0818700a3bdd0",
+  "code_tree": "a95ab30b2a30c19d90c71b2ffa1c56705ed0522f",
+  "frontier": "C_internal_TCB_tests_harness",
+  "source_index_sha256": "e23100c85ef672cea46eb4b402f3a256ce29ea5be63c03a613456dcaef009028",
+  "unit_count": 34,
+  "body_files": [
+    {
+      "file": "C-full-implementation-reading.md",
+      "sha256": "fbc1b9e6fa64cb38e74ac2c7f7648b1240aad527bcbe16120ec96c04389b0777",
+      "bytes": 231144,
+      "unit_paths": [
+        "scripts/agent/buildNextMetricArtifacts.mjs",
+        "scripts/agent/buildNextProvenanceArtifacts.mjs",
+        "scripts/agent/buildNextValidationTcb.mjs",
+        "scripts/agent/capturePathQualificationCompiler.mjs",
+        "src/next/provenance/artifactLoader.js",
+        "src/next/provenance/capturedTcbLauncher.js",
+        "src/next/provenance/executionHost.js",
+        "src/next/provenance/executionHostChild.cjs",
+        "src/next/provenance/executionProfile.js",
+        "src/next/provenance/executionRegistry.js",
+        "src/next/provenance/financialHost.js",
+        "src/next/provenance/freezeContract.js",
+        "src/next/provenance/nativeRuntime.js",
+        "src/next/provenance/validationTcbEntry.js"
+      ],
+      "full_original_bodies_included": true
+    },
+    {
+      "file": "C-full-tests_and_fixtures-reading.md",
+      "sha256": "e4316f94c6f56396bdee0b3c3c36df7d08f943fc2e662c9256357b12343154ce",
+      "bytes": 615111,
+      "unit_paths": [
+        "tests/exhaustiveLocalTestCoverageRunner.test.js",
+        "tests/fixtures/financasbot-next/golden-claim-oracles-v1.json",
+        "tests/fixtures/financasbot-next/golden-conversation-set-v1.json",
+        "tests/fixtures/financasbot-next/golden-fact-contracts-v1.json",
+        "tests/fixtures/financasbot-next/golden-financial-fixture-v1.json",
+        "tests/fixtures/financasbot-next/next02-expense-expectations-v1.json",
+        "tests/fixtures/financasbot-next/next02-expense-observations-v1.json",
+        "tests/fixtures/financasbot-next/next02-golden-traceability-v1.json",
+        "tests/helpers/exhaustiveNetworkTripwire.js",
+        "tests/next/provenance/financialHost.cases.js",
+        "tests/next/provenance/graphStructure.cases.js",
+        "tests/next/provenance/pathInventoryV2.cases.js",
+        "tests/next/provenance/pathQualificationV3.cases.js",
+        "tests/next/provenance/pathSemanticV2.cases.js",
+        "tests/next/provenance/phaseComposition.cases.js",
+        "tests/next/provenance/selectionBindings.cases.js",
+        "tests/next/provenance/unknownPathAdmission.cases.js",
+        "tests/next/provenance/validationTcb.cases.js",
+        "tests/next02DevelopmentInventory.test.js"
+      ],
+      "full_original_bodies_included": true
+    }
+  ],
+  "evidence_data_units": [
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/review-manifest.json",
+      "sha256": "d98c517d5d54f8d40e7e9c70dbd39bff5437bc6016dc93c70287058fb7431501",
+      "git_blob_sha1": "0df6246539dacf5d5927d9cb6ddf6c2312741d05",
+      "bytes": 175441,
+      "lines": 3746,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "9a3a1166561db699107d77fdbbfb7babebd17467fd2c2610c910728dea5c1ae3",
+          6438,
+          false
+        ],
+        [
+          121,
+          240,
+          "3bd8204019aed2ba86aa3a47dfbbd46189bfb35245a515cf3a8f6a6199f8bedf",
+          5086,
+          false
+        ],
+        [
+          241,
+          360,
+          "4da47173e16c153bd6f899cdc3462c1a8eaf961ad7ef28446a0c636acd6009a4",
+          5156,
+          false
+        ],
+        [
+          361,
+          480,
+          "13717cf2dadc389fbdec3c3669f1fce7fde2646a92e86591cf6f74786da49f98",
+          4972,
+          false
+        ],
+        [
+          481,
+          600,
+          "9c6215ea8ffeed8c67e35b50263f6a6c62ded0545235ed962a03ed88b84176c2",
+          4637,
+          false
+        ],
+        [
+          601,
+          720,
+          "9156449b86355d2adafbb976f045339a95dfcb2c9462439252eb158b2ecb934d",
+          4427,
+          false
+        ],
+        [
+          721,
+          840,
+          "5a79f37f17092a99927bb0779f195e3cc1d92753fd300d59a3415db8e00b94ed",
+          4674,
+          false
+        ],
+        [
+          841,
+          960,
+          "f5869a9fb0b2ca729c9688d50143dfd1af25f3e8922c59f2ba563681f373bbbb",
+          4604,
+          false
+        ],
+        [
+          961,
+          1080,
+          "79ec01d78245adca6cd8b9961c6d7dc862d7633071f88aa58d467abb41791163",
+          4453,
+          false
+        ],
+        [
+          1081,
+          1200,
+          "4d7d0ee6a217fb946a5f5bd08ec5afb8f7e8f5113f35e904484eafbfb24bee14",
+          4420,
+          false
+        ],
+        [
+          1201,
+          1320,
+          "55d383b5e1534698b6a4bd8994dcd6bbe17de74da2fe71575847404e53bcd3fa",
+          4388,
+          false
+        ],
+        [
+          1321,
+          1440,
+          "4437442b60db47473722bc45ebd96297fd32aa5503d816274729a471d6120fed",
+          4375,
+          false
+        ],
+        [
+          1441,
+          1560,
+          "44f19f4e2b8fd874f73dd640f136906ed12f757eee5a43e26791acd2eda94783",
+          4434,
+          false
+        ],
+        [
+          1561,
+          1680,
+          "b9b70e6c69ccc3648c1b0d91cefe9520281fb17c00b6d54cf13bab2c3a2590d4",
+          4601,
+          false
+        ],
+        [
+          1681,
+          1800,
+          "51486291e463ea8617b2ecb2755f36207d165abd889ad2cc0df62b215d1970e7",
+          5023,
+          false
+        ],
+        [
+          1801,
+          1920,
+          "b117c50f3355e96970d555e39f5c8a5664ee750faa4f0e3ab1b2f88b9b47c7b6",
+          12560,
+          false
+        ],
+        [
+          1921,
+          2040,
+          "0a7ef02a247415344f528fd664328955c267704ded57659060c613f973293cc6",
+          5398,
+          false
+        ],
+        [
+          2041,
+          2160,
+          "07fc9289d0731d6792c8c1f72288ef5a8d7e91907d3d4d1017dbf2f3015092ab",
+          5450,
+          false
+        ],
+        [
+          2161,
+          2280,
+          "d64de5760f52d52beec6fc9ef454701cd3676b2b93356d731094ea1b308637cb",
+          6792,
+          false
+        ],
+        [
+          2281,
+          2400,
+          "3ab2398cf0d01058bfbc06726fd009788fe296a60d03c5330828ab401a60d4b8",
+          6767,
+          false
+        ],
+        [
+          2401,
+          2520,
+          "be24e5f151f9308be7cbe75baa75aa318490d5cc47813fd262f5e73a20c5a4e7",
+          6852,
+          false
+        ],
+        [
+          2521,
+          2640,
+          "cc356417d83148a68d4ae11061f81f3bbee929ba6ea3ce03c265f38cd914d135",
+          6792,
+          false
+        ],
+        [
+          2641,
+          2760,
+          "9c39924569764be2cdc1642cd9b4958d2708a1ccb9f995a9c7e94b437f10474d",
+          6427,
+          false
+        ],
+        [
+          2761,
+          2880,
+          "cb0b936518677bf27775ecf831058717e052fa1365c5375d8c2141838b1c527f",
+          5982,
+          false
+        ],
+        [
+          2881,
+          3000,
+          "928503b3d8b5299fdbda7d308ba57fc836c1ab32b5232683d690976a076cc7c4",
+          6230,
+          false
+        ],
+        [
+          3001,
+          3120,
+          "c9c8d6a1e4c4641852cb4688b92bd33fecae06cafe8a86ef407a3d11c5d8a97b",
+          5948,
+          false
+        ],
+        [
+          3121,
+          3240,
+          "a1f7f5bb872d02bef052b699511ed492f38008c332e0f51c0d51ccf03a1d1015",
+          5532,
+          false
+        ],
+        [
+          3241,
+          3360,
+          "46ac03f70a9d5958ed704056ad33d68709e7efaa1ed311aeef50c8f818042e6f",
+          5292,
+          false
+        ],
+        [
+          3361,
+          3480,
+          "cf11dbb084aaee18861035d3ae967219a463c5998bd5d352cf0ff8bf41a5fa1a",
+          5286,
+          false
+        ],
+        [
+          3481,
+          3600,
+          "9998ecb830bb734b5a7dddefbeeadd6f1380eeedbae0492df398a04a3bae5dd7",
+          5415,
+          false
+        ],
+        [
+          3601,
+          3720,
+          "c337a35212aa1aeac365729ce044bd84c72368971a2814417dc7cdd56bba7121",
+          6149,
+          false
+        ],
+        [
+          3721,
+          3746,
+          "8966fcfdf1e91047a3905a55524d575ea0ba0a3c1199c114e509b3d170c9b92f",
+          850,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "format",
+          "version",
+          "parent_commit",
+          "parent_tree",
+          "method_authority",
+          "proposed_normative_blob",
+          "proposed_normative_UTF8_LF_sha256",
+          "review_scope",
+          "active_source_scope",
+          "normal_capture",
+          "local_validation",
+          "changed_or_added_files",
+          "inherited_exact_sources",
+          "documentation_projections",
+          "exclusions",
+          "qualification",
+          "manifest_self_hash_and_candidate_commit_intentionally_excluded"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed",
+      "raw_url": "https://raw.githubusercontent.com/Danieu-san/financas-bot/cf6e43cbaa7c378f2b64590c50d0818700a3bdd0/docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/review-manifest.json",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/0df6246539dacf5d5927d9cb6ddf6c2312741d05",
+      "json_top_level_keys": [
+        "format",
+        "version",
+        "parent_commit",
+        "parent_tree",
+        "method_authority",
+        "proposed_normative_blob",
+        "proposed_normative_UTF8_LF_sha256",
+        "review_scope",
+        "active_source_scope",
+        "normal_capture",
+        "local_validation",
+        "changed_or_added_files",
+        "inherited_exact_sources",
+        "documentation_projections",
+        "exclusions",
+        "qualification",
+        "manifest_self_hash_and_candidate_commit_intentionally_excluded"
+      ],
+      "metadata_shape_not_semantic_review": true,
+      "full_raw_body_still_available": true,
+      "independent_applicability_review": "pending_not_waived"
+    }
+  ],
+  "coverage_partition_body_counts": {
+    "implementation": 14,
+    "tests_and_fixtures": 19,
+    "evidence_data": 1
+  },
+  "A_receipt_sha256": "05faf971682e1a9208944be758ea633be1580e2be267f311bb71f7970ad77c27",
+  "A_B_component_verdicts_not_operational_authority": true,
+  "all_C_units_review_complete": false,
+  "code_changed": false,
+  "norm_changed": false,
+  "qualified": false,
+  "credit": 0,
+  "exit": "all34units_explicit_whole_code_test_or_data_verdict_identity_roots_pin_ticket_before_handles_then_D_and_integrated_verdict",
+  "not_new_runtime_helper_solver_or_norm": true
+}
