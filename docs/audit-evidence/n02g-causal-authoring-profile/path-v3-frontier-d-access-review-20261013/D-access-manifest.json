@@ -1,0 +1,1651 @@
+{
+  "format": "financasbot.D_exact_source_access_correction",
+  "version": 1,
+  "delivery_parent": "149cedbb830ea94ab1e953adf5a93b9ff5367877",
+  "code_commit": "cf6e43cbaa7c378f2b64590c50d0818700a3bdd0",
+  "code_tree": "a95ab30b2a30c19d90c71b2ffa1c56705ed0522f",
+  "original_unit_count": 153,
+  "unit_count_unchanged": true,
+  "semantic_review_group_unchanged": "D",
+  "one_transport_correction_only": true,
+  "not_recursive_semantic_audit_subdivision": true,
+  "chunked_originals": [
+    {
+      "original_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-authorship-v1-frozen.json",
+      "original_code_commit": "cf6e43cbaa7c378f2b64590c50d0818700a3bdd0",
+      "original_sha256": "e9c852034d8cc887e1d8645a61d9597176409f72a28eaf0de4c95f17c0c8358d",
+      "original_git_blob_sha1": "a3baa82049ef927095458199a71ef0f377870c3c",
+      "original_bytes": 4954513,
+      "parts": [
+        {
+          "file": "path-authorship-v1-frozen.part-001.txt",
+          "bytes": 900000,
+          "sha256": "e062bcd745fb881ead8e67d1ac766465c630aedc76b5a586b95678f71b575008",
+          "git_blob_sha1": "26c2fbb9113543062b43c357b9f1904ca1b69fe7",
+          "byte_range": [
+            0,
+            900000
+          ],
+          "no_header_or_added_newline": true
+        },
+        {
+          "file": "path-authorship-v1-frozen.part-002.txt",
+          "bytes": 900000,
+          "sha256": "62d33fd81a3d2c8d4cbe70629087d8b0f6de89064c92e70c17376b6bb58a9a88",
+          "git_blob_sha1": "634abb39c27fd2013dceb4d4222fc3350624556c",
+          "byte_range": [
+            900000,
+            1800000
+          ],
+          "no_header_or_added_newline": true
+        },
+        {
+          "file": "path-authorship-v1-frozen.part-003.txt",
+          "bytes": 900000,
+          "sha256": "a73edd04accc9f96aedce9717263c5713d1289d4a2afd34ef30e9eadcc06efea",
+          "git_blob_sha1": "db2bc31d88ec96fb0e542941a5fb829a5b84e595",
+          "byte_range": [
+            1800000,
+            2700000
+          ],
+          "no_header_or_added_newline": true
+        },
+        {
+          "file": "path-authorship-v1-frozen.part-004.txt",
+          "bytes": 900000,
+          "sha256": "7833c16fe4da89a5acbe9d535b324492ace3076d2d8bd3d6fae989e7bff6990b",
+          "git_blob_sha1": "c9ee8604fe3bf8f00fe05fe4e9abfb2a4515a576",
+          "byte_range": [
+            2700000,
+            3600000
+          ],
+          "no_header_or_added_newline": true
+        },
+        {
+          "file": "path-authorship-v1-frozen.part-005.txt",
+          "bytes": 900000,
+          "sha256": "c5727cb8c55357ae9fdb7a08bb955415dbc1cedcbe407550e14915beb1fad464",
+          "git_blob_sha1": "bdc3c6717d9d5deed9d5dcca4689e279f06d0930",
+          "byte_range": [
+            3600000,
+            4500000
+          ],
+          "no_header_or_added_newline": true
+        },
+        {
+          "file": "path-authorship-v1-frozen.part-006.txt",
+          "bytes": 454513,
+          "sha256": "d9efb2f4b6fe7cb2a5d76749e8516b246c63bece769daa465de7c25c4c555ec2",
+          "git_blob_sha1": "1a015ff4fbf1e04032829a7739a422d66339881a",
+          "byte_range": [
+            4500000,
+            4954513
+          ],
+          "no_header_or_added_newline": true
+        }
+      ],
+      "concatenation_order": "parts array order, exact UTF8 bytes, no separators",
+      "executor_lossless_reassembly_verified": true,
+      "independent_semantic_review": "pending_not_waived"
+    },
+    {
+      "original_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-inventory-v1-frozen.json",
+      "original_code_commit": "cf6e43cbaa7c378f2b64590c50d0818700a3bdd0",
+      "original_sha256": "2509cb7df02a98a1217a416c70b5f729b40ca331314ce2d925005ec15a779a9d",
+      "original_git_blob_sha1": "d27e578745c3d5ec55c927411ad99e6d0c9971f1",
+      "original_bytes": 10931712,
+      "parts": [
+        {
+          "file": "path-inventory-v1-frozen.part-001.txt",
+          "bytes": 900000,
+          "sha256": "a8e6c64be2134f64ab4111519761230c7c606a60f156c97edc2d415e5afc8b6e",
+          "git_blob_sha1": "dca20f6411c9103ed88ba8ebd47ead94a37d5816",
+          "byte_range": [
+            0,
+            900000
+          ],
+          "no_header_or_added_newline": true
+        },
+        {
+          "file": "path-inventory-v1-frozen.part-002.txt",
+          "bytes": 900000,
+          "sha256": "78dd6260574e9a9ed48995a47874495f202f4b92f93d8ccd64aeda09697eade8",
+          "git_blob_sha1": "914477e01124ae3a9d1952f2010744d0ce5789ab",
+          "byte_range": [
+            900000,
+            1800000
+          ],
+          "no_header_or_added_newline": true
+        },
+        {
+          "file": "path-inventory-v1-frozen.part-003.txt",
+          "bytes": 900000,
+          "sha256": "86972a2a10cca1d5e2be8778830e886fc183da4947d6f93c55707f25cd347e08",
+          "git_blob_sha1": "8c7fba3f61021448a16846ef88d62c7a80f63cee",
+          "byte_range": [
+            1800000,
+            2700000
+          ],
+          "no_header_or_added_newline": true
+        },
+        {
+          "file": "path-inventory-v1-frozen.part-004.txt",
+          "bytes": 900000,
+          "sha256": "bc69b77c8669a5d4a1bf004c037ae728607346f9cdfc82a7ea4224184c523136",
+          "git_blob_sha1": "4defe8f37b8e29a1b4f10c6ecd1aaad4dc22c53a",
+          "byte_range": [
+            2700000,
+            3600000
+          ],
+          "no_header_or_added_newline": true
+        },
+        {
+          "file": "path-inventory-v1-frozen.part-005.txt",
+          "bytes": 900000,
+          "sha256": "e42b4e39d72c65e61334c2eef9100361aa3a54d76fb70815fe53ff574bd0e211",
+          "git_blob_sha1": "aeac3540e9440922755c6b37be97809f8c225d9f",
+          "byte_range": [
+            3600000,
+            4500000
+          ],
+          "no_header_or_added_newline": true
+        },
+        {
+          "file": "path-inventory-v1-frozen.part-006.txt",
+          "bytes": 900000,
+          "sha256": "80bd8467755eee5477e25f40b5063a83312aa99e076d80159e3a60f4a2fb3e73",
+          "git_blob_sha1": "6b2e4f5eaae0da3967835576946a19c00a834ad2",
+          "byte_range": [
+            4500000,
+            5400000
+          ],
+          "no_header_or_added_newline": true
+        },
+        {
+          "file": "path-inventory-v1-frozen.part-007.txt",
+          "bytes": 900000,
+          "sha256": "db3ac6573942dd30b40da097edc4e3fe0512b782234e2c316747b20505d04208",
+          "git_blob_sha1": "dfe0fc2f3f70f054750c4d4dece134403361dffd",
+          "byte_range": [
+            5400000,
+            6300000
+          ],
+          "no_header_or_added_newline": true
+        },
+        {
+          "file": "path-inventory-v1-frozen.part-008.txt",
+          "bytes": 900000,
+          "sha256": "bdf80b44a459e06534f928bcfadf673ec4071bfc24122c18cba02dde066c76e5",
+          "git_blob_sha1": "60c59739e644ddcdb962abd341835378b3bd5a9c",
+          "byte_range": [
+            6300000,
+            7200000
+          ],
+          "no_header_or_added_newline": true
+        },
+        {
+          "file": "path-inventory-v1-frozen.part-009.txt",
+          "bytes": 900000,
+          "sha256": "ab52253117a173d95e40e1a9788b155b0a8665a067bfbcd42ab65e99ad40d044",
+          "git_blob_sha1": "17a4ece416b6145d0d1d042d141d193e76703e52",
+          "byte_range": [
+            7200000,
+            8100000
+          ],
+          "no_header_or_added_newline": true
+        },
+        {
+          "file": "path-inventory-v1-frozen.part-010.txt",
+          "bytes": 900000,
+          "sha256": "7577f2e837b5b6df7dbbdedebb4249e0a84e91c4aa97d4654616f82ed0a15d80",
+          "git_blob_sha1": "0a63c473435dd36439fe144e35714f8417147336",
+          "byte_range": [
+            8100000,
+            9000000
+          ],
+          "no_header_or_added_newline": true
+        },
+        {
+          "file": "path-inventory-v1-frozen.part-011.txt",
+          "bytes": 900000,
+          "sha256": "aa2e6a8a822dfa19702a18b7b5df8ae521f7cdca2a537dc51dfbc844d0ef65f6",
+          "git_blob_sha1": "21b3e347372a635e7650587d9701df78cbc4de3c",
+          "byte_range": [
+            9000000,
+            9900000
+          ],
+          "no_header_or_added_newline": true
+        },
+        {
+          "file": "path-inventory-v1-frozen.part-012.txt",
+          "bytes": 900000,
+          "sha256": "6fb89078912b4ef866c1ee208610c19e31fc257893faf872c2bb2ade51e23628",
+          "git_blob_sha1": "ba8c4c43d02274069b6c7460bafdf7f481f6ccc1",
+          "byte_range": [
+            9900000,
+            10800000
+          ],
+          "no_header_or_added_newline": true
+        },
+        {
+          "file": "path-inventory-v1-frozen.part-013.txt",
+          "bytes": 131712,
+          "sha256": "a83b0acdc4b8f3478eb20b974046505cb663e61cd6a7f380623f60fc7bdf5213",
+          "git_blob_sha1": "93b44462cf93558c28ff41eb1709c452ea8dedb8",
+          "byte_range": [
+            10800000,
+            10931712
+          ],
+          "no_header_or_added_newline": true
+        }
+      ],
+      "concatenation_order": "parts array order, exact UTF8 bytes, no separators",
+      "executor_lossless_reassembly_verified": true,
+      "independent_semantic_review": "pending_not_waived"
+    }
+  ],
+  "original_sources": [
+    {
+      "index": 1,
+      "path": "docs/agent-memory/workstreams/financasbot-domestic-roadmap-review-20261007.md",
+      "bytes": 4163,
+      "sha256": "27abcabdab31e4a8d8449af4d12dfe528709474c9ee55014e042360767b00b37",
+      "git_blob_sha1": "fc4dd8140b560a8a69f4eaf29305d5e86a7fc0ed",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/fc4dd8140b560a8a69f4eaf29305d5e86a7fc0ed",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 2,
+      "path": "docs/agent-workflow/active-scope.json",
+      "bytes": 8313,
+      "sha256": "faf38c49b151c9fc77d498608c40953e5a95e2d0cc519144a865ea3ab2781650",
+      "git_blob_sha1": "95c14bdba49a68028b0ba1ab11f35bf9e9dafade",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/95c14bdba49a68028b0ba1ab11f35bf9e9dafade",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 3,
+      "path": "docs/agent-workflow/scope-baselines/path-v3-composition-20261009.json",
+      "bytes": 49622,
+      "sha256": "b5aec333b7366d2c93dc1e1c89ff0c3d4f3e3b75636778fa39db3e5b53bc87db",
+      "git_blob_sha1": "bee243c8c21ce5bb3b3edfbc797f575ab8743617",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/bee243c8c21ce5bb3b3edfbc797f575ab8743617",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 4,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/compositional-path-proposal-audit-20261008.md",
+      "bytes": 9840,
+      "sha256": "14a209e6de986dfe5c47476625a067477898dfaa3fd40f22f1c0ab6ef9204c45",
+      "git_blob_sha1": "f3de7a8dfc558a884086390da7d6ce84b1d81a61",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/f3de7a8dfc558a884086390da7d6ce84b1d81a61",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 5,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-authorship-v1-frozen.json",
+      "bytes": 4954513,
+      "sha256": "e9c852034d8cc887e1d8645a61d9597176409f72a28eaf0de4c95f17c0c8358d",
+      "git_blob_sha1": "a3baa82049ef927095458199a71ef0f377870c3c",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/a3baa82049ef927095458199a71ef0f377870c3c",
+      "chunk_transport_available": true
+    },
+    {
+      "index": 6,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-inventory-v1-frozen.json",
+      "bytes": 10931712,
+      "sha256": "2509cb7df02a98a1217a416c70b5f729b40ca331314ce2d925005ec15a779a9d",
+      "git_blob_sha1": "d27e578745c3d5ec55c927411ad99e6d0c9971f1",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/d27e578745c3d5ec55c927411ad99e6d0c9971f1",
+      "chunk_transport_available": true
+    },
+    {
+      "index": 7,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-timezone-reference-20261007/iana-tzdb-2025b-southamerica.txt",
+      "bytes": 95298,
+      "sha256": "57cc4ee3dc4bd575f126ba76f284a9ee67330c6fbb7576792eda27f41451ff22",
+      "git_blob_sha1": "06fee598baf41851c073cdfb0fd582b9ac645342",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/06fee598baf41851c073cdfb0fd582b9ac645342",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 8,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-history-20261008/.gitattributes",
+      "bytes": 51,
+      "sha256": "787d3ae4e59e60582eb69d0d32eb6c1168dfa38bf4e2a21c98ce5d87226b6ef4",
+      "git_blob_sha1": "169e43f2eab9e82855af060268bbdb4bc884031d",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/169e43f2eab9e82855af060268bbdb4bc884031d",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 9,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-history-20261008/capture.json",
+      "bytes": 12850,
+      "sha256": "3338e0dedcf90f65ec3758af48507cfb8c5cee4c954e93e9aa518354a374fc75",
+      "git_blob_sha1": "78733d554eb078daac72a8d781deb3fdcead94c7",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/78733d554eb078daac72a8d781deb3fdcead94c7",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 10,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-history-20261008/historical-v2-report.json",
+      "bytes": 3472204,
+      "sha256": "3187e36259bc11fcd2c9063a6a4ba25987f1e1acca18a81a96aee87834b007d0",
+      "git_blob_sha1": "cc1e01b4a206180827c00922f68237472a940e91",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/cc1e01b4a206180827c00922f68237472a940e91",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 11,
+      "path": "docs/plans/workstreams/financasbot-pathv3-implementation-20261008.md",
+      "bytes": 4221,
+      "sha256": "dcb04aa4da411164b5e384f167b7b1e4e9df3de2837ca7a5b691e2c152a40a92",
+      "git_blob_sha1": "e1dd1635593c3d051858ba7fbdc9129f199543cb",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/e1dd1635593c3d051858ba7fbdc9129f199543cb",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 12,
+      "path": "package-lock.json",
+      "bytes": 165694,
+      "sha256": "465d94b1f7b7d9eb5f0b4535a96d02f5cfb1fe70d10d66fac31ec16c06645126",
+      "git_blob_sha1": "4822d038cd3b56f45979f8d7e2b97d456012e7c1",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/4822d038cd3b56f45979f8d7e2b97d456012e7c1",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 13,
+      "path": "package.json",
+      "bytes": 13709,
+      "sha256": "7873299481779f07cfbb76247fd7c5a895dacd5214ee79863baadd6b0b9d0205",
+      "git_blob_sha1": "e18db39c71d2d44f611b4b255da358bfc490910d",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/e18db39c71d2d44f611b4b255da358bfc490910d",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 14,
+      "path": "scripts/agent/analyzeSelectedEventDayExecutableClosure.mjs",
+      "bytes": 12410,
+      "sha256": "16bc2320946fc1e8eb5bbf9544b035a08f786a463f1a39c33f4e6e1eeb7838ad",
+      "git_blob_sha1": "e50d54814685f53edd51e6c5938509f978a592e5",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/e50d54814685f53edd51e6c5938509f978a592e5",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 15,
+      "path": "scripts/agent/buildSelectedEventDayDispatchCapsule.mjs",
+      "bytes": 3371,
+      "sha256": "8bb2e12b5b8cbc23bdb5f34bdf58f59ee0704040d80aa592860c5f4e0734a227",
+      "git_blob_sha1": "3b6b276115874a994ab8289c6d385d2b79fce059",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/3b6b276115874a994ab8289c6d385d2b79fce059",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 16,
+      "path": "scripts/agent/buildSelectedEventDayProofExecution.mjs",
+      "bytes": 23158,
+      "sha256": "3be5969923ac75101320ccd4f46c1ae99aa94b878200fccad1c3367b97019f0c",
+      "git_blob_sha1": "317b03f89e021a51f739603cb41d4ebe3075c379",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/317b03f89e021a51f739603cb41d4ebe3075c379",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 17,
+      "path": "scripts/agent/captureSelectedEventDayBuildRecipe.mjs",
+      "bytes": 6638,
+      "sha256": "2b8450e41ac804f398addce5c26f8334e61a3198bf3e03420fa5f99e464bd156",
+      "git_blob_sha1": "c1fb6343798d7a8e1ca13987f772af60c4c265d1",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/c1fb6343798d7a8e1ca13987f772af60c4c265d1",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 18,
+      "path": "scripts/agent/captureSelectedEventDayCompiler.mjs",
+      "bytes": 7125,
+      "sha256": "2cf1effe56422c14265670438d7d09fbabb458c641b18de26aa0957e4d4176a3",
+      "git_blob_sha1": "4473ab207de38d29517e0ee2df3ec854198f157e",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/4473ab207de38d29517e0ee2df3ec854198f157e",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 19,
+      "path": "scripts/agent/executeNextDomainInvariantMatrix.mjs",
+      "bytes": 7755,
+      "sha256": "61b5c65973589926a1fb66f36630008daefb38114658026baeae290a53fbf2fe",
+      "git_blob_sha1": "056dcfcbac03efc665f7d3cec4f574e8c9f6de91",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/056dcfcbac03efc665f7d3cec4f574e8c9f6de91",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 20,
+      "path": "scripts/agent/executeNextPredicateStrategyMatrix.mjs",
+      "bytes": 38077,
+      "sha256": "d92f2680d7b75c3ebec8e9fa0634b436ee583f0c600660d7767a8ed0fd01f32e",
+      "git_blob_sha1": "a69ce05dd6c2f9c37294e88f00cabd9959c0fcef",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/a69ce05dd6c2f9c37294e88f00cabd9959c0fcef",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 21,
+      "path": "scripts/agent/executePathAdmissionV2.mjs",
+      "bytes": 14102,
+      "sha256": "f97754ace807fc565dcc0a4f00b2cfbb55d5dc6fe428e198185ac6b7408c97de",
+      "git_blob_sha1": "de6fee8b163b1213295f25c4a786e7335163b225",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/de6fee8b163b1213295f25c4a786e7335163b225",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 22,
+      "path": "scripts/agent/executeSelectedEventDayCandidate.mjs",
+      "bytes": 17174,
+      "sha256": "d28e602be0a3357be89d1df8c9e1fd71ca837234f75eb2eb44e8e306e9e9e292",
+      "git_blob_sha1": "532662619678c3a66e0cce21a00b355aced70c1d",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/532662619678c3a66e0cce21a00b355aced70c1d",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 23,
+      "path": "scripts/agent/financasBotNext02ValidationPolicy.js",
+      "bytes": 8460,
+      "sha256": "9856be47eecc5bfaf02d7300190c62e766613be4b405bb60b2081e3e39ab84db",
+      "git_blob_sha1": "ce40cdac2b8c5df0c097abc31aa9d64ba9de9da7",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/ce40cdac2b8c5df0c097abc31aa9d64ba9de9da7",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 24,
+      "path": "scripts/agent/preparePathQualificationHistory.mjs",
+      "bytes": 3667,
+      "sha256": "26de466db0bcd9274c969681c0285396f04abfb7879efc764d33bbdb4192b84a",
+      "git_blob_sha1": "360104f0c37b237a03e24a43166cd2ca0b53d409",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/360104f0c37b237a03e24a43166cd2ca0b53d409",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 25,
+      "path": "scripts/agent/prepareSelectedEventDayAdmission.mjs",
+      "bytes": 11958,
+      "sha256": "00b537c3b5de23a8ace681a5d983d49e8f11afe1fd67e73dcafa0ee6e2cd09ee",
+      "git_blob_sha1": "c77123bd6f2bcb40ce1bb22fedd05f02caa239b5",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/c77123bd6f2bcb40ce1bb22fedd05f02caa239b5",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 26,
+      "path": "scripts/agent/prepareSelectedEventDayPacket.mjs",
+      "bytes": 3239,
+      "sha256": "c1b97dbd29714c53b2f7461e38cb3ef8fc1e0d4a7dcbdb761f4d4bd97b707573",
+      "git_blob_sha1": "a2cad2ec9cb0120b89b5eb8451ec6443941a300b",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/a2cad2ec9cb0120b89b5eb8451ec6443941a300b",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 27,
+      "path": "scripts/agent/sealSelectedEventDayOracle.mjs",
+      "bytes": 3597,
+      "sha256": "d8049f8f07153c58ef1bf0f9699a92bf842ffc4a4a82e640c813ae345c62e253",
+      "git_blob_sha1": "b761e4fdd5dccc07a4c1309595fbd97aeabf58a5",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/b761e4fdd5dccc07a4c1309595fbd97aeabf58a5",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 28,
+      "path": "scripts/agent/selectedEventDayProgramContract.mjs",
+      "bytes": 14597,
+      "sha256": "0ecee202f7380f29fee872d870957636b5c24f8ff8abe2f55c4d8a68edbc207b",
+      "git_blob_sha1": "cdf1f5f07c3b4523994ea42a484aa0e975488586",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/cdf1f5f07c3b4523994ea42a484aa0e975488586",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 29,
+      "path": "scripts/agent/selectedEventDayQualification.mjs",
+      "bytes": 7614,
+      "sha256": "0a48a786e2b25581f0e301fadfb1e8bfcb47e1ab74ab2f8c8cec5be2cb1adfb0",
+      "git_blob_sha1": "96807bc277889fd44e19d43c2532da8956b7966b",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/96807bc277889fd44e19d43c2532da8956b7966b",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 30,
+      "path": "src/next/provenance/causalRecorder.js",
+      "bytes": 3291,
+      "sha256": "838aa38083ead2e5301751b901435011e483c3ae31e485e346c468a88f84d491",
+      "git_blob_sha1": "fce502216f048d3866e610c8dc3db049bdb6ee58",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/fce502216f048d3866e610c8dc3db049bdb6ee58",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 31,
+      "path": "src/next/provenance/civilCalendar.js",
+      "bytes": 3345,
+      "sha256": "b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "git_blob_sha1": "c4096c4237760b0d80b8a62ac78ed4eef95576ba",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/c4096c4237760b0d80b8a62ac78ed4eef95576ba",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 32,
+      "path": "src/next/provenance/claimBinding.js",
+      "bytes": 14300,
+      "sha256": "0efce18cc72c601060e740319dc4be460a3e85a93578719de2734ea62d628885",
+      "git_blob_sha1": "f03875c6d8630321273383c049cdd12130258e4f",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/f03875c6d8630321273383c049cdd12130258e4f",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 33,
+      "path": "src/next/provenance/claimMonthIsolatedProfile.js",
+      "bytes": 3431,
+      "sha256": "10ea15eb5e2d84a3872926bd9d6255a429348de655ac778751a9c7859491bdcb",
+      "git_blob_sha1": "c1877c01e9eaed8ef2c43afd0522700ac4618430",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/c1877c01e9eaed8ef2c43afd0522700ac4618430",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 34,
+      "path": "src/next/provenance/claimMonthPathProfile.js",
+      "bytes": 6337,
+      "sha256": "3edc321974864e842c7bca5d1753feac0a23911cc65755cca682646673ffa664",
+      "git_blob_sha1": "37083a890ea4152fe0408f4e03335dff619d8c28",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/37083a890ea4152fe0408f4e03335dff619d8c28",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 35,
+      "path": "src/next/provenance/claimMonthProofConformance.js",
+      "bytes": 5123,
+      "sha256": "40c6cb9c1b2122447e5cdb1fa0da762a3adb39c1a6d474e7420d5cd5e3e36f37",
+      "git_blob_sha1": "aa5a03b5232d23d7fac3e4fb188116697de051e2",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/aa5a03b5232d23d7fac3e4fb188116697de051e2",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 36,
+      "path": "src/next/provenance/claimMonthTraceContract.js",
+      "bytes": 7669,
+      "sha256": "7fc3a01ccf8b195a0e473b7cf8e9ef50e7f698ca97cc6ad73d0090b482b7cf7c",
+      "git_blob_sha1": "7211038448899d9771c61ac18e3bdecc430ae679",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/7211038448899d9771c61ac18e3bdecc430ae679",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 37,
+      "path": "src/next/provenance/materialFingerprintCore.js",
+      "bytes": 2507,
+      "sha256": "7f0b50ffb0f0a6762f60f2c0b5101e5a9606e44f6241d7d40260e21e051c3d37",
+      "git_blob_sha1": "8e65fc55f3faac64074a56de897d5b161d27332c",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/8e65fc55f3faac64074a56de897d5b161d27332c",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 38,
+      "path": "src/next/provenance/mutationWitnesses.js",
+      "bytes": 60387,
+      "sha256": "433db7f58a7e79cd04e71cdac2491c498a15108df7f6544cd24c3def0a340f29",
+      "git_blob_sha1": "fd02094979124bfd2a893459f49c61d2e02a8ed7",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/fd02094979124bfd2a893459f49c61d2e02a8ed7",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 39,
+      "path": "src/next/provenance/packageContract.js",
+      "bytes": 4168,
+      "sha256": "bdb085d5a2502aebdfc7640f58d6319831812d83898034271ac3fd7ee373d00e",
+      "git_blob_sha1": "d51c64acc050df6d2902710b61006894c9e1d96d",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/d51c64acc050df6d2902710b61006894c9e1d96d",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 40,
+      "path": "src/next/provenance/phaseCompositionProfile.js",
+      "bytes": 5907,
+      "sha256": "adbaf56525ea86c67ce3885107144131e2abfd3030054dc05eba9af55ce4abb8",
+      "git_blob_sha1": "8a7aab2ae925cf1aa7d85c449ae9ff1e6cc72d88",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/8a7aab2ae925cf1aa7d85c449ae9ff1e6cc72d88",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 41,
+      "path": "src/next/provenance/phaseProgramIdentity.js",
+      "bytes": 806,
+      "sha256": "165723d79795a2b7960a9689842c38a51c6b1ffb0272c5f58afcd7ef353b1687",
+      "git_blob_sha1": "9994443d7984046dc1d221198094a26cadc0fd59",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/9994443d7984046dc1d221198094a26cadc0fd59",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 42,
+      "path": "src/next/provenance/pinnedCivilTimezone.js",
+      "bytes": 3297,
+      "sha256": "55dcb62295a7e314756fb36c3f0e45c0eb71273e494e223a81d08f74fad7756d",
+      "git_blob_sha1": "0d75c2e1ce50d5c514c966c6bcbfc9a7aa673dd3",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/0d75c2e1ce50d5c514c966c6bcbfc9a7aa673dd3",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 43,
+      "path": "src/next/provenance/selectedEventDayAdjudicator.js",
+      "bytes": 3837,
+      "sha256": "c7f9e99d32492f527db7cd22dae695284337737b68792361ba449dbd5634fda0",
+      "git_blob_sha1": "9f2179fd1a9fb6e41feb1f51399c4407a2f361f5",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/9f2179fd1a9fb6e41feb1f51399c4407a2f361f5",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 44,
+      "path": "src/next/provenance/selectedEventDayCoreComparison.js",
+      "bytes": 4906,
+      "sha256": "926afd33cfd567e39f1a22f173f7c7150a73ce455361bc877eefdee461b5ef8e",
+      "git_blob_sha1": "245814e0fb548b93b5f77759cff1462335829e9c",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/245814e0fb548b93b5f77759cff1462335829e9c",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 45,
+      "path": "src/next/provenance/selectedEventDayCoverage.js",
+      "bytes": 3335,
+      "sha256": "ab468e23f42c6a7b6b2356b5dedaa1143d8f2ef8d39c0275e86a465038ffeeb4",
+      "git_blob_sha1": "16c0b4e8d9c826826046513d205a1d3d93e687ea",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/16c0b4e8d9c826826046513d205a1d3d93e687ea",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 46,
+      "path": "src/next/provenance/selectedEventDayDerivationOperands.js",
+      "bytes": 2286,
+      "sha256": "ab0fe3d3fad4dacfc133d85f343564021ad15493ffaa3a7d50aba89247b1c395",
+      "git_blob_sha1": "0d215656f908e69dbda1703df28a949c996bad56",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/0d215656f908e69dbda1703df28a949c996bad56",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 47,
+      "path": "src/next/provenance/selectedEventDayDispatchCore.js",
+      "bytes": 8330,
+      "sha256": "c083464fff9aff3493a5df7d6bd6547efd483df6034358e4763de448bd1b1cc0",
+      "git_blob_sha1": "587730951dd03f89874897e9eb60524ca0f82f91",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/587730951dd03f89874897e9eb60524ca0f82f91",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 48,
+      "path": "src/next/provenance/selectedEventDayDispatcher.js",
+      "bytes": 1134,
+      "sha256": "c4ee665150a52cb93b2a208daab52504d4975b5a624916b40be748bb333f8b15",
+      "git_blob_sha1": "259820fa6b18518a27e746811aa74155c2794777",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/259820fa6b18518a27e746811aa74155c2794777",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 49,
+      "path": "src/next/provenance/selectedEventDayExecutionTicket.js",
+      "bytes": 12885,
+      "sha256": "523f4041bc5631458bfba07c50cf9dfb4071debdeff469d9677496907e9e9d99",
+      "git_blob_sha1": "5ae3c5ba3809a7d912ddcaefccde331fe55938b8",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/5ae3c5ba3809a7d912ddcaefccde331fe55938b8",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 50,
+      "path": "src/next/provenance/selectedEventDayIrContract.js",
+      "bytes": 8347,
+      "sha256": "207c9d5027e093a0885ec3490f29325f29f375917d4c0aff08196f17ec6fc64f",
+      "git_blob_sha1": "cf44cf27fa041200851402e2891ed64089f77be6",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/cf44cf27fa041200851402e2891ed64089f77be6",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 51,
+      "path": "src/next/provenance/selectedEventDayLauncher.js",
+      "bytes": 8522,
+      "sha256": "ab98cb161bddf27819014bc2fb66be86b0d0915b49e695c10b47761ede4deb18",
+      "git_blob_sha1": "2befe4c187ef1233e8f86e42c87cd6fcce3778d6",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/2befe4c187ef1233e8f86e42c87cd6fcce3778d6",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 52,
+      "path": "src/next/provenance/selectedEventDayOracle.js",
+      "bytes": 3512,
+      "sha256": "a4fdcd0285af0e78f876b6182f0178ade830307558013f2b97a3a8ccd8f3443f",
+      "git_blob_sha1": "61678b33ea8f587c98e571eb5de83b5d2a96afa2",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/61678b33ea8f587c98e571eb5de83b5d2a96afa2",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 53,
+      "path": "src/next/provenance/selectedEventDayPacket.js",
+      "bytes": 6435,
+      "sha256": "7c2c331a6236921ed602e0bb4dd3ec95fe25d3a9a3111fb5669e0f9ee7e7f18f",
+      "git_blob_sha1": "5424e495824249f1132c1b6803bec269bedab01f",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/5424e495824249f1132c1b6803bec269bedab01f",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 54,
+      "path": "src/next/provenance/selectedEventDayProfile.js",
+      "bytes": 28204,
+      "sha256": "bc3961335ea7b5a30025160350a3e930755c928c3de405dbeba3aeec079106ae",
+      "git_blob_sha1": "eba3757a999d8158a062ff287c660a6b9bee8390",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/eba3757a999d8158a062ff287c660a6b9bee8390",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 55,
+      "path": "src/next/provenance/selectedEventDayProofChild.cjs",
+      "bytes": 9402,
+      "sha256": "69f1a5385e95b83a1f3258a60bd191eae9bcef06cf3ebaa515f54ecd131610f6",
+      "git_blob_sha1": "13669ef81ac02497a95cba32a57f38150b6d48d2",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/13669ef81ac02497a95cba32a57f38150b6d48d2",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 56,
+      "path": "src/next/provenance/selectedEventDayProofHost.js",
+      "bytes": 9263,
+      "sha256": "098bc5ded69be29eb715598c0fcf0e4022a525ea1009b9d4012b33f0002ce9e7",
+      "git_blob_sha1": "bbe7581e727b2f5b89a6110cdaf29d81a05ec15f",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/bbe7581e727b2f5b89a6110cdaf29d81a05ec15f",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 57,
+      "path": "src/next/provenance/selectedEventDayProofOperands.js",
+      "bytes": 5139,
+      "sha256": "25e33bb96b1bdfa9118e9d46fd926663640f47e8d37a56309835a93a8ef572bf",
+      "git_blob_sha1": "3db887b34ded60651b55ec580190a93355bbe3a0",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/3db887b34ded60651b55ec580190a93355bbe3a0",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 58,
+      "path": "src/next/provenance/selectedEventDayProofProtocol.js",
+      "bytes": 1082,
+      "sha256": "6b7752a4edfe521b4a896ccd48a1bfae288c213f43c5e19194ec33d3a03b56c9",
+      "git_blob_sha1": "9829cd49fb1436d3cd6e7d403e0660b36b04ff8e",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/9829cd49fb1436d3cd6e7d403e0660b36b04ff8e",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 59,
+      "path": "src/next/provenance/selectionBindings.js",
+      "bytes": 9352,
+      "sha256": "dafa79661a2474ad05c2390c86adcf136dc8ac395d10a28a6a4d7deeccac9815",
+      "git_blob_sha1": "e168cbc02dbd2712702cf4b65bcbc9f18da5926d",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/e168cbc02dbd2712702cf4b65bcbc9f18da5926d",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 60,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/acorn/dist/acorn.js",
+      "bytes": 241575,
+      "sha256": "fdb08546776ec6228b03e8d02b40d4ab3255bae5f401adba7ff5dad927ac5c9c",
+      "git_blob_sha1": "cb5628bf83cf0bcb63514b797a38e0442c383ea8",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/cb5628bf83cf0bcb63514b797a38e0442c383ea8",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 61,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv-formats/dist/formats.js",
+      "bytes": 12263,
+      "sha256": "b61693a26869970a92cc1fe832c931ccd3afe8b6d66802b19c48306349e84880",
+      "git_blob_sha1": "cf01ed84529c9465e8e19f0f454c85acbc3d16ed",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/cf01ed84529c9465e8e19f0f454c85acbc3d16ed",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 62,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv-formats/dist/index.js",
+      "bytes": 1508,
+      "sha256": "3f3014150293846086d11058bb8bf43e669e354a98b37adcf10281454d5e753b",
+      "git_blob_sha1": "a3b71f91dd3dc738cdbdbe79aca2a373d9e645b4",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/a3b71f91dd3dc738cdbdbe79aca2a373d9e645b4",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 63,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv-formats/dist/limit.js",
+      "bytes": 2900,
+      "sha256": "ffc374031a55c3f6e39dc3fe69e663f8251b9d9d7ddb8f513a6807c985c18bb8",
+      "git_blob_sha1": "64979f839783feceddc0386cbe98ca97e8e39717",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/64979f839783feceddc0386cbe98ca97e8e39717",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 64,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/ajv.js",
+      "bytes": 2841,
+      "sha256": "edaed56fc546f5551b0d6dc2ff2a9cc25c2d6c83318a086eaa8c3ad0b2479297",
+      "git_blob_sha1": "8eecf1bea7979d28682960a45abb1af0e90e6708",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/8eecf1bea7979d28682960a45abb1af0e90e6708",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 65,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/codegen/code.js",
+      "bytes": 4676,
+      "sha256": "1287153722f1fc3c5342647de7ae1d7b6fb68bdb3378a0776a937d273fc97e0d",
+      "git_blob_sha1": "f9ea5259a70b0e2517885fe9504f8abb9603e7c6",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/f9ea5259a70b0e2517885fe9504f8abb9603e7c6",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 66,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/codegen/index.js",
+      "bytes": 23127,
+      "sha256": "f03b2b72597ef86878d1d4030580c2d0964046efad4867f3d05aa91065ba034c",
+      "git_blob_sha1": "a6c805af14539cf6180f2536992ce13a8a4d0615",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/a6c805af14539cf6180f2536992ce13a8a4d0615",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 67,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/codegen/scope.js",
+      "bytes": 5198,
+      "sha256": "d2a0a97af2faa2cad88702314fe421e235ab17f11e0d62883d58d8d4dc734286",
+      "git_blob_sha1": "4bc7794e3215d7b22edd0b43a7d5ee7d034d801b",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/4bc7794e3215d7b22edd0b43a7d5ee7d034d801b",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 68,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/errors.js",
+      "bytes": 5771,
+      "sha256": "53990f8f2cc05922bba410ae68231d3f869de4f8343277ede5b4834fa564c6c2",
+      "git_blob_sha1": "24d721d80e17418eaf298fbced2aac260ac7bb24",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/24d721d80e17418eaf298fbced2aac260ac7bb24",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 69,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/index.js",
+      "bytes": 10046,
+      "sha256": "05b34da22814f3787bfa3ac68dad59c9047f56e55a607e0a20719ebf5afe69ac",
+      "git_blob_sha1": "9e42a55880d77f51c4b21c92bee27a88b98cac4d",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/9e42a55880d77f51c4b21c92bee27a88b98cac4d",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 70,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/names.js",
+      "bytes": 1440,
+      "sha256": "3cab37a2240b996b9bed92fe7a041d91689cfe3ad2e9ae4c0ab99e4146408493",
+      "git_blob_sha1": "3bce5aaa9a63cdbdab5e10e3dc053fcccffede1b",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/3bce5aaa9a63cdbdab5e10e3dc053fcccffede1b",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 71,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/ref_error.js",
+      "bytes": 543,
+      "sha256": "81c98fdf34c3037c91bfcc02277ec32156c71e34048f36cfe4e084416e916cb7",
+      "git_blob_sha1": "3916dec8a369a8df657b94c9e79d41a588c805fe",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/3916dec8a369a8df657b94c9e79d41a588c805fe",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 72,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/resolve.js",
+      "bytes": 5006,
+      "sha256": "df75af0e0cf03fa1c6452e8dc61019f5aec645a8a5f6f494dc4e13cb5502d2d9",
+      "git_blob_sha1": "f12f968dc07d94a435186b32108551f4d429f23a",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/f12f968dc07d94a435186b32108551f4d429f23a",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 73,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/rules.js",
+      "bytes": 918,
+      "sha256": "ec1d86500f497aa8e20f9f0c1695951159d9a909669d00a261ce1bb22b3cf0a9",
+      "git_blob_sha1": "82a591ff4dbdd8cec80b533c6df9854403162f29",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/82a591ff4dbdd8cec80b533c6df9854403162f29",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 74,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/util.js",
+      "bytes": 7103,
+      "sha256": "fa911f5631f29d4d6420adfe086cb693b94b08de2719475c78c54bcb82f831a5",
+      "git_blob_sha1": "73c87c854d2a8f61483e7a15ba186f81e72d1bc4",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/73c87c854d2a8f61483e7a15ba186f81e72d1bc4",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 75,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/validate/applicability.js",
+      "bytes": 853,
+      "sha256": "50c5cba5894a7fb9874b3432355b46ec71b73c9368dafb1323ded8567cca8fc0",
+      "git_blob_sha1": "6187dbbeeebb3f9a1b3f74cba4b669685a6d49f0",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/6187dbbeeebb3f9a1b3f74cba4b669685a6d49f0",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 76,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/validate/boolSchema.js",
+      "bytes": 1531,
+      "sha256": "c08abdbdbd3d8b1dcc0552a20fbc7d837ed44f4ca6abb2e464985590ac94377f",
+      "git_blob_sha1": "8eeb7b5eee3d137c0f85b4a9405bca8181e60f19",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/8eeb7b5eee3d137c0f85b4a9405bca8181e60f19",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 77,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/validate/dataType.js",
+      "bytes": 8409,
+      "sha256": "697bd7005361ec7066a23c18830a10b0ef28aec1a33138b4e3098bf78c4fae52",
+      "git_blob_sha1": "6d03e0dc0ee4b009c075f037940dbe7b41004c90",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/6d03e0dc0ee4b009c075f037940dbe7b41004c90",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 78,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/validate/defaults.js",
+      "bytes": 1448,
+      "sha256": "05721971df94faa57b09c8cfd60c2eef81b6d14910a7dea5f539d693a029c428",
+      "git_blob_sha1": "cd9c42d9aa4a49adda2c844d2e1f9386e626399e",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/cd9c42d9aa4a49adda2c844d2e1f9386e626399e",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 79,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/validate/index.js",
+      "bytes": 20552,
+      "sha256": "cb2103e5f890e04592c10d24b45857dad91155bae9f9460138a2459bdaaea2cd",
+      "git_blob_sha1": "0d683322abf18fc5b418bf776dc53f00a49e00ed",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/0d683322abf18fc5b418bf776dc53f00a49e00ed",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 80,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/validate/keyword.js",
+      "bytes": 5695,
+      "sha256": "ab8f070c75c25eee9be5c837f364748909b58f5db66149a2beccbd2f66afeb76",
+      "git_blob_sha1": "1109d3a4519ead22d62104f47151377d5f78299c",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/1109d3a4519ead22d62104f47151377d5f78299c",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 81,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/validate/subschema.js",
+      "bytes": 3858,
+      "sha256": "ca783d6052af91e65ebb59a5b48b47fb459a2241d37ca6a042f767d4ce451bdc",
+      "git_blob_sha1": "9de2828690d6c41170d734c66b1a214cb0b9925c",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/9de2828690d6c41170d734c66b1a214cb0b9925c",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 82,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/core.js",
+      "bytes": 25185,
+      "sha256": "7fdd03e949ecb3d020e560f669da71ce69a70f4bca28e5aff2ebc34d15bc2134",
+      "git_blob_sha1": "7e30c83af91b622a2740478f5624531660c4ed83",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/7e30c83af91b622a2740478f5624531660c4ed83",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 83,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/refs/data.json",
+      "bytes": 409,
+      "sha256": "d24ab8a97c18b3f5afdde7d7024a0e0ac1df0614a16a41cb88f81379edcc2db3",
+      "git_blob_sha1": "9ffc9f5ce05484799308bc4c78fd3a8822e9af53",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/9ffc9f5ce05484799308bc4c78fd3a8822e9af53",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 84,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/refs/json-schema-draft-07.json",
+      "bytes": 3811,
+      "sha256": "f7e8b13cad4fecff9771f3626fef33e20e59027b90938a28fd9d2f6c17cd0773",
+      "git_blob_sha1": "6a74851043623c67cbe2e1cd206da447aff752c3",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/6a74851043623c67cbe2e1cd206da447aff752c3",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 85,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/runtime/equal.js",
+      "bytes": 286,
+      "sha256": "c94467da09ee94e5d194483a7ab821b9bb3bf1c04397270f2ab53dea9de59274",
+      "git_blob_sha1": "774bba05af0aad577fa2a92dc37a0456cce1a318",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/774bba05af0aad577fa2a92dc37a0456cce1a318",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 86,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/runtime/ucs2length.js",
+      "bytes": 808,
+      "sha256": "1df012dd3d23fced07255a7204798004509687cb1f431ae0ab976db436bbd890",
+      "git_blob_sha1": "92ea0c08a2e4de486bfc52a3807c6c258b63b725",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/92ea0c08a2e4de486bfc52a3807c6c258b63b725",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 87,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/runtime/uri.js",
+      "bytes": 218,
+      "sha256": "d1d61baf97ed87d7310df847a78ed73d19c8cc003207bf5aaec977500bdb1578",
+      "git_blob_sha1": "bbd2f05244d65c1f0e5bfe0f2dc2a71ab2348a9c",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/bbd2f05244d65c1f0e5bfe0f2dc2a71ab2348a9c",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 88,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/runtime/validation_error.js",
+      "bytes": 337,
+      "sha256": "11bf5b4affc8114e5e7cdf65b93006c2d997ab60ada1152c22e136f9b828b815",
+      "git_blob_sha1": "353502c089d058921f7cb0723541ccbfa42d45b9",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/353502c089d058921f7cb0723541ccbfa42d45b9",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 89,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/standalone/index.js",
+      "bytes": 4480,
+      "sha256": "361d58a7523548bb1b9c782135fae27e76d93c8feaba8c4d613331dbcd3b888f",
+      "git_blob_sha1": "b44bb5db5c25b72748e6304e15ac588d3e4562a5",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/b44bb5db5c25b72748e6304e15ac588d3e4562a5",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 90,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/additionalItems.js",
+      "bytes": 1931,
+      "sha256": "7beb0fbda5e349907067c8398bb8cc3260a6267b6e5dff9793a5ab2171934099",
+      "git_blob_sha1": "608d51eb6a0b21cb29bca281e8259933c1d867b1",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/608d51eb6a0b21cb29bca281e8259933c1d867b1",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 91,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/additionalProperties.js",
+      "bytes": 4309,
+      "sha256": "e237cb180cd2e3f2e676feb714d7dcc6a42116640f9db2ad830cd20d9dfc540a",
+      "git_blob_sha1": "1d3374bb7650abeaa5037f7495cc14e141e89a39",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/1d3374bb7650abeaa5037f7495cc14e141e89a39",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 92,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/allOf.js",
+      "bytes": 756,
+      "sha256": "98f46a6434ebe5f851b406480e18b776dd7f1bcc275e28c16a13bfef3cc067c7",
+      "git_blob_sha1": "1b1ae737611479c5f3ce00300629a91810658bbc",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/1b1ae737611479c5f3ce00300629a91810658bbc",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 93,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/anyOf.js",
+      "bytes": 343,
+      "sha256": "8d7368d4aebad0514b713191b934993b4f0bf570e1bab93b07dc69712db2cec5",
+      "git_blob_sha1": "66cfce2cc573f7158a165643694e0c89f1794a2c",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/66cfce2cc573f7158a165643694e0c89f1794a2c",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 94,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/contains.js",
+      "bytes": 3680,
+      "sha256": "56165dc93cd8b0b4611db50a97f1e7d7f9af6c5ffe95a7a5b054d6eeaa7f6a8c",
+      "git_blob_sha1": "6c5473f5d9b486b774494033b97978b3c42ca0d4",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/6c5473f5d9b486b774494033b97978b3c42ca0d4",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 95,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/dependencies.js",
+      "bytes": 3198,
+      "sha256": "c1a83bf484b6fde4d268935f079ddba5e74a2f589dfc6d15ca2e20ba4d06ee5b",
+      "git_blob_sha1": "e81f86d1d9e25ef44ff6f096e1a9238a6f05b38e",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/e81f86d1d9e25ef44ff6f096e1a9238a6f05b38e",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 96,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/if.js",
+      "bytes": 2438,
+      "sha256": "42374ee5dc681433579cc689b0c4ae5343f5bf78d4d6a561722b9277c5335ec4",
+      "git_blob_sha1": "2c42a3e9c56e0801c71681c38fcf0823c4e2d251",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/2c42a3e9c56e0801c71681c38fcf0823c4e2d251",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 97,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/index.js",
+      "bytes": 1529,
+      "sha256": "5a61978f6d81bbabfa8b9ccb71d7de816ed6dd1fd7de5c72657439a76c2a7cb3",
+      "git_blob_sha1": "cf592f2795ef281098834ec11f21634bc3b75a13",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/cf592f2795ef281098834ec11f21634bc3b75a13",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 98,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/items.js",
+      "bytes": 1993,
+      "sha256": "fa87f74adc3aac1f1b5e3e7dddf73294e6850e1dd49ed131fca4352e9645c54e",
+      "git_blob_sha1": "26f527bc69d233b0ae732531a73383191c2318d7",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/26f527bc69d233b0ae732531a73383191c2318d7",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 99,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/items2020.js",
+      "bytes": 1037,
+      "sha256": "c449ef64aec16263c7935293ed450cfc2da3ba66f6df5f99c3198c05f169838f",
+      "git_blob_sha1": "f2387d7d206f67c44532ae1179e20c714db9f96a",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/f2387d7d206f67c44532ae1179e20c714db9f96a",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 100,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/not.js",
+      "bytes": 773,
+      "sha256": "ab2f2758d4ea97ac8763fe5540dd0f4d877859676fe5d6c750a18deca387f718",
+      "git_blob_sha1": "89f6fddacf261c7ddb4a40094040239dba77b060",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/89f6fddacf261c7ddb4a40094040239dba77b060",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 101,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/oneOf.js",
+      "bytes": 2257,
+      "sha256": "e2aeb6c22d49fd5f348bedcf7f5c4d7b31f5a05dd7ff1a0c531374c6968792a2",
+      "git_blob_sha1": "441db2ac0b178f6297de1fbf85a4d0c1cd79a90e",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/441db2ac0b178f6297de1fbf85a4d0c1cd79a90e",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 102,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/patternProperties.js",
+      "bytes": 3236,
+      "sha256": "0d43da49a82452c439ba990de7372ad5cedb663717918a5f6dae07025abff655",
+      "git_blob_sha1": "48501c6e33e3c492b927ecfc02fb990651ab1b3d",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/48501c6e33e3c492b927ecfc02fb990651ab1b3d",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 103,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/prefixItems.js",
+      "bytes": 354,
+      "sha256": "16264f7b3233a6dcb98b48700643efbd3ebc4d11e27b3eacffc83ccb5f44fb23",
+      "git_blob_sha1": "727bc23ce0a575ca888c53fc3094e50eb3c74af7",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/727bc23ce0a575ca888c53fc3094e50eb3c74af7",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 104,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/properties.js",
+      "bytes": 2153,
+      "sha256": "c896873ae7251093a2c8880545b69b6e8cb55c44817a53ec830a49818d74104f",
+      "git_blob_sha1": "7347358e29e2f7e6cb7c5f27d6bd381e03fb7c7b",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/7347358e29e2f7e6cb7c5f27d6bd381e03fb7c7b",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 105,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/propertyNames.js",
+      "bytes": 1221,
+      "sha256": "b3411cfeaff8efd5e6de12971bb5dc339e64b61fbe62d3b950794c077315c2e7",
+      "git_blob_sha1": "f3871152de3cee3702b476e823569e324b50b237",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/f3871152de3cee3702b476e823569e324b50b237",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 106,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/thenElse.js",
+      "bytes": 446,
+      "sha256": "9bc42eb8699d57188a7ec2a710d3f38052f92bd78c5d4d0442cf98cf2ebbe22d",
+      "git_blob_sha1": "1ae6390215cdd6091eb76c82df786e15950dbb47",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/1ae6390215cdd6091eb76c82df786e15950dbb47",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 107,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/code.js",
+      "bytes": 6216,
+      "sha256": "9212ddf8bd0a4c3b1c4b44cdadd141183b2b36f561b91d13df53c83911e3bf63",
+      "git_blob_sha1": "8cb899324c1ab57aab07a1cda647f609b47a30a6",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/8cb899324c1ab57aab07a1cda647f609b47a30a6",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 108,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/core/id.js",
+      "bytes": 267,
+      "sha256": "49c8eff694ce4371450c1f9986e934fcbf4bd143311caef5332113f29175bc11",
+      "git_blob_sha1": "313598aab87eb681dad117567c6ce375839c797f",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/313598aab87eb681dad117567c6ce375839c797f",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 109,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/core/index.js",
+      "bytes": 357,
+      "sha256": "f420e1011b95e27b54c58323a7ed4ffbd0a88cdb4496f771bb6782c2aa22d23e",
+      "git_blob_sha1": "87656d7436f4ff9bf4d366a4762a5e3b5845ed96",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/87656d7436f4ff9bf4d366a4762a5e3b5845ed96",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 110,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/core/ref.js",
+      "bytes": 5234,
+      "sha256": "1422c1454b3621d890066042048f37746fe1cf213088307099816199889bbfd1",
+      "git_blob_sha1": "bac1ae853fc0ae14da87693976bb3f205dd0df22",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/bac1ae853fc0ae14da87693976bb3f205dd0df22",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 111,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/discriminator/index.js",
+      "bytes": 4845,
+      "sha256": "b58b58025d2dbe5a6967376faec9295b860a338664c47037e9a1035c1e8fb88e",
+      "git_blob_sha1": "e113aed7015c2ab1170fd9b337ce36750269c79a",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/e113aed7015c2ab1170fd9b337ce36750269c79a",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 112,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/discriminator/types.js",
+      "bytes": 308,
+      "sha256": "2365341d1f30dc72cece7703e908e47aacb8f904b9f66ec4019fe889ae1e57fa",
+      "git_blob_sha1": "edf4da5ed1b1fa767be171113574e5354342b485",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/edf4da5ed1b1fa767be171113574e5354342b485",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 113,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/draft7.js",
+      "bytes": 557,
+      "sha256": "8c62022c6c3aa302c3ea6f6709a697fc9eb6385d243fa7c2156dbe9f02228170",
+      "git_blob_sha1": "1e993de0ecea2f52dd26d0d9273cdccf0bc0de91",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/1e993de0ecea2f52dd26d0d9273cdccf0bc0de91",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 114,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/format/format.js",
+      "bytes": 4317,
+      "sha256": "6fae0d5124fd821b1a9959492f7d6d7b528bee8830d49a7a4759fc9a9ab81d5f",
+      "git_blob_sha1": "aa667c1ef13ead4b14f523464fed67cf6f2eb04e",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/aa667c1ef13ead4b14f523464fed67cf6f2eb04e",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 115,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/format/index.js",
+      "bytes": 209,
+      "sha256": "d5dad5f95c9c5f48f8ca956cdbb927aafc7b56baabfca8c0b0403d92c5ebeb67",
+      "git_blob_sha1": "d19023d24525c8826c752d69833e0681be48f75f",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/d19023d24525c8826c752d69833e0681be48f75f",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 116,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/metadata.js",
+      "bytes": 427,
+      "sha256": "45c178744a7ec57e20c85ceeaea8d9f36b5663636ab7e495ea2c3c1bf4a58609",
+      "git_blob_sha1": "f07bf28b5a0e6c26a13ac290c85271f12b3357ee",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/f07bf28b5a0e6c26a13ac290c85271f12b3357ee",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 117,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/const.js",
+      "bytes": 852,
+      "sha256": "ace994e9ab97a70899a9484794794f4be5ee03bfb3cf32242d3f091d77f0329a",
+      "git_blob_sha1": "9564496a658fc6a46552d174984446d8c79fc1db",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/9564496a658fc6a46552d174984446d8c79fc1db",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 118,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/enum.js",
+      "bytes": 1901,
+      "sha256": "61062b318a40eb52fc5a8283e7f4781db98349841744961ef4fe04a4722ebf22",
+      "git_blob_sha1": "eab6487e991d78f9e01839b4ac5655f61af171f6",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/eab6487e991d78f9e01839b4ac5655f61af171f6",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 119,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/index.js",
+      "bytes": 1036,
+      "sha256": "4a1839832de5f10ff423c1c0c6cb232b5b6e1b34980a28862cf56b2763136de4",
+      "git_blob_sha1": "7b56b4e45359da1f1d087455b2c7133cf048815b",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/7b56b4e45359da1f1d087455b2c7133cf048815b",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 120,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/limitItems.js",
+      "bytes": 852,
+      "sha256": "49f0427d29b38aef2fa8aead26e68bda12deb9a2da22f7a7804ba0fed44e1fec",
+      "git_blob_sha1": "e1386f887cc8a9030999fd4856e92a2962977b58",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/e1386f887cc8a9030999fd4856e92a2962977b58",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 121,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/limitLength.js",
+      "bytes": 1130,
+      "sha256": "379c28317faaf7784680b6049c3562692d3df6d65cce33f48e6c6c723beeeec2",
+      "git_blob_sha1": "6ae5f92e67f1a3ee61aec3274ad5b8ed2f6805f2",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/6ae5f92e67f1a3ee61aec3274ad5b8ed2f6805f2",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 122,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/limitNumber.js",
+      "bytes": 1036,
+      "sha256": "3dd4bd41dbfc76c522078ff54b6479683485c4e97faa04cfcfaf2d8cb0fb8e65",
+      "git_blob_sha1": "a97c0eb9db77364f65e61d65cbb3e1a17894b594",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/a97c0eb9db77364f65e61d65cbb3e1a17894b594",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 123,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/limitProperties.js",
+      "bytes": 896,
+      "sha256": "8523a3f7b36c34882ca32b0ec71a2157d7930907cb86b778a97c1514fa6258ac",
+      "git_blob_sha1": "e6fc40cc671989d969022da4f0ce3f37609c4e88",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/e6fc40cc671989d969022da4f0ce3f37609c4e88",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 124,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/multipleOf.js",
+      "bytes": 1023,
+      "sha256": "df128c2a6ca74ae57c65fbfe3aea8a101447a3ae8c41fd53cfc5693fa23cc8bd",
+      "git_blob_sha1": "43cf67b77bf109a60603d57e3e0bbffc816b23b5",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/43cf67b77bf109a60603d57e3e0bbffc816b23b5",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 125,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/pattern.js",
+      "bytes": 905,
+      "sha256": "592f7966bb9dea6256dc8c0242ab9e05cdfef2b1d6dd27ef478c7a20c9a0471b",
+      "git_blob_sha1": "f8ccdf295021293823614c88977e2e5708e8f601",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/f8ccdf295021293823614c88977e2e5708e8f601",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 126,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/required.js",
+      "bytes": 3188,
+      "sha256": "b953bc18d94274bd73374dd5b4282d7a21159cec8c0e7a357e1eaf3f326b9054",
+      "git_blob_sha1": "1d8e29263f3b5cd1fe7ce1c58a2007f86c82da1a",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/1d8e29263f3b5cd1fe7ce1c58a2007f86c82da1a",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 127,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/uniqueItems.js",
+      "bytes": 3037,
+      "sha256": "666d1a2aa25c0dfe3cf41312d0f9d40e9f99eb2c19be7469134ad89005aadd52",
+      "git_blob_sha1": "cdbecea1225ee860e40f428cc54d089cb7295a91",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/cdbecea1225ee860e40f428cc54d089cb7295a91",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 128,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/fast-deep-equal/index.js",
+      "bytes": 1177,
+      "sha256": "eb469e206280321a3878f2335ec98aa2104a155079d8ed83a23029098dccd215",
+      "git_blob_sha1": "30dd1ba78cb4989e67a32295b3ca1fd9baaa6c96",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/30dd1ba78cb4989e67a32295b3ca1fd9baaa6c96",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 129,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/fast-uri/index.js",
+      "bytes": 22061,
+      "sha256": "e82d3e55d954483e4927f9740bc3113a24d19ef5a73c7962d8a93c499fc982ff",
+      "git_blob_sha1": "af921d3fdd23a54a79e52d6bd430d4bf2bd135c6",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/af921d3fdd23a54a79e52d6bd430d4bf2bd135c6",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 130,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/fast-uri/lib/schemes.js",
+      "bytes": 7367,
+      "sha256": "c2c61d3fd0bc63a587100928a399e75be8c420d210c439d75f7346da4aa4f3c3",
+      "git_blob_sha1": "94e574d3fc508c1654776169e4e73d1bfca02139",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/94e574d3fc508c1654776169e4e73d1bfca02139",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 131,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/fast-uri/lib/utils.js",
+      "bytes": 20835,
+      "sha256": "610a6cfa7b1c9d5689443b3a3d14af4c24afed51ef5852495ae1489ae455a9f4",
+      "git_blob_sha1": "6353b0b02529c0ddbc8a0bd700e27918fc7f04af",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/6353b0b02529c0ddbc8a0bd700e27918fc7f04af",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 132,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/json-schema-traverse/index.js",
+      "bytes": 2428,
+      "sha256": "024191b747afac01b28ff11d744e9f82720bbad5f716163ba5c962eb62aa2350",
+      "git_blob_sha1": "e521bfa858a7eed886a3c6f9a26a5479a981401f",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/e521bfa858a7eed886a3c6f9a26a5479a981401f",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 133,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ses/dist/ses.cjs",
+      "bytes": 519237,
+      "sha256": "1e40a59ccf5e72da8e260dda007a19ebd20304394b1b7288d0aab21733b9cd95",
+      "git_blob_sha1": "c10f41b6a6a1bfb63032ebe523063dade9048409",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/c10f41b6a6a1bfb63032ebe523063dade9048409",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 134,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/acorn/LICENSE",
+      "bytes": 1099,
+      "sha256": "76a876cf886ff9be2a8b5e2e86514fed06223c8c9f0c1e9ee9606e93841e00b7",
+      "git_blob_sha1": "9d71cc63a35e7d878787e5159b5b163739486220",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/9d71cc63a35e7d878787e5159b5b163739486220",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 135,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/LICENSE",
+      "bytes": 1090,
+      "sha256": "a05350a88e318e4f5f2c2a1ff1e2e88daa4dd38e6e78b71cccae422bdc762cc3",
+      "git_blob_sha1": "139162ad2c389a18d3d66e159a2821b2e40087fc",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/139162ad2c389a18d3d66e159a2821b2e40087fc",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 136,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv-formats/LICENSE",
+      "bytes": 1074,
+      "sha256": "9df3bb69929a3b650ed73b3bfa1756725aaff0ac296461605753547004eafeaf",
+      "git_blob_sha1": "a3f8ba0278836d0d02b845aec548a21db114e984",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/a3f8ba0278836d0d02b845aec548a21db114e984",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 137,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/fast-deep-equal/LICENSE",
+      "bytes": 1074,
+      "sha256": "7bf9b2de73a6b356761c948d0e9eeb4be6c1270bd04c79cd489c1e400ffdfc1a",
+      "git_blob_sha1": "7f1543566f6abbbf75914db32651cf89919cabed",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/7f1543566f6abbbf75914db32651cf89919cabed",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 138,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/fast-uri/LICENSE",
+      "bytes": 1813,
+      "sha256": "b010b0dfdfdb23d7396e03b82cd4621fc9bb8f95d6b0aea70b9c24e12074c786",
+      "git_blob_sha1": "9c93c1c0e5c1861b77da95d4cfb96504768285bc",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/9c93c1c0e5c1861b77da95d4cfb96504768285bc",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 139,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/json-schema-traverse/LICENSE",
+      "bytes": 1074,
+      "sha256": "7bf9b2de73a6b356761c948d0e9eeb4be6c1270bd04c79cd489c1e400ffdfc1a",
+      "git_blob_sha1": "7f1543566f6abbbf75914db32651cf89919cabed",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/7f1543566f6abbbf75914db32651cf89919cabed",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 140,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ses/LICENSE",
+      "bytes": 11347,
+      "sha256": "597e83726ebc5d154b9c2e4259a35fefa9c054304829b8b5d32190b79d8f27a1",
+      "git_blob_sha1": "d0d0455f5ddd7c7c2dbe7e1a6646e922ca574bd8",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/d0d0455f5ddd7c7c2dbe7e1a6646e922ca574bd8",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 141,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ses/LICENSE-aura",
+      "bytes": 646,
+      "sha256": "0c40d2bf25ddfd79e7e5dc36b2828355cf93106d1d9eb367a0b11af09064a421",
+      "git_blob_sha1": "6d9169999993ab1d4d2b05a5b1b4ff81ae55a5b7",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/6d9169999993ab1d4d2b05a5b1b4ff81ae55a5b7",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 142,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ses/LICENSE-caja",
+      "bytes": 562,
+      "sha256": "450e14ef079ae98aceb82086dbed42f638c49249eef83289ffdcf84545cb8e2d",
+      "git_blob_sha1": "d215e03b166e125f32a64885bad3679615ee8929",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/d215e03b166e125f32a64885bad3679615ee8929",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 143,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ses/LICENSE-corejs",
+      "bytes": 1064,
+      "sha256": "816ef443abfd73df4d8da0b8027ef16705afdef321fb810a5c9c766ca7bc0327",
+      "git_blob_sha1": "44ff6d0ea1d751f86c24889d7c6500d4f23aec11",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/44ff6d0ea1d751f86c24889d7c6500d4f23aec11",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 144,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ses/LICENSE-v8",
+      "bytes": 1463,
+      "sha256": "7d1e91adf59b9d0ec6f8f86b6b519206d5df59ef4dfff8f070fe14c28e802a6f",
+      "git_blob_sha1": "d9c4895e22b07d71a610d096f20ee1485f6193fc",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/d9c4895e22b07d71a610d096f20ee1485f6193fc",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 145,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/normal-rule-review-snapshot.json",
+      "bytes": 579162,
+      "sha256": "247e948fec72ef6370fc7c74314b341ad7a4f61d8a20f244d5515cc995414748",
+      "git_blob_sha1": "25f4c091e7d3daad9f0c1006d45a8a6bbbc1eea1",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/25f4c091e7d3daad9f0c1006d45a8a6bbbc1eea1",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 146,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/compiler-manifest.json",
+      "bytes": 442,
+      "sha256": "c529c09bf0b3fe02bf315f6fad19e4e46a2141c2337f5faed8b76a68ba543921",
+      "git_blob_sha1": "ca3ebccb2d1875234cb62fb70536d6fc396e4864",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/ca3ebccb2d1875234cb62fb70536d6fc396e4864",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 147,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/path-qualification-compiler-recipe.json",
+      "bytes": 276716,
+      "sha256": "5404208701a79b6940067612b07ba4e95b612dfc00f3d008bfd4037bf8aa4b9e",
+      "git_blob_sha1": "40910cf554cb47a956f6970d26d168ccd1a0abd7",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/40910cf554cb47a956f6970d26d168ccd1a0abd7",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 148,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/path-qualification-compiler.js",
+      "bytes": 1445999,
+      "sha256": "4888cfbe33ce324220c4a2438be305214d0e57cdc03fb116384f05d3256e0b00",
+      "git_blob_sha1": "fe23959fb9379b10106815afa00d2641dc24e846",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/fe23959fb9379b10106815afa00d2641dc24e846",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 149,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/validation-tcb-manifest.json",
+      "bytes": 683,
+      "sha256": "00498cfb57f61b8f56946166308d106cab141012be850e4bd68a4771bca9acb1",
+      "git_blob_sha1": "3da90c074c43762007dd5cfd82c2428d465b0f5b",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/3da90c074c43762007dd5cfd82c2428d465b0f5b",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 150,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/child-bootstrap.js",
+      "bytes": 639971,
+      "sha256": "97413ddff2e9fd8a1c5368a96aed2a3000401476da2ce9b795631958dc8c0a92",
+      "git_blob_sha1": "b9ab10bbbd5ddc70a2fcf61ea7a04c0edf4c65cb",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/b9ab10bbbd5ddc70a2fcf61ea7a04c0edf4c65cb",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 151,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/host-bootstrap.js",
+      "bytes": 1445695,
+      "sha256": "da1ca7194b2db4e19dcf5a06c9e43009e014331f78f51727e177249bef3e8251",
+      "git_blob_sha1": "77b492b5986b8d987dc946a730894080a9ea7883",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/77b492b5986b8d987dc946a730894080a9ea7883",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 152,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/launcher-bootstrap.js",
+      "bytes": 33890,
+      "sha256": "2f8a10d658d5748cdbcdbbad79abb4dd29c3364816d6f4504e219682429e4119",
+      "git_blob_sha1": "705ab3896f5e515fe19fd732e6a6c5c8e5b392a9",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/705ab3896f5e515fe19fd732e6a6c5c8e5b392a9",
+      "chunk_transport_available": false
+    },
+    {
+      "index": 153,
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/recipe.json",
+      "bytes": 276716,
+      "sha256": "5404208701a79b6940067612b07ba4e95b612dfc00f3d008bfd4037bf8aa4b9e",
+      "git_blob_sha1": "40910cf554cb47a956f6970d26d168ccd1a0abd7",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/40910cf554cb47a956f6970d26d168ccd1a0abd7",
+      "chunk_transport_available": false
+    }
+  ],
+  "transport_evidence": {
+    "raw_dependencies_1094138_bytes": "HTTP400_file_too_large_or_unsupported",
+    "blob_dependencies_1094138_bytes": "complete_returned_and_SHA256_matched",
+    "blob_history_3472204_bytes": "complete_returned_and_SHA256_matched",
+    "blob_authorship_4954513_bytes": "Transport_closed",
+    "blob_inventory_10931712_bytes": "Transport_closed",
+    "exact_size_threshold_not_inferred": true,
+    "not_semantic_approval": true
+  },
+  "existing_volume_blob_APIs": {
+    "dependencies": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/eff18c670db7d40337e80ce73f38a70440be581f",
+    "project": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/1d8093756f1eebcc07ffffd2e299d56be392fb26",
+    "generated": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/68f2485de7682f1eadb21fcb7130be2b0e08e34b",
+    "decomposition": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/a913535bbf66c27ee074a9e2f5ef78161a723e87",
+    "data_navigation": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/8caac3bc89b1e890d33f954db8c705521d778ec2"
+  },
+  "code_changed": false,
+  "raw_data_changed": false,
+  "new_snapshot": false,
+  "historical_credit_transferred": false,
+  "all_D_units_review_complete": false,
+  "qualified": false,
+  "credit": 0,
+  "execution_permitted": false,
+  "exit": "one_full_D153_review_using_complete_sources_then_one_integrated_verdict_not_sum_or_hash_certificate"
+}
