@@ -1,0 +1,473 @@
+{
+  "format": "financasbot.independent-frontier-review-receipt",
+  "version": 1,
+  "delivery_commit": "cc06e798284f2c19cd7cda962379d5a0c46c4d99",
+  "code_commit": "cf6e43cbaa7c378f2b64590c50d0818700a3bdd0",
+  "frontier": "C_internal_TCB_tests_harness",
+  "verdict": "APTO_SOMENTE_C",
+  "review_kind": "independent_static_conditional_claims_not_operational_qualification",
+  "complete_unit_count": 34,
+  "units": [
+    {
+      "path": "scripts/agent/buildNextMetricArtifacts.mjs",
+      "sha256": "5ce85a2c284946b37b33820fbc1722140515a196a7f93544e4a5fd2e478a906c",
+      "git_blob_sha1": "cbd21563e381c6e974701415c461863e45070a54",
+      "bytes": 9866,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        164
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "scripts/agent/buildNextProvenanceArtifacts.mjs",
+      "sha256": "a563450252a995a0a35d83dc921c8af931bcb330c642e6de7a92857cd3a2fb2b",
+      "git_blob_sha1": "e6019ce7b832ff2b37311ad6562aea4a79296f1b",
+      "bytes": 13450,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        218
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "scripts/agent/buildNextValidationTcb.mjs",
+      "sha256": "05fc2d65d7c44f42ea889720e992a95a57b2a24d270c36485ac0de9b3f9464b7",
+      "git_blob_sha1": "23eaa5244bb0dfe10d1443214b00c8480eba2a20",
+      "bytes": 7279,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        83
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "scripts/agent/capturePathQualificationCompiler.mjs",
+      "sha256": "486f0154003e71c0284887a3c9735c1f2896fd84134a3667d99edc8586085611",
+      "git_blob_sha1": "37f8bbfef08ed5f960b5c61b4e21d489401bd418",
+      "bytes": 52261,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        661
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "src/next/provenance/artifactLoader.js",
+      "sha256": "24d108c16a30e03d96e826da64e94c1ada9a9ef8d4a9edef8e20411dd9a0099f",
+      "git_blob_sha1": "3f1c9fe8fde55f294ef4e0d1b872fe07676c8fcb",
+      "bytes": 6689,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        138
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "src/next/provenance/capturedTcbLauncher.js",
+      "sha256": "bab76b97d53a368f08dfd24d74041d3a760819a229dd1bf432fb5d9a8f758141",
+      "git_blob_sha1": "95a5e62588d02b129e77e32d4d8ccff4183b395b",
+      "bytes": 6744,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        95
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "src/next/provenance/executionHost.js",
+      "sha256": "2e43e4568233e658bdb1e9ec4ca9360b9d3234b42d7811dbfd4907be73c0589f",
+      "git_blob_sha1": "ab2a51a6c297f420fbd4e26a5337174170eebfeb",
+      "bytes": 39012,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        572
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "src/next/provenance/executionHostChild.cjs",
+      "sha256": "4d6d6efc6933e68874fafb34b30b1f6ff9b910a779c90ef0194d88a679a8f900",
+      "git_blob_sha1": "dcac05f5f1b5e708de3a119fea449912f3e79759",
+      "bytes": 24098,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        389
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "src/next/provenance/executionProfile.js",
+      "sha256": "8030b1f4a120ba37e6713057e9c5aa5b7d413183df4c26e3e8833814ad323abd",
+      "git_blob_sha1": "45bcf48c400ab121dbbbfe9f43081c36ec07f4da",
+      "bytes": 1688,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        34
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "src/next/provenance/executionRegistry.js",
+      "sha256": "951038a898e979ac25f79d9f5ca944cff8a83f2863074100eaced7e32fa56b29",
+      "git_blob_sha1": "ada1f81e8de7e4367bbc4ffe57a439b489a9242d",
+      "bytes": 9312,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        158
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "src/next/provenance/financialHost.js",
+      "sha256": "6fb0c1f874d23e333c3eb0bfaf4f66f5f89ca27b6ad410008cb121f72326b0a1",
+      "git_blob_sha1": "f9acb440ffe354637a3d53f9061b6fb2748e728c",
+      "bytes": 16627,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        200
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "src/next/provenance/freezeContract.js",
+      "sha256": "b452ce4ffb2688dc578ae0901eabd07c1d48b1d00e8e375a53f82bae63326305",
+      "git_blob_sha1": "5a77cff9b3af7d7135a59ddc308005de071c70bd",
+      "bytes": 6536,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        107
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "src/next/provenance/nativeRuntime.js",
+      "sha256": "7d04d107c24a350ba9a3ccd25a7e899629c4d965301e9063f8c7dbe534d7e64b",
+      "git_blob_sha1": "74333361858d841aa2beb9b0873c904e1ede5c4b",
+      "bytes": 2370,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        45
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "src/next/provenance/validationTcbEntry.js",
+      "sha256": "35366bec38beda91299f97d4448872e56efbf5a406389aed1c9ac9e40e54293f",
+      "git_blob_sha1": "fb2995939e30f98ce3a075d26a3757d0f2445761",
+      "bytes": 32235,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        390
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "tests/exhaustiveLocalTestCoverageRunner.test.js",
+      "sha256": "5b1d104ad84690f0f527c20f0e032d7cbb976c4928ceab250ed7d4a7515e27c9",
+      "git_blob_sha1": "3c392eb513e106232a7c021170add0f2895484d7",
+      "bytes": 32280,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        640
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "tests/fixtures/financasbot-next/golden-claim-oracles-v1.json",
+      "sha256": "0e68ed70b10fdde5c90dc14aa3caf2ef72a4842bbbc6db8779287900567994d8",
+      "git_blob_sha1": "d20288e05e9d5abadd99cccd7f2cb571140986d2",
+      "bytes": 22765,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        72
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "tests/fixtures/financasbot-next/golden-conversation-set-v1.json",
+      "sha256": "21b999b7f9bdb835d9acf8f8dcbfe1cf32dbb8c63300f39d667bec3550f559f0",
+      "git_blob_sha1": "d995b6e3989921f1a6c77cefcdd0fc4470d66d70",
+      "bytes": 32842,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        396
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "tests/fixtures/financasbot-next/golden-fact-contracts-v1.json",
+      "sha256": "377373a33f9042a3ea0cfb0a368b4bf2b32a1529d873de7525edb38f92d8e8c2",
+      "git_blob_sha1": "e12d34bd934abbe45f7d405b3069d49d97c70b8b",
+      "bytes": 30752,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        1170
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "tests/fixtures/financasbot-next/golden-financial-fixture-v1.json",
+      "sha256": "09cee92a0d5e706d06dd94c900b2f40e14261770adf74329341171f748ba696b",
+      "git_blob_sha1": "62715a2e4822df07c0b9dc118a2818ed60e435e8",
+      "bytes": 7936,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        85
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "tests/fixtures/financasbot-next/next02-expense-expectations-v1.json",
+      "sha256": "07d68caa5b6e606381683cfad3bc4732d8f165a116b1ba382ececd1b69fe0717",
+      "git_blob_sha1": "f7bb07bd8c799d458839dcd62499f1dc083c2475",
+      "bytes": 6209,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        44
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "tests/fixtures/financasbot-next/next02-expense-observations-v1.json",
+      "sha256": "a76c3512ef7b4c4af07b445d9be67757e62a1540c2551235cfea716ea9ccf956",
+      "git_blob_sha1": "e4870c0e53c197df0078a25b51e58ad9f761c9e0",
+      "bytes": 6035,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        53
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "tests/fixtures/financasbot-next/next02-golden-traceability-v1.json",
+      "sha256": "cee0bdd591b46305bb6ef76122b3a5320c44abc83d9abbdfea726c622638e685",
+      "git_blob_sha1": "6a4bc4df99bfa694cecfffd67c738e078529d5d8",
+      "bytes": 6274,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        38
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "tests/helpers/exhaustiveNetworkTripwire.js",
+      "sha256": "0e617850ce48a52dc88cfa05f8ab55b6e3f866638f932077536c4760217839e0",
+      "git_blob_sha1": "ffc1c17c630bd9e262075ecde940e870879e1653",
+      "bytes": 21939,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        514
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "tests/next/provenance/financialHost.cases.js",
+      "sha256": "6ace9c3389bd20b6fd3954896775b8538a60feb2f3c3b6d0432fa70209f2cc7c",
+      "git_blob_sha1": "878192a0607816e0488fda7b7b9e0b282ab742e1",
+      "bytes": 13810,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        168
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "tests/next/provenance/graphStructure.cases.js",
+      "sha256": "dc3bc495dc695cd9968a75bd65b6da419982fb301f2d664f63e8412efefc2f66",
+      "git_blob_sha1": "986ee75b7f76372fba0101efa9f660c599116828",
+      "bytes": 8704,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        141
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "tests/next/provenance/pathInventoryV2.cases.js",
+      "sha256": "9ed3ab51875a6943448a09cfb3e6c3dc1bf4c92fff96fcccdca5e193e364f93f",
+      "git_blob_sha1": "6bf86815e837202922bec0cd9dbefc19fbfbc131",
+      "bytes": 14109,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        193
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "tests/next/provenance/pathQualificationV3.cases.js",
+      "sha256": "94e7d6da406e7cc26cd817fe7bdd1276bad0498e9fca2f72dbb3b43e4d81988e",
+      "git_blob_sha1": "c548adcafc652023498bbc958570fba5bfffb606",
+      "bytes": 329476,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        4315
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "tests/next/provenance/pathSemanticV2.cases.js",
+      "sha256": "af45849af0217f704da75e6d8f8fab7454dd239c9f39ea406b2b16ee2182d76d",
+      "git_blob_sha1": "85315a6d97de4db9c46651560e2726aeedd85148",
+      "bytes": 35762,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        484
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "tests/next/provenance/phaseComposition.cases.js",
+      "sha256": "5bfe7314a93592c6e044c794e832f421186231d0faac16986b9efeca14d150b9",
+      "git_blob_sha1": "75bcc08a97b7f00af65da39c70a7e0e9a734c65a",
+      "bytes": 4662,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        61
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "tests/next/provenance/selectionBindings.cases.js",
+      "sha256": "31c927998c85716b144a7726a4f3aa17b2a044de74d47ef1f151e6773153ec99",
+      "git_blob_sha1": "0ba9fea248017e9ee68ff7e8a0ffd41047762115",
+      "bytes": 7155,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        138
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "tests/next/provenance/unknownPathAdmission.cases.js",
+      "sha256": "258a172e322772468cdf789bc44f8b512037ce81f916a3fee74256088ff1f59d",
+      "git_blob_sha1": "2adb542e1022ec32ade25a4de9aa9d8d16943850",
+      "bytes": 13998,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        196
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "tests/next/provenance/validationTcb.cases.js",
+      "sha256": "0426f4c8e249d4d7966864c98c87339fe6220321827b4060f1bebb55486b8ffb",
+      "git_blob_sha1": "295663c589e44890c0bb287b5e78393fe467f9e6",
+      "bytes": 8258,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        92
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "tests/next02DevelopmentInventory.test.js",
+      "sha256": "854f1716ceb89b9c3bf26ffab3b84493cc569ec7c37027cfb3c2e423b9e91c52",
+      "git_blob_sha1": "f7a5d25fff6c2179be84228acdd6b108a221524b",
+      "bytes": 7958,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        138
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": false
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/review-manifest.json",
+      "sha256": "d98c517d5d54f8d40e7e9c70dbd39bff5437bc6016dc93c70287058fb7431501",
+      "git_blob_sha1": "0df6246539dacf5d5927d9cb6ddf6c2312741d05",
+      "bytes": 175441,
+      "reviewer_declared_body_coverage": "complete",
+      "reviewed_line_range": [
+        1,
+        3746
+      ],
+      "executor_source_identity_confronted": true,
+      "data_applicability_included": true
+    }
+  ],
+  "interface_coverage": "pertinent_not_complete_D",
+  "tests_rerun_independently": false,
+  "code_changed": false,
+  "norm_changed": false,
+  "limits": [
+    "one_use_local_not_global_persistent_replay_ledger",
+    "JS_tripwire_not_OS_or_UDP_universal_isolation",
+    "trusted_BUILD_not_caller_human_or_review_authentication",
+    "external_reviewed_pin_and_measured_runtime_required_before_handles"
+  ],
+  "all_frontiers_review_complete": false,
+  "qualified": false,
+  "credit": 0,
+  "execution_permitted": false,
+  "pending": [
+    "D153",
+    "one_final_integrated_verdict",
+    "real_operational_prerequisites_before_handles"
+  ]
+}

@@ -1,0 +1,425 @@
+{
+  "format": "financasbot.frontier_D_reading_delivery",
+  "version": 1,
+  "delivery_parent": "cc06e798284f2c19cd7cda962379d5a0c46c4d99",
+  "code_commit": "cf6e43cbaa7c378f2b64590c50d0818700a3bdd0",
+  "code_tree": "a95ab30b2a30c19d90c71b2ffa1c56705ed0522f",
+  "frontier": "D_shared_foundation_dependencies_history",
+  "unit_count": 153,
+  "source_index_sha256": "ae8b14804337e700682c8f0bfe28ef33c0d62d34229f09ab1bcac8b10143f25f",
+  "body_files": [
+    {
+      "file": "D-full-project_and_context-reading.md",
+      "sha256": "2c635b5165d1668d1177cb158a38aba14ac1cf21b756f1d0601ff25c9f69a19b",
+      "bytes": 553615,
+      "unit_paths": [
+        "docs/agent-memory/workstreams/financasbot-domestic-roadmap-review-20261007.md",
+        "docs/audit-evidence/n02g-causal-authoring-profile/compositional-path-proposal-audit-20261008.md",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-timezone-reference-20261007/iana-tzdb-2025b-southamerica.txt",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-history-20261008/.gitattributes",
+        "docs/plans/workstreams/financasbot-pathv3-implementation-20261008.md",
+        "scripts/agent/analyzeSelectedEventDayExecutableClosure.mjs",
+        "scripts/agent/buildSelectedEventDayDispatchCapsule.mjs",
+        "scripts/agent/buildSelectedEventDayProofExecution.mjs",
+        "scripts/agent/captureSelectedEventDayBuildRecipe.mjs",
+        "scripts/agent/captureSelectedEventDayCompiler.mjs",
+        "scripts/agent/executeNextDomainInvariantMatrix.mjs",
+        "scripts/agent/executeNextPredicateStrategyMatrix.mjs",
+        "scripts/agent/executePathAdmissionV2.mjs",
+        "scripts/agent/executeSelectedEventDayCandidate.mjs",
+        "scripts/agent/financasBotNext02ValidationPolicy.js",
+        "scripts/agent/preparePathQualificationHistory.mjs",
+        "scripts/agent/prepareSelectedEventDayAdmission.mjs",
+        "scripts/agent/prepareSelectedEventDayPacket.mjs",
+        "scripts/agent/sealSelectedEventDayOracle.mjs",
+        "scripts/agent/selectedEventDayProgramContract.mjs",
+        "scripts/agent/selectedEventDayQualification.mjs",
+        "src/next/provenance/causalRecorder.js",
+        "src/next/provenance/civilCalendar.js",
+        "src/next/provenance/claimBinding.js",
+        "src/next/provenance/claimMonthIsolatedProfile.js",
+        "src/next/provenance/claimMonthPathProfile.js",
+        "src/next/provenance/claimMonthProofConformance.js",
+        "src/next/provenance/claimMonthTraceContract.js",
+        "src/next/provenance/materialFingerprintCore.js",
+        "src/next/provenance/mutationWitnesses.js",
+        "src/next/provenance/packageContract.js",
+        "src/next/provenance/phaseCompositionProfile.js",
+        "src/next/provenance/phaseProgramIdentity.js",
+        "src/next/provenance/pinnedCivilTimezone.js",
+        "src/next/provenance/selectedEventDayAdjudicator.js",
+        "src/next/provenance/selectedEventDayCoreComparison.js",
+        "src/next/provenance/selectedEventDayCoverage.js",
+        "src/next/provenance/selectedEventDayDerivationOperands.js",
+        "src/next/provenance/selectedEventDayDispatchCore.js",
+        "src/next/provenance/selectedEventDayDispatcher.js",
+        "src/next/provenance/selectedEventDayExecutionTicket.js",
+        "src/next/provenance/selectedEventDayIrContract.js",
+        "src/next/provenance/selectedEventDayLauncher.js",
+        "src/next/provenance/selectedEventDayOracle.js",
+        "src/next/provenance/selectedEventDayPacket.js",
+        "src/next/provenance/selectedEventDayProfile.js",
+        "src/next/provenance/selectedEventDayProofChild.cjs",
+        "src/next/provenance/selectedEventDayProofHost.js",
+        "src/next/provenance/selectedEventDayProofOperands.js",
+        "src/next/provenance/selectedEventDayProofProtocol.js",
+        "src/next/provenance/selectionBindings.js"
+      ],
+      "full_original_bodies_included": true
+    },
+    {
+      "file": "D-full-dependencies_and_licenses-reading.md",
+      "sha256": "640bde5bc7b4714990d0e9732ef212a322264255a10ad70259bd3a5ada6eb447",
+      "bytes": 1094138,
+      "unit_paths": [
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/acorn/dist/acorn.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv-formats/dist/formats.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv-formats/dist/index.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv-formats/dist/limit.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/ajv.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/codegen/code.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/codegen/index.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/codegen/scope.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/errors.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/index.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/names.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/ref_error.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/resolve.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/rules.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/util.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/validate/applicability.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/validate/boolSchema.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/validate/dataType.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/validate/defaults.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/validate/index.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/validate/keyword.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/compile/validate/subschema.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/core.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/refs/data.json",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/refs/json-schema-draft-07.json",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/runtime/equal.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/runtime/ucs2length.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/runtime/uri.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/runtime/validation_error.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/standalone/index.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/additionalItems.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/additionalProperties.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/allOf.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/anyOf.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/contains.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/dependencies.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/if.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/index.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/items.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/items2020.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/not.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/oneOf.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/patternProperties.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/prefixItems.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/properties.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/propertyNames.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/applicator/thenElse.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/code.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/core/id.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/core/index.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/core/ref.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/discriminator/index.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/discriminator/types.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/draft7.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/format/format.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/format/index.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/metadata.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/const.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/enum.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/index.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/limitItems.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/limitLength.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/limitNumber.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/limitProperties.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/multipleOf.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/pattern.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/required.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/dist/vocabularies/validation/uniqueItems.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/fast-deep-equal/index.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/fast-uri/index.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/fast-uri/lib/schemes.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/fast-uri/lib/utils.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/json-schema-traverse/index.js",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ses/dist/ses.cjs",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/acorn/LICENSE",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv/LICENSE",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ajv-formats/LICENSE",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/fast-deep-equal/LICENSE",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/fast-uri/LICENSE",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/json-schema-traverse/LICENSE",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ses/LICENSE",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ses/LICENSE-aura",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ses/LICENSE-caja",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ses/LICENSE-corejs",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/ses/LICENSE-v8"
+      ],
+      "full_original_bodies_included": true
+    },
+    {
+      "file": "D-full-unique-generated-factories-reading.md",
+      "sha256": "588c1c8cb54deae2e874602e2f5f56e54330f86fe1ae7c5d1d510b76a0b86c3c",
+      "bytes": 697422,
+      "unique_factory_count": 3,
+      "full_generated_bodies_included": true
+    }
+  ],
+  "coverage_buckets": {
+    "project_and_context": 51,
+    "dependencies_and_licenses": 85,
+    "data": 13,
+    "bundles": 4
+  },
+  "bundle_decomposition": {
+    "file": "D-bundle-lossless-decomposition.json",
+    "sha256": "de35d45f26537b737cdf7afbc60d2d159bec9607fe2a81aefe5b621821950880",
+    "bytes": 466709,
+    "exact_original_bundle_count": 4,
+    "unique_generated_factory_count": 3,
+    "lossless_reconstruction_verified": true,
+    "not_semantic_review": true
+  },
+  "data_navigation": {
+    "file": "D-data-applicability-navigation.json",
+    "sha256": "b25f5f8645de220e04680d96c1b8c8754f05479dd21a5078941d91327bb72cc1",
+    "bytes": 66370,
+    "raw_complete_units": 13,
+    "review_still_required": true
+  },
+  "recipe_bindings": [
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/path-qualification-compiler-recipe.json",
+      "recipes": [
+        {
+          "path": "scripts/agent/buildNextValidationTcb.mjs",
+          "source_sha256": "05fc2d65d7c44f42ea889720e992a95a57b2a24d270c36485ac0de9b3f9464b7",
+          "source_bytes": 7279,
+          "exact_original_paths": [
+            "scripts/agent/buildNextValidationTcb.mjs"
+          ]
+        },
+        {
+          "path": "scripts/agent/buildNextProvenanceArtifacts.mjs",
+          "source_sha256": "a563450252a995a0a35d83dc921c8af931bcb330c642e6de7a92857cd3a2fb2b",
+          "source_bytes": 13450,
+          "exact_original_paths": [
+            "scripts/agent/buildNextProvenanceArtifacts.mjs"
+          ]
+        },
+        {
+          "path": "scripts/agent/buildNextMetricArtifacts.mjs",
+          "source_sha256": "5ce85a2c284946b37b33820fbc1722140515a196a7f93544e4a5fd2e478a906c",
+          "source_bytes": 9866,
+          "exact_original_paths": [
+            "scripts/agent/buildNextMetricArtifacts.mjs"
+          ]
+        },
+        {
+          "path": "scripts/agent/lowerNextProofProgram.mjs",
+          "source_sha256": "d141273f2156bab19392c66c2cca660f0f196f7d5b5af4721ac595307aa5cab4",
+          "source_bytes": 44572,
+          "exact_original_paths": [
+            "scripts/agent/lowerNextProofProgram.mjs"
+          ]
+        },
+        {
+          "path": "scripts/agent/nextProvenanceGuestProfile.js",
+          "source_sha256": "ea14fe64e52c9ec5aa06336a31e281ec7b87bbeb239fde4d5385d2342f6fc8de",
+          "source_bytes": 1989,
+          "exact_original_paths": [
+            "scripts/agent/nextProvenanceGuestProfile.js"
+          ]
+        },
+        {
+          "path": "package.json",
+          "source_sha256": "7873299481779f07cfbb76247fd7c5a895dacd5214ee79863baadd6b0b9d0205",
+          "source_bytes": 13709,
+          "exact_original_paths": [
+            "package.json"
+          ]
+        },
+        {
+          "path": "package-lock.json",
+          "source_sha256": "465d94b1f7b7d9eb5f0b4535a96d02f5cfb1fe70d10d66fac31ec16c06645126",
+          "source_bytes": 165694,
+          "exact_original_paths": [
+            "package-lock.json"
+          ]
+        }
+      ],
+      "schemas": [
+        {
+          "path": "docs/contracts/next/provenance-v2/claim-contract.schema.json",
+          "sha256": "sha256:b69ef61b562061f057a9bf08f47623ae432c723f565e8775f3dbe6eb942ea998"
+        },
+        {
+          "path": "docs/contracts/next/provenance-v2/evaluator-contract.schema.json",
+          "sha256": "sha256:2c3bc0a86bf45da2c4466118bb6ad9506f1824a209c419c3c7180718e294a183"
+        },
+        {
+          "path": "docs/contracts/next/provenance-v2/evaluator-witness-contracts.schema.json",
+          "sha256": "sha256:dd5af1b4ab9d29f67d87b7b979076f8b4695cd917062d63ec34da6c12240adaa"
+        },
+        {
+          "path": "docs/contracts/next/provenance-v2/evidence-snapshot.schema.json",
+          "sha256": "sha256:054a48930a5f25760f201e8b401f0f34f5a83672366acad6c9c09bdc0ce0b5ef"
+        },
+        {
+          "path": "docs/contracts/next/provenance-v2/metric-evaluator-registry.schema.json",
+          "sha256": "sha256:de5eb3828b8faaf58eeddc9f90d9342b509f86fd32ea8b66f9174448c536e066"
+        },
+        {
+          "path": "docs/contracts/next/provenance-v2/provenance-graph.schema.json",
+          "sha256": "sha256:9e3c148c95d6fecd3d93f019ad5a5967126f8bf1cb9bde9d152c70c057a1740b"
+        }
+      ],
+      "native_externals": [
+        "node:child_process",
+        "node:crypto",
+        "node:fs",
+        "node:path",
+        "node:process",
+        "node:util"
+      ],
+      "launcher_native_externals": [
+        "node:child_process",
+        "node:crypto",
+        "node:fs",
+        "node:path",
+        "node:process",
+        "node:util",
+        "node:vm"
+      ],
+      "native_globals": [
+        "Buffer",
+        "clearTimeout",
+        "process",
+        "setTimeout"
+      ]
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/recipe.json",
+      "recipes": [
+        {
+          "path": "scripts/agent/buildNextValidationTcb.mjs",
+          "source_sha256": "05fc2d65d7c44f42ea889720e992a95a57b2a24d270c36485ac0de9b3f9464b7",
+          "source_bytes": 7279,
+          "exact_original_paths": [
+            "scripts/agent/buildNextValidationTcb.mjs"
+          ]
+        },
+        {
+          "path": "scripts/agent/buildNextProvenanceArtifacts.mjs",
+          "source_sha256": "a563450252a995a0a35d83dc921c8af931bcb330c642e6de7a92857cd3a2fb2b",
+          "source_bytes": 13450,
+          "exact_original_paths": [
+            "scripts/agent/buildNextProvenanceArtifacts.mjs"
+          ]
+        },
+        {
+          "path": "scripts/agent/buildNextMetricArtifacts.mjs",
+          "source_sha256": "5ce85a2c284946b37b33820fbc1722140515a196a7f93544e4a5fd2e478a906c",
+          "source_bytes": 9866,
+          "exact_original_paths": [
+            "scripts/agent/buildNextMetricArtifacts.mjs"
+          ]
+        },
+        {
+          "path": "scripts/agent/lowerNextProofProgram.mjs",
+          "source_sha256": "d141273f2156bab19392c66c2cca660f0f196f7d5b5af4721ac595307aa5cab4",
+          "source_bytes": 44572,
+          "exact_original_paths": [
+            "scripts/agent/lowerNextProofProgram.mjs"
+          ]
+        },
+        {
+          "path": "scripts/agent/nextProvenanceGuestProfile.js",
+          "source_sha256": "ea14fe64e52c9ec5aa06336a31e281ec7b87bbeb239fde4d5385d2342f6fc8de",
+          "source_bytes": 1989,
+          "exact_original_paths": [
+            "scripts/agent/nextProvenanceGuestProfile.js"
+          ]
+        },
+        {
+          "path": "package.json",
+          "source_sha256": "7873299481779f07cfbb76247fd7c5a895dacd5214ee79863baadd6b0b9d0205",
+          "source_bytes": 13709,
+          "exact_original_paths": [
+            "package.json"
+          ]
+        },
+        {
+          "path": "package-lock.json",
+          "source_sha256": "465d94b1f7b7d9eb5f0b4535a96d02f5cfb1fe70d10d66fac31ec16c06645126",
+          "source_bytes": 165694,
+          "exact_original_paths": [
+            "package-lock.json"
+          ]
+        }
+      ],
+      "schemas": [
+        {
+          "path": "docs/contracts/next/provenance-v2/claim-contract.schema.json",
+          "sha256": "sha256:b69ef61b562061f057a9bf08f47623ae432c723f565e8775f3dbe6eb942ea998"
+        },
+        {
+          "path": "docs/contracts/next/provenance-v2/evaluator-contract.schema.json",
+          "sha256": "sha256:2c3bc0a86bf45da2c4466118bb6ad9506f1824a209c419c3c7180718e294a183"
+        },
+        {
+          "path": "docs/contracts/next/provenance-v2/evaluator-witness-contracts.schema.json",
+          "sha256": "sha256:dd5af1b4ab9d29f67d87b7b979076f8b4695cd917062d63ec34da6c12240adaa"
+        },
+        {
+          "path": "docs/contracts/next/provenance-v2/evidence-snapshot.schema.json",
+          "sha256": "sha256:054a48930a5f25760f201e8b401f0f34f5a83672366acad6c9c09bdc0ce0b5ef"
+        },
+        {
+          "path": "docs/contracts/next/provenance-v2/metric-evaluator-registry.schema.json",
+          "sha256": "sha256:de5eb3828b8faaf58eeddc9f90d9342b509f86fd32ea8b66f9174448c536e066"
+        },
+        {
+          "path": "docs/contracts/next/provenance-v2/provenance-graph.schema.json",
+          "sha256": "sha256:9e3c148c95d6fecd3d93f019ad5a5967126f8bf1cb9bde9d152c70c057a1740b"
+        }
+      ],
+      "native_externals": [
+        "node:child_process",
+        "node:crypto",
+        "node:fs",
+        "node:path",
+        "node:process",
+        "node:util"
+      ],
+      "launcher_native_externals": [
+        "node:child_process",
+        "node:crypto",
+        "node:fs",
+        "node:path",
+        "node:process",
+        "node:util",
+        "node:vm"
+      ],
+      "native_globals": [
+        "Buffer",
+        "clearTimeout",
+        "process",
+        "setTimeout"
+      ]
+    }
+  ],
+  "C_receipt_sha256": "990ce6c81ee18c69655c0f8985ff3f33c5e642786219e69cd92d04343786c9c0",
+  "A_B_C_component_verdicts_not_operational_authority": true,
+  "all_D_units_review_complete": false,
+  "code_changed": false,
+  "norm_changed": false,
+  "qualified": false,
+  "credit": 0,
+  "exit": "153_explicit_unit_coverage_and_shared_foundation_recipe_wrapper_native_uses_then_one_integrated_verdict",
+  "no_recursive_subdivision_or_cosmetic_retry": true,
+  "not_new_runtime_helper_solver_or_norm": true
+}

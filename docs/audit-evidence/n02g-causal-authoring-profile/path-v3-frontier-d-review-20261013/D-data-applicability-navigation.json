@@ -1,0 +1,2016 @@
+{
+  "format": "financasbot.D_data_applicability_navigation",
+  "version": 1,
+  "code_commit": "cf6e43cbaa7c378f2b64590c50d0818700a3bdd0",
+  "full_data_review_required": true,
+  "no_historical_credit_transfer": true,
+  "units": [
+    {
+      "path": "docs/agent-workflow/active-scope.json",
+      "sha256": "faf38c49b151c9fc77d498608c40953e5a95e2d0cc519144a865ea3ab2781650",
+      "git_blob_sha1": "95c14bdba49a68028b0ba1ab11f35bf9e9dafade",
+      "bytes": 8313,
+      "lines": 105,
+      "source_ranges": [
+        [
+          1,
+          105,
+          "faf38c49b151c9fc77d498608c40953e5a95e2d0cc519144a865ea3ab2781650",
+          8313,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema",
+          "stage_id",
+          "base_head",
+          "branch",
+          "authorization",
+          "objective",
+          "original_first",
+          "invariants",
+          "allowed_paths",
+          "changes",
+          "exit_criteria",
+          "non_scope",
+          "max_changed_paths",
+          "unresolved_policy",
+          "baseline_path",
+          "baseline_sha256",
+          "baseline_index_outside_scope_sha256"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed",
+      "raw_url": "https://raw.githubusercontent.com/Danieu-san/financas-bot/cf6e43cbaa7c378f2b64590c50d0818700a3bdd0/docs/agent-workflow/active-scope.json",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/95c14bdba49a68028b0ba1ab11f35bf9e9dafade",
+      "full_raw_body_available": true,
+      "declared_use_for_review": "data_or_build_binding_not_operational_authority",
+      "top_level_shapes": {
+        "schema": {
+          "kind": "string",
+          "value": "financasbot-stage-scope-v1"
+        },
+        "stage_id": {
+          "kind": "string",
+          "value": "PATH-V3-COMPOSITION-01"
+        },
+        "base_head": {
+          "kind": "string",
+          "value": "04eb9545516d100aa45e1ac6d8ebfda444fafbd7"
+        },
+        "branch": {
+          "kind": "string",
+          "value": "codex/n02g-month-profile-code-20261004"
+        },
+        "authorization": {
+          "kind": "string",
+          "value": "Daniel confirmou INTERNAL 11+2 e PATH-ADMISSION-FOUNDATION-01; em2026-10-12 respondeu 'autorizado' ao pedido explícito de tests/helpers/exhaustiveNetworkTripwire.js e tests/exhaustiveLocalTestCoverageRunner.test.js. Quinze paths exatos, continuidade autônoma; compatibilidade finita de fixtures Git, sem liberação genérica de subprocessos. Registro operacional, não autenticação."
+        },
+        "objective": {
+          "kind": "string",
+          "value": "Composição finita da referência normal de programas/efeitos/capacidades/consumers sob método72fc, sem motor geralJS ou promoção de provas parciais"
+        },
+        "original_first": {
+          "kind": "object",
+          "keys": [
+            "head",
+            "disposition",
+            "asset",
+            "evidence"
+          ]
+        },
+        "invariants": {
+          "kind": "array",
+          "count": 8
+        },
+        "allowed_paths": {
+          "kind": "array",
+          "count": 15
+        },
+        "changes": {
+          "kind": "array",
+          "count": 3
+        },
+        "exit_criteria": {
+          "kind": "array",
+          "count": 3
+        },
+        "non_scope": {
+          "kind": "array",
+          "count": 4
+        },
+        "max_changed_paths": {
+          "kind": "number",
+          "value": 15
+        },
+        "unresolved_policy": {
+          "kind": "string",
+          "value": "blocked_not_automatic_requirement"
+        },
+        "baseline_path": {
+          "kind": "string",
+          "value": "docs/agent-workflow/scope-baselines/path-v3-composition-20261009.json"
+        },
+        "baseline_sha256": {
+          "kind": "string",
+          "value": "b5aec333b7366d2c93dc1e1c89ff0c3d4f3e3b75636778fa39db3e5b53bc87db"
+        },
+        "baseline_index_outside_scope_sha256": {
+          "kind": "string",
+          "value": "c3cdcbf422484910aee9a3d00df326b62099029ca0f4025df3730759f2ff7678"
+        }
+      },
+      "source_identity_confronted": true,
+      "semantic_review": "pending_not_waived",
+      "summary_not_full_read_claim": true
+    },
+    {
+      "path": "docs/agent-workflow/scope-baselines/path-v3-composition-20261009.json",
+      "sha256": "b5aec333b7366d2c93dc1e1c89ff0c3d4f3e3b75636778fa39db3e5b53bc87db",
+      "git_blob_sha1": "bee243c8c21ce5bb3b3edfbc797f575ab8743617",
+      "bytes": 49622,
+      "lines": 1112,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "5f626b54238f6621a4f750a402790f174de21c3e248b9c604e2b6a203111a09c",
+          5765,
+          false
+        ],
+        [
+          121,
+          240,
+          "f9843c3d6e08ed69e034918d501b1ed60513d46b6dd5bffeb00993646e834da5",
+          6266,
+          false
+        ],
+        [
+          241,
+          360,
+          "2a58a25a4ad3b51703028673330b552ad7635e65f97700997e7995df3f31beb9",
+          6714,
+          false
+        ],
+        [
+          361,
+          480,
+          "1da26f95cb9b02a8f51a6eaed7a6dae488f5ff73f3878f5677a064b73fa3437e",
+          5931,
+          false
+        ],
+        [
+          481,
+          600,
+          "a7e637bd8f3494a72a4a6bc8cf0d9fd2dc3c426775aacea0aea62523bd22bd00",
+          4871,
+          false
+        ],
+        [
+          601,
+          720,
+          "d1cf45a0db79a3005587ad1b3715743d1e032d5cdbf7fc9742880669562fb133",
+          4743,
+          false
+        ],
+        [
+          721,
+          840,
+          "c0bf540c10b8f7bdd778d22ad892e14fb4e22694e7a7ee33816674fd490765a3",
+          4626,
+          false
+        ],
+        [
+          841,
+          960,
+          "c3585b67fbed6862c334eb949758e66f60be23b081b5b2918300597653c45a5b",
+          4767,
+          false
+        ],
+        [
+          961,
+          1080,
+          "942c20f96e5b76eebe6561e6a61e11363b93d0b0e7e0220f0eacb01c95b74858",
+          4809,
+          false
+        ],
+        [
+          1081,
+          1112,
+          "4c9c629fde141d4142c30528b3619ca1be964d6583fe1dfc6be43cc8620b41cc",
+          1121,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema",
+          "head",
+          "branch",
+          "rows"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed",
+      "raw_url": "https://raw.githubusercontent.com/Danieu-san/financas-bot/cf6e43cbaa7c378f2b64590c50d0818700a3bdd0/docs/agent-workflow/scope-baselines/path-v3-composition-20261009.json",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/bee243c8c21ce5bb3b3edfbc797f575ab8743617",
+      "full_raw_body_available": true,
+      "declared_use_for_review": "data_or_build_binding_not_operational_authority",
+      "top_level_shapes": {
+        "schema": {
+          "kind": "string",
+          "value": "financasbot-scope-baseline-v1"
+        },
+        "head": {
+          "kind": "string",
+          "value": "04eb9545516d100aa45e1ac6d8ebfda444fafbd7"
+        },
+        "branch": {
+          "kind": "string",
+          "value": "codex/n02g-month-profile-code-20261004"
+        },
+        "rows": {
+          "kind": "array",
+          "count": 276
+        }
+      },
+      "source_identity_confronted": true,
+      "semantic_review": "pending_not_waived",
+      "summary_not_full_read_claim": true
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-authorship-v1-frozen.json",
+      "sha256": "e9c852034d8cc887e1d8645a61d9597176409f72a28eaf0de4c95f17c0c8358d",
+      "git_blob_sha1": "a3baa82049ef927095458199a71ef0f377870c3c",
+      "bytes": 4954513,
+      "lines": 2,
+      "source_ranges": [
+        [
+          1,
+          2,
+          "e9c852034d8cc887e1d8645a61d9597176409f72a28eaf0de4c95f17c0c8358d",
+          4954513,
+          true
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "stage",
+          "contract_id",
+          "claim_contract",
+          "snapshot_manifest",
+          "material_registry",
+          "operator_registry",
+          "metric_evaluator_registry",
+          "graphs"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed",
+      "raw_url": "https://raw.githubusercontent.com/Danieu-san/financas-bot/cf6e43cbaa7c378f2b64590c50d0818700a3bdd0/docs/audit-evidence/n02g-causal-authoring-profile/path-authorship-v1-frozen.json",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/a3baa82049ef927095458199a71ef0f377870c3c",
+      "full_raw_body_available": true,
+      "declared_use_for_review": "authoring_input_identity_and_applicability_not_fixture_output_authority",
+      "top_level_shapes": {
+        "schema_version": {
+          "kind": "number",
+          "value": 2
+        },
+        "stage": {
+          "kind": "string",
+          "value": "authoring"
+        },
+        "contract_id": {
+          "kind": "string",
+          "value": "NEXT-GOLDEN-PROVENANCE-V2"
+        },
+        "claim_contract": {
+          "kind": "object",
+          "keys": [
+            "path",
+            "hash"
+          ]
+        },
+        "snapshot_manifest": {
+          "kind": "object",
+          "keys": [
+            "path",
+            "hash"
+          ]
+        },
+        "material_registry": {
+          "kind": "object",
+          "keys": [
+            "path",
+            "hash"
+          ]
+        },
+        "operator_registry": {
+          "kind": "object",
+          "keys": [
+            "path",
+            "hash"
+          ]
+        },
+        "metric_evaluator_registry": {
+          "kind": "object",
+          "keys": [
+            "path",
+            "hash"
+          ]
+        },
+        "graphs": {
+          "kind": "array",
+          "count": 76
+        }
+      },
+      "source_identity_confronted": true,
+      "semantic_review": "pending_not_waived",
+      "summary_not_full_read_claim": true
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-inventory-v1-frozen.json",
+      "sha256": "2509cb7df02a98a1217a416c70b5f729b40ca331314ce2d925005ec15a779a9d",
+      "git_blob_sha1": "d27e578745c3d5ec55c927411ad99e6d0c9971f1",
+      "bytes": 10931712,
+      "lines": 2,
+      "source_ranges": [
+        [
+          1,
+          2,
+          "2509cb7df02a98a1217a416c70b5f729b40ca331314ce2d925005ec15a779a9d",
+          10931712,
+          true
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "format",
+          "version",
+          "historical_state_unchanged",
+          "runtime_credit",
+          "producer",
+          "producer_lf_sha256",
+          "historical_report_sha256",
+          "authority_refs",
+          "requirements"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed",
+      "raw_url": "https://raw.githubusercontent.com/Danieu-san/financas-bot/cf6e43cbaa7c378f2b64590c50d0818700a3bdd0/docs/audit-evidence/n02g-causal-authoring-profile/path-inventory-v1-frozen.json",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/d27e578745c3d5ec55c927411ad99e6d0c9971f1",
+      "full_raw_body_available": true,
+      "declared_use_for_review": "historical_identity_migration_not_fresh_v3_credit",
+      "top_level_shapes": {
+        "format": {
+          "kind": "string",
+          "value": "financasbot.path-inventory.v1.frozen"
+        },
+        "version": {
+          "kind": "number",
+          "value": 1
+        },
+        "historical_state_unchanged": {
+          "kind": "boolean",
+          "value": true
+        },
+        "runtime_credit": {
+          "kind": "number",
+          "value": 0
+        },
+        "producer": {
+          "kind": "string",
+          "value": "existing_unchanged_v1_enumerator_before_v2_migration"
+        },
+        "producer_lf_sha256": {
+          "kind": "string",
+          "value": "sha256:433db7f58a7e79cd04e71cdac2491c498a15108df7f6544cd24c3def0a340f29"
+        },
+        "historical_report_sha256": {
+          "kind": "string",
+          "value": "sha256:9e44a8651713bbbbe4bdf4a8854276d4a8f10c91c961c0da1cf7de4303573134"
+        },
+        "authority_refs": {
+          "kind": "array",
+          "count": 58
+        },
+        "requirements": {
+          "kind": "array",
+          "count": 45988
+        }
+      },
+      "source_identity_confronted": true,
+      "semantic_review": "pending_not_waived",
+      "summary_not_full_read_claim": true
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-history-20261008/capture.json",
+      "sha256": "3338e0dedcf90f65ec3758af48507cfb8c5cee4c954e93e9aa518354a374fc75",
+      "git_blob_sha1": "78733d554eb078daac72a8d781deb3fdcead94c7",
+      "bytes": 12850,
+      "lines": 275,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "2ac59e45ffa84196d17e902f8c407f49cdd27b66095e6edfe84ec21147fbec63",
+          5903,
+          false
+        ],
+        [
+          121,
+          240,
+          "40f37bec2ac9d8c8f0b9920e5bed4fcd362492b946ebde2b649152ccce9c6e2a",
+          5795,
+          false
+        ],
+        [
+          241,
+          275,
+          "255ba0351e4b6177ec0063691ad60fb799f885945db1ba0be0dfef24b98312aa",
+          1150,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "format",
+          "version",
+          "stage",
+          "capture_id",
+          "captured_at",
+          "node",
+          "source_kind",
+          "historical_report",
+          "historical_report_sha256",
+          "historical_bytes",
+          "target_ids_sha256",
+          "migration_rows_sha256",
+          "expected_predicates",
+          "method_authority",
+          "baseline_authority",
+          "baseline_raw_identity_reused",
+          "historical_report_flags",
+          "evidence_reused_for_v3",
+          "qualified",
+          "semantic_mutation_credit",
+          "independent_execution",
+          "global_g11",
+          "financial_receipt"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed",
+      "raw_url": "https://raw.githubusercontent.com/Danieu-san/financas-bot/cf6e43cbaa7c378f2b64590c50d0818700a3bdd0/docs/audit-evidence/n02g-causal-authoring-profile/path-v3-history-20261008/capture.json",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/78733d554eb078daac72a8d781deb3fdcead94c7",
+      "full_raw_body_available": true,
+      "declared_use_for_review": "historical_identity_migration_not_fresh_v3_credit",
+      "top_level_shapes": {
+        "format": {
+          "kind": "string",
+          "value": "financasbot.path-qualification.historical-source-capture"
+        },
+        "version": {
+          "kind": "number",
+          "value": 3
+        },
+        "stage": {
+          "kind": "string",
+          "value": "exact_historical_bytes_captured_not_qualified"
+        },
+        "capture_id": {
+          "kind": "string",
+          "value": "72431225-19f1-4657-919f-b6faadde56cd"
+        },
+        "captured_at": {
+          "kind": "string",
+          "value": "2026-10-08T20:13:00.450Z"
+        },
+        "node": {
+          "kind": "string",
+          "value": "v22.17.0"
+        },
+        "source_kind": {
+          "kind": "string",
+          "value": "existing_synthetic_v2_local_report"
+        },
+        "historical_report": {
+          "kind": "string",
+          "value": "historical-v2-report.json"
+        },
+        "historical_report_sha256": {
+          "kind": "string",
+          "value": "sha256:3187e36259bc11fcd2c9063a6a4ba25987f1e1acca18a81a96aee87834b007d0"
+        },
+        "historical_bytes": {
+          "kind": "number",
+          "value": 3472204
+        },
+        "target_ids_sha256": {
+          "kind": "string",
+          "value": "sha256:518018b2d8cee7aa054153c7afef9da3280405f0f912e0b78a605c48aa8a6acf"
+        },
+        "migration_rows_sha256": {
+          "kind": "string",
+          "value": "sha256:f1bcbfaef7efed3c68171c575c205e154eddc0f9dafe0484e4292fb0951dea83"
+        },
+        "expected_predicates": {
+          "kind": "number",
+          "value": 2419
+        },
+        "method_authority": {
+          "kind": "object",
+          "keys": [
+            "commit",
+            "blob",
+            "utf8_lf_sha256"
+          ]
+        },
+        "baseline_authority": {
+          "kind": "array",
+          "count": 58
+        },
+        "baseline_raw_identity_reused": {
+          "kind": "boolean",
+          "value": false
+        },
+        "historical_report_flags": {
+          "kind": "object",
+          "keys": [
+            "stage",
+            "global_g11",
+            "predicate_atom_credit",
+            "batch_complete",
+            "graph_accepted",
+            "financial_receipt",
+            "accounting_complete",
+            "measured_sources_unchanged",
+            "migration_verified",
+            "activated",
+            "valid"
+          ]
+        },
+        "evidence_reused_for_v3": {
+          "kind": "boolean",
+          "value": false
+        },
+        "qualified": {
+          "kind": "boolean",
+          "value": false
+        },
+        "semantic_mutation_credit": {
+          "kind": "number",
+          "value": 0
+        },
+        "independent_execution": {
+          "kind": "boolean",
+          "value": false
+        },
+        "global_g11": {
+          "kind": "boolean",
+          "value": false
+        },
+        "financial_receipt": {
+          "kind": "boolean",
+          "value": false
+        }
+      },
+      "source_identity_confronted": true,
+      "semantic_review": "pending_not_waived",
+      "summary_not_full_read_claim": true
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-history-20261008/historical-v2-report.json",
+      "sha256": "3187e36259bc11fcd2c9063a6a4ba25987f1e1acca18a81a96aee87834b007d0",
+      "git_blob_sha1": "cc1e01b4a206180827c00922f68237472a940e91",
+      "bytes": 3472204,
+      "lines": 2,
+      "source_ranges": [
+        [
+          1,
+          2,
+          "3187e36259bc11fcd2c9063a6a4ba25987f1e1acca18a81a96aee87834b007d0",
+          3472204,
+          true
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "stage",
+          "global_g11",
+          "artifact_authority",
+          "scope",
+          "predicate_atom_credit",
+          "full_scalar_scope_expected",
+          "mutations",
+          "baselines",
+          "rows",
+          "unsatisfied",
+          "qualification_boundary",
+          "parent_source",
+          "authoring_probe",
+          "semantic_assertion_fault",
+          "batch_complete",
+          "graph_accepted",
+          "financial_receipt",
+          "oracle_sha256",
+          "accounting_complete",
+          "measured_sources_unchanged",
+          "measured_sources_sha256",
+          "unique_ids",
+          "unique_invocations",
+          "migration_verified",
+          "activated",
+          "valid"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed",
+      "raw_url": "https://raw.githubusercontent.com/Danieu-san/financas-bot/cf6e43cbaa7c378f2b64590c50d0818700a3bdd0/docs/audit-evidence/n02g-causal-authoring-profile/path-v3-history-20261008/historical-v2-report.json",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/cc1e01b4a206180827c00922f68237472a940e91",
+      "full_raw_body_available": true,
+      "declared_use_for_review": "historical_identity_migration_not_fresh_v3_credit",
+      "top_level_shapes": {
+        "stage": {
+          "kind": "string",
+          "value": "path_semantic_v2_subset_only"
+        },
+        "global_g11": {
+          "kind": "boolean",
+          "value": false
+        },
+        "artifact_authority": {
+          "kind": "string",
+          "value": "self_built_local_not_reviewed_host"
+        },
+        "scope": {
+          "kind": "string",
+          "value": "predicate_path_semantic/same_type_wrong_path"
+        },
+        "predicate_atom_credit": {
+          "kind": "number",
+          "value": 0
+        },
+        "full_scalar_scope_expected": {
+          "kind": "number",
+          "value": 2419
+        },
+        "mutations": {
+          "kind": "object",
+          "keys": [
+            "expected",
+            "generated",
+            "executed",
+            "matched"
+          ]
+        },
+        "baselines": {
+          "kind": "array",
+          "count": 76
+        },
+        "rows": {
+          "kind": "array",
+          "count": 2419
+        },
+        "unsatisfied": {
+          "kind": "array",
+          "count": 2032
+        },
+        "qualification_boundary": {
+          "kind": "string",
+          "value": "authored_locator_full_admission_and_unmodified_dp"
+        },
+        "parent_source": {
+          "kind": "string",
+          "value": "same_batch_positive_oracle_and_coverage_verified"
+        },
+        "authoring_probe": {
+          "kind": "object",
+          "value": null
+        },
+        "semantic_assertion_fault": {
+          "kind": "object",
+          "value": null
+        },
+        "batch_complete": {
+          "kind": "boolean",
+          "value": false
+        },
+        "graph_accepted": {
+          "kind": "boolean",
+          "value": false
+        },
+        "financial_receipt": {
+          "kind": "boolean",
+          "value": false
+        },
+        "oracle_sha256": {
+          "kind": "string",
+          "value": "sha256:0e68ed70b10fdde5c90dc14aa3caf2ef72a4842bbbc6db8779287900567994d8"
+        },
+        "accounting_complete": {
+          "kind": "boolean",
+          "value": true
+        },
+        "measured_sources_unchanged": {
+          "kind": "boolean",
+          "value": true
+        },
+        "measured_sources_sha256": {
+          "kind": "string",
+          "value": "sha256:ed20aedddc4818df93358f5c4290dc68382ced1a62cf241bd193bb83d602a46d"
+        },
+        "unique_ids": {
+          "kind": "number",
+          "value": 2419
+        },
+        "unique_invocations": {
+          "kind": "number",
+          "value": 390
+        },
+        "migration_verified": {
+          "kind": "boolean",
+          "value": true
+        },
+        "activated": {
+          "kind": "boolean",
+          "value": false
+        },
+        "valid": {
+          "kind": "boolean",
+          "value": false
+        }
+      },
+      "source_identity_confronted": true,
+      "semantic_review": "pending_not_waived",
+      "summary_not_full_read_claim": true
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "465d94b1f7b7d9eb5f0b4535a96d02f5cfb1fe70d10d66fac31ec16c06645126",
+      "git_blob_sha1": "4822d038cd3b56f45979f8d7e2b97d456012e7c1",
+      "bytes": 165694,
+      "lines": 4556,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "69713cffdb9a41821741c165a54548e8f9c87154edd1b235b40cdbf83f82b38b",
+          4566,
+          false
+        ],
+        [
+          121,
+          240,
+          "0d0dbb39dd737b8ddff403b047acf018558bbab1b36065bff03ff04fa5657b93",
+          4246,
+          false
+        ],
+        [
+          241,
+          360,
+          "27d9409d213b8de023188d2e5e4e82515e7c787ea2968517203ae55ec27d163b",
+          4747,
+          false
+        ],
+        [
+          361,
+          480,
+          "7f151035a6269940e748570464af99fd9d8fffd34e7fd5cd098c9d8b25515e24",
+          3948,
+          false
+        ],
+        [
+          481,
+          600,
+          "c0ef73b60fa3d437a7af9fccbd3b38b24360ec4c04d2bc7f873a9d9d73d6c5e2",
+          4090,
+          false
+        ],
+        [
+          601,
+          720,
+          "a2c58ba7bf7b22ccfe2c33f0baffc98316e9bf3390dd626957bd58ec31975e14",
+          4089,
+          false
+        ],
+        [
+          721,
+          840,
+          "69191018b2645accdd5d301338902b25e7f5da735c2c5440a9dd3694ddee304e",
+          4414,
+          false
+        ],
+        [
+          841,
+          960,
+          "91fad0db9c047d043815b9a5ea7f296a79353195ebf63c700cd6d2a8574d6026",
+          4213,
+          false
+        ],
+        [
+          961,
+          1080,
+          "db7dc75f82941216f0d7d9aa5849b3821c78979f7e607fac56d6f2b879c729bc",
+          4515,
+          false
+        ],
+        [
+          1081,
+          1200,
+          "435d9cdda4f3019eda31f026424ca374b734b5f37a8a7960b4ed871346c4d841",
+          4246,
+          false
+        ],
+        [
+          1201,
+          1320,
+          "3776e49ff296907bcb24d5840e7a038a3d9edabdd242dd47721208a434ee73f8",
+          4053,
+          false
+        ],
+        [
+          1321,
+          1440,
+          "1930a657ac1634a646497ec80efd93d07b7cd25b769486d4584f1c7f6e6fbc91",
+          4246,
+          false
+        ],
+        [
+          1441,
+          1560,
+          "9887325bebb49af767657bae25e62731864736d433f5073dfddceacd31b52527",
+          4757,
+          false
+        ],
+        [
+          1561,
+          1680,
+          "77b050072ac6e7a8e904e0576fc93537b4cc2b2ebab7d8ae4332f78554747247",
+          4515,
+          false
+        ],
+        [
+          1681,
+          1800,
+          "a7a7a70b71a05d25879a66ff6d18ca4e0351ea6fa30da1e1be437ff801204699",
+          4461,
+          false
+        ],
+        [
+          1801,
+          1920,
+          "a0888eb6024f71380e7bd1339e598ed4c4707f89ecb2aa55187c7125b0d09cb4",
+          4360,
+          false
+        ],
+        [
+          1921,
+          2040,
+          "9ed4c346f70ce63ebc5c1ac67959482ec4ec714fe6b0f7747fbbefa22935c56b",
+          4399,
+          false
+        ],
+        [
+          2041,
+          2160,
+          "d841519f5f8d13cebf37e38481d103b1edff5356285c97659b2344d597c7849f",
+          4337,
+          false
+        ],
+        [
+          2161,
+          2280,
+          "37c5de8ebb1b79fb065cc80b9ae3c57326ec7917112cc21d30dc7fd394637a4c",
+          4457,
+          false
+        ],
+        [
+          2281,
+          2400,
+          "4e66468ec724a5f91a3bbda1f7cf526aa276a3fda8cb38ddcd592d2b90a7d983",
+          4545,
+          false
+        ],
+        [
+          2401,
+          2520,
+          "4b0f5c3d196f0d06bdb8d27e2bdc854ff1eb28063a99861ebd61f6961753ea33",
+          4225,
+          false
+        ],
+        [
+          2521,
+          2640,
+          "0602cf4029fc61f07c327d28978aad28244daeaad440182d395c18b247effcaf",
+          4481,
+          false
+        ],
+        [
+          2641,
+          2760,
+          "0eeca5e6bd4ff100c05d9a286cbe67e9fc199ef2240e73cf5934c46108c945a5",
+          4546,
+          false
+        ],
+        [
+          2761,
+          2880,
+          "7d175bec37bde484fdff4017f9a0b6458ec0821b16237c82c0b080fa0b10aba3",
+          4416,
+          false
+        ],
+        [
+          2881,
+          3000,
+          "9f62b858a78d0701578bb008d504b25229fa05775961ceb6e260675998c5fb44",
+          4206,
+          false
+        ],
+        [
+          3001,
+          3120,
+          "e2d04421bbf21c3487de661212c8bc7bb179dccce285f553e56e6196635d625a",
+          4467,
+          false
+        ],
+        [
+          3121,
+          3240,
+          "5535d1ae4ac6f5c4158c2fd1c941f436be1f96075f5b0b8c6dd1111b6392ff38",
+          4169,
+          false
+        ],
+        [
+          3241,
+          3360,
+          "8aa6337bad6f2f5cc8fb91a7a59db54ffd0048e31e717b98f4d27df354df640e",
+          4599,
+          false
+        ],
+        [
+          3361,
+          3480,
+          "2a1d6fbf506c47d40eac64cd9725eb091c4146987daf3d3be01df018913b1e64",
+          4335,
+          false
+        ],
+        [
+          3481,
+          3600,
+          "b8890bab5ff52d07d4efceef64482cf5bd443ae3ba5ac22af5e739f9534903c6",
+          4233,
+          false
+        ],
+        [
+          3601,
+          3720,
+          "2174581f461e425b1479f1ea4bbabaa121aed97783424a3502ae34bf55052499",
+          3998,
+          false
+        ],
+        [
+          3721,
+          3840,
+          "ceab47e69181fb0d0831052c2a366d8d49921f53d464116433be40f63965d6ee",
+          4564,
+          false
+        ],
+        [
+          3841,
+          3960,
+          "b0b51d527d43e77417d6ced90946fb255c938ab8d0c18a24f80f20db271f9c55",
+          4356,
+          false
+        ],
+        [
+          3961,
+          4080,
+          "c83d4fda34e2635364a603a326837d439419291b977633ba5526815b28ebedc8",
+          4498,
+          false
+        ],
+        [
+          4081,
+          4200,
+          "e3db20c3227409efa4c3c93807c90bc528cee3bc08cbfb34d7c7f5001b619bb0",
+          4829,
+          false
+        ],
+        [
+          4201,
+          4320,
+          "3e33803e5bb78ecc5d81c7f7e17ea65be98823b28ec5219a47dddf31976200f5",
+          4277,
+          false
+        ],
+        [
+          4321,
+          4440,
+          "b116850a554d6bdca9f5a02568505e3bd575a899d916594baeb213d55e7bd0ef",
+          4320,
+          false
+        ],
+        [
+          4441,
+          4556,
+          "c72fbd339edf65973d5a78151a52dd3299736099563c9bf0b25b1937190b613b",
+          3934,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "name",
+          "version",
+          "lockfileVersion",
+          "requires",
+          "packages"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed",
+      "raw_url": "https://raw.githubusercontent.com/Danieu-san/financas-bot/cf6e43cbaa7c378f2b64590c50d0818700a3bdd0/package-lock.json",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/4822d038cd3b56f45979f8d7e2b97d456012e7c1",
+      "full_raw_body_available": true,
+      "declared_use_for_review": "data_or_build_binding_not_operational_authority",
+      "top_level_shapes": {
+        "name": {
+          "kind": "string",
+          "value": "whatsapp-finance-bot"
+        },
+        "version": {
+          "kind": "string",
+          "value": "3.0.0"
+        },
+        "lockfileVersion": {
+          "kind": "number",
+          "value": 3
+        },
+        "requires": {
+          "kind": "boolean",
+          "value": true
+        },
+        "packages": {
+          "kind": "object",
+          "keys": [
+            "",
+            "node_modules/@babel/code-frame",
+            "node_modules/@babel/helper-validator-identifier",
+            "node_modules/@cfworker/json-schema",
+            "node_modules/@colors/colors",
+            "node_modules/@dabh/diagnostics",
+            "node_modules/@derhuerst/http-basic",
+            "node_modules/@endo/cache-map",
+            "node_modules/@endo/env-options",
+            "node_modules/@endo/immutable-arraybuffer",
+            "node_modules/@isaacs/cliui",
+            "node_modules/@langchain/core",
+            "node_modules/@langchain/langgraph",
+            "node_modules/@langchain/langgraph-checkpoint",
+            "node_modules/@langchain/langgraph-sdk",
+            "node_modules/@langchain/langgraph-sdk/node_modules/eventemitter3",
+            "node_modules/@langchain/langgraph-sdk/node_modules/p-queue",
+            "node_modules/@langchain/langgraph-sdk/node_modules/p-timeout",
+            "node_modules/@langchain/protocol",
+            "node_modules/@pkgjs/parseargs",
+            "node_modules/@puppeteer/browsers",
+            "node_modules/@standard-schema/spec",
+            "node_modules/@tootallnate/quickjs-emscripten",
+            "node_modules/@types/json-schema",
+            "node_modules/@types/node",
+            "node_modules/@types/triple-beam",
+            "node_modules/@types/yauzl",
+            "node_modules/abort-controller",
+            "node_modules/acorn",
+            "node_modules/agent-base",
+            "node_modules/ajv",
+            "node_modules/ajv-formats",
+            "node_modules/ansi-regex",
+            "node_modules/ansi-styles",
+            "node_modules/anymatch",
+            "node_modules/archiver",
+            "node_modules/archiver-utils",
+            "node_modules/archiver-utils/node_modules/buffer",
+            "node_modules/archiver-utils/node_modules/readable-stream",
+            "node_modules/archiver/node_modules/async",
+            "node_modules/archiver/node_modules/buffer",
+            "node_modules/archiver/node_modules/readable-stream",
+            "node_modules/archiver/node_modules/tar-stream",
+            "node_modules/argparse",
+            "node_modules/ast-types",
+            "node_modules/async",
+            "node_modules/b4a",
+            "node_modules/balanced-match",
+            "node_modules/bare-events",
+            "node_modules/bare-fs",
+            "node_modules/bare-os",
+            "node_modules/bare-path",
+            "node_modules/bare-stream",
+            "node_modules/bare-url",
+            "node_modules/base64-js",
+            "node_modules/basic-ftp",
+            "node_modules/better-sqlite3",
+            "node_modules/bignumber.js",
+            "node_modules/binary-extensions",
+            "node_modules/bindings",
+            "node_modules/bl",
+            "node_modules/bluebird",
+            "node_modules/brace-expansion",
+            "node_modules/braces",
+            "node_modules/buffer",
+            "node_modules/buffer-crc32",
+            "node_modules/buffer-equal-constant-time",
+            "node_modules/buffer-from",
+            "node_modules/call-bind-apply-helpers",
+            "node_modules/call-bound",
+            "node_modules/callsites",
+            "node_modules/caseless",
+            "node_modules/chokidar",
+            "node_modules/chownr",
+            "node_modules/chromium-bidi",
+            "node_modules/cliui",
+            "node_modules/cliui/node_modules/ansi-regex",
+            "node_modules/cliui/node_modules/ansi-styles",
+            "node_modules/cliui/node_modules/color-convert",
+            "node_modules/cliui/node_modules/color-name",
+            "node_modules/cliui/node_modules/emoji-regex",
+            "node_modules/cliui/node_modules/string-width",
+            "node_modules/cliui/node_modules/strip-ansi",
+            "node_modules/cliui/node_modules/wrap-ansi",
+            "node_modules/clone",
+            "node_modules/color",
+            "node_modules/color-convert",
+            "node_modules/color-name",
+            "node_modules/color-string",
+            "node_modules/colorspace",
+            "node_modules/compress-commons",
+            "node_modules/compress-commons/node_modules/buffer",
+            "node_modules/compress-commons/node_modules/readable-stream",
+            "node_modules/concat-map",
+            "node_modules/concat-stream",
+            "node_modules/core-util-is",
+            "node_modules/cosmiconfig",
+            "node_modules/crc-32",
+            "node_modules/crc32-stream",
+            "node_modules/crc32-stream/node_modules/buffer",
+            "node_modules/crc32-stream/node_modules/readable-stream",
+            "node_modules/cross-spawn",
+            "node_modules/cross-spawn/node_modules/which",
+            "node_modules/data-uri-to-buffer",
+            "node_modules/debug",
+            "node_modules/decompress-response",
+            "node_modules/deep-extend",
+            "node_modules/degenerator",
+            "node_modules/detect-libc",
+            "node_modules/devtools-protocol",
+            "node_modules/dotenv",
+            "node_modules/dunder-proto",
+            "node_modules/duplexer2",
+            "node_modules/duplexer2/node_modules/readable-stream",
+            "node_modules/duplexer2/node_modules/safe-buffer",
+            "node_modules/duplexer2/node_modules/string_decoder",
+            "node_modules/eastasianwidth",
+            "node_modules/ecdsa-sig-formatter",
+            "node_modules/emoji-regex",
+            "node_modules/enabled",
+            "node_modules/end-of-stream",
+            "node_modules/env-paths",
+            "node_modules/error-ex",
+            "node_modules/error-ex/node_modules/is-arrayish",
+            "node_modules/es-define-property",
+            "node_modules/es-errors",
+            "node_modules/es-object-atoms",
+            "node_modules/escalade",
+            "node_modules/escodegen",
+            "node_modules/esprima",
+            "node_modules/estraverse",
+            "node_modules/esutils",
+            "node_modules/event-target-shim",
+            "node_modules/eventemitter3",
+            "node_modules/events",
+            "node_modules/events-universal",
+            "node_modules/expand-template",
+            "node_modules/extend",
+            "node_modules/extract-zip",
+            "node_modules/fast-deep-equal",
+            "node_modules/fast-fifo",
+            "node_modules/fast-uri",
+            "node_modules/fd-slicer",
+            "node_modules/fecha",
+            "node_modules/fetch-blob",
+            "node_modules/ffmpeg-static",
+            "node_modules/file-uri-to-path",
+            "node_modules/fill-range",
+            "node_modules/fluent-ffmpeg",
+            "node_modules/fn.name",
+            "node_modules/foreground-child",
+            "node_modules/formdata-polyfill",
+            "node_modules/fs-constants",
+            "node_modules/fs-extra",
+            "node_modules/fsevents",
+            "node_modules/function-bind",
+            "node_modules/gaxios",
+            "node_modules/gaxios/node_modules/agent-base",
+            "node_modules/gaxios/node_modules/data-uri-to-buffer",
+            "node_modules/gaxios/node_modules/https-proxy-agent",
+            "node_modules/gaxios/node_modules/node-fetch",
+            "node_modules/gcp-metadata",
+            "node_modules/get-caller-file",
+            "node_modules/get-intrinsic",
+            "node_modules/get-proto",
+            "node_modules/get-stream",
+            "node_modules/get-uri",
+            "node_modules/github-from-package",
+            "node_modules/glob",
+            "node_modules/glob-parent",
+            "node_modules/glob/node_modules/brace-expansion",
+            "node_modules/glob/node_modules/minimatch",
+            "node_modules/google-auth-library",
+            "node_modules/google-logging-utils",
+            "node_modules/googleapis",
+            "node_modules/googleapis-common",
+            "node_modules/gopd",
+            "node_modules/graceful-fs",
+            "node_modules/has-flag",
+            "node_modules/has-symbols",
+            "node_modules/hasown",
+            "node_modules/http-proxy-agent",
+            "node_modules/http-proxy-agent/node_modules/agent-base",
+            "node_modules/http-response-object",
+            "node_modules/https-proxy-agent",
+            "node_modules/ieee754",
+            "node_modules/ignore-by-default",
+            "node_modules/import-fresh",
+            "node_modules/inherits",
+            "node_modules/ini",
+            "node_modules/ip-address",
+            "node_modules/is-arrayish",
+            "node_modules/is-binary-path",
+            "node_modules/is-extglob",
+            "node_modules/is-fullwidth-code-point",
+            "node_modules/is-glob",
+            "node_modules/is-network-error",
+            "node_modules/is-number",
+            "node_modules/is-stream",
+            "node_modules/isarray",
+            "node_modules/isexe",
+            "node_modules/jackspeak",
+            "node_modules/js-tiktoken",
+            "node_modules/js-tokens",
+            "node_modules/js-yaml",
+            "node_modules/json-bigint",
+            "node_modules/json-parse-even-better-errors",
+            "node_modules/json-schema-traverse",
+            "node_modules/jsonfile",
+            "node_modules/jwa",
+            "node_modules/jws",
+            "node_modules/kuler",
+            "node_modules/langsmith",
+            "node_modules/lazystream",
+            "node_modules/lazystream/node_modules/readable-stream",
+            "node_modules/lazystream/node_modules/safe-buffer",
+            "node_modules/lazystream/node_modules/string_decoder",
+            "node_modules/lines-and-columns",
+            "node_modules/lodash",
+            "node_modules/logform",
+            "node_modules/lru-cache",
+            "node_modules/math-intrinsics",
+            "node_modules/mime",
+            "node_modules/mimic-response",
+            "node_modules/minimatch",
+            "node_modules/minimist",
+            "node_modules/minipass",
+            "node_modules/mitt",
+            "node_modules/mkdirp-classic",
+            "node_modules/ms",
+            "node_modules/mustache",
+            "node_modules/napi-build-utils",
+            "node_modules/netmask",
+            "node_modules/node-abi",
+            "node_modules/node-cache",
+            "node_modules/node-cron",
+            "node_modules/node-domexception",
+            "node_modules/node-fetch",
+            "node_modules/node-int64",
+            "node_modules/node-webpmux",
+            "node_modules/nodemon",
+            "node_modules/normalize-path",
+            "node_modules/object-inspect",
+            "node_modules/once",
+            "node_modules/one-time",
+            "node_modules/p-finally",
+            "node_modules/p-queue",
+            "node_modules/p-retry",
+            "node_modules/p-timeout",
+            "node_modules/pac-proxy-agent",
+            "node_modules/pac-proxy-agent/node_modules/agent-base",
+            "node_modules/pac-proxy-agent/node_modules/https-proxy-agent",
+            "node_modules/pac-resolver",
+            "node_modules/package-json-from-dist",
+            "node_modules/parent-module",
+            "node_modules/parse-cache-control",
+            "node_modules/parse-json",
+            "node_modules/path-key",
+            "node_modules/path-scurry",
+            "node_modules/pend",
+            "node_modules/picocolors",
+            "node_modules/picomatch",
+            "node_modules/playwright",
+            "node_modules/playwright-core",
+            "node_modules/playwright/node_modules/fsevents",
+            "node_modules/prebuild-install",
+            "node_modules/prebuild-install/node_modules/tar-fs",
+            "node_modules/process",
+            "node_modules/process-nextick-args",
+            "node_modules/progress",
+            "node_modules/proxy-agent",
+            "node_modules/proxy-agent/node_modules/agent-base",
+            "node_modules/proxy-agent/node_modules/https-proxy-agent",
+            "node_modules/proxy-agent/node_modules/lru-cache",
+            "node_modules/proxy-from-env",
+            "node_modules/pstree.remy",
+            "node_modules/pump",
+            "node_modules/puppeteer",
+            "node_modules/puppeteer-core",
+            "node_modules/qrcode-terminal",
+            "node_modules/qs",
+            "node_modules/rc",
+            "node_modules/readable-stream",
+            "node_modules/readdir-glob",
+            "node_modules/readdir-glob/node_modules/brace-expansion",
+            "node_modules/readdir-glob/node_modules/minimatch",
+            "node_modules/readdirp",
+            "node_modules/require-directory",
+            "node_modules/require-from-string",
+            "node_modules/resolve-from",
+            "node_modules/safe-buffer",
+            "node_modules/safe-stable-stringify",
+            "node_modules/semver",
+            "node_modules/ses",
+            "node_modules/shebang-command",
+            "node_modules/shebang-regex",
+            "node_modules/side-channel",
+            "node_modules/side-channel-list",
+            "node_modules/side-channel-map",
+            "node_modules/side-channel-weakmap",
+            "node_modules/signal-exit",
+            "node_modules/simple-concat",
+            "node_modules/simple-get",
+            "node_modules/simple-swizzle",
+            "node_modules/simple-update-notifier",
+            "node_modules/smart-buffer",
+            "node_modules/socks",
+            "node_modules/socks-proxy-agent",
+            "node_modules/socks-proxy-agent/node_modules/agent-base",
+            "node_modules/source-map",
+            "node_modules/stack-trace",
+            "node_modules/streamx",
+            "node_modules/string_decoder",
+            "node_modules/string-similarity",
+            "node_modules/string-width",
+            "node_modules/string-width-cjs",
+            "node_modules/string-width-cjs/node_modules/ansi-regex",
+            "node_modules/string-width-cjs/node_modules/emoji-regex",
+            "node_modules/string-width-cjs/node_modules/strip-ansi",
+            "node_modules/strip-ansi",
+            "node_modules/strip-ansi-cjs",
+            "node_modules/strip-ansi-cjs/node_modules/ansi-regex",
+            "node_modules/strip-json-comments",
+            "node_modules/supports-color",
+            "node_modules/tar-fs",
+            "node_modules/tar-fs/node_modules/tar-stream",
+            "node_modules/tar-stream",
+            "node_modules/teex",
+            "node_modules/text-decoder",
+            "node_modules/text-hex",
+            "node_modules/to-regex-range",
+            "node_modules/touch",
+            "node_modules/tr46",
+            "node_modules/triple-beam",
+            "node_modules/tslib",
+            "node_modules/tunnel-agent",
+            "node_modules/typed-query-selector",
+            "node_modules/typedarray",
+            "node_modules/undefsafe",
+            "node_modules/universalify",
+            "node_modules/unzipper",
+            "node_modules/url-template",
+            "node_modules/util-deprecate",
+            "node_modules/web-streams-polyfill",
+            "node_modules/webdriver-bidi-protocol",
+            "node_modules/webidl-conversions",
+            "node_modules/whatsapp-web.js",
+            "node_modules/whatwg-url",
+            "node_modules/which",
+            "node_modules/winston",
+            "node_modules/winston-transport",
+            "node_modules/winston/node_modules/async",
+            "node_modules/wrap-ansi",
+            "node_modules/wrap-ansi-cjs",
+            "node_modules/wrap-ansi-cjs/node_modules/ansi-regex",
+            "node_modules/wrap-ansi-cjs/node_modules/ansi-styles",
+            "node_modules/wrap-ansi-cjs/node_modules/color-convert",
+            "node_modules/wrap-ansi-cjs/node_modules/color-name",
+            "node_modules/wrap-ansi-cjs/node_modules/emoji-regex",
+            "node_modules/wrap-ansi-cjs/node_modules/string-width",
+            "node_modules/wrap-ansi-cjs/node_modules/strip-ansi",
+            "node_modules/wrappy",
+            "node_modules/ws",
+            "node_modules/xlsx",
+            "node_modules/y18n",
+            "node_modules/yargs",
+            "node_modules/yargs-parser",
+            "node_modules/yargs/node_modules/ansi-regex",
+            "node_modules/yargs/node_modules/emoji-regex",
+            "node_modules/yargs/node_modules/string-width",
+            "node_modules/yargs/node_modules/strip-ansi",
+            "node_modules/yauzl",
+            "node_modules/yauzl/node_modules/buffer-crc32",
+            "node_modules/zip-stream",
+            "node_modules/zip-stream/node_modules/buffer",
+            "node_modules/zip-stream/node_modules/readable-stream",
+            "node_modules/zod"
+          ]
+        }
+      },
+      "source_identity_confronted": true,
+      "semantic_review": "pending_not_waived",
+      "summary_not_full_read_claim": true
+    },
+    {
+      "path": "package.json",
+      "sha256": "7873299481779f07cfbb76247fd7c5a895dacd5214ee79863baadd6b0b9d0205",
+      "git_blob_sha1": "e18db39c71d2d44f611b4b255da358bfc490910d",
+      "bytes": 13709,
+      "lines": 155,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "37901bcdcb98d579bd3ae26ab761876a169a63d2f5adf5deae0829459246da4f",
+          12881,
+          false
+        ],
+        [
+          121,
+          155,
+          "02315c0d3cb6bc5cd0dc93d31c902bd5853654369a4fee105f3a593ec5dfce6b",
+          827,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "name",
+          "version",
+          "description",
+          "main",
+          "scripts",
+          "keywords",
+          "author",
+          "license",
+          "dependencies",
+          "devDependencies",
+          "engines"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed",
+      "raw_url": "https://raw.githubusercontent.com/Danieu-san/financas-bot/cf6e43cbaa7c378f2b64590c50d0818700a3bdd0/package.json",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/e18db39c71d2d44f611b4b255da358bfc490910d",
+      "full_raw_body_available": true,
+      "declared_use_for_review": "data_or_build_binding_not_operational_authority",
+      "top_level_shapes": {
+        "name": {
+          "kind": "string",
+          "value": "whatsapp-finance-bot"
+        },
+        "version": {
+          "kind": "string",
+          "value": "3.0.0"
+        },
+        "description": {
+          "kind": "string",
+          "value": "Um bot de WhatsApp para controle financeiro com Google Sheets e Gemini."
+        },
+        "main": {
+          "kind": "string",
+          "value": "index.js"
+        },
+        "scripts": {
+          "kind": "object",
+          "keys": [
+            "start",
+            "dev",
+            "test:state-store-security",
+            "test:codex-usage-calibration",
+            "test",
+            "test:release",
+            "check:env-contract",
+            "pretest:unit",
+            "test:unit",
+            "test:legacy-telemetry",
+            "audit:legacy-entrypoints",
+            "audit:final-closures",
+            "report:legacy-tripwires",
+            "probe:legacy-tripwire",
+            "test:card-sheet-telemetry",
+            "test:card-sheet-report",
+            "test:card-sheet-parity",
+            "report:dashboard-adoption",
+            "report:card-sheet-usage",
+            "report:card-sheet-parity",
+            "report:legacy-retirement",
+            "test:open-finance-sandbox",
+            "e2e:open-finance-sandbox",
+            "test:open-finance-webhook",
+            "e2e:open-finance-webhook",
+            "test:open-finance-inbox",
+            "e2e:open-finance-inbox",
+            "test:open-finance-polling",
+            "e2e:open-finance-polling",
+            "test:open-finance-live",
+            "probe:open-finance-live-staging",
+            "test:open-finance-historical-rx",
+            "preview:open-finance-historical-rx",
+            "review:open-finance-historical-local",
+            "check:open-finance-auto-sync",
+            "preview:open-finance-shadow",
+            "preview:open-finance-lifecycle",
+            "preview:open-finance-outbox",
+            "check:open-finance-rollout",
+            "report:open-finance-outbox",
+            "report:open-finance-unconfirmed",
+            "ack:open-finance-alert-delivery",
+            "ops:apply-runtime-env",
+            "gate:open-finance-operational-backup",
+            "gate:open-finance-numeric-save-release",
+            "release:oci:build",
+            "release:oci:verify",
+            "release:oci:prepare",
+            "release:oci:plan",
+            "test:oci-release",
+            "release:open-finance:plan",
+            "release:open-finance:apply",
+            "test:open-finance-activation-release",
+            "e2e:card-read-model-unified-first",
+            "e2e:card-scheduler-unified-first",
+            "e2e:card-user-id-validation-unified-first",
+            "test:plans",
+            "test:phase5-exit",
+            "test:phase6a",
+            "test:phase6b",
+            "test:phase6c",
+            "test:phase6d",
+            "test:phase6e",
+            "financial:undo-e2e",
+            "financial:undo-canary",
+            "financial:document-ocr-e2e",
+            "financial:document-ocr-canary",
+            "financial:receipts-e2e",
+            "financial:receipts-canary",
+            "financial:file-io-e2e",
+            "financial:file-io-canary",
+            "maintenance:batch-e2e",
+            "maintenance:batch-canary",
+            "ledger:dry-run",
+            "plans:read-gate",
+            "plans:writes-canary",
+            "plans:writes-e2e",
+            "ledger:installments-read-smoke",
+            "ledger:accounts-gate",
+            "ledger:accounts-source-gate",
+            "ledger:account-movements-gate",
+            "ledger:refunds-gate",
+            "test:financial-agent",
+            "test:financial-semantic-facade",
+            "test:financial-iterative-shadow",
+            "test:financial-evidence-adequacy",
+            "report:financial-iterative-canary",
+            "test:financial-agent:trajectory-baseline",
+            "test:financial-agent:golden-baseline",
+            "test:financial-agent:migration-gaps",
+            "test:financial-agent:novel",
+            "test:financial-command-planner",
+            "benchmark:gemini",
+            "test:interpretation-reliability",
+            "report:interpretation-readiness",
+            "gate:enforce:accelerated",
+            "gate:analytical-legacy",
+            "test:functional",
+            "test:whatsapp:e2e",
+            "test:whatsapp:e2e:setup",
+            "test:whatsapp:e2e:check",
+            "test:whatsapp:e2e:invite",
+            "test:whatsapp:e2e:import",
+            "test:whatsapp:e2e:bill-pay",
+            "test:whatsapp:e2e:planner-writes",
+            "pm2:stop",
+            "pm2:logs",
+            "reset:spreadsheet",
+            "backfill:user-id",
+            "seed:known-users",
+            "finalize:legacy-user-id"
+          ]
+        },
+        "keywords": {
+          "kind": "array",
+          "count": 5
+        },
+        "author": {
+          "kind": "string",
+          "value": "Daniel Santos"
+        },
+        "license": {
+          "kind": "string",
+          "value": "ISC"
+        },
+        "dependencies": {
+          "kind": "object",
+          "keys": [
+            "@langchain/langgraph",
+            "better-sqlite3",
+            "dotenv",
+            "ffmpeg-static",
+            "fluent-ffmpeg",
+            "googleapis",
+            "node-cache",
+            "node-cron",
+            "qrcode-terminal",
+            "string-similarity",
+            "whatsapp-web.js",
+            "winston",
+            "xlsx"
+          ]
+        },
+        "devDependencies": {
+          "kind": "object",
+          "keys": [
+            "acorn",
+            "ajv",
+            "ajv-formats",
+            "nodemon",
+            "playwright",
+            "ses"
+          ]
+        },
+        "engines": {
+          "kind": "object",
+          "keys": [
+            "node"
+          ]
+        }
+      },
+      "source_identity_confronted": true,
+      "semantic_review": "pending_not_waived",
+      "summary_not_full_read_claim": true
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/normal-rule-review-snapshot.json",
+      "sha256": "247e948fec72ef6370fc7c74314b341ad7a4f61d8a20f244d5515cc995414748",
+      "git_blob_sha1": "25f4c091e7d3daad9f0c1006d45a8a6bbbc1eea1",
+      "bytes": 579162,
+      "lines": 1,
+      "source_ranges": [
+        [
+          1,
+          1,
+          "247e948fec72ef6370fc7c74314b341ad7a4f61d8a20f244d5515cc995414748",
+          579162,
+          true
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "core",
+          "format",
+          "stage",
+          "version"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed",
+      "raw_url": "https://raw.githubusercontent.com/Danieu-san/financas-bot/cf6e43cbaa7c378f2b64590c50d0818700a3bdd0/docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/normal-rule-review-snapshot.json",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/25f4c091e7d3daad9f0c1006d45a8a6bbbc1eea1",
+      "full_raw_body_available": true,
+      "declared_use_for_review": "specific_S01_pre_M_review_basis_not_independent_authentication_or_general_profile",
+      "top_level_shapes": {
+        "core": {
+          "kind": "object",
+          "keys": [
+            "authority_builder_sources",
+            "baseline_package",
+            "compiler",
+            "conditional_partition",
+            "dp_execution",
+            "entries",
+            "financial_acceptance",
+            "method_authority",
+            "native_control_plans",
+            "normal_rule_reference",
+            "per_site_domains",
+            "phase_profile_sha256",
+            "qualified",
+            "scope",
+            "semantic_mutation_credit",
+            "target",
+            "target_id"
+          ]
+        },
+        "format": {
+          "kind": "string",
+          "value": "financasbot.path-normal-rule-review-snapshot"
+        },
+        "stage": {
+          "kind": "string",
+          "value": "path_v3_normal_rule_review_snapshot_only"
+        },
+        "version": {
+          "kind": "number",
+          "value": 1
+        }
+      },
+      "source_identity_confronted": true,
+      "semantic_review": "pending_not_waived",
+      "summary_not_full_read_claim": true
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/compiler-manifest.json",
+      "sha256": "c529c09bf0b3fe02bf315f6fad19e4e46a2141c2337f5faed8b76a68ba543921",
+      "git_blob_sha1": "ca3ebccb2d1875234cb62fb70536d6fc396e4864",
+      "bytes": 442,
+      "lines": 1,
+      "source_ranges": [
+        [
+          1,
+          1,
+          "c529c09bf0b3fe02bf315f6fad19e4e46a2141c2337f5faed8b76a68ba543921",
+          442,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "entry",
+          "files",
+          "format",
+          "kind",
+          "version"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed",
+      "raw_url": "https://raw.githubusercontent.com/Danieu-san/financas-bot/cf6e43cbaa7c378f2b64590c50d0818700a3bdd0/docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/compiler-manifest.json",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/ca3ebccb2d1875234cb62fb70536d6fc396e4864",
+      "full_raw_body_available": true,
+      "declared_use_for_review": "artifact_file_root_binding_not_external_review_authority",
+      "top_level_shapes": {
+        "entry": {
+          "kind": "string",
+          "value": "path-qualification-compiler.js"
+        },
+        "files": {
+          "kind": "array",
+          "count": 2
+        },
+        "format": {
+          "kind": "string",
+          "value": "financasbot.provenance.artifact"
+        },
+        "kind": {
+          "kind": "string",
+          "value": "tcb"
+        },
+        "version": {
+          "kind": "number",
+          "value": 1
+        }
+      },
+      "source_identity_confronted": true,
+      "semantic_review": "pending_not_waived",
+      "summary_not_full_read_claim": true
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/path-qualification-compiler-recipe.json",
+      "sha256": "5404208701a79b6940067612b07ba4e95b612dfc00f3d008bfd4037bf8aa4b9e",
+      "git_blob_sha1": "40910cf554cb47a956f6970d26d168ccd1a0abd7",
+      "bytes": 276716,
+      "lines": 1,
+      "source_ranges": [
+        [
+          1,
+          1,
+          "5404208701a79b6940067612b07ba4e95b612dfc00f3d008bfd4037bf8aa4b9e",
+          276716,
+          true
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "launcher_native_externals",
+          "native_externals",
+          "native_globals",
+          "recipes",
+          "schema_sources",
+          "version"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed",
+      "raw_url": "https://raw.githubusercontent.com/Danieu-san/financas-bot/cf6e43cbaa7c378f2b64590c50d0818700a3bdd0/docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/path-qualification-compiler-recipe.json",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/40910cf554cb47a956f6970d26d168ccd1a0abd7",
+      "full_raw_body_available": true,
+      "declared_use_for_review": "captured_recipe_sources_and_schema_bindings_not_independent_BUILD_replay",
+      "top_level_shapes": {
+        "launcher_native_externals": {
+          "kind": "array",
+          "count": 7
+        },
+        "native_externals": {
+          "kind": "array",
+          "count": 6
+        },
+        "native_globals": {
+          "kind": "array",
+          "count": 4
+        },
+        "recipes": {
+          "kind": "array",
+          "count": 7
+        },
+        "schema_sources": {
+          "kind": "array",
+          "count": 6
+        },
+        "version": {
+          "kind": "number",
+          "value": 1
+        }
+      },
+      "source_identity_confronted": true,
+      "semantic_review": "pending_not_waived",
+      "summary_not_full_read_claim": true
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/validation-tcb-manifest.json",
+      "sha256": "00498cfb57f61b8f56946166308d106cab141012be850e4bd68a4771bca9acb1",
+      "git_blob_sha1": "3da90c074c43762007dd5cfd82c2428d465b0f5b",
+      "bytes": 683,
+      "lines": 1,
+      "source_ranges": [
+        [
+          1,
+          1,
+          "00498cfb57f61b8f56946166308d106cab141012be850e4bd68a4771bca9acb1",
+          683,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "entry",
+          "files",
+          "format",
+          "kind",
+          "version"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed",
+      "raw_url": "https://raw.githubusercontent.com/Danieu-san/financas-bot/cf6e43cbaa7c378f2b64590c50d0818700a3bdd0/docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/validation-tcb-manifest.json",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/3da90c074c43762007dd5cfd82c2428d465b0f5b",
+      "full_raw_body_available": true,
+      "declared_use_for_review": "artifact_file_root_binding_not_external_review_authority",
+      "top_level_shapes": {
+        "entry": {
+          "kind": "string",
+          "value": "launcher-bootstrap.js"
+        },
+        "files": {
+          "kind": "array",
+          "count": 4
+        },
+        "format": {
+          "kind": "string",
+          "value": "financasbot.provenance.artifact"
+        },
+        "kind": {
+          "kind": "string",
+          "value": "tcb"
+        },
+        "version": {
+          "kind": "number",
+          "value": 1
+        }
+      },
+      "source_identity_confronted": true,
+      "semantic_review": "pending_not_waived",
+      "summary_not_full_read_claim": true
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/recipe.json",
+      "sha256": "5404208701a79b6940067612b07ba4e95b612dfc00f3d008bfd4037bf8aa4b9e",
+      "git_blob_sha1": "40910cf554cb47a956f6970d26d168ccd1a0abd7",
+      "bytes": 276716,
+      "lines": 1,
+      "source_ranges": [
+        [
+          1,
+          1,
+          "5404208701a79b6940067612b07ba4e95b612dfc00f3d008bfd4037bf8aa4b9e",
+          276716,
+          true
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "launcher_native_externals",
+          "native_externals",
+          "native_globals",
+          "recipes",
+          "schema_sources",
+          "version"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed",
+      "raw_url": "https://raw.githubusercontent.com/Danieu-san/financas-bot/cf6e43cbaa7c378f2b64590c50d0818700a3bdd0/docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/recipe.json",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/40910cf554cb47a956f6970d26d168ccd1a0abd7",
+      "full_raw_body_available": true,
+      "declared_use_for_review": "captured_recipe_sources_and_schema_bindings_not_independent_BUILD_replay",
+      "top_level_shapes": {
+        "launcher_native_externals": {
+          "kind": "array",
+          "count": 7
+        },
+        "native_externals": {
+          "kind": "array",
+          "count": 6
+        },
+        "native_globals": {
+          "kind": "array",
+          "count": 4
+        },
+        "recipes": {
+          "kind": "array",
+          "count": 7
+        },
+        "schema_sources": {
+          "kind": "array",
+          "count": 6
+        },
+        "version": {
+          "kind": "number",
+          "value": 1
+        }
+      },
+      "source_identity_confronted": true,
+      "semantic_review": "pending_not_waived",
+      "summary_not_full_read_claim": true
+    }
+  ]
+}
