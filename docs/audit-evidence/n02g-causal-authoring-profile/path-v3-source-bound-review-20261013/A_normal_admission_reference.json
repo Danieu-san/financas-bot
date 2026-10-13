@@ -1,0 +1,3958 @@
+{
+  "format": "financasbot.source-bound-review-frontier",
+  "version": 2,
+  "code_commit": "cf6e43cbaa7c378f2b64590c50d0818700a3bdd0",
+  "code_tree": "a95ab30b2a30c19d90c71b2ffa1c56705ed0522f",
+  "group": "A_normal_admission_reference",
+  "units": [
+    {
+      "path": "docs/contracts/next/provenance-v2/authoring-contract-v1.md",
+      "sha256": "7040d3cee24341a15af3fb3ca6acf84df6a207b10af13828739f545f87ae1328",
+      "git_blob_sha1": "24cd320b71e110e6598837067536e8f24810bdf0",
+      "bytes": 9498,
+      "lines": 155,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "d4accca985efaa52d95e82845c1b75afffb3215fe97b3b92f45ed993ed434782",
+          7604,
+          false
+        ],
+        [
+          121,
+          155,
+          "5d4033762259ce3bec543793a28290036ea9cfabf3ef9ccc226ac896d97edbba",
+          1893,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/causal-authoring-candidates/README.md",
+      "sha256": "1c018f2e87d96ea4bb504574751171e1ad192820aa60a1e32976d83964bd9b1b",
+      "git_blob_sha1": "99bb2b0364decd4f5a2bdcbaaf202e311326bd70",
+      "bytes": 7330,
+      "lines": 122,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "2aaa400b095ec2946db030f868e71d2946457563743f6d1ef28191eeab5f4277",
+          7273,
+          false
+        ],
+        [
+          121,
+          122,
+          "69ba4b903d76016e12b5d3b8df59120f9b8cdbec6867edcff2e816f2b4ad5518",
+          56,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/causal-authoring-candidates/consumption-by-instrument-profile-v1.json",
+      "sha256": "4c2be2d8f773b85e008d8f476d37196bdab9b0bac58848c616294f685fcda99a",
+      "git_blob_sha1": "3ec83767262fcf9f852d6ecb165bb7a80459438a",
+      "bytes": 1205,
+      "lines": 17,
+      "source_ranges": [
+        [
+          1,
+          17,
+          "4c2be2d8f773b85e008d8f476d37196bdab9b0bac58848c616294f685fcda99a",
+          1205,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "profile_version",
+          "evaluator_id",
+          "evaluator_version",
+          "metric",
+          "contract_hash",
+          "foreign_reference_policy",
+          "program"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/causal-authoring-candidates/statement-total-profile-v1.json",
+      "sha256": "12cd0fa53fb62121068cdb85ededa91a0b5faec6976d2a9eb3a8045502485723",
+      "git_blob_sha1": "d836914cfebe270f03fae81a9f151415444341c3",
+      "bytes": 1358,
+      "lines": 17,
+      "source_ranges": [
+        [
+          1,
+          17,
+          "12cd0fa53fb62121068cdb85ededa91a0b5faec6976d2a9eb3a8045502485723",
+          1358,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "profile_version",
+          "evaluator_id",
+          "evaluator_version",
+          "metric",
+          "contract_hash",
+          "foreign_reference_policy",
+          "program"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claim-contract.schema.json",
+      "sha256": "b69ef61b562061f057a9bf08f47623ae432c723f565e8775f3dbe6eb942ea998",
+      "git_blob_sha1": "40f4a97483a359d77ddf649a167ebc67b9b6286e",
+      "bytes": 6124,
+      "lines": 70,
+      "source_ranges": [
+        [
+          1,
+          70,
+          "b69ef61b562061f057a9bf08f47623ae432c723f565e8775f3dbe6eb942ea998",
+          6124,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "$schema",
+          "$id",
+          "title",
+          "type",
+          "additionalProperties",
+          "required",
+          "properties",
+          "definitions"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claims-v2.json",
+      "sha256": "4810612761ea7f232e4445c0d192ae53ebf0761f0ba8752da758efb826b30494",
+      "git_blob_sha1": "0f0ade4e0f174966ae9f2660df97cc0b29d2d775",
+      "bytes": 64240,
+      "lines": 83,
+      "source_ranges": [
+        [
+          1,
+          83,
+          "4810612761ea7f232e4445c0d192ae53ebf0761f0ba8752da758efb826b30494",
+          64240,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "claims"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluation-policy-v1.json",
+      "sha256": "4b6ee6a6fb365aa97a22a087de032e998dbb31ffd929d3ea2b094544f28f40dd",
+      "git_blob_sha1": "9badd708f58db8eec8fb959d7e434d4687dab924",
+      "bytes": 454,
+      "lines": 16,
+      "source_ranges": [
+        [
+          1,
+          16,
+          "4b6ee6a6fb365aa97a22a087de032e998dbb31ffd929d3ea2b094544f28f40dd",
+          454,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "policy_id",
+          "schema_version",
+          "stage",
+          "calendar",
+          "timezone",
+          "ranking_key",
+          "ranking_direction",
+          "ranking_tie_break",
+          "daily_pace_divisor",
+          "daily_pace_rounding",
+          "daily_pace_start",
+          "daily_pace_end",
+          "daily_pace_as_of"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-authoring-semantics-v1.md",
+      "sha256": "720e31b2a8a7c0490adf620a8ccaedbe54e06d0502e518e61c8c69252a006a7f",
+      "git_blob_sha1": "e3dcbe95fc8d0ed2cbbaa788024d842cf77f8d7f",
+      "bytes": 4875,
+      "lines": 83,
+      "source_ranges": [
+        [
+          1,
+          83,
+          "720e31b2a8a7c0490adf620a8ccaedbe54e06d0502e518e61c8c69252a006a7f",
+          4875,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contract.schema.json",
+      "sha256": "2c3bc0a86bf45da2c4466118bb6ad9506f1824a209c419c3c7180718e294a183",
+      "git_blob_sha1": "dd6b397e6e7199e0c0f9b1a3e605ce5b4bfa17d7",
+      "bytes": 2668,
+      "lines": 131,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "2a56a47416789ae5082222f3ba28791a29e33865d48425059e711a95728b65af",
+          2450,
+          false
+        ],
+        [
+          121,
+          131,
+          "92d2d2794b0446ac9295b1d227a6575f4d60d38c828edac87f8efc0e0c29d32b",
+          217,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "type",
+          "additionalProperties",
+          "required",
+          "properties",
+          "$schema",
+          "$id"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/account_balance.json",
+      "sha256": "b509b72bf341c36f60cc7fda7030602a0fdfcc1dae24a0687cb899d4b15a35ed",
+      "git_blob_sha1": "572146a995cae9231ceb7a2f14abc73b69801d00",
+      "bytes": 1539,
+      "lines": 33,
+      "source_ranges": [
+        [
+          1,
+          33,
+          "b509b72bf341c36f60cc7fda7030602a0fdfcc1dae24a0687cb899d4b15a35ed",
+          1539,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/balance_delta.json",
+      "sha256": "39a1a87663a54e5d37c8e1a35f02596330d48b71e70a431fa27fe58193339a1e",
+      "git_blob_sha1": "da45c338a9f231539d029ecd02ac1d840a238110",
+      "bytes": 1162,
+      "lines": 31,
+      "source_ranges": [
+        [
+          1,
+          31,
+          "39a1a87663a54e5d37c8e1a35f02596330d48b71e70a431fa27fe58193339a1e",
+          1162,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/bills_open.json",
+      "sha256": "9fed67d44d48c3965043964769ce6481b876a793decf16901e7e666261593faf",
+      "git_blob_sha1": "62a1808350a2c45c7f0ec08ca3edc498f9d1aac6",
+      "bytes": 1164,
+      "lines": 31,
+      "source_ranges": [
+        [
+          1,
+          31,
+          "9fed67d44d48c3965043964769ce6481b876a793decf16901e7e666261593faf",
+          1164,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/budget_class_consumption.json",
+      "sha256": "e336d72e581c06401fd6ef3cc5b041b6c2b7ad56745fe25ff5980ca763ed8561",
+      "git_blob_sha1": "3753c5a9e78172a34130efe7e7bbdc402a5dd1e3",
+      "bytes": 1274,
+      "lines": 31,
+      "source_ranges": [
+        [
+          1,
+          31,
+          "e336d72e581c06401fd6ef3cc5b041b6c2b7ad56745fe25ff5980ca763ed8561",
+          1274,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/calendar_event_count.json",
+      "sha256": "fa3f00c0a019ab0702f94b2c97f2e575509c308343d2208c992ac677e98097b8",
+      "git_blob_sha1": "0164a5edf6f00714951194c32b1caf06a4fea559",
+      "bytes": 1156,
+      "lines": 31,
+      "source_ranges": [
+        [
+          1,
+          31,
+          "fa3f00c0a019ab0702f94b2c97f2e575509c308343d2208c992ac677e98097b8",
+          1156,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/category_budget_remaining.json",
+      "sha256": "4e4f9e38d7495397799578d1f73366d067ef5a5a7ca47879071dacd3669436c5",
+      "git_blob_sha1": "c046b51cb8fee63a8d028c951ae807e7197d0379",
+      "bytes": 1485,
+      "lines": 32,
+      "source_ranges": [
+        [
+          1,
+          32,
+          "4e4f9e38d7495397799578d1f73366d067ef5a5a7ca47879071dacd3669436c5",
+          1485,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/category_consumption.json",
+      "sha256": "b6e8edf05cb8acc7155bea56d84c4827c4fa9c97b54cacdc13805602468564a3",
+      "git_blob_sha1": "6746662dcdff8845579bfd512c5178273de88db0",
+      "bytes": 1237,
+      "lines": 31,
+      "source_ranges": [
+        [
+          1,
+          31,
+          "b6e8edf05cb8acc7155bea56d84c4827c4fa9c97b54cacdc13805602468564a3",
+          1237,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/category_spent.json",
+      "sha256": "f168ac80d9ac17abf516e76729105c03a6efcf1743bdd4459e94f0c75f851baa",
+      "git_blob_sha1": "caf91b480f0b77daefe2b09ebf129ae7a1feb22a",
+      "bytes": 1207,
+      "lines": 31,
+      "source_ranges": [
+        [
+          1,
+          31,
+          "f168ac80d9ac17abf516e76729105c03a6efcf1743bdd4459e94f0c75f851baa",
+          1207,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_by_instrument.json",
+      "sha256": "e32bc36ae9642c1db0d0eb6dce05c3861a80d967b974613eafc8fc6a341dbd37",
+      "git_blob_sha1": "30d4a24f67f161a660d6bc73b2ebfd8dee74af34",
+      "bytes": 1218,
+      "lines": 31,
+      "source_ranges": [
+        [
+          1,
+          31,
+          "e32bc36ae9642c1db0d0eb6dce05c3861a80d967b974613eafc8fc6a341dbd37",
+          1218,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_difference.json",
+      "sha256": "f5d8eda523ba66305010fed07ca6c657b76c486774eac052c3151ddcc85546f7",
+      "git_blob_sha1": "dc5b5d588a869b54c49a5f05d9b735db0f78a64b",
+      "bytes": 1159,
+      "lines": 31,
+      "source_ranges": [
+        [
+          1,
+          31,
+          "f5d8eda523ba66305010fed07ca6c657b76c486774eac052c3151ddcc85546f7",
+          1159,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_effect.json",
+      "sha256": "7dd62b47dcc336828376d44ed54c996f4ef21d27f9f21cfa142cd3722e24eab1",
+      "git_blob_sha1": "f292c713f2c6b45bd964cb41b6e1a0ec48f574bf",
+      "bytes": 1248,
+      "lines": 31,
+      "source_ranges": [
+        [
+          1,
+          31,
+          "7dd62b47dcc336828376d44ed54c996f4ef21d27f9f21cfa142cd3722e24eab1",
+          1248,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_total.json",
+      "sha256": "4e07fd44f09a99168cd92d6a9caa664ef5c847146aae64905b859c4cf313be3a",
+      "git_blob_sha1": "422dd8a4a1e69aa2dc55f59442a5d5de43af4901",
+      "bytes": 1365,
+      "lines": 32,
+      "source_ranges": [
+        [
+          1,
+          32,
+          "4e07fd44f09a99168cd92d6a9caa664ef5c847146aae64905b859c4cf313be3a",
+          1365,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/due_bill_ids.json",
+      "sha256": "a9ddce797a0f90184dad2e3fd50cb20d6534648485ed9f27592cbfe03782ebf4",
+      "git_blob_sha1": "35543a1574ec987d4fc66f87b79b0d0c87d35cb5",
+      "bytes": 1162,
+      "lines": 31,
+      "source_ranges": [
+        [
+          1,
+          31,
+          "a9ddce797a0f90184dad2e3fd50cb20d6534648485ed9f27592cbfe03782ebf4",
+          1162,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/due_bills_total.json",
+      "sha256": "aaa1e469986731240f28f22ffe4559c4a663b13d2a01718f61e866c3e1f62e86",
+      "git_blob_sha1": "b50171a0e610b9230c981f47fc291d2954daf234",
+      "bytes": 1143,
+      "lines": 31,
+      "source_ranges": [
+        [
+          1,
+          31,
+          "aaa1e469986731240f28f22ffe4559c4a663b13d2a01718f61e866c3e1f62e86",
+          1143,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/eligible_event_count.json",
+      "sha256": "f338fef9c95fa8ec005b95b6aa8b21069bb1c04f03ccc777d672bf5f161f4951",
+      "git_blob_sha1": "902779bd88e5fd115e7a9f2ee6f32a3058d78c41",
+      "bytes": 1884,
+      "lines": 34,
+      "source_ranges": [
+        [
+          1,
+          34,
+          "f338fef9c95fa8ec005b95b6aa8b21069bb1c04f03ccc777d672bf5f161f4951",
+          1884,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/gross_consumption.json",
+      "sha256": "787b125062623e9ffaea8d248ef0554a93e23458275566390c88e88b5e3d00d6",
+      "git_blob_sha1": "a70c202573fcf81cc080057d818dc74e084e6194",
+      "bytes": 1192,
+      "lines": 31,
+      "source_ranges": [
+        [
+          1,
+          31,
+          "787b125062623e9ffaea8d248ef0554a93e23458275566390c88e88b5e3d00d6",
+          1192,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/income_minus_open_bills.json",
+      "sha256": "1d87b903b2e41e0bdfa4edc5ec1708c1e10e81dfa9cff30560dd5206b4637b86",
+      "git_blob_sha1": "77966ed2476ce04160e53decd9b99abc1f23a903",
+      "bytes": 1215,
+      "lines": 31,
+      "source_ranges": [
+        [
+          1,
+          31,
+          "1d87b903b2e41e0bdfa4edc5ec1708c1e10e81dfa9cff30560dd5206b4637b86",
+          1215,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/income_realized.json",
+      "sha256": "3098c37340e1c22e6137691c498c1e1b3756a8319f2187eb17fa0c16e8abedea",
+      "git_blob_sha1": "e9670929fbf385ffa02070c3e4ca13618477bc39",
+      "bytes": 1155,
+      "lines": 31,
+      "source_ranges": [
+        [
+          1,
+          31,
+          "3098c37340e1c22e6137691c498c1e1b3756a8319f2187eb17fa0c16e8abedea",
+          1155,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/installments_projected.json",
+      "sha256": "924d883d776a5f0da128ee931d96ff27aa1f9effa5ca86d3c81f21af35bf4988",
+      "git_blob_sha1": "9d6c09b259b93012e1595b6e10ca99da1f9910e8",
+      "bytes": 1171,
+      "lines": 31,
+      "source_ranges": [
+        [
+          1,
+          31,
+          "924d883d776a5f0da128ee931d96ff27aa1f9effa5ca86d3c81f21af35bf4988",
+          1171,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/installments_projected_amount.json",
+      "sha256": "6cd3f810f260c6fa94b4509c1d8e043866accc8a0314446fde59d51b28763f0a",
+      "git_blob_sha1": "f389ec4eb81944b35bdd9db199189bdb1b8114fb",
+      "bytes": 1209,
+      "lines": 31,
+      "source_ranges": [
+        [
+          1,
+          31,
+          "6cd3f810f260c6fa94b4509c1d8e043866accc8a0314446fde59d51b28763f0a",
+          1209,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/installments_realized.json",
+      "sha256": "0115cf8a9d922e43b6b393cecc521a9659a41f75b68591b579eed01490c5d3f7",
+      "git_blob_sha1": "4887dc14746e92ac401e631476401c1080533b2e",
+      "bytes": 1162,
+      "lines": 31,
+      "source_ranges": [
+        [
+          1,
+          31,
+          "0115cf8a9d922e43b6b393cecc521a9659a41f75b68591b579eed01490c5d3f7",
+          1162,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/installments_realized_amount.json",
+      "sha256": "8987257b8976651b8e82c7e414fda6472ba5aa60ce58befaef3a5661956eb8a7",
+      "git_blob_sha1": "7bb784b2102d84c60cfc7d1ba364383490b1f77c",
+      "bytes": 1194,
+      "lines": 31,
+      "source_ranges": [
+        [
+          1,
+          31,
+          "8987257b8976651b8e82c7e414fda6472ba5aa60ce58befaef3a5661956eb8a7",
+          1194,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/invoice_payment_amount.json",
+      "sha256": "8b0b104d9d9623fc65847611532eb69810464f2869b5f9421557f07441562928",
+      "git_blob_sha1": "a5bba65f19a7af20f44a5f11395d261c42a73d40",
+      "bytes": 1206,
+      "lines": 31,
+      "source_ranges": [
+        [
+          1,
+          31,
+          "8b0b104d9d9623fc65847611532eb69810464f2869b5f9421557f07441562928",
+          1206,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/invoice_payment_consumption_effect.json",
+      "sha256": "613b290689de669c2e5ab437fe12ce6f495bdfb766ed848d7716ea50f6b9c7c6",
+      "git_blob_sha1": "a6a97fb5599c4cb62ecc8261a4b83cff7c7ad3f5",
+      "bytes": 1261,
+      "lines": 31,
+      "source_ranges": [
+        [
+          1,
+          31,
+          "613b290689de669c2e5ab437fe12ce6f495bdfb766ed848d7716ea50f6b9c7c6",
+          1261,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/invoice_payment_target_card.json",
+      "sha256": "a58d6ee1480662230142a532903facd36cbbe3b7f67705dc01345574a324acfa",
+      "git_blob_sha1": "a09d2605edf0729591c0ecb92f6247e199dde82f",
+      "bytes": 1207,
+      "lines": 31,
+      "source_ranges": [
+        [
+          1,
+          31,
+          "a58d6ee1480662230142a532903facd36cbbe3b7f67705dc01345574a324acfa",
+          1207,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/merchant_rule_ids.json",
+      "sha256": "b3ec5d6c4003258cd25431a709197c37a1cf7f70e10125b2f0c8d15bba95abbe",
+      "git_blob_sha1": "a44b1ae89e4d47df8aad7aac54dd2afeaf2f8707",
+      "bytes": 1179,
+      "lines": 31,
+      "source_ranges": [
+        [
+          1,
+          31,
+          "b3ec5d6c4003258cd25431a709197c37a1cf7f70e10125b2f0c8d15bba95abbe",
+          1179,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/movement_ids.json",
+      "sha256": "4c41b92c8bcf511536461ec676441babe401ef3906144beb960150605a786b96",
+      "git_blob_sha1": "77ecf9272966b82543a6335ba25a6fe80dc6b742",
+      "bytes": 1210,
+      "lines": 31,
+      "source_ranges": [
+        [
+          1,
+          31,
+          "4c41b92c8bcf511536461ec676441babe401ef3906144beb960150605a786b96",
+          1210,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/net_consumption.json",
+      "sha256": "1bbf9d81f52b9766156ab60ddd4d8da961b958440e32df12dc0ce315c76fe891",
+      "git_blob_sha1": "e5c4bc796cb7bb97b58bf93e425a21b58ba0061c",
+      "bytes": 1244,
+      "lines": 31,
+      "source_ranges": [
+        [
+          1,
+          31,
+          "1bbf9d81f52b9766156ab60ddd4d8da961b958440e32df12dc0ce315c76fe891",
+          1244,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/owned_cards.json",
+      "sha256": "67b68e3e0d27a0973127411a960953345eeff0c8adc001ea25001fa2ddbbfc3a",
+      "git_blob_sha1": "39d53b39d0a7ce65985c5aa98c49ef9b6eb17657",
+      "bytes": 1188,
+      "lines": 31,
+      "source_ranges": [
+        [
+          1,
+          31,
+          "67b68e3e0d27a0973127411a960953345eeff0c8adc001ea25001fa2ddbbfc3a",
+          1188,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/projected_installments.json",
+      "sha256": "d5c649bcaf00627f23d1930ac78de03dfb41f2fb5e0c11cb26d1e177f57feaee",
+      "git_blob_sha1": "5dd0aa72e0b0b3a4dfc589f1c10f4e55ba5c11df",
+      "bytes": 1224,
+      "lines": 31,
+      "source_ranges": [
+        [
+          1,
+          31,
+          "d5c649bcaf00627f23d1930ac78de03dfb41f2fb5e0c11cb26d1e177f57feaee",
+          1224,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/ranking_winner.json",
+      "sha256": "aabe7e1423046863612c8d0ca4816bdc91e98d02c0f1cd2ce1a8a0e4f2b51889",
+      "git_blob_sha1": "ecd286ac802f4e7c3952c98450a9417948e6d98a",
+      "bytes": 1403,
+      "lines": 33,
+      "source_ranges": [
+        [
+          1,
+          33,
+          "aabe7e1423046863612c8d0ca4816bdc91e98d02c0f1cd2ce1a8a0e4f2b51889",
+          1403,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/refund_amount.json",
+      "sha256": "2dafc200e53dfa069e3b7e12d42c0ead14db1f2b020768ec5fd2a6fcda4c515c",
+      "git_blob_sha1": "7d6baf5e5e43bbf19046e0cddfb5d34ad9d90d7b",
+      "bytes": 1772,
+      "lines": 33,
+      "source_ranges": [
+        [
+          1,
+          33,
+          "2dafc200e53dfa069e3b7e12d42c0ead14db1f2b020768ec5fd2a6fcda4c515c",
+          1772,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/reminder_count.json",
+      "sha256": "16b84262decf1b92536ed697b09844e0c76f5153f4570e8ec49bc550010f8514",
+      "git_blob_sha1": "360317fa9132251c948080a6f419d816429345b5",
+      "bytes": 1183,
+      "lines": 31,
+      "source_ranges": [
+        [
+          1,
+          31,
+          "16b84262decf1b92536ed697b09844e0c76f5153f4570e8ec49bc550010f8514",
+          1183,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/safe_daily_pace.json",
+      "sha256": "195e3968cc2f7f7dd2e46fdcb2619c19892b5c56a27d0e3c62f76fe08ba9a14d",
+      "git_blob_sha1": "09e091a5ecd607721cab72ca6eecf30285786cd8",
+      "bytes": 2090,
+      "lines": 35,
+      "source_ranges": [
+        [
+          1,
+          35,
+          "195e3968cc2f7f7dd2e46fdcb2619c19892b5c56a27d0e3c62f76fe08ba9a14d",
+          2090,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/side_effect_count.json",
+      "sha256": "7813782950888e8af5c51403d313fc9b950c463e7109681e9cf30d4cd97345a2",
+      "git_blob_sha1": "f10a7ebfbfe49dd732fa7a0ce19261ab7ec19579",
+      "bytes": 1227,
+      "lines": 31,
+      "source_ranges": [
+        [
+          1,
+          31,
+          "7813782950888e8af5c51403d313fc9b950c463e7109681e9cf30d4cd97345a2",
+          1227,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/similar_event_ids.json",
+      "sha256": "1f994c3caaea2a7c7fa968a49f872bb2b3f4d8ce0b959fc25bf26bbe5dac6817",
+      "git_blob_sha1": "3624b97206830f978820b0d61251f0dd129c49da",
+      "bytes": 1228,
+      "lines": 31,
+      "source_ranges": [
+        [
+          1,
+          31,
+          "1f994c3caaea2a7c7fa968a49f872bb2b3f4d8ce0b959fc25bf26bbe5dac6817",
+          1228,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/source_coverage.json",
+      "sha256": "fab2872015cb21a449c05e355f7ba967865078ed963c869e84dd96da4b1e0111",
+      "git_blob_sha1": "86ccce1c6e4baa4d83b6a0704ad656ac88a3fc24",
+      "bytes": 1750,
+      "lines": 38,
+      "source_ranges": [
+        [
+          1,
+          38,
+          "fab2872015cb21a449c05e355f7ba967865078ed963c869e84dd96da4b1e0111",
+          1750,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/statement_payment_correspondence.json",
+      "sha256": "3ffc3131e77bc4ead3248a3a5b49108093d16ddbbcb94635d49d7fc59d1171ec",
+      "git_blob_sha1": "2649fd2cc2f942623a02d5eb6123048b1c83ec26",
+      "bytes": 1436,
+      "lines": 35,
+      "source_ranges": [
+        [
+          1,
+          35,
+          "3ffc3131e77bc4ead3248a3a5b49108093d16ddbbcb94635d49d7fc59d1171ec",
+          1436,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-contracts/statement_total.json",
+      "sha256": "cca2c51e9d89ef572d069eb019d30924fc41409724c1d07abc7d2a215ce1d002",
+      "git_blob_sha1": "318c1aab683095b4c4fda0ad5e4744d858363919",
+      "bytes": 1797,
+      "lines": 33,
+      "source_ranges": [
+        [
+          1,
+          33,
+          "cca2c51e9d89ef572d069eb019d30924fc41409724c1d07abc7d2a215ce1d002",
+          1797,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "contract_id",
+          "metric",
+          "unit",
+          "stage",
+          "signature",
+          "semantics",
+          "algebraic_properties",
+          "reuse",
+          "limitations"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-witness-contracts-v1.json",
+      "sha256": "5a1a9d3b31357009f6e89d8a397c3fa6c7f079d58d06af5b0991c2cc65df5093",
+      "git_blob_sha1": "ffcaadc425e2967e7216e21e8548adec98f058fd",
+      "bytes": 26374,
+      "lines": 693,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "982f3f3e2b7f55a39f46b700e2c3ad40af42a6e1d3a9631683c966af54477a49",
+          4400,
+          false
+        ],
+        [
+          121,
+          240,
+          "05bee1bd5af84e53c8353e73144a4a0a567362cc3e73e0b238fdbf08aadcfef4",
+          4545,
+          false
+        ],
+        [
+          241,
+          360,
+          "fa0995754f72f5ad07042a8b210c6d611035b1e0fc1d08562a47f01146ca4b94",
+          4636,
+          false
+        ],
+        [
+          361,
+          480,
+          "9d3b6772775db7b5e89847d2c8b2e6965887860cca605cf5b05c9bd342398798",
+          4410,
+          false
+        ],
+        [
+          481,
+          600,
+          "4ca08d414e0ac705896848a578640390e3783657d249c3f91d540fe6474c4417",
+          4592,
+          false
+        ],
+        [
+          601,
+          693,
+          "9f11da9ee9a9eabe19d8e3fec61db8718e8ffa02ff091ded99fb5b573fec5824",
+          3786,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "stage",
+          "scope",
+          "witnesses"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evaluator-witness-contracts.schema.json",
+      "sha256": "dd5af1b4ab9d29f67d87b7b979076f8b4695cd917062d63ec34da6c12240adaa",
+      "git_blob_sha1": "203c5b08a19d5b0fc782c14c9f77f727b2b46df9",
+      "bytes": 2320,
+      "lines": 66,
+      "source_ranges": [
+        [
+          1,
+          66,
+          "dd5af1b4ab9d29f67d87b7b979076f8b4695cd917062d63ec34da6c12240adaa",
+          2320,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "$schema",
+          "$id",
+          "title",
+          "$comment",
+          "type",
+          "additionalProperties",
+          "required",
+          "properties",
+          "definitions"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/evidence-snapshot.schema.json",
+      "sha256": "054a48930a5f25760f201e8b401f0f34f5a83672366acad6c9c09bdc0ce0b5ef",
+      "git_blob_sha1": "3bbba0aae5c05d2bf0d30a714a5e1faa518f6fb1",
+      "bytes": 17718,
+      "lines": 49,
+      "source_ranges": [
+        [
+          1,
+          49,
+          "054a48930a5f25760f201e8b401f0f34f5a83672366acad6c9c09bdc0ce0b5ef",
+          17718,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "$schema",
+          "$id",
+          "title",
+          "$comment",
+          "oneOf",
+          "definitions"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/graph-authoring-review-v1.md",
+      "sha256": "b68e673b0f4edc38d023c6440db3afcb02264f7789a89d486abff8182e01e39e",
+      "git_blob_sha1": "c83eb2128dcadbe5dcfc2f238cef426b0abfb8c0",
+      "bytes": 10949,
+      "lines": 183,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "f22126919192635a0c8829be1114320f6244e2d95b54d7b978d5cfe8bcae397a",
+          7151,
+          false
+        ],
+        [
+          121,
+          183,
+          "0e9ea6287ba966e01caed136117525a4164f4de0a5e0416bd18820c54e12b742",
+          3797,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/graph-binding-contract-v1.md",
+      "sha256": "da90befb1f526048cfe14122cd8522690292508bebf42d60ea4ecd5838513a40",
+      "git_blob_sha1": "6556cd13008c7c4197a27d668755c5941b3644f7",
+      "bytes": 19080,
+      "lines": 312,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "ad77ffef3db91b6df721488b26e4679a6e5e29b6c26b4586f582078c0e7ff92d",
+          7457,
+          false
+        ],
+        [
+          121,
+          240,
+          "fd120733eb528f737dcdec0357f2ba0f8be54dcbc2594b96f31d7d71a1cd16ad",
+          7741,
+          false
+        ],
+        [
+          241,
+          312,
+          "90e83b28197497b1a75e0972451e6b30070bd1487c5a7db4d025ed1543dccf68",
+          3880,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+      "sha256": "e9c852034d8cc887e1d8645a61d9597176409f72a28eaf0de4c95f17c0c8358d",
+      "git_blob_sha1": "a3baa82049ef927095458199a71ef0f377870c3c",
+      "bytes": 4954513,
+      "lines": 2,
+      "source_ranges": [
+        [
+          1,
+          2,
+          "e9c852034d8cc887e1d8645a61d9597176409f72a28eaf0de4c95f17c0c8358d",
+          4954513,
+          true
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "stage",
+          "contract_id",
+          "claim_contract",
+          "snapshot_manifest",
+          "material_registry",
+          "operator_registry",
+          "metric_evaluator_registry",
+          "graphs"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/material-field-registry-v1.json",
+      "sha256": "ee7ef3eff146bc2e9cea2cc986c398371acbff3cf35d858ced8386a9758a4d62",
+      "git_blob_sha1": "03d53deb88eae3317dc1c0f58f7af552bd8b12bf",
+      "bytes": 10998,
+      "lines": 36,
+      "source_ranges": [
+        [
+          1,
+          36,
+          "ee7ef3eff146bc2e9cea2cc986c398371acbff3cf35d858ced8386a9758a4d62",
+          10998,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "registry_id",
+          "registry_version",
+          "stage",
+          "closed_world",
+          "semantics",
+          "field_classes",
+          "types",
+          "envelope_fields",
+          "kinds"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/metric-evaluator-registry-v1.json",
+      "sha256": "a1fde4b01b9f68bdd2550305305ca2ffe8f750af0351b29b12bf3bb5afdb3c88",
+      "git_blob_sha1": "04d77636b5d491f9c9d00df4f59d9a50d9b54d8d",
+      "bytes": 45195,
+      "lines": 1500,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "084db740383f36c880e5c3d234e99a4054a704459cbf2dae8588826d40829b9d",
+          3706,
+          false
+        ],
+        [
+          121,
+          240,
+          "504bf9d13ed43dd92407779c524af37c5128868ab373e5306ed02ed33fdac6c5",
+          3459,
+          false
+        ],
+        [
+          241,
+          360,
+          "e7d01b3bed61fc8c98e21b584b0b1a0ef16d6a90312f6dc0d9a437cc54dba73c",
+          3642,
+          false
+        ],
+        [
+          361,
+          480,
+          "a510c9c7136141bc41ea7aeac20b237f8712f4f01396207b875a2164f62d3102",
+          3608,
+          false
+        ],
+        [
+          481,
+          600,
+          "8d5c4a8a1e0202868574ad149321b411ff52ca9d8dcd230511b5eab6dcd84aa2",
+          3643,
+          false
+        ],
+        [
+          601,
+          720,
+          "127b818c8aaad966d7ef7fc8e7fd4255a5e20011c4802a7480300b70cbac6432",
+          3727,
+          false
+        ],
+        [
+          721,
+          840,
+          "552da59d01a5ab53c0c00cc2b68fbb647f741759b9da30657f05e023d4c898c0",
+          3666,
+          false
+        ],
+        [
+          841,
+          960,
+          "bfb72e82851b435ca05d014ea9992532ae1bb51f216457a5cabac06d678b7898",
+          3841,
+          false
+        ],
+        [
+          961,
+          1080,
+          "f36098c94e2f2a6df7dcf61c8a09b55c765ed42bd2c8e7e31a87855d9f5904b8",
+          3525,
+          false
+        ],
+        [
+          1081,
+          1200,
+          "9771bb4c426b0d1f2e6c23be94a91643cc5a30cc0b28e7fa36ca4ccfa00b58fd",
+          3595,
+          false
+        ],
+        [
+          1201,
+          1320,
+          "33e42fa6520797d1131ca2c8f6602577acd7f36429b4b31797fed687ec7b1ddf",
+          3554,
+          false
+        ],
+        [
+          1321,
+          1440,
+          "c8b38a199923bd1d4b85b26f75e7eeb37c04b544771036fc67962e026e73f05c",
+          3610,
+          false
+        ],
+        [
+          1441,
+          1500,
+          "3177ed6d8747b4a85ff0177da763e358ce46f05b1beaf26f3ea2125d01f24f3a",
+          1607,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "registry_id",
+          "registry_version",
+          "stage",
+          "entries"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/metric-evaluator-registry.schema.json",
+      "sha256": "de5eb3828b8faaf58eeddc9f90d9342b509f86fd32ea8b66f9174448c536e066",
+      "git_blob_sha1": "36b1e9e93d741fb6e2f493c15234869bbe07a09b",
+      "bytes": 3354,
+      "lines": 54,
+      "source_ranges": [
+        [
+          1,
+          54,
+          "de5eb3828b8faaf58eeddc9f90d9342b509f86fd32ea8b66f9174448c536e066",
+          3354,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "$schema",
+          "$id",
+          "title",
+          "type",
+          "additionalProperties",
+          "required",
+          "properties",
+          "allOf",
+          "definitions"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/n02f-correction-review-v1.md",
+      "sha256": "814ddcb57991b6b315fa102a38df0b118447015398b10d934c8967b1e7f5b4ff",
+      "git_blob_sha1": "ba6f3d6090e1217785d50ac5b66954d0223e46d9",
+      "bytes": 5417,
+      "lines": 96,
+      "source_ranges": [
+        [
+          1,
+          96,
+          "814ddcb57991b6b315fa102a38df0b118447015398b10d934c8967b1e7f5b4ff",
+          5417,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/operator-registry-v1.json",
+      "sha256": "24427e9dd30a5b2d5eaf6f9e2651869e8582df4b5dc9eab54b924a0b687e33b6",
+      "git_blob_sha1": "3e5dc8aa873746c08857fbe4f56862eea48df7ef",
+      "bytes": 3034,
+      "lines": 39,
+      "source_ranges": [
+        [
+          1,
+          39,
+          "24427e9dd30a5b2d5eaf6f9e2651869e8582df4b5dc9eab54b924a0b687e33b6",
+          3034,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "registry_id",
+          "registry_version",
+          "stage",
+          "result_type",
+          "unknown_operator",
+          "coercion",
+          "semantics",
+          "operators"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/operator-registry-v2.json",
+      "sha256": "d28eb3dfbf7ea6949c1ff696e9f9bc7aa572c3ab8433a06d316936092a2dcac7",
+      "git_blob_sha1": "78c1b42f4a8075172360c91660b27041e1265787",
+      "bytes": 5531,
+      "lines": 281,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "2aa5a980a1df1d42ab479292b32d1007cfec2685aaebc228ac1b7c70cbb0a1da",
+          2261,
+          false
+        ],
+        [
+          121,
+          240,
+          "bd6ad99e1af277d2a4aa01481da2368ce886998536c96673a9ce5a5221482309",
+          2465,
+          false
+        ],
+        [
+          241,
+          281,
+          "42ca46fc19c69aa2b6ff879e4fef613851925842a7bd322552e9cf5f2cd13a7c",
+          803,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "registry_id",
+          "registry_version",
+          "stage",
+          "result_type",
+          "unknown_operator",
+          "coercion",
+          "semantics",
+          "operators"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/phase-composition-profile-v1.json",
+      "sha256": "204962b56fd0833f3d15ac030e6c55dd3866c8fd18ded5e24784f729e41be2bc",
+      "git_blob_sha1": "425f446669a2eb15fcc3595116c301d6376e453c",
+      "bytes": 15194,
+      "lines": 322,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "5368adad746e5b064124dfc6d54ade8b284916350fb2ff2e3b5be188ebb1adba",
+          5556,
+          false
+        ],
+        [
+          121,
+          240,
+          "852d6d57b82f40bb2f226fd13656acbc1982e2bd1088064ff5f2b51e827961f4",
+          5868,
+          false
+        ],
+        [
+          241,
+          322,
+          "124f59c84c009a45d633c23656c41edada11b297ecde31136bd3639bfdd4db43",
+          3768,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "profile_id",
+          "profile_version",
+          "reviewed_proposal_sha",
+          "registry_path",
+          "entries"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/predicate-templates-v1.json",
+      "sha256": "15a1adfe3290b26808d3ee8cb1e1db36175f122df54cd2ef1474873ad5d8833f",
+      "git_blob_sha1": "f7bbb178d823c38dab2541e1a0778b269deca4bd",
+      "bytes": 1387,
+      "lines": 72,
+      "source_ranges": [
+        [
+          1,
+          72,
+          "15a1adfe3290b26808d3ee8cb1e1db36175f122df54cd2ef1474873ad5d8833f",
+          1387,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "registry_id",
+          "registry_version",
+          "stage",
+          "templates"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/provenance-graph.schema.json",
+      "sha256": "9e3c148c95d6fecd3d93f019ad5a5967126f8bf1cb9bde9d152c70c057a1740b",
+      "git_blob_sha1": "5aa7ca4bbcc1d5e4e58fea43210aaaddf4716336",
+      "bytes": 14785,
+      "lines": 37,
+      "source_ranges": [
+        [
+          1,
+          37,
+          "9e3c148c95d6fecd3d93f019ad5a5967126f8bf1cb9bde9d152c70c057a1740b",
+          14785,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "type",
+          "additionalProperties",
+          "required",
+          "properties",
+          "$schema",
+          "$id",
+          "title",
+          "$comment",
+          "definitions"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/registry-semantics-v1.md",
+      "sha256": "9dad2d3833eee30b46c36899ff9bd3fc1b708112495edf8e3db075ac7f3302c4",
+      "git_blob_sha1": "cf2f3a21fe9bd2341c740cd61bfc8b3197a3556a",
+      "bytes": 14387,
+      "lines": 226,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "23d202ccd2dbc60e4d6c1fc155ad9b96df489bf89266ba38c2066ef2f7d65b80",
+          7611,
+          false
+        ],
+        [
+          121,
+          226,
+          "3927256c47ce7b5219ba72aee121f7a3435f36743e7cd54c40339885b33efe33",
+          6775,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/snapshot-manifest-v1.json",
+      "sha256": "2547229db3c07f2dd0941601ab5164bf89981ce966e4e23a2e3058124edba8c4",
+      "git_blob_sha1": "f83ff603add9d90b2850a2f05ad87e36923e88ed",
+      "bytes": 52403,
+      "lines": 126,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "b96897fdb798e67cc5b83fc5e3185602b2382acd21e18860e1eab6795e4a2f22",
+          50939,
+          false
+        ],
+        [
+          121,
+          126,
+          "a6f87743d73860ada41554765a165ff307210e3a86da9987cf45682222aa6843",
+          1463,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "manifest_id",
+          "stage",
+          "synthetic",
+          "material_registry_version",
+          "sources",
+          "snapshots"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/temporal-and-selection-witnesses-v1.json",
+      "sha256": "92329f779a5b08f46f4554d129b934dcc2acf176741bf66ba82ab794f2c095bf",
+      "git_blob_sha1": "70dde64e3e11b94acf11d9eb0f15bb6a3c74dd00",
+      "bytes": 7193,
+      "lines": 180,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "dbfe9c47e566643201036e81ca0e9e68947a90066b0a1fae5e528f889938f649",
+          4810,
+          false
+        ],
+        [
+          121,
+          180,
+          "2c232d37a00ef84e6dded4617bbb1c23dca633832da662708aa712446be2c13a",
+          2382,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "stage",
+          "execution_status",
+          "operator_registry_version",
+          "scope",
+          "materialization_requirement",
+          "cases"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/temporal-relations-decision-v1.md",
+      "sha256": "a6581b9533f25d6a8864091ffacda0119e2d93df323c37918bddb0c56e297f1e",
+      "git_blob_sha1": "30eb790446fb57d010489bfcef2c04ee813b65dc",
+      "bytes": 5865,
+      "lines": 102,
+      "source_ranges": [
+        [
+          1,
+          102,
+          "a6581b9533f25d6a8864091ffacda0119e2d93df323c37918bddb0c56e297f1e",
+          5865,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/type-and-identity-contract-v2.md",
+      "sha256": "41082ed25096b7289028d632e2ba7db86aa5400f9c5fbeb73da4ce7e3d9f560b",
+      "git_blob_sha1": "98b670e78a50c3f60348c39dd4f7efda9addd979",
+      "bytes": 9362,
+      "lines": 155,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "0922950454c2eb2ec3cf2ea53e5774424a6fd543e84579d07e113cb59c34d184",
+          7106,
+          false
+        ],
+        [
+          121,
+          155,
+          "fb52ca177fb9b7bef40c4d117598204f0de187b9f161db670bd0511d9302c3b9",
+          2255,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "docs/plans/workstreams/financasbot-next-02-n02g-compositional-path-qualification-proposal-v1.md",
+      "sha256": "0c831d290c0ae47960d1fc11b9ea530d792a926cb2211a1313d7d070f0d24eba",
+      "git_blob_sha1": "82112f0c4d6eeed21d4823c8b1dd3d3ca8ce1bf2",
+      "bytes": 18783,
+      "lines": 293,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "b71187c7c93e5222282c4626725a64185ddc4bce680133f7557c39a88505c68e",
+          7533,
+          false
+        ],
+        [
+          121,
+          240,
+          "75d638a12feb08403b9cffb49c516c1fa5fee668579709d832eb04028c7e3e5d",
+          7837,
+          false
+        ],
+        [
+          241,
+          293,
+          "4810fc546ed03bef41e1788571ae7726f6d4044a2e82eabdd67fd1409d604bc8",
+          3411,
+          false
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/claimRequirementCore.js",
+      "sha256": "1f23d4c8fb117bb5bd6bf992cc1bf4ea0806c01372853395fb2c341b9968de23",
+      "git_blob_sha1": "f97afea9916aa7b4914f7e8defbdb8720e9ff246",
+      "bytes": 7910,
+      "lines": 126,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "de9c6c213e54ef78ec46f81beba135d2da83a681eadf935601fcf61d526d4dd4",
+          7719,
+          false
+        ],
+        [
+          121,
+          126,
+          "d451ff4f1f52a53b7fdea9007d4c42244fe98ab7dd87c5299a5529f5c6510e51",
+          190,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              3,
+              3
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/kernel/canonicalValue.js",
+            "specifier": "../kernel/canonicalValue"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              4,
+              4
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/claimNominalTypes.js",
+            "specifier": "./claimNominalTypes"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/claimRequirements.js",
+      "sha256": "2a42d47868a57fad697a0caec0ae0678a338f06dca0ebf77064fab6def182468",
+      "git_blob_sha1": "0b2a5234ab88efd6fffbeec13fa79d34a2b41c7e",
+      "bytes": 802,
+      "lines": 14,
+      "source_ranges": [
+        [
+          1,
+          14,
+          "2a42d47868a57fad697a0caec0ae0678a338f06dca0ebf77064fab6def182468",
+          802,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              3,
+              3
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/claimRequirementCore.js",
+            "specifier": "./claimRequirementCore"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              4,
+              4
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/claimMonthPathProfile.js",
+            "specifier": "./claimMonthPathProfile"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/collectionRequirements.js",
+      "sha256": "4d6af2b5d830929910622f504126dfea29c3ba6866ff99e21c90e23f12961de3",
+      "git_blob_sha1": "153605d6aec0e19306934eb0db7a913d9b07acf6",
+      "bytes": 4597,
+      "lines": 77,
+      "source_ranges": [
+        [
+          1,
+          77,
+          "4d6af2b5d830929910622f504126dfea29c3ba6866ff99e21c90e23f12961de3",
+          4597,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/graphCompiler.js",
+      "sha256": "fe938a128cfd4dccda0d8ddc1f2e6965b623feecc6d1854ef0306700efda1016",
+      "git_blob_sha1": "7fe96f0937faddb5fddba19771889e9500b93a00",
+      "bytes": 82211,
+      "lines": 1200,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "04c3024565f0706278a54a599611b67b0d4795566fbd2c6548e96d3849544f27",
+          6163,
+          false
+        ],
+        [
+          121,
+          240,
+          "89c627a937609ade96e0013505ff3a4ba946e4c6178d79ba38e56ba62a97f308",
+          7447,
+          false
+        ],
+        [
+          241,
+          360,
+          "1497cce485957c7a2557ade8aa0a281c815998bbfd61536e9c139389f54412c7",
+          8827,
+          false
+        ],
+        [
+          361,
+          480,
+          "38399a5e3a0e56c23c7645c1ade6cb18da5ca0eb6b7af04252c696be814d1f97",
+          8487,
+          false
+        ],
+        [
+          481,
+          600,
+          "57beb42c8cb70649e3144993a9870a1c70f01a69021ca26586329d1962a938d5",
+          9347,
+          false
+        ],
+        [
+          601,
+          720,
+          "d3066095f3b1b53f444e69e66fcf399f7b4fdb38a6f7096054347a585d65cddc",
+          9963,
+          false
+        ],
+        [
+          721,
+          840,
+          "f53aace3388e45a5a8e46e34a511eb6ce0aba044b622c29b169055be417fc3c7",
+          8765,
+          false
+        ],
+        [
+          841,
+          960,
+          "ce3af0b7ffd41619777cbe32e47f89b737ee69f2750a4bba9270038cc7209aa2",
+          8615,
+          false
+        ],
+        [
+          961,
+          1080,
+          "036632dc4d40ab1e85212453f8a2d3ca1d12dd83d3e83e17068f9de24d3128b5",
+          7739,
+          false
+        ],
+        [
+          1081,
+          1200,
+          "c09521963731db422a380576578b755953e8dc8cd42152a70794634ce5eb38a5",
+          6849,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              3,
+              3
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/packageContract.js",
+            "specifier": "./packageContract"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              4,
+              4
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/kernel/canonicalValue.js",
+            "specifier": "../kernel/canonicalValue"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              5,
+              5
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/graphStructure.js",
+            "specifier": "./graphStructure"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              6,
+              6
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/templateReferences.js",
+            "specifier": "./templateReferences"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              7,
+              7
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/predicateTypes.js",
+            "specifier": "./predicateTypes"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              8,
+              8
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/schemaRegistryProjection.js",
+            "specifier": "./schemaRegistryProjection"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              9,
+              9
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/obligationBindings.js",
+            "specifier": "./obligationBindings"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              10,
+              10
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/operandBindings.js",
+            "specifier": "./operandBindings"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              11,
+              11
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/claimRequirements.js",
+            "specifier": "./claimRequirements"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              12,
+              12
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/selectionBindings.js",
+            "specifier": "./selectionBindings"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              13,
+              13
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/authoringIR.js",
+            "specifier": "./authoringIR"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              14,
+              14
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/collectionRequirements.js",
+            "specifier": "./collectionRequirements"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              15,
+              15
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/instrumentedAccess.js",
+            "specifier": "./instrumentedAccess"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              16,
+              16
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/claimBinding.js",
+            "specifier": "./claimBinding"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              17,
+              17
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/executionRegistry.js",
+            "specifier": "./executionRegistry"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              18,
+              18
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/observationContract.js",
+            "specifier": "./observationContract"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              19,
+              19
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/claimContext.js",
+            "specifier": "./claimContext"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              20,
+              20
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "native_external",
+            "specifier": "node:util"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              21,
+              21
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/phaseCompositionProfile.js",
+            "specifier": "./phaseCompositionProfile"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              22,
+              22
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/freezeContract.js",
+            "specifier": "./freezeContract"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              23,
+              23
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/phaseProgramIdentity.js",
+            "specifier": "./phaseProgramIdentity"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              24,
+              24
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/claimMonthPathProfile.js",
+            "specifier": "./claimMonthPathProfile"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              392,
+              392
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/artifactLoader.js",
+            "specifier": "./artifactLoader"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              408,
+              408
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/claimMonthProofConformance.js",
+            "specifier": "./claimMonthProofConformance"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              417,
+              417
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/artifactLoader.js",
+            "specifier": "./artifactLoader"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              418,
+              418
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/claimMonthIsolatedProfile.js",
+            "specifier": "./claimMonthIsolatedProfile"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              419,
+              419
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/claimMonthProofConformance.js",
+            "specifier": "./claimMonthProofConformance"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              712,
+              712
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/proofOperators.js",
+            "specifier": "./proofOperators"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              898,
+              898
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/proofOperators.js",
+            "specifier": "./proofOperators"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              937,
+              937
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/proofContextBinding.js",
+            "specifier": "./proofContextBinding"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              940,
+              940
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/proofParentBinding.js",
+            "specifier": "./proofParentBinding"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/graphStructure.js",
+      "sha256": "927a4e76b6a7c9f8ad8656e21a44766a745c2edd3113b82ff7231a1c2bc79e50",
+      "git_blob_sha1": "549473a5b632c3a8544552d1ac88e7dd85047304",
+      "bytes": 17159,
+      "lines": 288,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "0772d39dd107cef564de5ceda3e4191d243d8c3aa8c645cb38b837bbc75922a9",
+          6570,
+          false
+        ],
+        [
+          121,
+          240,
+          "1033c6e54aec8c3e07fcf9253d77a33b3456e57516693566cb881c1070641ac9",
+          7412,
+          false
+        ],
+        [
+          241,
+          288,
+          "0735767a5d624fba18cab32293ce9b90243f1015e4dffb81a4e13f66d4408a5d",
+          3175,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              3,
+              3
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/literalTypes.js",
+            "specifier": "./literalTypes"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              4,
+              4
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/kernel/canonicalValue.js",
+            "specifier": "../kernel/canonicalValue"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              283,
+              283
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/claimMonthPathProfile.js",
+            "specifier": "./claimMonthPathProfile"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/obligationBindings.js",
+      "sha256": "580f9b97e6ef216e5598de5c97aa8d96cc7cda713a5547e249a27f24144baf87",
+      "git_blob_sha1": "6d56d64df499075e46f202dc587dfd030decc085",
+      "bytes": 6925,
+      "lines": 115,
+      "source_ranges": [
+        [
+          1,
+          115,
+          "580f9b97e6ef216e5598de5c97aa8d96cc7cda713a5547e249a27f24144baf87",
+          6925,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/operandBindings.js",
+      "sha256": "50cacfb104e9e792d1118428f81fe659b4ae9c07407b979a1c2b122141303e60",
+      "git_blob_sha1": "900c23304e9e4fbc8c053dc9f7703c80d23744f0",
+      "bytes": 5232,
+      "lines": 93,
+      "source_ranges": [
+        [
+          1,
+          93,
+          "50cacfb104e9e792d1118428f81fe659b4ae9c07407b979a1c2b122141303e60",
+          5232,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              3,
+              3
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/kernel/canonicalValue.js",
+            "specifier": "../kernel/canonicalValue"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/operatorTypes.js",
+      "sha256": "573db750922769a1626fe11c938458271b7cd09fdc5571df5c7b6786fa8d493c",
+      "git_blob_sha1": "9960ac5fe96452f53fd651617c7529f581ae49ad",
+      "bytes": 6064,
+      "lines": 135,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "0beabe259fd68d3eb49226b414c078d743a2c8e117de1b94e552ad176fe89721",
+          5393,
+          false
+        ],
+        [
+          121,
+          135,
+          "9d846ebc1d80677e3e3a7cfa16dd3b513b3235fa5a2bd40158e2e791dcc11289",
+          670,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/pathLocatorDomainV3.js",
+      "sha256": "5e63d13db01a652d38c1888ac652435eb20e8b3b7c371f5d85c121141f36500f",
+      "git_blob_sha1": "ba1f2a371a52dde29dc3b2c5d51e132acc429ba6",
+      "bytes": 11793,
+      "lines": 188,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "7e7220543d9cbda8643fcab4ec93fee59542d56b044d6eb52f00e1aa1a85b012",
+          7445,
+          false
+        ],
+        [
+          121,
+          188,
+          "ce3894bc0b5504d237ce3410e36e7c3dc1ce012030d4b68607921ce43c2865da",
+          4347,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              4,
+              4
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/packageContract.js",
+            "specifier": "./packageContract"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              5,
+              5
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/claimNominalTypes.js",
+            "specifier": "./claimNominalTypes"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              6,
+              6
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/observationContract.js",
+            "specifier": "./observationContract"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              7,
+              7
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/kernel/canonicalValue.js",
+            "specifier": "../kernel/canonicalValue"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/pathMutationInventory.js",
+      "sha256": "095d9e6daec7c73ffd8ae940e00a401e899915c4f35477b50c8595e909d72275",
+      "git_blob_sha1": "4bff604d73db4794ff52c814bb5408c7950597ba",
+      "bytes": 42026,
+      "lines": 594,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "e0f6badad0036f89d33a7eb1e11cae56e3353b7235d57fd301f81457ca0e7e0c",
+          7141,
+          false
+        ],
+        [
+          121,
+          240,
+          "ef2bb88b030a48a3c99aaf74bb5b7dabb05edf8015f1ce9b460642239b45558f",
+          8515,
+          false
+        ],
+        [
+          241,
+          360,
+          "9246b1be5ba24229b14e039c6c5ec4a1b27c524eed8162ecb6d689d967e6b7fa",
+          8354,
+          false
+        ],
+        [
+          361,
+          480,
+          "75c53d97fb84b1c020c213549abec25e9385122454b1eb65bb4b3b3948e7ebd1",
+          9616,
+          false
+        ],
+        [
+          481,
+          594,
+          "ba1243a504f2363eeaa1ea0b7f5fb37e25eafcbb92c940df3007b7817d9286e2",
+          8396,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              3,
+              3
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "native_external",
+            "specifier": "node:crypto"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              4,
+              4
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "native_external",
+            "specifier": "node:util"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              5,
+              5
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/kernel/canonicalValue.js",
+            "specifier": "../kernel/canonicalValue"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              6,
+              6
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/observationContract.js",
+            "specifier": "./observationContract"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              7,
+              7
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/packageContract.js",
+            "specifier": "./packageContract"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              182,
+              182
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/templateReferences.js",
+            "specifier": "./templateReferences"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              185,
+              185
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/predicateTypes.js",
+            "specifier": "./predicateTypes"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              292,
+              292
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/predicateTypes.js",
+            "specifier": "./predicateTypes"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              293,
+              293
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/templateReferences.js",
+            "specifier": "./templateReferences"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              294,
+              294
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/materialFieldTypes.js",
+            "specifier": "./materialFieldTypes"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              579,
+              579
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/predicateTypes.js",
+            "specifier": "./predicateTypes"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/pathQualificationV3.js",
+      "sha256": "71755d8044006ffae70f80248db87ddaa2aa45f5346fa4ea69b0ec7937683a0d",
+      "git_blob_sha1": "6b2617986c425edea53a3600ac1d1a5835c3123d",
+      "bytes": 100438,
+      "lines": 1377,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "73caa7475d9f85af9d399fdfb3dbf1850c406b430294988ef4d752ef6a5a34a5",
+          10149,
+          false
+        ],
+        [
+          121,
+          240,
+          "f9da0e877c1d1746d1fddb2ddde926fe34f0f5b62d7941d17dd390e58587fe35",
+          7773,
+          false
+        ],
+        [
+          241,
+          360,
+          "c190c7d6f98650cc60f03857602f16de5d153b75f8ec45a1d22d5018b384f9d7",
+          7334,
+          false
+        ],
+        [
+          361,
+          480,
+          "5043a69c2d84b95235d423b6be2d37953e8af4eadc1a5f24f549f23c8fcc6222",
+          8281,
+          false
+        ],
+        [
+          481,
+          600,
+          "5aeebc6c2e2ba02b96894df5829c9ed4b52ca8c8c7c466609ebe1cabfa969905",
+          9257,
+          false
+        ],
+        [
+          601,
+          720,
+          "d24128d422a176dd7d0de10402cc5f16a4760658dd3608882c0495aae3397977",
+          8838,
+          false
+        ],
+        [
+          721,
+          840,
+          "1958ceeac760cea8b9be38f5f6cd58bb74c55a96412297bf87f2d0d32ded1c61",
+          9178,
+          false
+        ],
+        [
+          841,
+          960,
+          "eabf18da992f16a94d66ae02eb8adce54c6722cbdd28604c586ef17ebfab7df2",
+          9806,
+          false
+        ],
+        [
+          961,
+          1080,
+          "46364dc7285b749575d58fd5550d893fac11c8b3d6f86e9e90279adcf89ec247",
+          8375,
+          false
+        ],
+        [
+          1081,
+          1200,
+          "b82dd82c34309cdb525acecc269fd004af81cb50a62a2131a9a17d1043263403",
+          8888,
+          false
+        ],
+        [
+          1201,
+          1320,
+          "a43d5da49d76a0c96b5dc2b1ecf374e7ddf8462724d26cf972ccf54d05ec4aee",
+          8430,
+          false
+        ],
+        [
+          1321,
+          1377,
+          "4ac2faac034bfb19296c71aedb378dd1ea7867d6bb15b701cb4564afd3731813",
+          4118,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              4,
+              4
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "native_external",
+            "specifier": "node:crypto"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              5,
+              5
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "native_external",
+            "specifier": "node:util"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              6,
+              6
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/kernel/canonicalValue.js",
+            "specifier": "../kernel/canonicalValue"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              7,
+              7
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/observationContract.js",
+            "specifier": "./observationContract"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              8,
+              8
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/claimContext.js",
+            "specifier": "./claimContext"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              10,
+              10
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/pathMutationInventory.js",
+            "specifier": "./pathMutationInventory"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              11,
+              11
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/pathLocatorDomainV3.js",
+            "specifier": "./pathLocatorDomainV3"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              12,
+              12
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/packageContract.js",
+            "specifier": "./packageContract"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              13,
+              13
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/phaseCompositionProfile.js",
+            "specifier": "./phaseCompositionProfile"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              842,
+              842
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/pathSemanticReference.js",
+            "specifier": "./pathSemanticReference"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              1357,
+              1357
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/pathSemanticReference.js",
+            "specifier": "./pathSemanticReference"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/pathSemanticReference.js",
+      "sha256": "6880b8cf205fbb337be18c8f607aecb6a28d6d6255de5a36399de955629e812d",
+      "git_blob_sha1": "b9338bc70e3e440eae276aaa51b6ae0d04b5f877",
+      "bytes": 18997,
+      "lines": 295,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "4f4b9da1d0be0f43695ab3928432a30390053128cc7d274ea20a7f5add99633c",
+          7522,
+          false
+        ],
+        [
+          121,
+          240,
+          "d7b2b642fc54070f56beeeafbab3baf6847a2483ed33e9970f97459fdbd75ec8",
+          7875,
+          false
+        ],
+        [
+          241,
+          295,
+          "898507ff8ae87af0ba72a64b7c17011857aa84d63d929fecd446f0a0eacb7b62",
+          3598,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              3,
+              3
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "native_external",
+            "specifier": "node:crypto"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              4,
+              4
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "native_external",
+            "specifier": "node:util"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              5,
+              5
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/packageContract.js",
+            "specifier": "./packageContract"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              6,
+              6
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/kernel/canonicalValue.js",
+            "specifier": "../kernel/canonicalValue"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              180,
+              180
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/pathMutationInventory.js",
+            "specifier": "./pathMutationInventory"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              287,
+              287
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/pathQualificationV3.js",
+            "specifier": "./pathQualificationV3"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/predicateTypes.js",
+      "sha256": "7ec5e1dc0348599bf42aa642a575233bb3642371fb2a48bea77b2558de6a25b8",
+      "git_blob_sha1": "7730da8de30a550ec9602af6fbf6b75e71a76cbf",
+      "bytes": 22140,
+      "lines": 366,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "59c429b003f79ef6b92bc34a5df50f9f8b4cf252f609f88e9ad60707473d15d6",
+          6726,
+          false
+        ],
+        [
+          121,
+          240,
+          "e335c368add25c504193bf549c8ad9300fd60f1cdc0da024d257905cc1806545",
+          7359,
+          false
+        ],
+        [
+          241,
+          360,
+          "37b5abb3fb02dbb17883c7d960799613f51956ffc85daff9486491b7c814eb91",
+          7781,
+          false
+        ],
+        [
+          361,
+          366,
+          "1a424260778ac8a2d1298c911327ef7031fbba88c120e42305c191c8d8bcd0ac",
+          271,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              3,
+              3
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/operatorTypes.js",
+            "specifier": "./operatorTypes"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              4,
+              4
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/literalTypes.js",
+            "specifier": "./literalTypes"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              5,
+              5
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/civilCalendar.js",
+            "specifier": "./civilCalendar"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              6,
+              6
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/kernel/canonicalValue.js",
+            "specifier": "../kernel/canonicalValue"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              7,
+              7
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/claimNominalTypes.js",
+            "specifier": "./claimNominalTypes"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              360,
+              360
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/claimMonthPathProfile.js",
+            "specifier": "./claimMonthPathProfile"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/schemaRegistryProjection.js",
+      "sha256": "282b949ff0c546b3b20ec7cbe6a3b00a3ab28ed19e8d951d5379f011b2ddd84d",
+      "git_blob_sha1": "c047bdde5ebd222f06b803fd9bce08f876c9ba77",
+      "bytes": 8687,
+      "lines": 154,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "0a6b01ef236d372f469ef2035a853a127eb67bd5da4b0d363118b5b52a8c9249",
+          6799,
+          false
+        ],
+        [
+          121,
+          154,
+          "e7400952bfe83fc3bf0f6ef6ca19442483d5d4cb482c2a39add8eed319831726",
+          1887,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              3,
+              3
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/kernel/canonicalValue.js",
+            "specifier": "../kernel/canonicalValue"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/templateReferences.js",
+      "sha256": "bd5c186192b41d991f8fc1bf74dce0f372d8ff8ac63a845eaa029640a7d3f34f",
+      "git_blob_sha1": "554bb512d28974bdb53f3c5b02bb3631d1b36334",
+      "bytes": 11620,
+      "lines": 204,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "2fc729bd1709fe426cfddd7f3af30399684f0fe40370a52fc63f8f6dc608cfb1",
+          6604,
+          false
+        ],
+        [
+          121,
+          204,
+          "81e5620260682139d771a2aae3a75ec36bba399a319bd0c3188aa552ba8d9f68",
+          5015,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              3,
+              3
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/kernel/canonicalValue.js",
+            "specifier": "../kernel/canonicalValue"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              4,
+              4
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/operatorTypes.js",
+            "specifier": "./operatorTypes"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              5,
+              5
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/literalTypes.js",
+            "specifier": "./literalTypes"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              6,
+              6
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/kernel/canonicalValue.js",
+            "specifier": "../kernel/canonicalValue"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    }
+  ],
+  "range_columns": [
+    "start_line",
+    "end_line",
+    "selected_utf8_sha256",
+    "selected_bytes",
+    "oversized_single_line_transport"
+  ],
+  "range_byte_policy": "UTF8 original lines joined by LF, no extra terminal LF; CR remains part of a line",
+  "immutable_raw_url_prefix": "https://raw.githubusercontent.com/Danieu-san/financas-bot/cf6e43cbaa7c378f2b64590c50d0818700a3bdd0/",
+  "immutable_line_url_template": "https://github.com/Danieu-san/financas-bot/blob/cf6e43cbaa7c378f2b64590c50d0818700a3bdd0/{path}#L{start}-L{end}",
+  "immutable_blob_api_prefix": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/",
+  "cross_group_edges_file": "integration-navigation.json",
+  "review_complete": false,
+  "limit": "Syntax/routes/ranges are navigation only; full bodies, premises, callers and counterexamples require independent review."
+}

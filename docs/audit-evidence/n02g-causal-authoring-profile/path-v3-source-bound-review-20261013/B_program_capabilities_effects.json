@@ -1,0 +1,3116 @@
+{
+  "format": "financasbot.source-bound-review-frontier",
+  "version": 2,
+  "code_commit": "cf6e43cbaa7c378f2b64590c50d0818700a3bdd0",
+  "code_tree": "a95ab30b2a30c19d90c71b2ffa1c56705ed0522f",
+  "group": "B_program_capabilities_effects",
+  "units": [
+    {
+      "path": "scripts/agent/lowerNextProofProgram.mjs",
+      "sha256": "d141273f2156bab19392c66c2cca660f0f196f7d5b5af4721ac595307aa5cab4",
+      "git_blob_sha1": "3b7634b45f893dfc163dd6832357a87188849261",
+      "bytes": 44572,
+      "lines": 586,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "86a95d689191dd9c21550fa0c6917c2075511d91b4f809ff030f1791a00d692c",
+          8243,
+          false
+        ],
+        [
+          121,
+          240,
+          "17b47b8f4ea6a8d7656be702bb876639cbe13317e3a4e57ea955c43b36fed794",
+          8160,
+          false
+        ],
+        [
+          241,
+          360,
+          "ffc0e3515c5a5f08d6a716031fa6e8186548d430d4e3e930006484486bd3624d",
+          9134,
+          false
+        ],
+        [
+          361,
+          480,
+          "59ed920a74b4f8b6da4931af5107c3a08f8e94634d8e7d5b45b8a445d39e1889",
+          10062,
+          false
+        ],
+        [
+          481,
+          586,
+          "e5deca514829c475f98e94d4f3d619c5fbd70b38a2f3965833387a85455cf853",
+          8969,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "ImportDeclaration",
+            "specifier": "node:fs",
+            "lines": [
+              1,
+              1
+            ],
+            "bindings": [
+              {
+                "local": "fs",
+                "imported": "ImportDefaultSpecifier"
+              }
+            ],
+            "kind": "native_external"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "node:path",
+            "lines": [
+              2,
+              2
+            ],
+            "bindings": [
+              {
+                "local": "path",
+                "imported": "ImportDefaultSpecifier"
+              }
+            ],
+            "kind": "native_external"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "node:url",
+            "lines": [
+              3,
+              3
+            ],
+            "bindings": [
+              {
+                "local": "fileURLToPath",
+                "imported": "fileURLToPath"
+              }
+            ],
+            "kind": "native_external"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "node:crypto",
+            "lines": [
+              4,
+              4
+            ],
+            "bindings": [
+              {
+                "local": "createHash",
+                "imported": "createHash"
+              }
+            ],
+            "kind": "native_external"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "./buildNextProvenanceArtifacts.mjs",
+            "lines": [
+              5,
+              5
+            ],
+            "bindings": [
+              {
+                "local": "buildCommonJsGuestBundle",
+                "imported": "buildCommonJsGuestBundle"
+              }
+            ],
+            "kind": "source_bound",
+            "path": "scripts/agent/buildNextProvenanceArtifacts.mjs"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "../../src/next/provenance/observationContract.js",
+            "lines": [
+              6,
+              6
+            ],
+            "bindings": [
+              {
+                "local": "copyData",
+                "imported": "copyData"
+              }
+            ],
+            "kind": "source_bound",
+            "path": "src/next/provenance/observationContract.js"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "../../src/next/provenance/operatorTypes.js",
+            "lines": [
+              7,
+              7
+            ],
+            "bindings": [
+              {
+                "local": "unifyOperatorTypes",
+                "imported": "unifyOperatorTypes"
+              }
+            ],
+            "kind": "source_bound",
+            "path": "src/next/provenance/operatorTypes.js"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "../../src/next/provenance/literalTypes.js",
+            "lines": [
+              8,
+              8
+            ],
+            "bindings": [
+              {
+                "local": "validateLiteral",
+                "imported": "validateLiteral"
+              }
+            ],
+            "kind": "source_bound",
+            "path": "src/next/provenance/literalTypes.js"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "../../src/next/provenance/scalarProofCore.js",
+            "lines": [
+              9,
+              9
+            ],
+            "bindings": [
+              {
+                "local": "createScalarProofPrimitives",
+                "imported": "createScalarProofPrimitives"
+              }
+            ],
+            "kind": "source_bound",
+            "path": "src/next/provenance/scalarProofCore.js"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "../../src/next/kernel/canonicalValue.js",
+            "lines": [
+              10,
+              10
+            ],
+            "bindings": [
+              {
+                "local": "canonicalValue",
+                "imported": "canonicalValue"
+              }
+            ],
+            "kind": "source_bound",
+            "path": "src/next/kernel/canonicalValue.js"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "../../src/next/provenance/schemaRegistryProjection.js",
+            "lines": [
+              11,
+              11
+            ],
+            "bindings": [
+              {
+                "local": "validateMaterialFields",
+                "imported": "validateMaterialFields"
+              }
+            ],
+            "kind": "source_bound",
+            "path": "src/next/provenance/schemaRegistryProjection.js"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "../../src/next/provenance/proofOperatorContracts.js",
+            "lines": [
+              12,
+              12
+            ],
+            "bindings": [
+              {
+                "local": "matchesSpecialProofOperator",
+                "imported": "matchesSpecialProofOperator"
+              }
+            ],
+            "kind": "source_bound",
+            "path": "src/next/provenance/proofOperatorContracts.js"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "../../src/next/provenance/materialFieldTypes.js",
+            "lines": [
+              13,
+              13
+            ],
+            "bindings": [
+              {
+                "local": "materialFieldType",
+                "imported": "materialFieldType"
+              }
+            ],
+            "kind": "source_bound",
+            "path": "src/next/provenance/materialFieldTypes.js"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "./nextProvenanceGuestProfile.js",
+            "lines": [
+              14,
+              14
+            ],
+            "bindings": [
+              {
+                "local": "validateGuestBundle",
+                "imported": "validateGuestBundle"
+              }
+            ],
+            "kind": "source_bound",
+            "path": "scripts/agent/nextProvenanceGuestProfile.js"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "../../src/next/provenance/phaseCompositionProfile.js",
+            "lines": [
+              15,
+              15
+            ],
+            "bindings": [
+              {
+                "local": "phaseCompositionCommitment",
+                "imported": "phaseCompositionCommitment"
+              }
+            ],
+            "kind": "source_bound",
+            "path": "src/next/provenance/phaseCompositionProfile.js"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "../../src/next/provenance/graphCompiler.js",
+            "lines": [
+              16,
+              16
+            ],
+            "bindings": [
+              {
+                "local": "assertClaimMonthIsolatedProgram",
+                "imported": "assertClaimMonthIsolatedProgram"
+              },
+              {
+                "local": "sealClaimMonthIsolatedLowering",
+                "imported": "sealClaimMonthIsolatedLowering"
+              },
+              {
+                "local": "admitClaimMonthIsolatedProof",
+                "imported": "admitClaimMonthIsolatedProof"
+              }
+            ],
+            "kind": "source_bound",
+            "path": "src/next/provenance/graphCompiler.js"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "../../src/next/provenance/artifactLoader.js",
+            "lines": [
+              17,
+              17
+            ],
+            "bindings": [
+              {
+                "local": "admitArtifact",
+                "imported": "admitArtifact"
+              }
+            ],
+            "kind": "source_bound",
+            "path": "src/next/provenance/artifactLoader.js"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "../../src/next/provenance/claimMonthIsolatedProfile.js",
+            "lines": [
+              18,
+              18
+            ],
+            "bindings": [
+              {
+                "local": "QUALIFICATION_PATH",
+                "imported": "QUALIFICATION_PATH"
+              },
+              {
+                "local": "decodeClaimMonthProfile",
+                "imported": "decodeClaimMonthProfile"
+              }
+            ],
+            "kind": "source_bound",
+            "path": "src/next/provenance/claimMonthIsolatedProfile.js"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "../../src/next/provenance/selectedEventDayProfile.js",
+            "lines": [
+              19,
+              19
+            ],
+            "bindings": [
+              {
+                "local": "selectedEventDayProgramInputs",
+                "imported": "selectedEventDayProgramInputs"
+              },
+              {
+                "local": "selectedEventDayProgramFamily",
+                "imported": "selectedEventDayProgramFamily"
+              }
+            ],
+            "kind": "source_bound",
+            "path": "src/next/provenance/selectedEventDayProfile.js"
+          }
+        ],
+        "exports": [
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              73,
+              75
+            ],
+            "names": [
+              "buildScalarProofProgram"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              79,
+              82
+            ],
+            "names": [
+              "buildScalarAssertionFaultProgram"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              467,
+              469
+            ],
+            "names": [
+              "buildPhaseProofProgram"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              475,
+              486
+            ],
+            "names": [
+              "buildSelectedEventDayPhaseProofProgram"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              491,
+              516
+            ],
+            "names": [
+              "buildSelectedEventDayCommonProofProgram"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              520,
+              541
+            ],
+            "names": [
+              "buildClaimMonthPhaseProofProgram"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              543,
+              546
+            ],
+            "names": [
+              "buildPhaseAssertionFaultProgram"
+            ]
+          }
+        ]
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "scripts/agent/nextProvenanceGuestProfile.js",
+      "sha256": "ea14fe64e52c9ec5aa06336a31e281ec7b87bbeb239fde4d5385d2342f6fc8de",
+      "git_blob_sha1": "a40be3b427b2e8a10593e5df728238f6d959fc8c",
+      "bytes": 1989,
+      "lines": 38,
+      "source_ranges": [
+        [
+          1,
+          38,
+          "ea14fe64e52c9ec5aa06336a31e281ec7b87bbeb239fde4d5385d2342f6fc8de",
+          1989,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              5,
+              5
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "external_or_package_import_requires_recipe_confrontation",
+            "specifier": "acorn"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              6,
+              6
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/executionProfile.js",
+            "specifier": "../../src/next/provenance/executionProfile"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "scripts/agent/pathCapabilityEffectContract.mjs",
+      "sha256": "0c05ebf16775639a28ee19b6629dd855865f5000ee23fb3006fbeaf5305907c5",
+      "git_blob_sha1": "b28e78de3f3bf2ef0a2c6d698c4d6c0b40d1d4b7",
+      "bytes": 25714,
+      "lines": 376,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "468ca911d11c2aa8aaceb9b16133ba1d71c1ac0c6bbbeae8b269b29bf5e3fee0",
+          7528,
+          false
+        ],
+        [
+          121,
+          240,
+          "bf642f9468c38984e28e536d24ed84812ed9ce1b32a34a2602945e1918e724ec",
+          7862,
+          false
+        ],
+        [
+          241,
+          360,
+          "233f1af82b540dde8b75bb601069817ce736ee9f2b0d5a964c5d71f0dd232501",
+          8972,
+          false
+        ],
+        [
+          361,
+          376,
+          "437093d3a69cb70f91643ed1051fb9c352fbcf2a38e96cee9f49a33a0f24aad0",
+          1349,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "ImportDeclaration",
+            "specifier": "node:fs",
+            "lines": [
+              5,
+              5
+            ],
+            "bindings": [
+              {
+                "local": "fs",
+                "imported": "ImportDefaultSpecifier"
+              }
+            ],
+            "kind": "native_external"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "node:path",
+            "lines": [
+              6,
+              6
+            ],
+            "bindings": [
+              {
+                "local": "path",
+                "imported": "ImportDefaultSpecifier"
+              }
+            ],
+            "kind": "native_external"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "node:url",
+            "lines": [
+              7,
+              7
+            ],
+            "bindings": [
+              {
+                "local": "fileURLToPath",
+                "imported": "fileURLToPath"
+              }
+            ],
+            "kind": "native_external"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "node:crypto",
+            "lines": [
+              8,
+              8
+            ],
+            "bindings": [
+              {
+                "local": "createHash",
+                "imported": "createHash"
+              }
+            ],
+            "kind": "native_external"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "node:util",
+            "lines": [
+              9,
+              9
+            ],
+            "bindings": [
+              {
+                "local": "types",
+                "imported": "types"
+              }
+            ],
+            "kind": "native_external"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "acorn",
+            "lines": [
+              10,
+              10
+            ],
+            "bindings": [
+              {
+                "local": "parse",
+                "imported": "parse"
+              }
+            ],
+            "kind": "external_or_package_import_requires_recipe_confrontation"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "../../src/next/kernel/canonicalValue.js",
+            "lines": [
+              11,
+              11
+            ],
+            "bindings": [
+              {
+                "local": "canonicalValue",
+                "imported": "canonicalValue"
+              },
+              {
+                "local": "freezeDeep",
+                "imported": "freezeDeep"
+              }
+            ],
+            "kind": "source_bound",
+            "path": "src/next/kernel/canonicalValue.js"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "../../src/next/provenance/observationContract.js",
+            "lines": [
+              12,
+              12
+            ],
+            "bindings": [
+              {
+                "local": "copyData",
+                "imported": "copyData"
+              }
+            ],
+            "kind": "source_bound",
+            "path": "src/next/provenance/observationContract.js"
+          }
+        ],
+        "exports": [
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              141,
+              162
+            ],
+            "names": [
+              "capturePathNormalCapabilityReference"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              163,
+              168
+            ],
+            "names": [
+              "readPathNormalCapabilityReference"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              169,
+              186
+            ],
+            "names": [
+              "verifyPathNormalCapabilityReference"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              187,
+              190
+            ],
+            "names": [
+              "recheckPathNormalCapabilityReference"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              191,
+              211
+            ],
+            "names": [
+              "verifyPathNormalCapabilityBuildBinding"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              336,
+              349
+            ],
+            "names": [
+              "capturePathNormalChildABIReference"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              350,
+              353
+            ],
+            "names": [
+              "readPathNormalChildABIReference"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              354,
+              359
+            ],
+            "names": [
+              "recheckPathNormalChildABIReference"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              360,
+              375
+            ],
+            "names": [
+              "verifyPathNormalChildABIBuildBinding"
+            ]
+          }
+        ]
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "scripts/agent/pathExecutableClosureContract.mjs",
+      "sha256": "7facc69858c80a5fb07522a16c2b51e04935c4675f9924ebe37de478e2712b21",
+      "git_blob_sha1": "ccbadb5ca02def67c508fb234f744282e76f0b44",
+      "bytes": 45988,
+      "lines": 636,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "d353e4a061b52b1edd0131603f25cbfa7843ae4883a267d9bb38041df56c9ad2",
+          7621,
+          false
+        ],
+        [
+          121,
+          240,
+          "cdd5e22a942220af238129e05be631891a27a92534ae5da4cd92322d3df1e2c4",
+          9797,
+          false
+        ],
+        [
+          241,
+          360,
+          "03408e06a3a3ce0ff697caf1736c0f41ef50cc975e0cdf6b717dc8b4da35ebfb",
+          8925,
+          false
+        ],
+        [
+          361,
+          480,
+          "073ff885ef7263a58a3824d26233048a825748b5491f70e6d6fc49ecd9983395",
+          8262,
+          false
+        ],
+        [
+          481,
+          600,
+          "85c394c11bb30e44505c740221afb5c9859a7b13fb97097b8cd9fcabea699561",
+          8627,
+          false
+        ],
+        [
+          601,
+          636,
+          "ef8ec6b3eed73fad9791bf6112346a6b9ed825fecf7d6f522ecfaa88240acc87",
+          2751,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "ImportDeclaration",
+            "specifier": "acorn",
+            "lines": [
+              4,
+              4
+            ],
+            "bindings": [
+              {
+                "local": "parse",
+                "imported": "parse"
+              }
+            ],
+            "kind": "external_or_package_import_requires_recipe_confrontation"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "node:crypto",
+            "lines": [
+              5,
+              5
+            ],
+            "bindings": [
+              {
+                "local": "createHash",
+                "imported": "createHash"
+              }
+            ],
+            "kind": "native_external"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "node:util",
+            "lines": [
+              6,
+              6
+            ],
+            "bindings": [
+              {
+                "local": "types",
+                "imported": "types"
+              }
+            ],
+            "kind": "native_external"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "node:path",
+            "lines": [
+              7,
+              7
+            ],
+            "bindings": [
+              {
+                "local": "path",
+                "imported": "ImportDefaultSpecifier"
+              }
+            ],
+            "kind": "native_external"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "../../src/next/provenance/observationContract.js",
+            "lines": [
+              8,
+              8
+            ],
+            "bindings": [
+              {
+                "local": "copyData",
+                "imported": "copyData"
+              }
+            ],
+            "kind": "source_bound",
+            "path": "src/next/provenance/observationContract.js"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "../../src/next/kernel/canonicalValue.js",
+            "lines": [
+              9,
+              9
+            ],
+            "bindings": [
+              {
+                "local": "canonicalValue",
+                "imported": "canonicalValue"
+              }
+            ],
+            "kind": "source_bound",
+            "path": "src/next/kernel/canonicalValue.js"
+          }
+        ],
+        "exports": [
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              534,
+              635
+            ],
+            "names": [
+              "inspectPathExecutableClosure"
+            ]
+          }
+        ]
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "scripts/agent/pathProofProgramContract.mjs",
+      "sha256": "e8fe3ed84368ee154383748879e4b70490b7114fd764efed8db9a586343c956d",
+      "git_blob_sha1": "d6e972b855898ca4ae1708725744acce9b1c3724",
+      "bytes": 58942,
+      "lines": 801,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "c11758ab26aee1e985dca8a8b4f86135df2fd3d86410c2efbd31e7f91f642212",
+          7944,
+          false
+        ],
+        [
+          121,
+          240,
+          "f6a78c86366026d49563e831bf2973a4092a62a2646cc981f16d45e2995200fb",
+          8969,
+          false
+        ],
+        [
+          241,
+          360,
+          "db554797f5f4bdd898ed20345f698206e26ad18f6ec306685bde26a192c58500",
+          9746,
+          false
+        ],
+        [
+          361,
+          480,
+          "79a9abbd8b52963153cb4ec5b64028e79eea28de8188ba5a35ab88b4fad9253f",
+          10270,
+          false
+        ],
+        [
+          481,
+          600,
+          "42809a1517fbc782ef636e5160438f512f731d9f53485d9911c9add3037c6f12",
+          7954,
+          false
+        ],
+        [
+          601,
+          720,
+          "8a98aa5c19cce6e5c1e7d53082a75ada771f10a9db367941dda64f3df4bec284",
+          8275,
+          false
+        ],
+        [
+          721,
+          801,
+          "1f6f40ff2aba7d371733091a2b3745c90bbff31eb6495857f66f7d72680ae845",
+          5778,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "ImportDeclaration",
+            "specifier": "node:fs",
+            "lines": [
+              6,
+              6
+            ],
+            "bindings": [
+              {
+                "local": "fs",
+                "imported": "ImportDefaultSpecifier"
+              }
+            ],
+            "kind": "native_external"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "node:path",
+            "lines": [
+              7,
+              7
+            ],
+            "bindings": [
+              {
+                "local": "path",
+                "imported": "ImportDefaultSpecifier"
+              }
+            ],
+            "kind": "native_external"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "node:url",
+            "lines": [
+              8,
+              8
+            ],
+            "bindings": [
+              {
+                "local": "fileURLToPath",
+                "imported": "fileURLToPath"
+              }
+            ],
+            "kind": "native_external"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "node:crypto",
+            "lines": [
+              9,
+              9
+            ],
+            "bindings": [
+              {
+                "local": "createHash",
+                "imported": "createHash"
+              }
+            ],
+            "kind": "native_external"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "node:util",
+            "lines": [
+              10,
+              10
+            ],
+            "bindings": [
+              {
+                "local": "types",
+                "imported": "types"
+              }
+            ],
+            "kind": "native_external"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "./buildNextProvenanceArtifacts.mjs",
+            "lines": [
+              11,
+              11
+            ],
+            "bindings": [
+              {
+                "local": "buildCommonJsGuestBundle",
+                "imported": "buildCommonJsGuestBundle"
+              }
+            ],
+            "kind": "source_bound",
+            "path": "scripts/agent/buildNextProvenanceArtifacts.mjs"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "./buildNextMetricArtifacts.mjs",
+            "lines": [
+              12,
+              12
+            ],
+            "bindings": [
+              {
+                "local": "buildAvailableMetricArtifacts",
+                "imported": "buildAvailableMetricArtifacts"
+              }
+            ],
+            "kind": "source_bound",
+            "path": "scripts/agent/buildNextMetricArtifacts.mjs"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "./pathExecutableClosureContract.mjs",
+            "lines": [
+              13,
+              13
+            ],
+            "bindings": [
+              {
+                "local": "inspectPathExecutableClosure",
+                "imported": "inspectPathExecutableClosure"
+              }
+            ],
+            "kind": "source_bound",
+            "path": "scripts/agent/pathExecutableClosureContract.mjs"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "./pathReceiverOriginContract.mjs",
+            "lines": [
+              14,
+              14
+            ],
+            "bindings": [
+              {
+                "local": "projectPathReceiverOrigins",
+                "imported": "projectPathReceiverOrigins"
+              },
+              {
+                "local": "composePathReceiverEffects",
+                "imported": "composePathReceiverEffects"
+              }
+            ],
+            "kind": "source_bound",
+            "path": "scripts/agent/pathReceiverOriginContract.mjs"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "./pathCapabilityEffectContract.mjs",
+            "lines": [
+              15,
+              18
+            ],
+            "bindings": [
+              {
+                "local": "capturePathNormalCapabilityReference",
+                "imported": "capturePathNormalCapabilityReference"
+              },
+              {
+                "local": "readPathNormalCapabilityReference",
+                "imported": "readPathNormalCapabilityReference"
+              },
+              {
+                "local": "recheckPathNormalCapabilityReference",
+                "imported": "recheckPathNormalCapabilityReference"
+              },
+              {
+                "local": "verifyPathNormalCapabilityBuildBinding",
+                "imported": "verifyPathNormalCapabilityBuildBinding"
+              },
+              {
+                "local": "capturePathNormalChildABIReference",
+                "imported": "capturePathNormalChildABIReference"
+              },
+              {
+                "local": "readPathNormalChildABIReference",
+                "imported": "readPathNormalChildABIReference"
+              },
+              {
+                "local": "recheckPathNormalChildABIReference",
+                "imported": "recheckPathNormalChildABIReference"
+              },
+              {
+                "local": "verifyPathNormalChildABIBuildBinding",
+                "imported": "verifyPathNormalChildABIBuildBinding"
+              }
+            ],
+            "kind": "source_bound",
+            "path": "scripts/agent/pathCapabilityEffectContract.mjs"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "../../src/next/provenance/pathQualificationV3.js",
+            "lines": [
+              19,
+              20
+            ],
+            "bindings": [
+              {
+                "local": "readPathProofAuthorship",
+                "imported": "readPathProofAuthorship"
+              },
+              {
+                "local": "readPathPhaseAuthorship",
+                "imported": "readPathPhaseAuthorship"
+              },
+              {
+                "local": "readPathCandidateProgramAuthorship",
+                "imported": "readPathCandidateProgramAuthorship"
+              }
+            ],
+            "kind": "source_bound",
+            "path": "src/next/provenance/pathQualificationV3.js"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "../../src/next/provenance/materialFieldTypes.js",
+            "lines": [
+              21,
+              21
+            ],
+            "bindings": [
+              {
+                "local": "materialFieldType",
+                "imported": "materialFieldType"
+              }
+            ],
+            "kind": "source_bound",
+            "path": "src/next/provenance/materialFieldTypes.js"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "../../src/next/kernel/canonicalValue.js",
+            "lines": [
+              22,
+              22
+            ],
+            "bindings": [
+              {
+                "local": "canonicalValue",
+                "imported": "canonicalValue"
+              },
+              {
+                "local": "freezeDeep",
+                "imported": "freezeDeep"
+              }
+            ],
+            "kind": "source_bound",
+            "path": "src/next/kernel/canonicalValue.js"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "../../src/next/provenance/observationContract.js",
+            "lines": [
+              23,
+              23
+            ],
+            "bindings": [
+              {
+                "local": "copyData",
+                "imported": "copyData"
+              }
+            ],
+            "kind": "source_bound",
+            "path": "src/next/provenance/observationContract.js"
+          }
+        ],
+        "exports": [
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              232,
+              250
+            ],
+            "names": [
+              "sealPathProofProgramExpectation"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              251,
+              254
+            ],
+            "names": [
+              "sealPathPhaseProgramExpectation"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              290,
+              492
+            ],
+            "names": [
+              "sealPathCandidateProgramExpectation"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              493,
+              498
+            ],
+            "names": [
+              "readPathCandidateMetricReference"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              499,
+              505
+            ],
+            "names": [
+              "readPathCandidateCapabilityReference"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              506,
+              516
+            ],
+            "names": [
+              "recheckPathCandidateCapabilities"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              517,
+              547
+            ],
+            "names": [
+              "verifyPathCandidateCapabilityBuildBinding"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              548,
+              554
+            ],
+            "names": [
+              "readPathCandidateChildABIReference"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              555,
+              561
+            ],
+            "names": [
+              "readPathCandidateRootCapabilityBindings"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              562,
+              568
+            ],
+            "names": [
+              "readPathCandidateReceiverOrigins"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              569,
+              575
+            ],
+            "names": [
+              "readPathCandidateClosureReference"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              576,
+              582
+            ],
+            "names": [
+              "readPathCandidateEffectComposition"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              588,
+              643
+            ],
+            "names": [
+              "verifyPathCandidateClosure"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              652,
+              670
+            ],
+            "names": [
+              "verifyPathCandidateMetrics"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              671,
+              689
+            ],
+            "names": [
+              "verifyPathCandidateMetricBindings"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              701,
+              707
+            ],
+            "names": [
+              "resolvePathCandidateProgramExpectation"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              708,
+              716
+            ],
+            "names": [
+              "readPathCandidateProgramReference"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              717,
+              758
+            ],
+            "names": [
+              "verifyPathCandidatePrograms"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              759,
+              759
+            ],
+            "names": [
+              "readPathCandidateProgramFailure"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              762,
+              767
+            ],
+            "names": [
+              "readPathPhaseProgramReference"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              768,
+              788
+            ],
+            "names": [
+              "verifyPathPhaseProgram"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              789,
+              800
+            ],
+            "names": [
+              "verifyPathProofProgram"
+            ]
+          }
+        ]
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "scripts/agent/pathReceiverOriginContract.mjs",
+      "sha256": "fbdd1e751445af8110574e0416930955884073a31392240935b10d235a9f1870",
+      "git_blob_sha1": "ef751d731e613250b77fd4988b7c55ea84c9fb32",
+      "bytes": 36915,
+      "lines": 473,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "62f2f80b0cc9ce145b34bf242fe7bd9a3c8a555606c7c02009d15681cd15b732",
+          8671,
+          false
+        ],
+        [
+          121,
+          240,
+          "b0d6c87794883d2f73ee8007fc4712e4bc0607d8b70454ec81115e63dcabfa95",
+          9752,
+          false
+        ],
+        [
+          241,
+          360,
+          "6f1e93fa9ffb204a35fc7a60dafde58a505bad53c1859b40e9e0a4a0ab3d0e5d",
+          9604,
+          false
+        ],
+        [
+          361,
+          473,
+          "1aea0d10b04514d3b8249323712a50f9395dc7f70bfe740f18273a85261aad69",
+          8885,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "ImportDeclaration",
+            "specifier": "../../src/next/kernel/canonicalValue.js",
+            "lines": [
+              5,
+              5
+            ],
+            "bindings": [
+              {
+                "local": "canonicalValue",
+                "imported": "canonicalValue"
+              },
+              {
+                "local": "freezeDeep",
+                "imported": "freezeDeep"
+              }
+            ],
+            "kind": "source_bound",
+            "path": "src/next/kernel/canonicalValue.js"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "node:crypto",
+            "lines": [
+              6,
+              6
+            ],
+            "bindings": [
+              {
+                "local": "createHash",
+                "imported": "createHash"
+              }
+            ],
+            "kind": "native_external"
+          },
+          {
+            "form": "ImportDeclaration",
+            "specifier": "node:path",
+            "lines": [
+              7,
+              7
+            ],
+            "bindings": [
+              {
+                "local": "path",
+                "imported": "ImportDefaultSpecifier"
+              }
+            ],
+            "kind": "native_external"
+          }
+        ],
+        "exports": [
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              15,
+              19
+            ],
+            "names": [
+              "composePathReceiverEffects"
+            ]
+          },
+          {
+            "form": "ExportNamedDeclaration",
+            "lines": [
+              21,
+              472
+            ],
+            "names": [
+              "projectPathReceiverOrigins"
+            ]
+          }
+        ]
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/kernel/canonicalJson.js",
+      "sha256": "f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "git_blob_sha1": "0062e7264f047889294f851dd5e48fc68a266983",
+      "bytes": 1985,
+      "lines": 41,
+      "source_ranges": [
+        [
+          1,
+          41,
+          "f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+          1985,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/kernel/canonicalValue.js",
+      "sha256": "f6d571ddc1c7917f6a0ec8e25b17368c3e23ba10111ea5aa591c692d6739205b",
+      "git_blob_sha1": "75aa19edcf5ab77540d49c4973e10c48d9dcf9c1",
+      "bytes": 2146,
+      "lines": 47,
+      "source_ranges": [
+        [
+          1,
+          47,
+          "f6d571ddc1c7917f6a0ec8e25b17368c3e23ba10111ea5aa591c692d6739205b",
+          2146,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              3,
+              3
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "native_external",
+            "specifier": "node:crypto"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/kernel/expenseReadModel.js",
+      "sha256": "39bbdb7809cef065878bae8c67878fc90b91f0404dc5ecd6f37e5e9c1a4a773f",
+      "git_blob_sha1": "b112310e170e6aa744f376da18690ef9fd03f762",
+      "bytes": 16729,
+      "lines": 283,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "19cae9ac6775ede7aa7764aa75818b6334b446b2f368e8f2832724da2ff0c2e7",
+          7002,
+          false
+        ],
+        [
+          121,
+          240,
+          "18a5243c8deb2d6b86297e039bf1586ffebdb54e6d87a24e4826c45fa462238d",
+          7635,
+          false
+        ],
+        [
+          241,
+          283,
+          "d1783af668f30cafa105c8e622918e40416add5b555a302bf337d6c68cd7a3af",
+          2090,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              3,
+              3
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/kernel/canonicalValue.js",
+            "specifier": "./canonicalValue"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              4,
+              4
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/kernel/observationKernel.js",
+            "specifier": "./observationKernel"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              5,
+              5
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "unresolved_static_import",
+            "specifier": "../tools/readOnlyToolGateway",
+            "logical": "src/next/tools/readOnlyToolGateway"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/kernel/installmentSchedule.js",
+      "sha256": "4af898bd4b96cb29c802f2b22c85da981e4c697db6b3b6bd20d32a18c65a7329",
+      "git_blob_sha1": "1d06f7839f756c900d0a62fd7c92eea1d83f86e4",
+      "bytes": 4405,
+      "lines": 87,
+      "source_ranges": [
+        [
+          1,
+          87,
+          "4af898bd4b96cb29c802f2b22c85da981e4c697db6b3b6bd20d32a18c65a7329",
+          4405,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              3,
+              3
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/kernel/canonicalValue.js",
+            "specifier": "./canonicalValue"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/kernel/observationKernel.js",
+      "sha256": "4dce0de726ed8f8606bd279f903c6b8bdf4fa4016b6f5033a5938842aff8b130",
+      "git_blob_sha1": "11aadfdeca8d585e6bac889b029e6bd1374850ac",
+      "bytes": 22778,
+      "lines": 403,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "df7d9859743c6b8a974f03f3c5b0bdb13ae90ded6693fa835ef5e63281f2fda9",
+          5509,
+          false
+        ],
+        [
+          121,
+          240,
+          "55e756e1594dab44124d04ee07080598aaca369304dd6e52e49344fd98c41e98",
+          7815,
+          false
+        ],
+        [
+          241,
+          360,
+          "790cb7af761efd50c286a620e99cbe9f1b004eed824f0c0087d54f80f7f4ba10",
+          6665,
+          false
+        ],
+        [
+          361,
+          403,
+          "7291d8c08121aa2db062f04377baef17e253bacd6557d6292cf38045701cec49",
+          2786,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              3,
+              3
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/kernel/canonicalValue.js",
+            "specifier": "./canonicalValue"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              4,
+              4
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/kernel/installmentSchedule.js",
+            "specifier": "./installmentSchedule"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/authoringIR.js",
+      "sha256": "aa3e98a1ebf2d11118ba75dda5e0f89457e31d04eb5b457a5266bd41b099afb4",
+      "git_blob_sha1": "ee2d59cfa38a53ac2910ee0059156f5ca99d501c",
+      "bytes": 7273,
+      "lines": 110,
+      "source_ranges": [
+        [
+          1,
+          110,
+          "aa3e98a1ebf2d11118ba75dda5e0f89457e31d04eb5b457a5266bd41b099afb4",
+          7273,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              3,
+              3
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/kernel/canonicalValue.js",
+            "specifier": "../kernel/canonicalValue"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/claimContext.js",
+      "sha256": "908e44c14d3602fc06284a4e956e0e29fb68497b32f5321200672c6329efa4ae",
+      "git_blob_sha1": "85456a2186424b4812239d8a84df2d1fad9c4413",
+      "bytes": 3236,
+      "lines": 55,
+      "source_ranges": [
+        [
+          1,
+          55,
+          "908e44c14d3602fc06284a4e956e0e29fb68497b32f5321200672c6329efa4ae",
+          3236,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              2,
+              2
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/observationContract.js",
+            "specifier": "./observationContract"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/claimNominalTypes.js",
+      "sha256": "f37c4367c027d119caf81afcb1de898a05b5edfd6651c8c3a17d3177cff95096",
+      "git_blob_sha1": "a9bea06ab24aa32e571399b1de9404a4d2a6a0de",
+      "bytes": 774,
+      "lines": 14,
+      "source_ranges": [
+        [
+          1,
+          14,
+          "f37c4367c027d119caf81afcb1de898a05b5edfd6651c8c3a17d3177cff95096",
+          774,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/collectionProofCore.js",
+      "sha256": "4cc88bf36458e46783dfbc1ae24c3f0fc2855e28f29663094ca48be0fe72a8ec",
+      "git_blob_sha1": "de36dcfade9dea4108697f9ac14e37a406ec0d93",
+      "bytes": 2840,
+      "lines": 54,
+      "source_ranges": [
+        [
+          1,
+          54,
+          "4cc88bf36458e46783dfbc1ae24c3f0fc2855e28f29663094ca48be0fe72a8ec",
+          2840,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              2,
+              2
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/proofObservedValues.js",
+            "specifier": "./proofObservedValues"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/instrumentedAccess.js",
+      "sha256": "0a226802919420fc1e90d07847b96cc120121e230905c0f5cef484c034dedf92",
+      "git_blob_sha1": "84e25bde306e67c65b45b03d6be0ab1523d21b54",
+      "bytes": 23516,
+      "lines": 377,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "40f1e2e5ce16f12dc60a31d29e849ea114844fc1acfa740dcc435bb015e99e56",
+          7452,
+          false
+        ],
+        [
+          121,
+          240,
+          "129d39c5f651ff03d0a3f8f620075d42d278e823c19d63a99b1f697b0811a398",
+          7876,
+          false
+        ],
+        [
+          241,
+          360,
+          "a83f29f9de743408ef45b5687f121408848aeb2006282f77eae4890752e347c7",
+          7413,
+          false
+        ],
+        [
+          361,
+          377,
+          "49307510745251ad5e921215c56afb8ac44636e22fbc13db8d5cecca93e7319e",
+          772,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              2,
+              2
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "native_external",
+            "specifier": "node:util"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              3,
+              3
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/observationContract.js",
+            "specifier": "./observationContract"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              4,
+              4
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/kernel/canonicalValue.js",
+            "specifier": "../kernel/canonicalValue"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              5,
+              5
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/pinnedCivilTimezone.js",
+            "specifier": "./pinnedCivilTimezone"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/literalTypes.js",
+      "sha256": "c99b3a919c995638702325dcb7c2cb1f8e338388700429b3bc9f1cce7a00b4ec",
+      "git_blob_sha1": "76243a36cac975f2a4b4d120fec0fcd7f371140d",
+      "bytes": 1669,
+      "lines": 35,
+      "source_ranges": [
+        [
+          1,
+          35,
+          "c99b3a919c995638702325dcb7c2cb1f8e338388700429b3bc9f1cce7a00b4ec",
+          1669,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              2,
+              2
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/civilCalendar.js",
+            "specifier": "./civilCalendar"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/materialFieldTypes.js",
+      "sha256": "f7f4ecaba152ddebf4503469ba61851add59c0a0c697ea6f73503a5ca03a1c0c",
+      "git_blob_sha1": "41bbf1f15ff41c1560791c74fdd7694fbada4c47",
+      "bytes": 1246,
+      "lines": 19,
+      "source_ranges": [
+        [
+          1,
+          19,
+          "f7f4ecaba152ddebf4503469ba61851add59c0a0c697ea6f73503a5ca03a1c0c",
+          1246,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/metricDirectReads.js",
+      "sha256": "7a78501221230a8991354d47a63f8e131807b995f6a7e5e10e8dab0664f01d4b",
+      "git_blob_sha1": "d5681f178245a5f28d187adab84e465fa83b1b26",
+      "bytes": 12815,
+      "lines": 225,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "a9d515cdaeaa729d01ffba6b71b93cbfe77c841428785ef496959e067c28da4c",
+          6722,
+          false
+        ],
+        [
+          121,
+          225,
+          "e23cdd05e17bdfeb5094a324e4b7ec42820a600faa03fc82ae67d51b9f7f0dcc",
+          6092,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              2,
+              2
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/civilCalendar.js",
+            "specifier": "./civilCalendar"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              3,
+              3
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/literalTypes.js",
+            "specifier": "./literalTypes"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              4,
+              4
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/metricSelection.js",
+            "specifier": "./metricSelection"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              5,
+              5
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/metricReferences.js",
+            "specifier": "./metricReferences"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/metricEffects.js",
+      "sha256": "7cb9fe24b2d8aefd3560d8089544bfe5431f124256c35023ff6b8e126283f5fb",
+      "git_blob_sha1": "7d461af02addac9509bb518e5c7a91b4fb98d210",
+      "bytes": 5637,
+      "lines": 81,
+      "source_ranges": [
+        [
+          1,
+          81,
+          "7cb9fe24b2d8aefd3560d8089544bfe5431f124256c35023ff6b8e126283f5fb",
+          5637,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              2,
+              2
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/civilCalendar.js",
+            "specifier": "./civilCalendar"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              3,
+              3
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/literalTypes.js",
+            "specifier": "./literalTypes"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              4,
+              4
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/metricSelection.js",
+            "specifier": "./metricSelection"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              5,
+              5
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/metricReferences.js",
+            "specifier": "./metricReferences"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/metricInstallments.js",
+      "sha256": "559dae3a98d3dd90670e15d35ca93824bf89d478c974dcd07d9da17abcac7a09",
+      "git_blob_sha1": "f2b45c9684d792597662773a593d79eb91c970c9",
+      "bytes": 4957,
+      "lines": 82,
+      "source_ranges": [
+        [
+          1,
+          82,
+          "559dae3a98d3dd90670e15d35ca93824bf89d478c974dcd07d9da17abcac7a09",
+          4957,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              2,
+              2
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/civilCalendar.js",
+            "specifier": "./civilCalendar"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              3,
+              3
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/literalTypes.js",
+            "specifier": "./literalTypes"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              4,
+              4
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/metricReferences.js",
+            "specifier": "./metricReferences"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/metricParents.js",
+      "sha256": "32464e029ba27ccf5a45b4ee35b1568033ef159a802ed156c014a1aa217030bb",
+      "git_blob_sha1": "420d5e2ca70e524a11ad7f63f55bcee470d59064",
+      "bytes": 3219,
+      "lines": 68,
+      "source_ranges": [
+        [
+          1,
+          68,
+          "32464e029ba27ccf5a45b4ee35b1568033ef159a802ed156c014a1aa217030bb",
+          3219,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              3,
+              3
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/civilCalendar.js",
+            "specifier": "./civilCalendar"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              4,
+              4
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/literalTypes.js",
+            "specifier": "./literalTypes"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/metricReferences.js",
+      "sha256": "0a96471a46324599c92c8c2f604e5761749902c6b9393eb738b09aad868d5e7b",
+      "git_blob_sha1": "81858370706a5f4eb59ffb093498c8cca502f1f3",
+      "bytes": 2995,
+      "lines": 72,
+      "source_ranges": [
+        [
+          1,
+          72,
+          "0a96471a46324599c92c8c2f604e5761749902c6b9393eb738b09aad868d5e7b",
+          2995,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              3,
+              3
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/literalTypes.js",
+            "specifier": "./literalTypes"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/metricSelection.js",
+      "sha256": "8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "git_blob_sha1": "56bf033db7d3dbe2159707dc7c195d5af146bb19",
+      "bytes": 11711,
+      "lines": 191,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "a1f10848c93c07eabeb195080b420779a9b6d91eac2933439ba3d0691d6efff9",
+          7904,
+          false
+        ],
+        [
+          121,
+          191,
+          "527ddad8bd1cc50804aa21a8583dfc5cded8e3d92f9e7f3a78323d2a4e2c7805",
+          3806,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              3,
+              3
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/civilCalendar.js",
+            "specifier": "./civilCalendar"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              4,
+              4
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/literalTypes.js",
+            "specifier": "./literalTypes"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              5,
+              5
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/metricReferences.js",
+            "specifier": "./metricReferences"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/observationContract.js",
+      "sha256": "60d73c6bfe13fe91325920bc289454d233cd6efea034c093a1d4c18cee469e1e",
+      "git_blob_sha1": "1c2305eaf1973955252a4b9d0acf0adca1113b1d",
+      "bytes": 6685,
+      "lines": 119,
+      "source_ranges": [
+        [
+          1,
+          119,
+          "60d73c6bfe13fe91325920bc289454d233cd6efea034c093a1d4c18cee469e1e",
+          6685,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              2,
+              2
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/kernel/canonicalValue.js",
+            "specifier": "../kernel/canonicalValue"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              3,
+              3
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "native_external",
+            "specifier": "node:util"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              5,
+              5
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/observationScalars.js",
+            "specifier": "./observationScalars"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/observationScalars.js",
+      "sha256": "cf344f72a703e7be55fc165322860d84792fae82822f3daad1f557834faa4f09",
+      "git_blob_sha1": "5ec8bcfd3f52a853167b9504ad557ee073f3b160",
+      "bytes": 559,
+      "lines": 9,
+      "source_ranges": [
+        [
+          1,
+          9,
+          "cf344f72a703e7be55fc165322860d84792fae82822f3daad1f557834faa4f09",
+          559,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/proofAcceptance.js",
+      "sha256": "6ddc6138fc0485c1278f52fad545bbdd9cd908975e000efa98863fddd86f3cea",
+      "git_blob_sha1": "5e47b32cc4a258f7190cd88305dbb79badf0fc6e",
+      "bytes": 38138,
+      "lines": 611,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "2da890d50984cd7c22a9c0dc784b9fb62d68fbb7c73ef4a958af2d141665e0f2",
+          6804,
+          false
+        ],
+        [
+          121,
+          240,
+          "a5c87095c41a983a295f9ba876b132b49d27636f8bbfe4ff1d3e41f392090c8b",
+          7524,
+          false
+        ],
+        [
+          241,
+          360,
+          "bc3645d64c6a449b76279a7833ca85d6077ed879420af899aabc8c453bf7d085",
+          7545,
+          false
+        ],
+        [
+          361,
+          480,
+          "3248ec0f03337194385db5c4e38afdfaa0038f65ee65bc07164bd801c42ec81c",
+          7610,
+          false
+        ],
+        [
+          481,
+          600,
+          "249a40a7bc0c25ede82c3648db169bdb64540d3a3040cab832e71ca79d0dc804",
+          7958,
+          false
+        ],
+        [
+          601,
+          611,
+          "a3f4b85b210f45b3e984a0cdb31e63fbcd3251f0b16d8a8e129f626c6d22d52c",
+          692,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              2,
+              2
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/observationContract.js",
+            "specifier": "./observationContract"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              3,
+              3
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/pinnedCivilTimezone.js",
+            "specifier": "./pinnedCivilTimezone"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              4,
+              4
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/kernel/canonicalValue.js",
+            "specifier": "../kernel/canonicalValue"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/proofContextBinding.js",
+      "sha256": "3e2e8d34b0fb7c3e7d697208c9a56b7879f72c53c2108d9a75dd783b93222593",
+      "git_blob_sha1": "e72a444ab3cd1f18088f88dc0579bdfc1a6e5917",
+      "bytes": 979,
+      "lines": 21,
+      "source_ranges": [
+        [
+          1,
+          21,
+          "3e2e8d34b0fb7c3e7d697208c9a56b7879f72c53c2108d9a75dd783b93222593",
+          979,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              2,
+              2
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/observationContract.js",
+            "specifier": "./observationContract"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/proofObservedValues.js",
+      "sha256": "e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "git_blob_sha1": "8105ebdec58c475e6e23d492c70057bebce454d8",
+      "bytes": 5085,
+      "lines": 97,
+      "source_ranges": [
+        [
+          1,
+          97,
+          "e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+          5085,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              2,
+              2
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/literalTypes.js",
+            "specifier": "./literalTypes"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              3,
+              3
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/observationScalars.js",
+            "specifier": "./observationScalars"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/proofOperatorContracts.js",
+      "sha256": "2e68d093bd5cbbe8283478ebf32428925149c68e290952d9fcdfb2f470e9fde8",
+      "git_blob_sha1": "ebcbf02caf41ca94cae092048b123fe2ff3c7031",
+      "bytes": 1636,
+      "lines": 20,
+      "source_ranges": [
+        [
+          1,
+          20,
+          "2e68d093bd5cbbe8283478ebf32428925149c68e290952d9fcdfb2f470e9fde8",
+          1636,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/proofOperators.js",
+      "sha256": "6d7ed8142652c1c3e3240e58c9333ee5890a9c5cdd62801258b02c4f91dde63b",
+      "git_blob_sha1": "54aa34b802e7383a5fc1a6a15eb2a991c0982169",
+      "bytes": 18512,
+      "lines": 279,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "4a23a87434d653c25bf002764f4e0c9df10f1b5e8aa38faa315f3a115a0ba44a",
+          7459,
+          false
+        ],
+        [
+          121,
+          240,
+          "c29d0ae77d833ddc8410b20d1101ad8e3d6aecaabc1c44dbb90ddbaf85f8adfb",
+          8779,
+          false
+        ],
+        [
+          241,
+          279,
+          "bab99433ca5f0fcfbed83f1884cb170a0d7b64ae01bb4afc2a5cde253999a7dd",
+          2272,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              2,
+              2
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/observationContract.js",
+            "specifier": "./observationContract"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              3,
+              3
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/literalTypes.js",
+            "specifier": "./literalTypes"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              4,
+              4
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/kernel/canonicalValue.js",
+            "specifier": "../kernel/canonicalValue"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              5,
+              5
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/scalarProofOperators.js",
+            "specifier": "./scalarProofOperators"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              6,
+              6
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/operatorTypes.js",
+            "specifier": "./operatorTypes"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              7,
+              7
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/pinnedCivilTimezone.js",
+            "specifier": "./pinnedCivilTimezone"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              8,
+              8
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/proofOperatorContracts.js",
+            "specifier": "./proofOperatorContracts"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              9,
+              9
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/materialFieldTypes.js",
+            "specifier": "./materialFieldTypes"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              10,
+              10
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/collectionProofCore.js",
+            "specifier": "./collectionProofCore"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              16,
+              16
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/proofObservedValues.js",
+            "specifier": "./proofObservedValues"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              18,
+              18
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/materialFingerprintCore.js",
+            "specifier": "./materialFingerprintCore"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/proofParentBinding.js",
+      "sha256": "3b928733cc0adc169071a8991295b9cdfb6782adc54351e7e2879d975614a080",
+      "git_blob_sha1": "1f3b08e0004bd60e5bd39522a182c1d146a6971b",
+      "bytes": 1318,
+      "lines": 24,
+      "source_ranges": [
+        [
+          1,
+          24,
+          "3b928733cc0adc169071a8991295b9cdfb6782adc54351e7e2879d975614a080",
+          1318,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              2,
+              2
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/observationContract.js",
+            "specifier": "./observationContract"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              3,
+              3
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/kernel/canonicalValue.js",
+            "specifier": "../kernel/canonicalValue"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              4,
+              4
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/materialFingerprintCore.js",
+            "specifier": "./materialFingerprintCore"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/proofProgramData.js",
+      "sha256": "368761e082fbe51d5ec150875af47ffb0f19cdca48f974223a6674f60ff7bea9",
+      "git_blob_sha1": "e2e103a43d49dd4f62058362cfcdaf4734d52dd5",
+      "bytes": 2232,
+      "lines": 49,
+      "source_ranges": [
+        [
+          1,
+          49,
+          "368761e082fbe51d5ec150875af47ffb0f19cdca48f974223a6674f60ff7bea9",
+          2232,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              2,
+              2
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/observationScalars.js",
+            "specifier": "./observationScalars"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/proofSha256.js",
+      "sha256": "5e911bfa787507bdba6beafc5bc84160492dbcd0b10f838d80924827775dfe2f",
+      "git_blob_sha1": "013fb23eccb6bcf032fa7ab6673e8100b16d8bd8",
+      "bytes": 4105,
+      "lines": 68,
+      "source_ranges": [
+        [
+          1,
+          68,
+          "5e911bfa787507bdba6beafc5bc84160492dbcd0b10f838d80924827775dfe2f",
+          4105,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/scalarProofCore.js",
+      "sha256": "82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "git_blob_sha1": "e064d4e6ba32424f3dca51ca1cc8e268fb7786c2",
+      "bytes": 13694,
+      "lines": 208,
+      "source_ranges": [
+        [
+          1,
+          120,
+          "8df54f663a991cf29ede3c8cceb37034083392f9ff63ba2f959d2dd4c00cc8a5",
+          8291,
+          false
+        ],
+        [
+          121,
+          208,
+          "a2632134c59339e7f524dc45752bcbc7f23d52dfcdd53b4bc3798ad1a6bf6578",
+          5402,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              2,
+              2
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/operatorTypes.js",
+            "specifier": "./operatorTypes"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              3,
+              3
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/literalTypes.js",
+            "specifier": "./literalTypes"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              4,
+              4
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/civilCalendar.js",
+            "specifier": "./civilCalendar"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    },
+    {
+      "path": "src/next/provenance/scalarProofOperators.js",
+      "sha256": "924e5f5953bb02dc02b4b8affcba79a5aefc6a3cad3242738f1b44c364bfb461",
+      "git_blob_sha1": "e35e32715a9633c25f3495eb8cb2c4be4cebb2d4",
+      "bytes": 447,
+      "lines": 8,
+      "source_ranges": [
+        [
+          1,
+          8,
+          "924e5f5953bb02dc02b4b8affcba79a5aefc6a3cad3242738f1b44c364bfb461",
+          447,
+          false
+        ]
+      ],
+      "syntax_surface": {
+        "parse_status": "syntax_parsed_not_semantic_review",
+        "imports": [
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              2,
+              2
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/observationContract.js",
+            "specifier": "./observationContract"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              3,
+              3
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/kernel/canonicalValue.js",
+            "specifier": "../kernel/canonicalValue"
+          },
+          {
+            "form": "require_syntax_only",
+            "lines": [
+              4,
+              4
+            ],
+            "binding_not_runtime_resolution": true,
+            "kind": "source_bound",
+            "path": "src/next/provenance/scalarProofCore.js",
+            "specifier": "./scalarProofCore"
+          }
+        ],
+        "exports": []
+      },
+      "json_shape": null,
+      "review_status": "not_completed"
+    }
+  ],
+  "range_columns": [
+    "start_line",
+    "end_line",
+    "selected_utf8_sha256",
+    "selected_bytes",
+    "oversized_single_line_transport"
+  ],
+  "range_byte_policy": "UTF8 original lines joined by LF, no extra terminal LF; CR remains part of a line",
+  "immutable_raw_url_prefix": "https://raw.githubusercontent.com/Danieu-san/financas-bot/cf6e43cbaa7c378f2b64590c50d0818700a3bdd0/",
+  "immutable_line_url_template": "https://github.com/Danieu-san/financas-bot/blob/cf6e43cbaa7c378f2b64590c50d0818700a3bdd0/{path}#L{start}-L{end}",
+  "immutable_blob_api_prefix": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/",
+  "cross_group_edges_file": "integration-navigation.json",
+  "review_complete": false,
+  "limit": "Syntax/routes/ranges are navigation only; full bodies, premises, callers and counterexamples require independent review."
+}

@@ -1,0 +1,102 @@
+{
+  "format": "financasbot.source-bound-review-delivery",
+  "version": 1,
+  "code_commit": "cf6e43cbaa7c378f2b64590c50d0818700a3bdd0",
+  "code_tree": "a95ab30b2a30c19d90c71b2ffa1c56705ed0522f",
+  "routing_sha256": "98bba31ef3471e1bf09d1b7a3d95062b1650dfb7ce67e4c8f82cfd5ae4bcab6a",
+  "publication_index_sha256": "d281b054ed706b7c3d63d05266762974418f1998f369c9d090c66aa2753bebaa",
+  "unit_count": 307,
+  "exact_duplicate_body_groups": [
+    {
+      "source_sha256": "e9c852034d8cc887e1d8645a61d9597176409f72a28eaf0de4c95f17c0c8358d",
+      "paths": [
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-authorship-v1-frozen.json",
+        "docs/contracts/next/provenance-v2/graphs-v2.json"
+      ],
+      "allowed_reuse": "exact_body_read_once_each_use_applicability_still_pending",
+      "review_complete": false
+    },
+    {
+      "source_sha256": "7bf9b2de73a6b356761c948d0e9eeb4be6c1270bd04c79cd489c1e400ffdfc1a",
+      "paths": [
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/fast-deep-equal/LICENSE",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/dependencies/node_modules/json-schema-traverse/LICENSE"
+      ],
+      "allowed_reuse": "exact_body_read_once_each_use_applicability_still_pending",
+      "review_complete": false
+    },
+    {
+      "source_sha256": "5404208701a79b6940067612b07ba4e95b612dfc00f3d008bfd4037bf8aa4b9e",
+      "paths": [
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/path-qualification-compiler-recipe.json",
+        "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/recipe.json"
+      ],
+      "allowed_reuse": "exact_body_read_once_each_use_applicability_still_pending",
+      "review_complete": false
+    }
+  ],
+  "unique_body_count": 304,
+  "cross_group_edge_count": 524,
+  "unresolved_or_external_import_syntax_count": 816,
+  "files": [
+    {
+      "file": "A_normal_admission_reference.json",
+      "sha256": "734e33ffa9d760a89b52f7af58a6dcebe04e285d6ddb58d1ed93ced1ee52759a",
+      "bytes": 111028,
+      "units": 84
+    },
+    {
+      "file": "B-full-source-reading.md",
+      "sha256": "29d0943cc4919f8927f72b2a2583feac980aaac580bfb05681572da9a7697231",
+      "bytes": 444860,
+      "role": "complete_B_bodies_no_semantic_claim"
+    },
+    {
+      "file": "B_program_capabilities_effects.json",
+      "sha256": "15dbad9da8e54f35c93c9d302f33567520775ea7ce96e1426f37d606abbff5f4",
+      "bytes": 86476,
+      "units": 36
+    },
+    {
+      "file": "C_internal_TCB_tests_harness.json",
+      "sha256": "e23100c85ef672cea46eb4b402f3a256ce29ea5be63c03a613456dcaef009028",
+      "bytes": 263246,
+      "units": 34
+    },
+    {
+      "file": "D_shared_foundation_dependencies_history.json",
+      "sha256": "ae8b14804337e700682c8f0bfe28ef33c0d62d34229f09ab1bcac8b10143f25f",
+      "bytes": 679302,
+      "units": 153
+    },
+    {
+      "file": "integration-navigation.json",
+      "sha256": "96a831e34f91a550ee744d376d90d37d6d93ab12f49c66c63a319c594d755b34",
+      "bytes": 220432,
+      "role": "all_cross_group_syntactic_edges_not_semantic_certificate"
+    }
+  ],
+  "parse_failures": [],
+  "transport_oversized_data": [
+    "docs/audit-evidence/n02g-causal-authoring-profile/path-authorship-v1-frozen.json",
+    "docs/audit-evidence/n02g-causal-authoring-profile/path-inventory-v1-frozen.json",
+    "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-history-20261008/historical-v2-report.json",
+    "docs/contracts/next/provenance-v2/graphs-v2.json",
+    "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/normal-rule-review-snapshot.json",
+    "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/path-qualification-compiler-recipe.json",
+    "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/artifacts/recipe.json"
+  ],
+  "review_complete": false,
+  "qualified": false,
+  "credit": 0,
+  "global_go": false,
+  "final_integration_required": [
+    "all307units_have_explicit_independent_coverage_or_a_justified_scope_verdict",
+    "all12normal_rules_and_reference_premises_semantically_confronted",
+    "shared_foundation_and_bundle_source_bindings_confronted_not_assumed_from_hashes",
+    "cross_group_identity_roots_conformance_controls_and_EXTERNAL_TCB_before_handles_confronted",
+    "one_final_integrated_verdict_on_exact_unchanged_CODE_reference_dependencies",
+    "no_component_APTO_promotes_qualification_or_credit"
+  ],
+  "finite_stop": "Four fixed causal frontiers and one integrated verdict, no recursive audits or hidden coverage waiver."
+}
