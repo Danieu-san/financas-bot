@@ -1,0 +1,495 @@
+{
+  "format": "financasbot.independent-frontier-review-receipt",
+  "version": 1,
+  "delivery_commit": "329a956df93599e4def0f59a9e970f6ee4b15cc3",
+  "code_commit": "cf6e43cbaa7c378f2b64590c50d0818700a3bdd0",
+  "frontier": "B_program_capabilities_effects",
+  "verdict": "APTO_SOMENTE_B",
+  "review_kind": "independent_static_limited_claims_not_operational_semantic_certification",
+  "complete_body_count": 36,
+  "units": [
+    {
+      "path": "scripts/agent/lowerNextProofProgram.mjs",
+      "sha256": "d141273f2156bab19392c66c2cca660f0f196f7d5b5af4721ac595307aa5cab4",
+      "git_blob_sha1": "3b7634b45f893dfc163dd6832357a87188849261",
+      "bytes": 44572,
+      "reviewed_line_range": [
+        1,
+        586
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "scripts/agent/nextProvenanceGuestProfile.js",
+      "sha256": "ea14fe64e52c9ec5aa06336a31e281ec7b87bbeb239fde4d5385d2342f6fc8de",
+      "git_blob_sha1": "a40be3b427b2e8a10593e5df728238f6d959fc8c",
+      "bytes": 1989,
+      "reviewed_line_range": [
+        1,
+        38
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "scripts/agent/pathCapabilityEffectContract.mjs",
+      "sha256": "0c05ebf16775639a28ee19b6629dd855865f5000ee23fb3006fbeaf5305907c5",
+      "git_blob_sha1": "b28e78de3f3bf2ef0a2c6d698c4d6c0b40d1d4b7",
+      "bytes": 25714,
+      "reviewed_line_range": [
+        1,
+        376
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "scripts/agent/pathExecutableClosureContract.mjs",
+      "sha256": "7facc69858c80a5fb07522a16c2b51e04935c4675f9924ebe37de478e2712b21",
+      "git_blob_sha1": "ccbadb5ca02def67c508fb234f744282e76f0b44",
+      "bytes": 45988,
+      "reviewed_line_range": [
+        1,
+        636
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "scripts/agent/pathProofProgramContract.mjs",
+      "sha256": "e8fe3ed84368ee154383748879e4b70490b7114fd764efed8db9a586343c956d",
+      "git_blob_sha1": "d6e972b855898ca4ae1708725744acce9b1c3724",
+      "bytes": 58942,
+      "reviewed_line_range": [
+        1,
+        801
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "scripts/agent/pathReceiverOriginContract.mjs",
+      "sha256": "fbdd1e751445af8110574e0416930955884073a31392240935b10d235a9f1870",
+      "git_blob_sha1": "ef751d731e613250b77fd4988b7c55ea84c9fb32",
+      "bytes": 36915,
+      "reviewed_line_range": [
+        1,
+        473
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "src/next/kernel/canonicalJson.js",
+      "sha256": "f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "git_blob_sha1": "0062e7264f047889294f851dd5e48fc68a266983",
+      "bytes": 1985,
+      "reviewed_line_range": [
+        1,
+        41
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "src/next/kernel/canonicalValue.js",
+      "sha256": "f6d571ddc1c7917f6a0ec8e25b17368c3e23ba10111ea5aa591c692d6739205b",
+      "git_blob_sha1": "75aa19edcf5ab77540d49c4973e10c48d9dcf9c1",
+      "bytes": 2146,
+      "reviewed_line_range": [
+        1,
+        47
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "src/next/kernel/expenseReadModel.js",
+      "sha256": "39bbdb7809cef065878bae8c67878fc90b91f0404dc5ecd6f37e5e9c1a4a773f",
+      "git_blob_sha1": "b112310e170e6aa744f376da18690ef9fd03f762",
+      "bytes": 16729,
+      "reviewed_line_range": [
+        1,
+        283
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "src/next/kernel/installmentSchedule.js",
+      "sha256": "4af898bd4b96cb29c802f2b22c85da981e4c697db6b3b6bd20d32a18c65a7329",
+      "git_blob_sha1": "1d06f7839f756c900d0a62fd7c92eea1d83f86e4",
+      "bytes": 4405,
+      "reviewed_line_range": [
+        1,
+        87
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "src/next/kernel/observationKernel.js",
+      "sha256": "4dce0de726ed8f8606bd279f903c6b8bdf4fa4016b6f5033a5938842aff8b130",
+      "git_blob_sha1": "11aadfdeca8d585e6bac889b029e6bd1374850ac",
+      "bytes": 22778,
+      "reviewed_line_range": [
+        1,
+        403
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "src/next/provenance/authoringIR.js",
+      "sha256": "aa3e98a1ebf2d11118ba75dda5e0f89457e31d04eb5b457a5266bd41b099afb4",
+      "git_blob_sha1": "ee2d59cfa38a53ac2910ee0059156f5ca99d501c",
+      "bytes": 7273,
+      "reviewed_line_range": [
+        1,
+        110
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "src/next/provenance/claimContext.js",
+      "sha256": "908e44c14d3602fc06284a4e956e0e29fb68497b32f5321200672c6329efa4ae",
+      "git_blob_sha1": "85456a2186424b4812239d8a84df2d1fad9c4413",
+      "bytes": 3236,
+      "reviewed_line_range": [
+        1,
+        55
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "src/next/provenance/claimNominalTypes.js",
+      "sha256": "f37c4367c027d119caf81afcb1de898a05b5edfd6651c8c3a17d3177cff95096",
+      "git_blob_sha1": "a9bea06ab24aa32e571399b1de9404a4d2a6a0de",
+      "bytes": 774,
+      "reviewed_line_range": [
+        1,
+        14
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "src/next/provenance/collectionProofCore.js",
+      "sha256": "4cc88bf36458e46783dfbc1ae24c3f0fc2855e28f29663094ca48be0fe72a8ec",
+      "git_blob_sha1": "de36dcfade9dea4108697f9ac14e37a406ec0d93",
+      "bytes": 2840,
+      "reviewed_line_range": [
+        1,
+        54
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "src/next/provenance/instrumentedAccess.js",
+      "sha256": "0a226802919420fc1e90d07847b96cc120121e230905c0f5cef484c034dedf92",
+      "git_blob_sha1": "84e25bde306e67c65b45b03d6be0ab1523d21b54",
+      "bytes": 23516,
+      "reviewed_line_range": [
+        1,
+        377
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "src/next/provenance/literalTypes.js",
+      "sha256": "c99b3a919c995638702325dcb7c2cb1f8e338388700429b3bc9f1cce7a00b4ec",
+      "git_blob_sha1": "76243a36cac975f2a4b4d120fec0fcd7f371140d",
+      "bytes": 1669,
+      "reviewed_line_range": [
+        1,
+        35
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "src/next/provenance/materialFieldTypes.js",
+      "sha256": "f7f4ecaba152ddebf4503469ba61851add59c0a0c697ea6f73503a5ca03a1c0c",
+      "git_blob_sha1": "41bbf1f15ff41c1560791c74fdd7694fbada4c47",
+      "bytes": 1246,
+      "reviewed_line_range": [
+        1,
+        19
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "src/next/provenance/metricDirectReads.js",
+      "sha256": "7a78501221230a8991354d47a63f8e131807b995f6a7e5e10e8dab0664f01d4b",
+      "git_blob_sha1": "d5681f178245a5f28d187adab84e465fa83b1b26",
+      "bytes": 12815,
+      "reviewed_line_range": [
+        1,
+        225
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "src/next/provenance/metricEffects.js",
+      "sha256": "7cb9fe24b2d8aefd3560d8089544bfe5431f124256c35023ff6b8e126283f5fb",
+      "git_blob_sha1": "7d461af02addac9509bb518e5c7a91b4fb98d210",
+      "bytes": 5637,
+      "reviewed_line_range": [
+        1,
+        81
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "src/next/provenance/metricInstallments.js",
+      "sha256": "559dae3a98d3dd90670e15d35ca93824bf89d478c974dcd07d9da17abcac7a09",
+      "git_blob_sha1": "f2b45c9684d792597662773a593d79eb91c970c9",
+      "bytes": 4957,
+      "reviewed_line_range": [
+        1,
+        82
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "src/next/provenance/metricParents.js",
+      "sha256": "32464e029ba27ccf5a45b4ee35b1568033ef159a802ed156c014a1aa217030bb",
+      "git_blob_sha1": "420d5e2ca70e524a11ad7f63f55bcee470d59064",
+      "bytes": 3219,
+      "reviewed_line_range": [
+        1,
+        68
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "src/next/provenance/metricReferences.js",
+      "sha256": "0a96471a46324599c92c8c2f604e5761749902c6b9393eb738b09aad868d5e7b",
+      "git_blob_sha1": "81858370706a5f4eb59ffb093498c8cca502f1f3",
+      "bytes": 2995,
+      "reviewed_line_range": [
+        1,
+        72
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "src/next/provenance/metricSelection.js",
+      "sha256": "8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "git_blob_sha1": "56bf033db7d3dbe2159707dc7c195d5af146bb19",
+      "bytes": 11711,
+      "reviewed_line_range": [
+        1,
+        191
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "src/next/provenance/observationContract.js",
+      "sha256": "60d73c6bfe13fe91325920bc289454d233cd6efea034c093a1d4c18cee469e1e",
+      "git_blob_sha1": "1c2305eaf1973955252a4b9d0acf0adca1113b1d",
+      "bytes": 6685,
+      "reviewed_line_range": [
+        1,
+        119
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "src/next/provenance/observationScalars.js",
+      "sha256": "cf344f72a703e7be55fc165322860d84792fae82822f3daad1f557834faa4f09",
+      "git_blob_sha1": "5ec8bcfd3f52a853167b9504ad557ee073f3b160",
+      "bytes": 559,
+      "reviewed_line_range": [
+        1,
+        9
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "src/next/provenance/proofAcceptance.js",
+      "sha256": "6ddc6138fc0485c1278f52fad545bbdd9cd908975e000efa98863fddd86f3cea",
+      "git_blob_sha1": "5e47b32cc4a258f7190cd88305dbb79badf0fc6e",
+      "bytes": 38138,
+      "reviewed_line_range": [
+        1,
+        611
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "src/next/provenance/proofContextBinding.js",
+      "sha256": "3e2e8d34b0fb7c3e7d697208c9a56b7879f72c53c2108d9a75dd783b93222593",
+      "git_blob_sha1": "e72a444ab3cd1f18088f88dc0579bdfc1a6e5917",
+      "bytes": 979,
+      "reviewed_line_range": [
+        1,
+        21
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "src/next/provenance/proofObservedValues.js",
+      "sha256": "e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "git_blob_sha1": "8105ebdec58c475e6e23d492c70057bebce454d8",
+      "bytes": 5085,
+      "reviewed_line_range": [
+        1,
+        97
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "src/next/provenance/proofOperatorContracts.js",
+      "sha256": "2e68d093bd5cbbe8283478ebf32428925149c68e290952d9fcdfb2f470e9fde8",
+      "git_blob_sha1": "ebcbf02caf41ca94cae092048b123fe2ff3c7031",
+      "bytes": 1636,
+      "reviewed_line_range": [
+        1,
+        20
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "src/next/provenance/proofOperators.js",
+      "sha256": "6d7ed8142652c1c3e3240e58c9333ee5890a9c5cdd62801258b02c4f91dde63b",
+      "git_blob_sha1": "54aa34b802e7383a5fc1a6a15eb2a991c0982169",
+      "bytes": 18512,
+      "reviewed_line_range": [
+        1,
+        279
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "src/next/provenance/proofParentBinding.js",
+      "sha256": "3b928733cc0adc169071a8991295b9cdfb6782adc54351e7e2879d975614a080",
+      "git_blob_sha1": "1f3b08e0004bd60e5bd39522a182c1d146a6971b",
+      "bytes": 1318,
+      "reviewed_line_range": [
+        1,
+        24
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "src/next/provenance/proofProgramData.js",
+      "sha256": "368761e082fbe51d5ec150875af47ffb0f19cdca48f974223a6674f60ff7bea9",
+      "git_blob_sha1": "e2e103a43d49dd4f62058362cfcdaf4734d52dd5",
+      "bytes": 2232,
+      "reviewed_line_range": [
+        1,
+        49
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "src/next/provenance/proofSha256.js",
+      "sha256": "5e911bfa787507bdba6beafc5bc84160492dbcd0b10f838d80924827775dfe2f",
+      "git_blob_sha1": "013fb23eccb6bcf032fa7ab6673e8100b16d8bd8",
+      "bytes": 4105,
+      "reviewed_line_range": [
+        1,
+        68
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "src/next/provenance/scalarProofCore.js",
+      "sha256": "82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "git_blob_sha1": "e064d4e6ba32424f3dca51ca1cc8e268fb7786c2",
+      "bytes": 13694,
+      "reviewed_line_range": [
+        1,
+        208
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    },
+    {
+      "path": "src/next/provenance/scalarProofOperators.js",
+      "sha256": "924e5f5953bb02dc02b4b8affcba79a5aefc6a3cad3242738f1b44c364bfb461",
+      "git_blob_sha1": "e35e32715a9633c25f3495eb8cb2c4be4cebb2d4",
+      "bytes": 447,
+      "reviewed_line_range": [
+        1,
+        8
+      ],
+      "reviewer_declared_body_coverage": "complete",
+      "executor_source_identity_confronted": true,
+      "unit_role_not_runtime_authority": true
+    }
+  ],
+  "interface_coverage": "focal_not_complete_C_D",
+  "tests_rerun_independently": false,
+  "code_changed": false,
+  "norm_changed": false,
+  "all_frontiers_review_complete": false,
+  "qualified": false,
+  "credit": 0,
+  "execution_permitted": false,
+  "pending": [
+    "A84",
+    "C34",
+    "D153",
+    "one_final_integrated_verdict",
+    "real_operational_prerequisites_before_handles"
+  ]
+}

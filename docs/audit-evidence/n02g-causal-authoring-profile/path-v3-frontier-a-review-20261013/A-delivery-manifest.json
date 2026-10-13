@@ -1,0 +1,1629 @@
+{
+  "format": "financasbot.frontier-A-reading-delivery",
+  "version": 1,
+  "delivery_parent": "329a956df93599e4def0f59a9e970f6ee4b15cc3",
+  "code_commit": "cf6e43cbaa7c378f2b64590c50d0818700a3bdd0",
+  "code_tree": "a95ab30b2a30c19d90c71b2ffa1c56705ed0522f",
+  "frontier": "A_normal_admission_reference",
+  "source_index_sha256": "734e33ffa9d760a89b52f7af58a6dcebe04e285d6ddb58d1ed93ced1ee52759a",
+  "unit_count": 84,
+  "body_files": [
+    {
+      "file": "A-full-executable-reading.md",
+      "sha256": "ae1b20b64ffba76557d48c05c8f6d5dfda90901406b2ee8b93926bfc642096e9",
+      "bytes": 349773,
+      "units": [
+        "src/next/provenance/claimRequirementCore.js",
+        "src/next/provenance/claimRequirements.js",
+        "src/next/provenance/collectionRequirements.js",
+        "src/next/provenance/graphCompiler.js",
+        "src/next/provenance/graphStructure.js",
+        "src/next/provenance/obligationBindings.js",
+        "src/next/provenance/operandBindings.js",
+        "src/next/provenance/operatorTypes.js",
+        "src/next/provenance/pathLocatorDomainV3.js",
+        "src/next/provenance/pathMutationInventory.js",
+        "src/next/provenance/pathQualificationV3.js",
+        "src/next/provenance/pathSemanticReference.js",
+        "src/next/provenance/predicateTypes.js",
+        "src/next/provenance/schemaRegistryProjection.js",
+        "src/next/provenance/templateReferences.js"
+      ],
+      "full_original_bodies_included": true
+    },
+    {
+      "file": "A-full-normative-reading.md",
+      "sha256": "1755874ee936f6529400470c434c476072f29835c393d20fad5b97a733beebaa",
+      "bytes": 454156,
+      "units": [
+        "docs/contracts/next/provenance-v2/authoring-contract-v1.md",
+        "docs/contracts/next/provenance-v2/causal-authoring-candidates/README.md",
+        "docs/contracts/next/provenance-v2/causal-authoring-candidates/consumption-by-instrument-profile-v1.json",
+        "docs/contracts/next/provenance-v2/causal-authoring-candidates/statement-total-profile-v1.json",
+        "docs/contracts/next/provenance-v2/claim-contract.schema.json",
+        "docs/contracts/next/provenance-v2/claims-v2.json",
+        "docs/contracts/next/provenance-v2/evaluation-policy-v1.json",
+        "docs/contracts/next/provenance-v2/evaluator-authoring-semantics-v1.md",
+        "docs/contracts/next/provenance-v2/evaluator-contract.schema.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/account_balance.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/balance_delta.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/bills_open.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/budget_class_consumption.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/calendar_event_count.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/category_budget_remaining.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/category_consumption.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/category_spent.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_by_instrument.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_difference.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_effect.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/consumption_total.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/due_bill_ids.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/due_bills_total.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/eligible_event_count.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/gross_consumption.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/income_minus_open_bills.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/income_realized.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/installments_projected.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/installments_projected_amount.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/installments_realized.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/installments_realized_amount.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/invoice_payment_amount.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/invoice_payment_consumption_effect.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/invoice_payment_target_card.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/merchant_rule_ids.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/movement_ids.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/net_consumption.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/owned_cards.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/projected_installments.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/ranking_winner.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/refund_amount.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/reminder_count.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/safe_daily_pace.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/side_effect_count.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/similar_event_ids.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/source_coverage.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/statement_payment_correspondence.json",
+        "docs/contracts/next/provenance-v2/evaluator-contracts/statement_total.json",
+        "docs/contracts/next/provenance-v2/evaluator-witness-contracts-v1.json",
+        "docs/contracts/next/provenance-v2/evaluator-witness-contracts.schema.json",
+        "docs/contracts/next/provenance-v2/evidence-snapshot.schema.json",
+        "docs/contracts/next/provenance-v2/graph-authoring-review-v1.md",
+        "docs/contracts/next/provenance-v2/graph-binding-contract-v1.md",
+        "docs/contracts/next/provenance-v2/material-field-registry-v1.json",
+        "docs/contracts/next/provenance-v2/metric-evaluator-registry-v1.json",
+        "docs/contracts/next/provenance-v2/metric-evaluator-registry.schema.json",
+        "docs/contracts/next/provenance-v2/n02f-correction-review-v1.md",
+        "docs/contracts/next/provenance-v2/operator-registry-v1.json",
+        "docs/contracts/next/provenance-v2/operator-registry-v2.json",
+        "docs/contracts/next/provenance-v2/phase-composition-profile-v1.json",
+        "docs/contracts/next/provenance-v2/predicate-templates-v1.json",
+        "docs/contracts/next/provenance-v2/provenance-graph.schema.json",
+        "docs/contracts/next/provenance-v2/registry-semantics-v1.md",
+        "docs/contracts/next/provenance-v2/snapshot-manifest-v1.json",
+        "docs/contracts/next/provenance-v2/temporal-and-selection-witnesses-v1.json",
+        "docs/contracts/next/provenance-v2/temporal-relations-decision-v1.md",
+        "docs/contracts/next/provenance-v2/type-and-identity-contract-v2.md",
+        "docs/plans/workstreams/financasbot-next-02-n02g-compositional-path-qualification-proposal-v1.md"
+      ],
+      "full_original_bodies_included": true
+    }
+  ],
+  "large_data_units": [
+    {
+      "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+      "sha256": "e9c852034d8cc887e1d8645a61d9597176409f72a28eaf0de4c95f17c0c8358d",
+      "git_blob_sha1": "a3baa82049ef927095458199a71ef0f377870c3c",
+      "bytes": 4954513,
+      "lines": 2,
+      "source_ranges": [
+        [
+          1,
+          2,
+          "e9c852034d8cc887e1d8645a61d9597176409f72a28eaf0de4c95f17c0c8358d",
+          4954513,
+          true
+        ]
+      ],
+      "syntax_surface": null,
+      "json_shape": {
+        "kind": "object",
+        "top_level_keys": [
+          "schema_version",
+          "stage",
+          "contract_id",
+          "claim_contract",
+          "snapshot_manifest",
+          "material_registry",
+          "operator_registry",
+          "metric_evaluator_registry",
+          "graphs"
+        ],
+        "array_length": null,
+        "shape_only_not_data_semantics": true
+      },
+      "review_status": "not_completed",
+      "raw_url": "https://raw.githubusercontent.com/Danieu-san/financas-bot/cf6e43cbaa7c378f2b64590c50d0818700a3bdd0/docs/contracts/next/provenance-v2/graphs-v2.json",
+      "git_blob_api": "https://api.github.com/repos/Danieu-san/financas-bot/git/blobs/a3baa82049ef927095458199a71ef0f377870c3c",
+      "json_top_level_keys": [
+        "schema_version",
+        "stage",
+        "contract_id",
+        "claim_contract",
+        "snapshot_manifest",
+        "material_registry",
+        "operator_registry",
+        "metric_evaluator_registry",
+        "graphs"
+      ],
+      "shape_only_not_semantic_review": true,
+      "arrays": [
+        {
+          "key": "graphs",
+          "length": 76,
+          "entries": [
+            {
+              "index": 0,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "S-01#1#1",
+              "JSON_stringify_entry_sha256": "4b9afe3a24975224e230c0db538979dfd5b279ee5fd35edde4a48897d1c4b30f",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 1,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "S-02#1#1",
+              "JSON_stringify_entry_sha256": "9f44c79172b3c23880f784864f9533b24a11cd197832b91c3876eec6ee318028",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 2,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "S-03#1#1",
+              "JSON_stringify_entry_sha256": "de614407f23c8144f754df4bb4ff0a793ba7c81762360887c4df0b4a5b60d298",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 3,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "S-04#1#1",
+              "JSON_stringify_entry_sha256": "7d7d7271ae51b597fda62e4028ca1a1420c31e89088486acd77b81fd0aa63005",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 4,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "S-05#1#1",
+              "JSON_stringify_entry_sha256": "3464623d4aa0e6f31621412bf2ec64762627d249ca13063a7a2d1ede14abe899",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 5,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "S-06#1#1",
+              "JSON_stringify_entry_sha256": "236796cd03e345a32b2151409bef9e30a9fb34fe6082fcfaf756a14946ef9700",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 6,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "S-07#1#1",
+              "JSON_stringify_entry_sha256": "8ed0db574e10edb6738126f2fe978f5601004cfbb33ab85fc1a62d46a64654b8",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 7,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "S-08#1#1",
+              "JSON_stringify_entry_sha256": "ab4817479378f345bba457e1793ec9e6eb1b8036815ca7715abedc51d8c0bd3c",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 8,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "S-09#1#1",
+              "JSON_stringify_entry_sha256": "15af4a44e809f76065bf1049f2db7373b6cf894069aab5ef351b996fffd38531",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 9,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "S-10#1#1",
+              "JSON_stringify_entry_sha256": "17b056ff98f1ede3cd79e285202c6f02376d5da58d8e0206c243dc50fde4c1b5",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 10,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "S-11#1#1",
+              "JSON_stringify_entry_sha256": "d71be48ab037fc9b2e2191c5b4e14a43c29ecb5ab513c9a913cc85865f1c43f1",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 11,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "S-11#1#2",
+              "JSON_stringify_entry_sha256": "825bb890b524738839017721fbc5580f536713b2e8eada67716c6c78603f8765",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 12,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "S-11#1#3",
+              "JSON_stringify_entry_sha256": "6417295d2f4b2a20e596ba2a31a82692bc4a98b659757e8590986a28b368fd0c",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 13,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "S-12#1#1",
+              "JSON_stringify_entry_sha256": "302740cebee9cde995f5658d032172936563dad15df48604e8ea405f1575656a",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 14,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "S-13#1#1",
+              "JSON_stringify_entry_sha256": "ec02166287174eed2d56cc12f417df686577ddb580cfd0ab84edb0924335efd0",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 15,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "S-16#1#1",
+              "JSON_stringify_entry_sha256": "6e40b4f8ef7a999129c2688f02017ce41db750ec50026b21878d63937a6ab823",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 16,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-01#1#1",
+              "JSON_stringify_entry_sha256": "f647cff1afad16eb13b810d40b012f06117737e43b9f0751e5965c8eae317a12",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 17,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-01#1#2",
+              "JSON_stringify_entry_sha256": "ef1c626c25e0f7cef0b9e5f6f910ab824cddef34768198b8ad317f3c2d6f3b2d",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 18,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-01#1#3",
+              "JSON_stringify_entry_sha256": "b925c45ff15c267936fb423b5751c27591766ee152051cba99f0aa3e9336e6b4",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 19,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-01#1#4",
+              "JSON_stringify_entry_sha256": "d76090e39721ed73b45c2b03d3abd601786d3deed0a4046443be3e1cba12f6e0",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 20,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-02#1#1",
+              "JSON_stringify_entry_sha256": "bdff102915342c3f4acc1bc8ef99ff19aea5e0ed5ea8a493f076d66de18e04be",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 21,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-02#1#2",
+              "JSON_stringify_entry_sha256": "7e7fa7d503756b4c7abdb4f5df51a317e31ee887134d77f49d0fd2895211cf40",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 22,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-03#1#1",
+              "JSON_stringify_entry_sha256": "c5ffa1efd1dc2add596447caf6cb1d2f09a5f696b44c0b2148242669815694f6",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 23,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-03#1#2",
+              "JSON_stringify_entry_sha256": "5542ee9abdb942e9bb73c74f08e68c7366cbc77506ba4f09ae7d2d237a8852b2",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 24,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-04#1#1",
+              "JSON_stringify_entry_sha256": "d13ae4245182ee90c70fad427bd0ead05de7c38a5f4ce429836a40cffbfe05b6",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 25,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-04#1#2",
+              "JSON_stringify_entry_sha256": "f6eced45b6cf3606c6c58321ad9674179694c449c5636f4ea3a80b88ae53f021",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 26,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-04#1#3",
+              "JSON_stringify_entry_sha256": "dc07333e629ecb5acbaf6a11ce2a95c73e830af8f120d8f5deaf1f4967432903",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 27,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-05#1#1",
+              "JSON_stringify_entry_sha256": "3473c704dbf37fb843a09dee46c7473b9818d42268e9fce0ffd9b4d2530bd85a",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 28,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-05#1#2",
+              "JSON_stringify_entry_sha256": "90deda565ef76067504b20ea1521c905e8efc132eb559f5beab8e6b440045556",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 29,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-05#1#3",
+              "JSON_stringify_entry_sha256": "56b80ee99fa6cdd75ed962e8bef2e9b15185514b9e39acf6be02d61b99f10e72",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 30,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-05#1#4",
+              "JSON_stringify_entry_sha256": "6e56b4b8300ef190b5d20d0dddbb5b45d9aa508a6124c130027c6aac5b1935e0",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 31,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-05#1#5",
+              "JSON_stringify_entry_sha256": "cac59080d81721d4c00434a683c03a79c308bbd12afefec42067ec3c0cd8df42",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 32,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-06#1#1",
+              "JSON_stringify_entry_sha256": "e6e39554762b12779fff93ecaa006ae4de3299cc68b5de6d947da2509ceefa91",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 33,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-06#1#2",
+              "JSON_stringify_entry_sha256": "c0981dfe57455132da6b9b8429c150c0e57cb55cb8286f14a9539305aa86f45a",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 34,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-06#1#3",
+              "JSON_stringify_entry_sha256": "5a4121f6431638dcc51311eda14b5b49d8ec4f7d95b2b7357f95df62686d5feb",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 35,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-07#1#1",
+              "JSON_stringify_entry_sha256": "f1225a68cecdbdc8b5762f6b2bba78a047b747ecb0b406b6b8dc74b1fbad4a93",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 36,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-07#1#2",
+              "JSON_stringify_entry_sha256": "80234cbffe61f9210ce6b2961dc81153d5b41d925987910b31dd0c03528f6e84",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 37,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-08#1#1",
+              "JSON_stringify_entry_sha256": "d493ddfeedfac750baa3d541896d2b225530479f5350772bfd1bfcef5914ffa2",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 38,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-08#1#2",
+              "JSON_stringify_entry_sha256": "5947c118f3b900db0631ed649e7f19d30828e1a5168ed6e10b55d9a4a451d5db",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 39,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-09#1#1",
+              "JSON_stringify_entry_sha256": "e2042e498312729c8d0eb120a35ef8fb6ad6ca7706d352fa1e90275251f4770f",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 40,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-12#1#1",
+              "JSON_stringify_entry_sha256": "3a91fbf59d1bccc76fc5fbafc3ba09fd433b7773842e54437d98a3aeade10140",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 41,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-13#1#1",
+              "JSON_stringify_entry_sha256": "a00a67dd1cfa5a2f5986a8c21b5ae89228a82935a96b7f5e1b3c5432f90dce08",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 42,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-13#1#2",
+              "JSON_stringify_entry_sha256": "f2d6b2bd62882260d00f67b838aea4bd77db6b933b5a0b50c68d2d9dc35d801f",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 43,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-13#1#3",
+              "JSON_stringify_entry_sha256": "2339e7dde1d2d10c2d3e51b86a6421572f19d7e39dd52025d4c7d3c73e319b33",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 44,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-13#1#4",
+              "JSON_stringify_entry_sha256": "5cb141416a7e42175d27395e9899feaf888c01a4d22164af45710a0e67dbb015",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 45,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-13#1#5",
+              "JSON_stringify_entry_sha256": "cf8bec36d9e0f8fe510220b9e795ce4156e62e57dba58e64b506ea7ee7c4b87d",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 46,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-13#1#6",
+              "JSON_stringify_entry_sha256": "91dca7773ea9b4604536f8a015fbe30ca89efb6747632a48adb7e3d8a412db83",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 47,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-14#1#1",
+              "JSON_stringify_entry_sha256": "1bebae0304d516968d2b1d77a775d939294272b8a6d84183a78d3566c020e532",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 48,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-14#1#2",
+              "JSON_stringify_entry_sha256": "5ce66c75a289fdbeecf27d4e45dfa50bd4f397fb4aa8b4ad9e4886da20ea203c",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 49,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-14#1#3",
+              "JSON_stringify_entry_sha256": "dde494ddbb308a4953cbf3dbbc293fa13216697619d551cb806cd9cb4379d94d",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 50,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-15#1#1",
+              "JSON_stringify_entry_sha256": "5422420b5cf838a1f0aa8ee6243a91ae73ca0596ff98ead86d4b0a6644934589",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 51,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-15#1#2",
+              "JSON_stringify_entry_sha256": "6021ff6a37b9119a9bb5eaa47391581f7071873d92288b0a33079f7fd29dbb6c",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 52,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-15#1#3",
+              "JSON_stringify_entry_sha256": "eda92bb8aa73ff5214e360cb6b1e0865770911d76b215ca60a3aa5e7a3737416",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 53,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-15#1#4",
+              "JSON_stringify_entry_sha256": "402fbb28155cb8a3b1b1c01305f542a394ab37a47021caeefdf13d2a4a872b97",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 54,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-16#1#1",
+              "JSON_stringify_entry_sha256": "803f689b4d62572cb1f8e5fa08fcf4efd5f09c7243df29807b4f4c64fd392c93",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 55,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-16#1#2",
+              "JSON_stringify_entry_sha256": "2d6c110c2fd941f3a76bd3a6c34d244d719b7b6a06d1cc672103f651209b64d6",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 56,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "M-16#1#3",
+              "JSON_stringify_entry_sha256": "4a00c20068cfa98b0491547789f5a20b103d9225314767e748a145c3f8928416",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 57,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "F-01#1#1",
+              "JSON_stringify_entry_sha256": "c53fccdf99c825d315c179f8b27872df3f03dd9aa1faab21caae94665635296d",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 58,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "F-01#2#1",
+              "JSON_stringify_entry_sha256": "85eb7f3842c4b7443387556545867e122f149e0e3583e82d98f3a6b5feaf79fe",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 59,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "F-02#1#1",
+              "JSON_stringify_entry_sha256": "d52de485535648d8a511e060c4996e79bd2dc154faacb1d70a8df04bf83ba988",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 60,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "F-03#1#1",
+              "JSON_stringify_entry_sha256": "daf07294429c80fd2c23e6dea773f4f23a8883025d0ae52b3da797ae2f907463",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 61,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "F-03#2#1",
+              "JSON_stringify_entry_sha256": "0eebc83a9ffd39a3f8296f17600815519ca931db5731a94c8c89f8930d275a69",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 62,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "F-04#1#1",
+              "JSON_stringify_entry_sha256": "1b258b9c5fda70a59ab93dc824263742e44c860ea7de8f7d3d9839202addbecc",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 63,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "F-04#2#1",
+              "JSON_stringify_entry_sha256": "115124d47d9f3da2784bc8f34d22907ee01b7b9d3e8b49e29217207c6ae1a323",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 64,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "F-05#1#1",
+              "JSON_stringify_entry_sha256": "2326190273dac35a7bedc870e12b5b2e8d09a8a2feb37c0e240d0e2b07e8e43d",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 65,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "F-05#2#1",
+              "JSON_stringify_entry_sha256": "73a6387d9a953c9c51ca1391b46b48e8557688e76a4dc6771fb39c9fc06afed4",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 66,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "F-06#1#1",
+              "JSON_stringify_entry_sha256": "2e2f9c6f12f90955a5a94f8419fe34ad7c9d762a564efaf6e166f330597ceb01",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 67,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "F-06#2#1",
+              "JSON_stringify_entry_sha256": "8d7cf81b748495e377ca62a6929a7239a8811ed16068bdfdc369d263ac05d3e6",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 68,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "F-06#2#2",
+              "JSON_stringify_entry_sha256": "8be8ae0b87087dd930dff11258df278ff75d6b6c73f993509593fdcb40c9a115",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 69,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "F-07#1#1",
+              "JSON_stringify_entry_sha256": "1352cc28c64bb8c9be74ec29167b4d2b8574529a71c9d17274f42739b7203c2b",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 70,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "F-07#1#2",
+              "JSON_stringify_entry_sha256": "60a250707ad651025dff2afc15cfde3825741ac82920caffdb9ff3968ec00d23",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 71,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "F-07#2#1",
+              "JSON_stringify_entry_sha256": "3a8dbf8f4beb1d3f03166135897e7471335cd7b18f692055db7714ebfdfd0978",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 72,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "F-07#2#2",
+              "JSON_stringify_entry_sha256": "2e3d0a4dbdca93b0bc885a35e5f3ae239de9a223aad2d10aa2a950051e212b13",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 73,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "N-04#1#1",
+              "JSON_stringify_entry_sha256": "a8709f1462e5dce7efcc9a9c8f2dcca22320b905c562710f2e4888df2fd805b9",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 74,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "N-07#1#1",
+              "JSON_stringify_entry_sha256": "da5b2793f69bb9d0a0e3e594e6dbd9cd953e5b9c6fc76101d2d9f214e8c99c5f",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            },
+            {
+              "index": 75,
+              "object_keys": [
+                "fact_key",
+                "claim_id",
+                "nodes",
+                "sets",
+                "predicates",
+                "edges",
+                "obligations",
+                "trace_contract",
+                "selections",
+                "authoring_sources",
+                "windows"
+              ],
+              "id": "N-08#1#1",
+              "JSON_stringify_entry_sha256": "b8ed83f97670b5570e2d63b02d95037d060c0c100e68844dd7d0ab2dbb880ce6",
+              "projection_hash_not_raw_token_hash_or_approval": true
+            }
+          ]
+        }
+      ],
+      "independent_data_applicability_review": "pending_not_waived",
+      "full_raw_body_still_available": true
+    }
+  ],
+  "large_data_body_not_duplicated_for_transport": true,
+  "coverage_partition_body_counts": {
+    "executable": 15,
+    "normative": 68,
+    "large_data": 1
+  },
+  "B_receipt_sha256": "317c2c464f5bda2dd249babf35b64fd6aed7f458f72fa3ea5bfb4d7f60e6a686",
+  "all_A_units_review_complete": false,
+  "code_changed": false,
+  "norm_changed": false,
+  "qualified": false,
+  "credit": 0,
+  "exit": "all84units_explicit_static_or_data_applicability_verdict_12rules_premises_no_scope_waiver_then_C_D_and_integrated_verdict",
+  "not_new_runtime_helper_solver_or_norm": true
+}
