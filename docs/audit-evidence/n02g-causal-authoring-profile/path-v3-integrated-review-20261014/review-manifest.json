@@ -1,0 +1,112 @@
+{
+  "format": "financasbot.whole_code_integrated_review_delivery_not_verdict",
+  "version": 1,
+  "code_commit": "cf6e43cbaa7c378f2b64590c50d0818700a3bdd0",
+  "code_tree": "a95ab30b2a30c19d90c71b2ffa1c56705ed0522f",
+  "parent_commit": "987dfced4047ed7ab3b190206b7469130d9086ed",
+  "parent_tree": "5b412975e57c6bc8b21ab0d329b66f4fa7ed305d",
+  "norm_commit": "72fc5a5b707909687da9b5cec892be2dcc892a62",
+  "norm_blob": "82112f0c4d6eeed21d4823c8b1dd3d3ca8ce1bf2",
+  "scope_unit_count": 307,
+  "D_residual_units": 153,
+  "files": [
+    {
+      "file": "D-applicability-worklist.json",
+      "published": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-integrated-review-20261014/D-applicability-worklist.json",
+      "bytes": 347088,
+      "sha256": "1e91cc1b8f85e6dc906396c218126119470e2918e22ac704c45144e5fdf994f7",
+      "git_blob_sha1": "cf64ac13fe5fa202e41c1f0deefea76d115587d5"
+    },
+    {
+      "file": "integrated-coverage-input.json",
+      "published": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-integrated-review-20261014/integrated-coverage-input.json",
+      "bytes": 206927,
+      "sha256": "5112ab39ce01ba1d6e4adba173ce7f546d96e3eb531562eac77371353cf43a76",
+      "git_blob_sha1": "78269d30fd97ce0facfca8b6845de6342bd0b11b"
+    },
+    {
+      "file": "integration-boundaries.md",
+      "published": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-integrated-review-20261014/integration-boundaries.md",
+      "bytes": 7493,
+      "sha256": "fff96d4fc72c0938356a99bc11b0f8b83992b76fd71bf3d625cdd927e19b12a2",
+      "git_blob_sha1": "39301a38b4efbd77954598588704f18a66280ef6"
+    },
+    {
+      "file": "D-manual-receipt-confronted.md",
+      "published": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-integrated-review-20261014/D-manual-receipt-confronted.md",
+      "bytes": 5538,
+      "sha256": "ab66601f76676559c6aa1644774298b77abc71a9f81ad2b68938dac680c2c9b7",
+      "git_blob_sha1": "e52da69868afeee86341c670f3cfa6566b1887f5"
+    },
+    {
+      "file": "REVIEW-CONTRACT.md",
+      "published": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-integrated-review-20261014/REVIEW-CONTRACT.md",
+      "bytes": 5198,
+      "sha256": "06ec0bf98a7d59a98753c72169c7bd3f8cb29d34972e10110d1b711289b660b0",
+      "git_blob_sha1": "e5ca3dda44c28a895c623e860965863afdb4b2b4"
+    }
+  ],
+  "reading_documents": {
+    "indexes_prefix": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-source-bound-review-20261013/",
+    "A_prefix": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-a-review-20261013/",
+    "C_prefix": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-c-review-20261013/",
+    "D_prefix": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-d-review-20261013/",
+    "D_access_prefix": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-d-access-review-20261013/",
+    "reading_commit": "987dfced4047ed7ab3b190206b7469130d9086ed",
+    "exact_reading_files": [
+      "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-source-bound-review-20261013/B-full-source-reading.md",
+      "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-a-review-20261013/A-full-executable-reading.md",
+      "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-a-review-20261013/A-full-normative-reading.md",
+      "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-c-review-20261013/C-full-implementation-reading.md",
+      "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-c-review-20261013/C-full-tests_and_fixtures-reading.md",
+      "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-d-review-20261013/D-full-project_and_context-reading.md",
+      "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-d-review-20261013/D-full-dependencies_and_licenses-reading.md",
+      "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-d-review-20261013/D-full-unique-generated-factories-reading.md",
+      "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-d-review-20261013/D-bundle-lossless-decomposition.json",
+      "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-d-review-20261013/D-data-applicability-navigation.json",
+      "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-d-access-review-20261013/D-access-manifest.json"
+    ],
+    "component_receipt_files": [
+      {
+        "group": "A",
+        "summary": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-c-review-20261013/A-receipt-confronted.md",
+        "coverage": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-c-review-20261013/A-coverage-receipt.json",
+        "coverage_sha256": "05faf971682e1a9208944be758ea633be1580e2be267f311bb71f7970ad77c27"
+      },
+      {
+        "group": "B",
+        "summary": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-a-review-20261013/B-receipt-confronted.md",
+        "coverage": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-a-review-20261013/B-coverage-receipt.json",
+        "coverage_sha256": "317c2c464f5bda2dd249babf35b64fd6aed7f458f72fa3ea5bfb4d7f60e6a686"
+      },
+      {
+        "group": "C",
+        "summary": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-d-review-20261013/C-receipt-confronted.md",
+        "coverage": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-d-review-20261013/C-coverage-receipt.json",
+        "coverage_sha256": "990ce6c81ee18c69655c0f8985ff3f33c5e642786219e69cd92d04343786c9c0"
+      }
+    ]
+  },
+  "snapshot_sha256": "247e948fec72ef6370fc7c74314b341ad7a4f61d8a20f244d5515cc995414748",
+  "compiler_root": "c529c09bf0b3fe02bf315f6fad19e4e46a2141c2337f5faed8b76a68ba543921",
+  "tcb_root": "00498cfb57f61b8f56946166308d106cab141012be850e4bd68a4771bca9acb1",
+  "groups": {
+    "A": 84,
+    "B": 36,
+    "C": 34,
+    "D": 153
+  },
+  "all_source_bodies_unchanged": true,
+  "code_changed": false,
+  "norm_changed": false,
+  "A_B_C_receipts_limited_static_only": true,
+  "D_previous_verdict": "INCOMPLETA",
+  "no_isolated_D_APTO_required_before_integrated_request": true,
+  "complete_D_and_interfaces_required_for_whole_code_approval": true,
+  "independent_integrated_verdict_received": false,
+  "qualified": false,
+  "semantic_mutation_credit": 0,
+  "guest_execution_authorized": false,
+  "financial_acceptance": false,
+  "implicit_authority_or_consumer_absence_from_navigation": false
+}
