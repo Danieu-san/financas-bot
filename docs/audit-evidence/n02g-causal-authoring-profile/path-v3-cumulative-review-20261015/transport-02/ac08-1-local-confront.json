@@ -1,0 +1,37 @@
+{
+  "finding": "AC-08.1",
+  "unit": "D127",
+  "kind": "synthetic_normal_schema_focal_diagnostic_not_D_P_or_qualification",
+  "observed_by_utc": "2026-10-15T04:37:47Z",
+  "node": "v22.17.0",
+  "builder": "scripts/agent/buildNextProvenanceArtifacts.mjs:buildSchemaValidators",
+  "schemas": "six_existing_draft07_documents_unchanged",
+  "baseline_contract": "docs/contracts/next/provenance-v2/evaluator-contracts/source_coverage.json",
+  "standalone": "built.code compiled by existing node:module in memory; no file written",
+  "native_exit_code": null,
+  "native_exit_code_recorded": false,
+  "observed_command_result": "completed with JSON payload for all three cases; no error output",
+  "cases": [
+    {"name":"baseline","values":["complete","partial","unavailable"],"compiled":true,"standalone":true,"input_unchanged":true},
+    {"name":"ordinary_duplicate","values":["complete","complete"],"compiled":false,"standalone":false,"input_unchanged":true,"error_keyword":"uniqueItems"},
+    {"name":"prototype_duplicate","values":["__proto__","__proto__"],"compiled":true,"standalone":true,"input_unchanged":true,"compiled_errors":null,"standalone_errors":null}
+  ],
+  "reproduced_scope": "schema-layer uniqueness inconsistency in current pinned BUILD and emitted standalone, not the physical frozen bundles or operational D/P",
+  "later_controls_static_only": [
+    "executionRegistry.js:132-134 checks identifier and new Set uniqueness",
+    "observationScalars.js identifier grammar rejects leading underscore",
+    "financialHost.js:102 calls admitExecutionContract",
+    "validationTcbEntry.js:332 calls admitExecutionContract for INTERNAL worlds"
+  ],
+  "fixed_authored_enum_contracts": [
+    {"source":"source_coverage.json","published_sha256_match":true,"values":["complete","partial","unavailable"],"duplicates":false,"prototype_literal":false},
+    {"source":"statement_payment_correspondence.json","published_sha256_match":true,"values":["unproven"],"duplicates":false,"prototype_literal":false}
+  ],
+  "operational_bypass_demonstrated": false,
+  "physical_captured_validator_execution": false,
+  "sources_changed": false,
+  "suite_repeated": false,
+  "qualified": false,
+  "credit": 0,
+  "next": "carry finding, local reproduction and static downstream controls to pass9 and the single integrated verdict; no silent vendor/guard/code correction"
+}
