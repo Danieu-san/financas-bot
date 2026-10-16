@@ -3,7 +3,7 @@
   "stage_id": "PATH-V3-COMPOSITION-01",
   "base_head": "04eb9545516d100aa45e1ac6d8ebfda444fafbd7",
   "branch": "codex/n02g-month-profile-code-20261004",
-  "authorization": "Daniel confirmou INTERNAL 11+2 e PATH-ADMISSION-FOUNDATION-01; em2026-10-12 respondeu 'autorizado' ao pedido explícito de tests/helpers/exhaustiveNetworkTripwire.js e tests/exhaustiveLocalTestCoverageRunner.test.js. Quinze paths exatos, continuidade autônoma; compatibilidade finita de fixtures Git, sem liberação genérica de subprocessos. Registro operacional, não autenticação.",
+  "authorization": "Daniel confirmou os quinze paths anteriores e em2026-10-15 declarou: autorizo qualquer ampliacao necessaria para finalizar o gate. Autoridade contínua para recortes necessários ao N02-G, declarados causalmente antes de editar; não produção/deploy/dados reais ou redução de norma/qualidade. Primeiro recorte novo AC-08.1: BUILD normal e regressão schema, dezessete paths agora fixados. Registro operacional, não autenticação.",
   "objective": "Composição finita da referência normal de programas/efeitos/capacidades/consumers sob método72fc, sem motor geralJS ou promoção de provas parciais",
   "original_first": {
     "head": "e00f6ebcf97e6bfdb2b7791939c22e879917f3f0",
@@ -36,7 +36,9 @@
     "src/next/provenance/capturedTcbLauncher.js",
     "src/next/provenance/validationTcbEntry.js",
     "tests/helpers/exhaustiveNetworkTripwire.js",
-    "tests/exhaustiveLocalTestCoverageRunner.test.js"
+    "tests/exhaustiveLocalTestCoverageRunner.test.js",
+    "scripts/agent/buildNextProvenanceArtifacts.mjs",
+    "tests/next/provenance/schemaBuild.cases.js"
   ],
   "changes": [
     {
@@ -71,7 +73,7 @@
       "evidence": "RED/focal/adversarial de pins, transportes ativos, clones, replay, IDs, roots e bloqueio antes handles; auditoria inteira futura",
       "exit": "Ligação de identidade sem raw runner/autoridade guest; A/W ausentes bloqueiam, nenhuma promoção de crédito por construção",
       "minimum_sufficient_delta": "Dois arquivos existentes mais integração nos onze já autorizados, sem novo helper analítico/engine/compiler/norma",
-      "maintenance_cost": "Uma entrada confiada finita, formatos fechados e executor normal reutilizado; fora quinze exige decisão correspondente"
+      "maintenance_cost": "Uma entrada confiada finita, formatos fechados e executor normal reutilizado; ampliações necessárias ao N02-G já autorizadas, mas cada recorte deve ser fixado causalmente antes de editar"
     },
     {
       "id": "PATH-HARNESS-SCOPE-FIXTURE-01",
@@ -83,6 +85,17 @@
       "exit": "Sete fixtures e adversariais passam com tripwire ativo, sem permitir operações na raiz real ou ampliar autoridades do produto",
       "minimum_sufficient_delta": "Dois arquivos existentes e alinhamento TEMP do subprocesso no wrapper mecânico temporário",
       "maintenance_cost": "Contrato finito declarado do fixture real, sem Git genérico; novo domínio exige decisão explícita"
+    },
+    {
+      "id": "AC-08.1-SCHEMA-UNIQUENESS",
+      "paths": ["scripts/agent/buildNextProvenanceArtifacts.mjs", "tests/next/provenance/schemaBuild.cases.js"],
+      "cause": "Ajv8.17.1 usa índice{} no fast path de uniqueItems para strings e aceita __proto__ duplicado; compilado/standalone e bundles capturados reproduzem a camada defeituosa",
+      "control": "Selecionar o caminho genérico de igualdade já existente no mesmo keyword Ajv para itens exclusivamente string, preservando schema/erros/metadata e demais tipos; validar BUILD normal/admitido/standalone",
+      "reuse": "Reusar compileSchemaDocuments, definição original uniqueItems, igualdade Ajv e casefile schemaBuild; sem patch node_modules, nova dependência, novo keyword ou mudança de schema/norma",
+      "evidence": "RED causal para prototype duplicate e regressões adversariais de formas/tipos/false/nonmutation; focal e bateria afetada antes candidato recapturado e uma ampla final estável",
+      "exit": "Duplicatas inclusive __proto__ rejeitadas nos quatro caminhos, valores distintos e controles de tipo preservados, schemas byte-exatos e revisão independente do novo candidato antes qualquer GO",
+      "minimum_sufficient_delta": "Dois arquivos existentes; desabilitar somente otimização incorreta para strings e reutilizar o algoritmo genérico original, sem algoritmo de validação alternativo",
+      "maintenance_cost": "Adapter BUILD local ao keyword da dependência fixada8.17.1; sem mutação global ou filesystem vendor; alteração futura de Ajv exige regressão causal"
     }
   ],
   "exit_criteria": [
@@ -92,13 +105,13 @@
   ],
   "non_scope": [
     "Novo helper, gramática geralJS, modelos nominativos sucessivos por unknowns, causal106 por inércia",
-    "Normas/compilers/engine/financialHost/guards/checkers/oracle/trace/IDs/quotas/perfis/contratos congelados; somente entrada INTERNAL autorizada",
+    "Normas/engine/financialHost/guards/checkers/oracle/trace/IDs/quotas/perfis/contratos congelados; somente entrada INTERNAL e correção causal no BUILD schema declarada autorizadas",
     "Produção/dados reais/auth/UAC/ACL/subagentes/deploy/finance/receipt/validated_parent/GOglobal/NEXT03",
-    "Expansão de paths/orçamento/rebaseline para esconder drift ou requalificação de históricos"
+    "Expansão sem causa necessária ao N02-G, rebaseline para esconder drift ou requalificação de históricos"
   ],
-  "max_changed_paths": 15,
+  "max_changed_paths": 17,
   "unresolved_policy": "blocked_not_automatic_requirement",
   "baseline_path": "docs/agent-workflow/scope-baselines/path-v3-composition-20261009.json",
   "baseline_sha256": "b5aec333b7366d2c93dc1e1c89ff0c3d4f3e3b75636778fa39db3e5b53bc87db",
-  "baseline_index_outside_scope_sha256": "c3cdcbf422484910aee9a3d00df326b62099029ca0f4025df3730759f2ff7678"
+  "baseline_index_outside_scope_sha256": "8e1c81b79409539553cc0e49e1432d3b440f45f5f9562ebd53b8264b2ee3efaf"
 }

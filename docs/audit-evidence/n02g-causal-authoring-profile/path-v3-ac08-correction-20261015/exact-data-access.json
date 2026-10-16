@@ -1,0 +1,231 @@
+{
+  "format": "financasbot.exact_existing_data_transport",
+  "version": 1,
+  "role": "lossless_access_representation_not_new_semantic_units_or_subgates",
+  "originals": [
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-authorship-v1-frozen.json",
+      "bytes": 4954513,
+      "sha256": "e9c852034d8cc887e1d8645a61d9597176409f72a28eaf0de4c95f17c0c8358d",
+      "git_blob_sha1": "a3baa82049ef927095458199a71ef0f377870c3c",
+      "parts": [
+        {
+          "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-d-access-review-20261013/path-authorship-v1-frozen.part-001.txt",
+          "bytes": 900000,
+          "sha256": "e062bcd745fb881ead8e67d1ac766465c630aedc76b5a586b95678f71b575008",
+          "git_blob_sha1": "26c2fbb9113543062b43c357b9f1904ca1b69fe7",
+          "byte_range": [
+            0,
+            900000
+          ]
+        },
+        {
+          "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-d-access-review-20261013/path-authorship-v1-frozen.part-002.txt",
+          "bytes": 900000,
+          "sha256": "62d33fd81a3d2c8d4cbe70629087d8b0f6de89064c92e70c17376b6bb58a9a88",
+          "git_blob_sha1": "634abb39c27fd2013dceb4d4222fc3350624556c",
+          "byte_range": [
+            900000,
+            1800000
+          ]
+        },
+        {
+          "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-d-access-review-20261013/path-authorship-v1-frozen.part-003.txt",
+          "bytes": 900000,
+          "sha256": "a73edd04accc9f96aedce9717263c5713d1289d4a2afd34ef30e9eadcc06efea",
+          "git_blob_sha1": "db2bc31d88ec96fb0e542941a5fb829a5b84e595",
+          "byte_range": [
+            1800000,
+            2700000
+          ]
+        },
+        {
+          "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-d-access-review-20261013/path-authorship-v1-frozen.part-004.txt",
+          "bytes": 900000,
+          "sha256": "7833c16fe4da89a5acbe9d535b324492ace3076d2d8bd3d6fae989e7bff6990b",
+          "git_blob_sha1": "c9ee8604fe3bf8f00fe05fe4e9abfb2a4515a576",
+          "byte_range": [
+            2700000,
+            3600000
+          ]
+        },
+        {
+          "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-d-access-review-20261013/path-authorship-v1-frozen.part-005.txt",
+          "bytes": 900000,
+          "sha256": "c5727cb8c55357ae9fdb7a08bb955415dbc1cedcbe407550e14915beb1fad464",
+          "git_blob_sha1": "bdc3c6717d9d5deed9d5dcca4689e279f06d0930",
+          "byte_range": [
+            3600000,
+            4500000
+          ]
+        },
+        {
+          "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-d-access-review-20261013/path-authorship-v1-frozen.part-006.txt",
+          "bytes": 454513,
+          "sha256": "d9efb2f4b6fe7cb2a5d76749e8516b246c63bece769daa465de7c25c4c555ec2",
+          "git_blob_sha1": "1a015ff4fbf1e04032829a7739a422d66339881a",
+          "byte_range": [
+            4500000,
+            4954513
+          ]
+        }
+      ],
+      "concatenate": "exact UTF8 bytes in listed order, no separators/header/newline",
+      "reassembly_executor_verified": true,
+      "independent_semantic_review_not_implied": true
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-inventory-v1-frozen.json",
+      "bytes": 10931712,
+      "sha256": "2509cb7df02a98a1217a416c70b5f729b40ca331314ce2d925005ec15a779a9d",
+      "git_blob_sha1": "d27e578745c3d5ec55c927411ad99e6d0c9971f1",
+      "parts": [
+        {
+          "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-d-access-review-20261013/path-inventory-v1-frozen.part-001.txt",
+          "bytes": 900000,
+          "sha256": "a8e6c64be2134f64ab4111519761230c7c606a60f156c97edc2d415e5afc8b6e",
+          "git_blob_sha1": "dca20f6411c9103ed88ba8ebd47ead94a37d5816",
+          "byte_range": [
+            0,
+            900000
+          ]
+        },
+        {
+          "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-d-access-review-20261013/path-inventory-v1-frozen.part-002.txt",
+          "bytes": 900000,
+          "sha256": "78dd6260574e9a9ed48995a47874495f202f4b92f93d8ccd64aeda09697eade8",
+          "git_blob_sha1": "914477e01124ae3a9d1952f2010744d0ce5789ab",
+          "byte_range": [
+            900000,
+            1800000
+          ]
+        },
+        {
+          "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-d-access-review-20261013/path-inventory-v1-frozen.part-003.txt",
+          "bytes": 900000,
+          "sha256": "86972a2a10cca1d5e2be8778830e886fc183da4947d6f93c55707f25cd347e08",
+          "git_blob_sha1": "8c7fba3f61021448a16846ef88d62c7a80f63cee",
+          "byte_range": [
+            1800000,
+            2700000
+          ]
+        },
+        {
+          "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-d-access-review-20261013/path-inventory-v1-frozen.part-004.txt",
+          "bytes": 900000,
+          "sha256": "bc69b77c8669a5d4a1bf004c037ae728607346f9cdfc82a7ea4224184c523136",
+          "git_blob_sha1": "4defe8f37b8e29a1b4f10c6ecd1aaad4dc22c53a",
+          "byte_range": [
+            2700000,
+            3600000
+          ]
+        },
+        {
+          "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-d-access-review-20261013/path-inventory-v1-frozen.part-005.txt",
+          "bytes": 900000,
+          "sha256": "e42b4e39d72c65e61334c2eef9100361aa3a54d76fb70815fe53ff574bd0e211",
+          "git_blob_sha1": "aeac3540e9440922755c6b37be97809f8c225d9f",
+          "byte_range": [
+            3600000,
+            4500000
+          ]
+        },
+        {
+          "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-d-access-review-20261013/path-inventory-v1-frozen.part-006.txt",
+          "bytes": 900000,
+          "sha256": "80bd8467755eee5477e25f40b5063a83312aa99e076d80159e3a60f4a2fb3e73",
+          "git_blob_sha1": "6b2e4f5eaae0da3967835576946a19c00a834ad2",
+          "byte_range": [
+            4500000,
+            5400000
+          ]
+        },
+        {
+          "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-d-access-review-20261013/path-inventory-v1-frozen.part-007.txt",
+          "bytes": 900000,
+          "sha256": "db3ac6573942dd30b40da097edc4e3fe0512b782234e2c316747b20505d04208",
+          "git_blob_sha1": "dfe0fc2f3f70f054750c4d4dece134403361dffd",
+          "byte_range": [
+            5400000,
+            6300000
+          ]
+        },
+        {
+          "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-d-access-review-20261013/path-inventory-v1-frozen.part-008.txt",
+          "bytes": 900000,
+          "sha256": "bdf80b44a459e06534f928bcfadf673ec4071bfc24122c18cba02dde066c76e5",
+          "git_blob_sha1": "60c59739e644ddcdb962abd341835378b3bd5a9c",
+          "byte_range": [
+            6300000,
+            7200000
+          ]
+        },
+        {
+          "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-d-access-review-20261013/path-inventory-v1-frozen.part-009.txt",
+          "bytes": 900000,
+          "sha256": "ab52253117a173d95e40e1a9788b155b0a8665a067bfbcd42ab65e99ad40d044",
+          "git_blob_sha1": "17a4ece416b6145d0d1d042d141d193e76703e52",
+          "byte_range": [
+            7200000,
+            8100000
+          ]
+        },
+        {
+          "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-d-access-review-20261013/path-inventory-v1-frozen.part-010.txt",
+          "bytes": 900000,
+          "sha256": "7577f2e837b5b6df7dbbdedebb4249e0a84e91c4aa97d4654616f82ed0a15d80",
+          "git_blob_sha1": "0a63c473435dd36439fe144e35714f8417147336",
+          "byte_range": [
+            8100000,
+            9000000
+          ]
+        },
+        {
+          "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-d-access-review-20261013/path-inventory-v1-frozen.part-011.txt",
+          "bytes": 900000,
+          "sha256": "aa2e6a8a822dfa19702a18b7b5df8ae521f7cdca2a537dc51dfbc844d0ef65f6",
+          "git_blob_sha1": "21b3e347372a635e7650587d9701df78cbc4de3c",
+          "byte_range": [
+            9000000,
+            9900000
+          ]
+        },
+        {
+          "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-d-access-review-20261013/path-inventory-v1-frozen.part-012.txt",
+          "bytes": 900000,
+          "sha256": "6fb89078912b4ef866c1ee208610c19e31fc257893faf872c2bb2ade51e23628",
+          "git_blob_sha1": "ba8c4c43d02274069b6c7460bafdf7f481f6ccc1",
+          "byte_range": [
+            9900000,
+            10800000
+          ]
+        },
+        {
+          "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-frontier-d-access-review-20261013/path-inventory-v1-frozen.part-013.txt",
+          "bytes": 131712,
+          "sha256": "a83b0acdc4b8f3478eb20b974046505cb663e61cd6a7f380623f60fc7bdf5213",
+          "git_blob_sha1": "93b44462cf93558c28ff41eb1709c452ea8dedb8",
+          "byte_range": [
+            10800000,
+            10931712
+          ]
+        }
+      ],
+      "concatenate": "exact UTF8 bytes in listed order, no separators/header/newline",
+      "reassembly_executor_verified": true,
+      "independent_semantic_review_not_implied": true
+    }
+  ],
+  "representation_parent_commit": "987dfced4047ed7ab3b190206b7469130d9086ed",
+  "bytes_reused_not_prior_review_authority": true,
+  "raw_data_unchanged": true,
+  "no_filtering_no_header_no_EOL_normalization": true,
+  "protocol": [
+    "Read all parts in each listed order as UTF8 data, concatenate without separators, match original bytes SHA256 and Gitblob, then parse JSON.",
+    "Review original data applicability and real code consumers; access/hash/reassembly are not semantic approval.",
+    "Do not execute JSON/base64 content as JavaScript or multiply historical rows into new proofs."
+  ],
+  "independent_semantic_review": "pending",
+  "qualified": false,
+  "credit": 0
+}

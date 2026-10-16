@@ -1,67 +1,79 @@
-# PATHv3 — public implementation and audit plan
+# PATHv3 — current whole-candidate review plan
 
-Publication-only projection. The local worktree keeps the full operational
-plan; private links, machine paths, session metadata and historical handoffs
-are excluded here. No normative contract, frozen identifier or limit changes.
+Publication-only projection. Source code, schemas, corpus and exact captured
+bytes are not projected or normalized. Two operational documents omit private
+history and local locators. The method receipt retains its explicitly declared
+publication-only projection; it is not substituted for a runtime authority.
 
-## Finite implementation scope
+## Finite material delta
 
-The 15 paths of the active contract cover existing qualification, proof-program,
-executable closure, capability/effect, receiver-origin, compiler capture and
-INTERNAL entry modules, their existing tests, and operational documents.
-The only added harness adaptation admits the finite synthetic Git fixture
-contract under a real audited external temporary root. It does not grant Git
-generally. Network, shell, real-root mutations, path escapes, arbitrary Git
-configs and redirections remain denied. Existing framework tests cover positive
-commands and generated counterexamples. No new runtime helper or JS solver.
+Normal BUILD scripts/agent/buildNextProvenanceArtifacts.mjs corrects AC-08.1 by
+reusing Ajv8.17.1's original generic uniqueItems codegen for string-only items.
+src/next/provenance/pathQualificationV3.js changes only the corresponding BUILD
+source pin. tests/next/provenance/schemaBuild.cases.js adds two durable adversarial
+cases. No normal checker, schema, dependency/vendor, corpus, oracle, trace or
+limit was relaxed. The candidate reuses exact inherited code/dependency/license
+blobs and includes all nine current captured artifacts. Git inheritance is not
+semantic review; all pertinent bodies, interfaces and data uses remain in scope.
 
-## Local validation and immutable publication
+## S01 review object
 
-Causal regressions passed:31scope/runner+27release/watcher, synthetic only,
-exact rosters/exit0/unchanged sources. Complete r3 capture was valid but red:
-2773PASS,1FAIL,10SKIP/2784tests, all88PATHv3 titles exact. The077 fixture failed
-by adding an incomplete selection shape before the collection assertion.
-Its sole corrective delta preserves normal selection shape and the altered
-candidate_set; all adversarial assertions remain. Focal077 passed. No runtime
-or normative change was made. Normal capture was renewed rather than bypassing
-its source pin: nine exact artifacts and unchanged compiler/TCB/snapshot roots,
-with only the test source delta. The final r4 broad completed valid and green:
-2784tests,2774PASS,zeroFAIL/cancel/todo,exact10expectedSKIP;88PATHv3 unique titles
-matched current authorship,893sources before/after/current matched,751native
-coverage JSONs were valid. Child exit0 and output hashes were reconciled locally.
-Report SHA2564943e130e189ac06a5d1f77bf7c91d6384fc45ccab9e17195db7e3d01bbf8c45.
-These are local executions, not an independent audit or rerun.
-It retains168original testfiles plus88PATHv3 cases, original runner and limits,
-hermetic environment, native seriality and network tripwire. No test is removed.
-A valid capture is not a green matrix. Compare child exit, complete TAP, exact
-88-case roster, exact10expected SKIP names, coverage/reasons, raw coverage JSON,
-outputs and source hashes before accepting the broad result. A failed attempt
-remains failed; do not repeat a green broad without a causal change.
+The finite argument is published under path-v3-ac08-correction-20261015/
+s01-finite-argument.md. It derives L from the ratified same-branch/kind/nominal/
+unit/shape closed world, lists all16event anchors and all30alternatives, and
+explains the three previously incomplete normal schema/structure/type lemmas.
+The other nine read-frame contracts must be confronted with actual checker
+bodies and all participating predicates, not merely the changed predicate.
+Code and source-bound argument must be judged together; the executor cannot
+approve its own rule basis or turn a flag true by duplication or checksum.
 
-The publication package reuses182exact inherited source blobs. It includes
-whole relevant code and normal dependencies, exact9captured artifacts,74vendor
-sources and their license files. SES is declared as a measured external runtime
-foundation, not falsely added to the historical normal capture or its roots.
-Three auxiliary documents may have explicitly declared privacy projections;
-code, normative proposal and captured reference bytes must remain exact.
-This projection is not a reviewed-source or release promotion.
+The desired static conclusion is an implication under explicit normal baseline,
+byte binding, genuine single-site frame and primitive/dependency premises. It
+does not assert that an operational invocation or all six premises already
+exist. Missing fresh execution alone is not a defect in a purely static review;
+independent sufficiency of the conditional semantic argument is still required.
+The reviewer must distinguish APTO_STATIC_IN_SCOPE, causal NO_GO and INCOMPLETA,
+without manufacturing functional failures from absent review/access alone.
 
-## Audit and qualification exit
+All30members remain represented, including non-discriminating current fixture
+values. No equivalent-domain certificate is inferred from equal values or a
+list of consumers. If a W exists it takes precedence, with exact violations and
+the first candidate sealed before M; subsequent normal observations can only
+contradict the seal, not select or repair it. Unknown-path site controls are
+not semantic witnesses. Their M refusal never earns D/P credit.
 
-Publish one new sanitized immutable commit only after stable complete validation,
-then one clean independent code+reference review confirming commit and paths.
-No helper-only audit, reused old verdict or silent finding promotion. Confront
-findings against local code and evidence. A code correction requires causal
-focal/affected validation and one new stable broad before a new immutable hash.
-Security blocks stop automated submission; use the approved manual fallback,
-not repeated attempts.
+## Evidence and transport
 
-Fresh qualification is separate from construction tests: genuine precommitted
-reference and identity, complete relevant A/W and first-W conditions, real normal
-controls, independently reviewed external TCB/pins and ticket before handles.
-No guest execution is permitted solely because booleans or synthetic pins pass.
-Do not route a negative witness through the positive financial host or relabel
-a v2 invocation as v3. Credit applies only to the fresh admissible invocation,
-never to historical reports or summed ledgers. N02-G/global NEXT remain incomplete
-until their own full criteria are proved. No production or real household data.
+The latest complete broad is locally valid/green:2786/2776PASS/10exactSKIP,
+88PATHv3+2newSCHEMA titles,895unchanged sources,751valid native coverage JSONs.
+Its sanitized result is separately published; old interrupted output is not
+merged. Do not run another green broad without a causal code change. If review
+finds a real correction, fix its cause, exercise focal/affected cases, then one
+new broad when stable. Do not change code merely to hide an unproven premise.
 
+Whole-candidate review must use the manifest's current source/artifact bindings,
+not old snapshots or old review status. The large frozen authorship/inventory
+JSONs remain complete original data. Nineteen existing UTF8 chunks provide a
+lossless access representation: concatenate all listed parts without separators
+and match original bytes/SHA256/Gitblob before parsing as DATA. This is transport,
+not nineteen audit subgates, a reduced corpus, new proofs or executable JS.
+Data applicability and all relevant interfaces must still be reviewed. Historical
+2419rows do not become2419new proofs or qualified rows by being read or counted.
+
+One fresh immutable whole-candidate request, not helper-only or recursive
+fragmentation, follows the material correction/new evidence. A safety block
+ends automated sending and requires the normal manual fallback, not bypass.
+If the result is still INCOMPLETA, preserve the exact limit before a new decision;
+no automatic retry/new hash to fabricate APTO. Prior verdicts remain historical.
+
+## Operational separation
+
+BUILD constructor, commitment or hash is not human/caller/auditor authentication.
+One-use is local to the admitted trusted object, not a global ledger. JavaScript
+tripwire is not a universal OS/UDP isolation proof. Measured SES is an external
+runtime foundation, not a retroactive expansion of the captured73source root.
+The external reviewed pin/runtime/ticket and fresh admissible invocation remain
+separate gates before handles. Conditional findings, synthetic review pins and
+local construction tests do not authorize operational qualification, finance,
+receipts, validated parents, globalGO or NEXT03. Corpus, normative method and
+the rest of N02-G, including otherG11/G07/G08/G14/parents/charter, stay unchanged.

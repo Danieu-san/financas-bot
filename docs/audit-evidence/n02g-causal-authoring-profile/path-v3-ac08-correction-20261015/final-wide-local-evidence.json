@@ -1,0 +1,82 @@
+{
+  "format": "financasbot.ac08.final-wide-confronted",
+  "version": 1,
+  "observed_at_utc": "2026-10-16T12:08:16.654Z",
+  "execution": {
+    "started_at": "2026-10-15T20:41:39.579Z",
+    "completed_at": "2026-10-16T00:02:30.804Z",
+    "wall_duration_ms": 12051225,
+    "native_duration_ms": 12046175,
+    "node": "v22.17.0",
+    "child_exit": 0,
+    "runner_exit_observed": 0,
+    "signal": null,
+    "valid": true,
+    "validation_reasons": [],
+    "matrix_green": true,
+    "tap": {
+      "tests": 2786,
+      "suites": 0,
+      "pass": 2776,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 10,
+      "todo": 0
+    },
+    "coverage": {
+      "line_percent": 92.89,
+      "branch_percent": 81.81,
+      "function_percent": 92.99,
+      "uncovered_lines": ""
+    }
+  },
+  "report_sha256": "43efed73572e2bf45f50cd3bc8f8ac78e3c6a0b4ae913ba07b100a81c26bf8ab",
+  "source_count": 895,
+  "sources_before_sha256": "17c90ea53e0af853a75216d78000495b412b8813e5dce3191ae2bffb121641fa",
+  "sources_after_sha256": "17c90ea53e0af853a75216d78000495b412b8813e5dce3191ae2bffb121641fa",
+  "current_source_errors": [],
+  "outputs": {
+    "stdout": {
+      "bytes": 833511,
+      "sha256": "43a82c6af1d730d0cca01fd2597f7c1160943bffa4d17a2306d835d2ec42bb37",
+      "match": true
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "match": true
+    }
+  },
+  "exact_path_v3_88": true,
+  "exact_new_schema_2": true,
+  "exact_skip_titles": [
+    "functional: analytics, deletion, admin and fallback",
+    "functional: complex analytics handles typos, counts, duplicates and min/max",
+    "functional: consent, onboarding, settings and dashboard",
+    "functional: expenses, income and credit card installments",
+    "functional: goals, debts, payments and reminders",
+    "instalador executa install e uninstall restaurando bytes preexistentes",
+    "install adota bloco existente e preserva integralmente os bytes atuais",
+    "install recusa adocao quando backup diverge apenas por BOM sem mutar config",
+    "uninstall recusa configuracao alterada e preserva o arquivo atual",
+    "uninstall recusa divergencia somente de BOM e preserva bytes atuais"
+  ],
+  "native_coverage": {
+    "files": 751,
+    "bytes": 493028943,
+    "current_hash_parse_errors": [],
+    "raws_retained_local_only": true
+  },
+  "original_interrupted_run_not_merged": true,
+  "temporary_monitor_deleted_after_terminal_result": true,
+  "five_hour_recovery_preserved": true,
+  "limits": {
+    "independent_rerun": false,
+    "independent_code_audit": false,
+    "operational_TCB_review": false,
+    "fresh_guest_invocation": false,
+    "qualified": false,
+    "credit": 0,
+    "global_go": false
+  }
+}

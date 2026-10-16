@@ -170,6 +170,23 @@ function compileSchemaDocuments(documents) {
         removeAdditional: false,
         code: { source: true, lines: true }
     });
+    // Ajv 8.17.1's string-only uniqueItems fast path indexes an ordinary
+    // object, so assigning "__proto__" does not record an index. Reuse Ajv's
+    // own generic equality path for this case in BOTH live and standalone
+    // code generation. Only the keyword's temporary compilation context is
+    // changed; the admitted schema and item-type validation stay untouched.
+    const uniqueItems = ajv.getKeyword('uniqueItems');
+    if (!uniqueItems || typeof uniqueItems.code !== 'function') throw new Error('schema_unique_items_codegen_missing');
+    ajv.removeKeyword('uniqueItems').addKeyword({ ...uniqueItems, code(cxt) {
+        const itemType = cxt.parentSchema.items?.type;
+        if (itemType !== 'string' && !(Array.isArray(itemType) && itemType.length === 1 && itemType[0] === 'string')) {
+            return uniqueItems.code(cxt);
+        }
+        const parentSchema = cxt.parentSchema;
+        cxt.parentSchema = { ...parentSchema, items: undefined };
+        try { return uniqueItems.code(cxt); }
+        finally { cxt.parentSchema = parentSchema; }
+    } });
     addFormats(ajv);
     const schemaHashes = [];
     const exports = {};

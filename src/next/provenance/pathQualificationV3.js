@@ -110,7 +110,7 @@ const NORMAL_PACKAGE_SCHEMA_CONTRACT = freezeDeep({
     definitions: ['fieldPath', 'selector', 'claimPath'],
     source_bindings: [
         { path: 'src/next/provenance/graphCompiler.js', sha256: NORMAL_READ_SOURCE_PINS['src/next/provenance/graphCompiler.js'] },
-        { path: 'scripts/agent/buildNextProvenanceArtifacts.mjs', sha256: 'sha256:a563450252a995a0a35d83dc921c8af931bcb330c642e6de7a92857cd3a2fb2b' },
+        { path: 'scripts/agent/buildNextProvenanceArtifacts.mjs', sha256: 'sha256:d01f9f3b7f00275dc61c41d48cd3d9f1ead7c472a7f8d04a7f0f4295f15ad16e' },
         { path: 'src/next/kernel/canonicalValue.js', sha256: NORMAL_READ_SOURCE_PINS['src/next/kernel/canonicalValue.js'] }
     ],
     schema_sources: [

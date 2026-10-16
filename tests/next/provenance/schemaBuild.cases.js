@@ -117,3 +117,91 @@ test('N02G:SCHEMA-004 admitted validators use measured schema contents without d
     assert.equal(built.validators.snapshot(envelope), false);
     assert.equal(alternate.validators.snapshot(envelope), true);
 });
+
+test('N02G:SCHEMA-005 string uniqueness rejects prototype names in normal admitted and standalone validators', async () => {
+    const builder = await import(pathToFileURL(path.resolve(__dirname, '../../../scripts/agent/buildNextProvenanceArtifacts.mjs')));
+    const baseline = builder.buildSchemaValidators();
+    const entries = baseline.schemaHashes.map(row => ({ path: row.path,
+        bytes: fs.readFileSync(path.resolve(__dirname, '../../..', row.path)) }));
+    const beforeSchemas = entries.map(row => row.bytes.toString('hex'));
+    const packageReceipt = admitPackage({ entries, authority: entries.map(row => ({ path: row.path,
+        sha256: `sha256:${createHash('sha256').update(row.bytes).digest('hex')}` })) });
+    const source = require('../../../docs/contracts/next/provenance-v2/evaluator-contracts/source_coverage.json');
+    const cases = [
+        { values: ['complete', 'partial', 'unavailable'], valid: true },
+        { values: ['__proto__'], valid: true },
+        { values: ['__proto__', 'constructor', 'toString', 'hasOwnProperty'], valid: true },
+        { values: ['__proto__', '__proto__'], valid: false },
+        { values: ['complete', '__proto__', 'partial', '__proto__'], valid: false },
+        { values: ['constructor', 'constructor'], valid: false },
+        { values: ['toString', 'toString'], valid: false },
+        { values: ['complete', 'complete'], valid: false },
+        { values: ['\u03a9', '\u03a9'], valid: false },
+        { values: ['1', '01'], valid: true },
+        { values: ['', ''], valid: false }
+    ];
+    for (const [origin, built] of [['normal', baseline], ['admitted', builder.buildAdmittedSchemaValidators(packageReceipt)]]) {
+        const filename = path.resolve(__dirname, `../../../logs/schema-uniqueness-${origin}-test.cjs`);
+        const compiled = new Module(filename, module);
+        compiled.filename = filename; compiled.paths = module.paths;
+        compiled._compile(built.code, filename); // Trusted BUILD output, in memory only.
+        for (const [mode, validate] of [['compiled', built.validators.evaluator], ['standalone', compiled.exports.evaluator]]) {
+            for (const row of cases) {
+                const value = structuredClone(source);
+                value.signature.output.enum_values = row.values.slice();
+                const before = JSON.stringify(value);
+                const valid = validate(value);
+                assert.equal(JSON.stringify(value), before, `${origin}/${mode}: input mutation`);
+                assert.equal(valid, row.valid, `${origin}/${mode}: ${JSON.stringify(row.values)}`);
+                if (!row.valid) assert.ok(validate.errors.some(error => error.keyword === 'uniqueItems'));
+            }
+            const wrongType = structuredClone(source);
+            wrongType.signature.output.enum_values = [1, 2];
+            assert.equal(validate(wrongType), false);
+            assert.ok(validate.errors.some(error => error.keyword === 'type'));
+        }
+    }
+    assert.deepEqual(entries.map(row => row.bytes.toString('hex')), beforeSchemas);
+});
+
+test('N02G:SCHEMA-006 uniqueness fallback preserves keyword false and other admitted item types', async () => {
+    const builder = await import(pathToFileURL(path.resolve(__dirname, '../../../scripts/agent/buildNextProvenanceArtifacts.mjs')));
+    const baseline = builder.buildSchemaValidators();
+    const entries = baseline.schemaHashes.map(row => ({ path: row.path,
+        bytes: fs.readFileSync(path.resolve(__dirname, '../../..', row.path)) }));
+    const schemaPath = 'docs/contracts/next/provenance-v2/evaluator-contract.schema.json';
+    const source = require('../../../docs/contracts/next/provenance-v2/evaluator-contracts/source_coverage.json');
+    // Synthetic admitted schemas exercise existing keyword semantics, not a
+    // financial-domain change or authority for guest execution.
+    for (const [label, items, uniqueItems, cases] of [
+        ['string-array-type', { type: ['string'] }, true, [[['__proto__', '__proto__'], false], [['__proto__', 'other'], true]]],
+        ['disabled', { type: 'string' }, false, [[['__proto__', '__proto__'], true], [['same', 'same'], true]]],
+        ['mixed', { type: ['string', 'integer'] }, true, [[['1', 1], true], [[1, 1], false], [['__proto__', '__proto__'], false]]],
+        ['integer', { type: 'integer' }, true, [[[1, 2], true], [[1, 1], false], [['1', 1], false]]],
+        ['object', { type: 'object' }, true, [[[{ a: 1 }, { a: 1 }], false], [[{ a: 1 }, { a: 2 }], true]]]
+    ]) {
+        const schema = JSON.parse(entries.find(row => row.path === schemaPath).bytes);
+        Object.assign(schema.properties.signature.properties.output.properties.enum_values, { items, uniqueItems });
+        const schemaBefore = JSON.stringify(schema);
+        const changed = entries.map(row => row.path === schemaPath
+            ? { path: row.path, bytes: Buffer.from(schemaBefore) } : row);
+        const receipt = admitPackage({ entries: changed, authority: changed.map(row => ({ path: row.path,
+            sha256: `sha256:${createHash('sha256').update(row.bytes).digest('hex')}` })) });
+        const built = builder.buildAdmittedSchemaValidators(receipt);
+        const filename = path.resolve(__dirname, '../../../logs/schema-keyword-profile-test.cjs');
+        const compiled = new Module(filename, module);
+        compiled.filename = filename; compiled.paths = module.paths;
+        compiled._compile(built.code, filename);
+        for (const [mode, validate] of [['compiled', built.validators.evaluator], ['standalone', compiled.exports.evaluator]]) {
+            for (const [values, expected] of cases) {
+                const value = structuredClone(source);
+                value.signature.output.enum_values = structuredClone(values);
+                const before = JSON.stringify(value);
+                assert.equal(validate(value), expected, `${label}/${mode}: ${JSON.stringify(values)}`);
+                assert.equal(JSON.stringify(value), before);
+            }
+        }
+        assert.equal(JSON.stringify(schema), schemaBefore);
+        assert.equal(changed.find(row => row.path === schemaPath).bytes.toString('utf8'), schemaBefore);
+    }
+});

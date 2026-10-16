@@ -1,72 +1,83 @@
-# PATHv3 — public audit checkpoint (documentation projection)
+# PATHv3 — current AC08 audit checkpoint
 
-This is a publication-only projection of the local operational checkpoint.
-It excludes private conversation links, local machine paths and chronological
-handoff/session metadata. It does not replace the local workstream or alter
-the frozen normative method, source code, compiler inputs or review snapshot.
+Publication-only projection of the operational workstream. Private conversations,
+machine paths, process/session locators and chronological handoffs are excluded.
+Original local records remain intact. This projection is not a runtime input,
+normative amendment, independent review receipt or qualification authority.
 
-## Scope and state
+## Current candidate and human authority
 
-The human authorized PATH-V3-COMPOSITION-01, INTERNAL and admission foundation,
-then the two existing harness files on 2026-10-12. The active contract has
-15 explicit source/document paths. Household use limits breadth, not accuracy,
-context, follow-ups, privacy, math, confirmation, idempotency or recovery.
-The original product is preserved; the implementation reuses its compatible
-authoring, kernel, compiler and validation mechanisms.
+The human authorized necessary N02-G scope expansions and sanitized publications.
+The current causal contract fixes seventeen paths: the prior fifteen plus the
+existing normal schema BUILD and schemaBuild test file. Original product behavior,
+financial schemas, corpus, checkers, oracle, trace, identifiers and limits remain
+unchanged. Household scope does not reduce accuracy, context or follow-ups.
+Production, real financial data, deployment and financial acceptance are excluded.
 
-Local causal validation: 31 scope/runner tests and 27 release/watcher synthetic
-tests passed, with exact rosters, child exit0, no failures/skips/cancellations,
-empty stderr and unchanged measured sources. The prior failed broad attempt
-is retained as a failure, not relabeled. Its 88 PATHv3 cases were not executed.
-The corrected wrapper preserves the original 168 test files and adds those
-88 cases exactly once. Its simulated control is NOT real suite evidence.
+AC-08.1 is a real schema uniqueness defect in pinned Ajv8.17.1: its string fast
+path uses an ordinary object index and admits duplicate __proto__ strings.
+The existing compileSchemaDocuments now selects the original keyword's generic
+equality codegen for string-only items, with compilation context restored in
+finally. No vendor patch, installation, dependency, schema or keyword was added.
+The normal and admitted builders, including standalone emission, share this fix.
+The BUILD source pin in pathQualificationV3 is updated to the actual new bytes;
+a pin is not audit or authentication. Quadratic generic equality is an explicit
+performance tradeoff, not a universal performance guarantee.
 
-The complete r3 broad finished with valid capture:2784tests,2773PASS,1FAIL,
-10expectedSKIP, no cancellations/todo; all88PATHv3 titles were executed exactly.
-The sole failure was the077 adversarial fixture inserting an incomplete selection
-shape. The corrected fixture clones a normal selection and still changes its
-candidate_set, preserving all negative dependency-frame assertions. Focal077
-passed. No runtime, normal compiler, checker, corpus or normative rule changed.
-The renewed normal capture has nine artifacts byte-identical to the prior
-capture; only the test source changed. The final r4 broad completed green:
-2784tests,2774PASS,zeroFAIL/cancel/todo and the exact10expectedSKIP names.
-All88PATHv3 titles were executed exactly once. The893measured sources were
-identical before/after/current;751retained native coverage JSONs were valid.
-Capture validity and green matrix were reconciled with child exit0, complete
-outputs and current source hashes. Report SHA256:
-4943e130e189ac06a5d1f77bf7c91d6384fc45ccab9e17195db7e3d01bbf8c45.
-This is local executed evidence, not an independent rerun or operational review.
-The r3 result remains valid but red, never relabeled green.
-No immutable candidate has been published; no independent code/reference
-verdict, operational TCB review, guest witness or new qualification is claimed.
+## Executed evidence, not independent rerun
 
-## Authority and limits
+Durable RED SCHEMA005 failed on the exact duplicate __proto__ cause before the
+fix. Focal005/006 and all six schema cases passed afterward across normal,
+admitted, compiled and emitted-standalone paths, with type and nonmutation controls.
+PATH079 passed with the new BUILD pin. Nine normal authoring/TCB/financial-host
+synthetic integration cases passed with exact titles, child exit0 and unchanged
+202 declared causal sources. None of these is fresh operational PATHv3 D/P.
 
-Method: 72fc5a5b707909687da9b5cec892be2dcc892a62,
-proposal blob82112f0c4d6eeed21d4823c8b1dd3d3ca8ce1bf2,
-UTF8-LF SHA2560c831d290c0ae47960d1fc11b9ea530d792a926cb2211a1313d7d070f0d24eba.
-The method's documentary ratification does not approve this implementation.
+The first AC08 broad run was interrupted at the human's request to release the
+computer. Its partial output is preserved, is not a product RED, and was not
+combined with the later run. A human continue authorized a fresh integral run.
 
-Normal rule review snapshot SHA256:
-247e948fec72ef6370fc7c74314b341ad7a4f61d8a20f244d5515cc995414748.
-Compiler root:
-c529c09bf0b3fe02bf315f6fad19e4e46a2141c2337f5faed8b76a68ba543921.
-Validation TCB root:
-00498cfb57f61b8f56946166308d106cab141012be850e4bd68a4771bca9acb1.
+The new broad completed on 2026-10-16T00:02:30.804Z:2786tests,2776PASS,zeroFAIL/
+cancel/todo and the ten original expectedSKIP titles exactly. All88PATHv3 titles
+and the two new SCHEMA005/006 titles were reconciled against authorship. The
+original168testfiles, runner, native seriality,128MiB output limit, tripwire,
+environment and quotas were retained. Child/runner exited0; valid=true,
+matrix_green=true, validation_reasons=[] and output capture was complete.
+895sources before/after/CURRENT match;751retained native coverage files have
+current matching bytes/hashes and valid JSON. Raw coverage/output stays local.
 
-A/W expectations are pre-M data under trusted provisioning. Constructors and
-hashes do not authenticate a human, caller or independent review. Synthetic
-pins in tests are not operational review. No general JS/value-flow/consumer
-absence proof, independent compiler or BUILD replay is claimed. Unknowns block;
-they do not create automatic requirements. No finance, receipt, validated_parent,
-deployment, NEXT-03 or global GO is authorized. Historical ledgers remain separate.
+Report SHA25643efed73572e2bf45f50cd3bc8f8ac78e3c6a0b4ae913ba07b100a81c26bf8ab.
+Source digest17c90ea53e0af853a75216d78000495b412b8813e5dce3191ae2bffb121641fa.
+Stdout SHA25643a82c6af1d730d0cca01fd2597f7c1160943bffa4d17a2306d835d2ec42bb37;
+stderr empty. Native duration12046175ms; wall duration12051225ms. A later
+observation time is not additional test execution. These are local measurements.
 
-## Required next evidence
+## Current capture and remaining boundary
 
-The complete broad result and source/output/coverage reconciliation are local
-prerequisites now satisfied. Next: one sanitized immutable candidate containing
-the whole relevant code, norm, reference, dependencies and declared evidence;
-independent review confirming exact commit and all required files; local
-causal confrontation; external reviewed TCB pins before handles and a fresh
-admissible qualification only when every relevant prerequisite is demonstrated.
+Nine normal captured artifacts were regenerated after the BUILD correction.
+Snapshot580263bytes SHA256ada954eb15be38339401ec99ee552b46532ae21d7290b25bde31765c3072e4a6.
+Compiler root2281d7efd3b6627fe4679427b908b06ad29ea6e75cfea66aca3c387019bed151;
+TCB root34f059dfdaafc4b7d479109978c444e7bd9335d93dc95349ec4e5bb3e5f7ffff.
+Capture is construction, not independent BUILD replay or operational TCB review.
 
+The prior integrated review of the old immutable object ended INCOMPLETA.
+Its153limited observations are not153approved units, and A/B/C receipts cannot
+be summed into GO. That nine-plus-one protocol stays closed. This materially
+changed candidate includes the real correction and a finite source-bound S01
+argument, not a cosmetic resubmission of the old hash or a new semantic solver.
+The entire current code/reference/dependencies/data/artifact scope needs one
+independent integrated review. Navigation, hashes and data access are not approval.
+
+S01 has two sites with15L locators each, conditionalA15 each and conditionalW13+3.
+The argument explains schema, graph-structure and primitive-type preservation
+and the other nine normal read frames. It remains the executor's argument for
+review, not a discharged runtime predicate. All12passes and six real premises
+remain undischargeable by this document alone; A/W/firstW are not operationally
+established. External reviewed TCB pin, measured runtime, admissible ticket and
+fresh invocation still matter before handles. No guest D/P was run here.
+
+Method72fc5a5b707909687da9b5cec892be2dcc892a62/blob82112f0c4d6eeed21d4823c8b1dd3d3ca8ce1bf2
+is immutable. Witness section4 is not universal equivalence section6. No oldv2,
+narrow profile, UNSAT, RED or historical ledger is summed or requalified.
+qualified/credit/exec/finance/receipt/validated_parent/globalGO/NEXT03 remainfalse0.
+N02-G is incomplete. No deployment or financial authority follows from this broad.
