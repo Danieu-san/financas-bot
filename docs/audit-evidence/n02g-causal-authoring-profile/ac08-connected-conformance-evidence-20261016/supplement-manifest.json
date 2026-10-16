@@ -1,0 +1,112 @@
+{
+  "format": "financasbot.path-v3.connected-conformance-evidence",
+  "version": 1,
+  "stage": "executor_material_evidence_pending_independent_whole_object_review",
+  "created_at": "2026-10-16T13:35:00Z",
+  "parent_candidate": "44ce1c6dd706eb04725b3acba8ec8ac866c5bade",
+  "parent_tree": "e3b9462bdf1a401f7938ec5a469ef47a01e4bb72",
+  "parent_single_parent": "cf6e43cbaa7c378f2b64590c50d0818700a3bdd0",
+  "parent_primary_git_object_reconfirmed": true,
+  "whole_object_manifest": {
+    "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-complete-code-review-20261012/review-manifest.json",
+    "sha256": "59239bdce58bc4847a66ee05b246861a662fbf92fe10cb7446128e8435540f42",
+    "whole_units": 313,
+    "all_inherited_files_must_remain_byte_identical": true,
+    "all_code_norm_reference_data_dependencies_artifacts_remain_in_scope": true,
+    "nineteen_raw_parts_are_transport_not_semantic_subgates": true
+  },
+  "publication_delta": {
+    "adds": 4,
+    "modifications": 0,
+    "deletions": 0,
+    "local_commit_or_index_change": false,
+    "runtime_schema_vendor_norm_capture_pin_changes": false
+  },
+  "new_material": [
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/ac08-connected-conformance-evidence-20261016/whole-program-conformance-argument.md",
+      "bytes": 61899,
+      "sha256": "e4e9b7dfd43a3ccde113f5ec3fc2aae4129ce25a4972fbcbb9f7727d0d2c27e2",
+      "role": "executor_body_derived_connected_conditional_argument_not_independent_verdict"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/ac08-connected-conformance-evidence-20261016/normal-build-replay-local.json",
+      "bytes": 3569,
+      "sha256": "b85763612f698d6e57076f0ef56678fd79e95711c52590a96dbb972d710cf985",
+      "role": "local_normal_BUILD_reproduction_native_exit0_ten_identity_checks_281_sources_unchanged_not_independent_replay"
+    },
+    {
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/ac08-connected-conformance-evidence-20261016/prior-audit-confronted.md",
+      "bytes": 8915,
+      "sha256": "6bb7da61870d328588c62bd3fade3919f8f50a800c7c3d7c92a934ab516b5997",
+      "role": "confronted_summary_of_terminal_INCOMPLETA_not_private_transcript_or_approval"
+    }
+  ],
+  "material_delta": [
+    "pre_M_authored_seal_to_actual_normal_whole_IR_program_transport_relation",
+    "instrumented_capabilities_callback_ownership_health_revocation_and_exact_trace_result_closure",
+    "body_derived_nine_ordinary_read_frames_joined_conditionally_to_three_S01_lemmas",
+    "basis_ticket_artifact_launcher_order_and_explicit_external_provisioning_premises",
+    "actual_dependency_configuration_recipe_runtime_roles_and_full_data_applicability",
+    "new_retained_local_normal_BUILD_reproduction_not_synthetic_guest_qualification"
+  ],
+  "wide_evidence_preserved": {
+    "report_sha256": "43efed73572e2bf45f50cd3bc8f8ac78e3c6a0b4ae913ba07b100a81c26bf8ab",
+    "tests": 2786,
+    "pass": 2776,
+    "fail": 0,
+    "skip": 10,
+    "cancelled": 0,
+    "todo": 0,
+    "path_v3_titles_exact": 88,
+    "new_schema_titles_exact": 2,
+    "measured_sources": 895,
+    "before_after_sha256": "17c90ea53e0af853a75216d78000495b412b8813e5dce3191ae2bffb121641fa",
+    "current_all_rows_rechecked_equal": true,
+    "source_errors": [],
+    "new_suite_run_for_this_supplement": false,
+    "raw_outputs_and_coverage_published": false
+  },
+  "current_artifacts": {
+    "snapshot_bytes": 580263,
+    "snapshot_sha256": "ada954eb15be38339401ec99ee552b46532ae21d7290b25bde31765c3072e4a6",
+    "compiler_root": "sha256:2281d7efd3b6627fe4679427b908b06ad29ea6e75cfea66aca3c387019bed151",
+    "validation_tcb_root": "sha256:34f059dfdaafc4b7d479109978c444e7bd9335d93dc95349ec4e5bb3e5f7ffff",
+    "artifacts_overwritten": false,
+    "normal_rules_discharged": false,
+    "six_required_premises_promoted": false
+  },
+  "review_contract": {
+    "scope": "complete_inherited_whole_object_plus_new_material_not_document_or_helper_only_audit",
+    "prior_44_verdict": "INCOMPLETA",
+    "prior_9_plus_1_protocol": "closed_INCOMPLETA_not_reopened",
+    "reuse_of_limited_A_B_C_or_D_is_not_integrated_approval": true,
+    "no_new_semantic_subgates_or_recursive_passes": true,
+    "no_reduced_norm_or_corpus": true,
+    "no_new_general_JS_solver_or_universal_equivalence_requirement": true,
+    "access_hash_AST_reassembly_counts_are_not_semantic_approval": true,
+    "fresh_absence_alone_is_not_static_NO_GO": true,
+    "static_approval_alone_is_not_operational_permission": true,
+    "one_clean_automatic_attempt_per_new_material_hash": true,
+    "terminal_INCOMPLETA_requires_residual_limit_before_new_decision": true
+  },
+  "operational_limits": {
+    "independent_integrated_sufficiency": false,
+    "external_reviewed_TCB_pin_runtime_ticket_demonstrated": false,
+    "exec": false,
+    "qualified": false,
+    "credit": 0,
+    "finance": false,
+    "receipt": false,
+    "validated_parent": false,
+    "global_go": false,
+    "NEXT03": false,
+    "historical_v2_narrow_UNSAT_RED_ledgers_requalified": false
+  },
+  "privacy": {
+    "only_public_synthetic_project_evidence": true,
+    "no_private_conversation_locators_or_session_identifiers": true,
+    "prior_audit_document_is_summary_not_transcript": true,
+    "heuristic_scan_is_not_privacy_certificate": true
+  }
+}
