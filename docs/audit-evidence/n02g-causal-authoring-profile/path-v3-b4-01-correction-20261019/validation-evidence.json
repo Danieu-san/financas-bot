@@ -1,0 +1,167 @@
+{
+  "format": "financasbot.pathv3.b4_01.local_validation_evidence",
+  "version": 1,
+  "created_at": "2026-10-19T05:49:00Z",
+  "scope": {
+    "implementation_paths": [
+      "tests/helpers/exhaustiveNetworkTripwire.js",
+      "tests/exhaustiveLocalTestCoverageRunner.test.js"
+    ],
+    "already_within_allowed_seventeen": true,
+    "no_schema_norm_dependency_vendor_or_operational_permission_change": true
+  },
+  "focal_ladder": {
+    "classifier_red": {
+      "tests": 1,
+      "pass": 0,
+      "fail": 1,
+      "native_exit": 1
+    },
+    "adapter_red": {
+      "tests": 2,
+      "pass": 0,
+      "fail": 2,
+      "native_exit": 1,
+      "duration_ms": 416.0356
+    },
+    "adapter_green": {
+      "tests": 2,
+      "pass": 2,
+      "fail": 0,
+      "native_exit": 0,
+      "duration_ms": 400.9466
+    },
+    "final_affected": {
+      "tests": 23,
+      "pass": 23,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0,
+      "todo": 0,
+      "native_exit": 0,
+      "duration_ms": 8125.8066
+    },
+    "new_network_regression_uses_synthetic_network_originals_only": true
+  },
+  "first_broad": {
+    "report_sha256": "2322685cb086833fd21f88236acc8a8d0fcd42a441622f73a4c8d1cc55ee50cd",
+    "started_at": "2026-10-18T16:51:46.921Z",
+    "completed_at": "2026-10-18T20:12:30.939Z",
+    "native_exit": 1,
+    "child_exit": 1,
+    "tap": {
+      "tests": 2787,
+      "suites": 0,
+      "pass": 2776,
+      "fail": 1,
+      "cancelled": 0,
+      "skipped": 10,
+      "todo": 0
+    },
+    "duration_ms": 12036660,
+    "failures": [
+      "not ok 1600 - N02G:EVALUATOR-WITNESS-007 movement population does not become an expense-only filter"
+    ],
+    "failure_code": "host_timeout",
+    "unchanged_invocation_timeout_ms": 2500,
+    "external_cause_proven": false,
+    "remains_RED": true
+  },
+  "one_directed_diagnostic": {
+    "report_sha256": "c9225afa44f78071599becee48de49047c1e546365a7e79267589eedbb023006",
+    "test": "N02G:EVALUATOR-WITNESS-007",
+    "native_exit": 0,
+    "tap": {
+      "tests": 1,
+      "suites": 0,
+      "pass": 1,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "sources_unchanged": true,
+    "timeout_changed": false,
+    "does_not_override_RED": true
+  },
+  "one_finite_integral_confirmation": {
+    "report_sha256": "d1587842fecd86191fb91e5de6cd6e001705f48d8845e018fcd45af3ee8a7cc4",
+    "started_at": "2026-10-19T00:51:36.425Z",
+    "completed_at": "2026-10-19T04:16:53.522Z",
+    "native_exit": 0,
+    "child_exit": 0,
+    "tap": {
+      "tests": 2787,
+      "suites": 0,
+      "pass": 2777,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 10,
+      "todo": 0
+    },
+    "duration_ms": 12307877,
+    "valid": true,
+    "validation_reasons": [],
+    "matrix_green": true,
+    "exact_path_v3_titles": true,
+    "exact_new_schema_titles": true,
+    "new_harness_case_count": 1,
+    "skipped_tests": [
+      "instalador executa install e uninstall restaurando bytes preexistentes",
+      "install adota bloco existente e preserva integralmente os bytes atuais",
+      "install recusa adocao quando backup diverge apenas por BOM sem mutar config",
+      "uninstall recusa configuracao alterada e preserva o arquivo atual",
+      "uninstall recusa divergencia somente de BOM e preserva bytes atuais",
+      "functional: consent, onboarding, settings and dashboard",
+      "functional: expenses, income and credit card installments",
+      "functional: goals, debts, payments and reminders",
+      "functional: analytics, deletion, admin and fallback",
+      "functional: complex analytics handles typos, counts, duplicates and min/max"
+    ],
+    "coverage_summary": {
+      "line_percent": 92.89,
+      "branch_percent": 81.82,
+      "function_percent": 93,
+      "uncovered_lines": ""
+    },
+    "coverage_json_count": 752,
+    "coverage_json_parse_hash_bytes_rechecked": true,
+    "outputs": {
+      "stdout": {
+        "bytes": 833710,
+        "sha256": "648fa122f5368c6b9219e9cd5fe4800dedc3aa59e104650797e4e499423d5241"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "raw_outputs_coverage_not_published": true,
+    "no_repeated_green_without_delta": true
+  },
+  "source_measurement": {
+    "count": 895,
+    "before_sha256": "d4caa06c422baf138e5837ec03b24b0ce06853abe196f5d2f320bfb772d7c556",
+    "after_sha256": "d4caa06c422baf138e5837ec03b24b0ce06853abe196f5d2f320bfb772d7c556",
+    "current_equal": true,
+    "only_two_measured_source_deltas_from_parent_AC08": true,
+    "protected_local_index_unchanged": true,
+    "runner_sha256": "83c6c0729170dbb298cd4460eb471353625495c90fb6564e524eea443a7eb2bc",
+    "review_snapshot_sha256": "ada954eb15be38339401ec99ee552b46532ae21d7290b25bde31765c3072e4a6",
+    "measured_bytes_equal_before_after_current": true
+  },
+  "limits": {
+    "independent_code_review": false,
+    "independent_BUILD_execution": false,
+    "operational_TCB_review": false,
+    "fresh_qualification": false,
+    "qualified": false,
+    "credit": 0,
+    "exec": false,
+    "finance": false,
+    "receipt": false,
+    "validated_parent": false,
+    "global_go": false,
+    "NEXT03": false
+  }
+}

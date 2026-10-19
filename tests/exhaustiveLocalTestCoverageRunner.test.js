@@ -633,7 +633,114 @@ test('coverage runner snapshots state and file logs that product tests may mutat
 test('coverage runner network tripwire permits loopback and identifies external hosts', () => {
     assert.strictEqual(isLoopbackHost('localhost'), true);
     assert.strictEqual(isLoopbackHost('127.0.0.1'), true);
+    assert.strictEqual(isLoopbackHost('127.0.0.2'), true);
+    assert.strictEqual(isLoopbackHost('127.255.255.255'), true);
     assert.strictEqual(isLoopbackHost('::1'), true);
+    assert.strictEqual(isLoopbackHost('[::1]'), true);
+    assert.strictEqual(isLoopbackHost(' LOCALHOST '), true);
+    assert.strictEqual(isLoopbackHost('0.0.0.0'), true);
+    assert.strictEqual(isLoopbackHost(''), true);
     assert.strictEqual(isLoopbackHost('googleapis.com'), false);
+    assert.strictEqual(isLoopbackHost('126.255.255.255'), false);
+    assert.strictEqual(isLoopbackHost('128.0.0.1'), false);
+    for (const host of ['127.example.invalid', '127.0.0.1.example.invalid', '127.0.0.256']) {
+        assert.strictEqual(isLoopbackHost(host), false, host);
+    }
+    // Generate both classes, rather than an allowlist of previously seen names.
+    for (const first of [0, 1, 126, 127, 128, 255]) {
+        for (const middle of [0, 1, 127, 255]) {
+            for (const last of [0, 1, 254, 255]) {
+                const address = `${first}.${middle}.${middle}.${last}`;
+                assert.strictEqual(isLoopbackHost(address),
+                    first === 127 || address === '0.0.0.0', address);
+                assert.strictEqual(isLoopbackHost(`${address}.example.invalid`),
+                    false, `${address}.example.invalid`);
+            }
+        }
+    }
     assert.strictEqual(requestHost('https://example.com/path'), 'example.com');
+    assert.strictEqual(requestHost('http://127.0.0.1/', {
+        hostname: 'ordinary.example.invalid'
+    }), 'ordinary.example.invalid');
+    assert.strictEqual(requestHost(new URL('http://127.0.0.1/'), {
+        host: 'ordinary.example.invalid'
+    }), '127.0.0.1');
+    assert.strictEqual(requestHost('http://127.0.0.1/', {
+        hostname: undefined,
+        host: 'ordinary.example.invalid'
+    }), 'ordinary.example.invalid');
+    const nonEnumerable = { host: 'ordinary.example.invalid' };
+    Object.defineProperty(nonEnumerable, 'hostname', { value: 'localhost' });
+    assert.strictEqual(requestHost('https://ordinary.example.invalid/', nonEnumerable),
+        'ordinary.example.invalid');
+    assert.strictEqual(requestHost(nonEnumerable), 'ordinary.example.invalid');
+    const failure = new Error('fixture-option-access');
+    assert.throws(() => requestHost('http://127.0.0.1/', {
+        get hostname() { throw failure; }
+    }), error => error === failure);
+});
+
+test('coverage tripwire checks effective HTTP hosts and fetch Request inputs without network', () => {
+    const tripwirePath = path.join(__dirname, 'helpers', 'exhaustiveNetworkTripwire.js');
+    const environment = buildHermeticTestEnvironment(process.env);
+    const child = spawnSync(process.execPath, ['-e', `
+        const assert = require('node:assert/strict');
+        const http = require('node:http');
+        const https = require('node:https');
+        const net = require('node:net');
+        const forwarded = [];
+        // Synthetic originals only. No socket/HTTP/fetch implementation is called.
+        for (const module of [http, https]) {
+            module.request = () => 'local-http';
+            module.get = () => 'local-http';
+        }
+        net.connect = () => 'local-net';
+        net.createConnection = () => 'local-net';
+        global.fetch = async (input, init) => {
+            forwarded.push({ input, init }); return 'local-fetch';
+        };
+        // Rebind the existing guard around the fake originals in this child only.
+        delete global.__FINANCASBOT_EXHAUSTIVE_NETWORK_TRIPWIRE__;
+        require(${JSON.stringify(tripwirePath)}).installTripwire();
+        const blocked = { code: 'EXHAUSTIVE_AUDIT_NETWORK_BLOCKED' };
+        (async () => {
+            const inputForms = [value => value, value => new URL(value), value => new Request(value)];
+            for (const makeInput of inputForms) {
+                await assert.rejects(fetch(makeInput('https://ordinary.example.invalid/'),
+                    { hostname: 'localhost' }), blocked);
+            }
+            const shadowed = new Request('https://ordinary.example.invalid/');
+            Object.defineProperty(shadowed, 'url', { value: 'http://127.0.0.1/' });
+            await assert.rejects(fetch(shadowed), blocked);
+            await assert.rejects(fetch('https://ordinary.example.invalid/', { hostname: 'localhost' }), blocked);
+            let coerced = 0;
+            await assert.rejects(fetch({ hostname: 'localhost', toString() {
+                coerced++; return 'https://ordinary.example.invalid/';
+            } }), blocked);
+            assert.equal(coerced, 1);
+            assert.equal(forwarded.length, 0);
+            for (const module of [http, https]) {
+                for (const method of ['request', 'get']) {
+                    for (const makeInput of inputForms.slice(0, 2)) {
+                        assert.throws(() => module[method](makeInput('http://127.0.0.1/'),
+                            { hostname: 'ordinary.example.invalid' }), blocked);
+                        assert.equal(module[method](makeInput('http://ordinary.example.invalid/'),
+                            { hostname: '127.0.0.1' }), 'local-http');
+                    }
+                }
+            }
+            const local = new Request('http://127.0.0.1/', { method: 'POST', body: 'synthetic' });
+            const init = { headers: { 'x-fixture': 'local' }, dispatcher: {} };
+            assert.equal(await fetch(local, init), 'local-fetch');
+            assert.equal(forwarded[0].input, local);
+            assert.equal(forwarded[0].init, init);
+            assert.equal(local.bodyUsed, false);
+            assert.equal(await fetch(new URL('http://127.0.0.1/'),
+                { hostname: 'ordinary.example.invalid' }), 'local-fetch');
+            assert.equal(forwarded[1].input, 'http://127.0.0.1/');
+            console.log('guard-inputs-ok');
+        })().catch(error => { console.error(error); process.exitCode = 1; });
+    `], { env: environment, encoding: 'utf8', timeout: 30000 });
+    assert.strictEqual(child.status, 0, child.stderr);
+    assert.strictEqual(child.stdout.trim(), 'guard-inputs-ok');
 });

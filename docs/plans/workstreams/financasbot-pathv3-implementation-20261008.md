@@ -1,79 +1,54 @@
-# PATHv3 — current whole-candidate review plan
+# PATHv3 — current B4-01 causal slice
 
-Publication-only projection. Source code, schemas, corpus and exact captured
-bytes are not projected or normalized. Two operational documents omit private
-history and local locators. The method receipt retains its explicitly declared
-publication-only projection; it is not substituted for a runtime authority.
+Publication-only plan projection, not runtime input or a normative change.
+Parent056b1cd43c057b90a4216d2af25c24e3d5391b2d. The original method,
+household product goals, corpus and complete code/data/dependency context remain
+in scope. The implementation delta is two existing harness files, already among
+the seventeen authorized paths. No new engine/model/schema/vendor/dependency.
 
-## Finite material delta
+## Finite contract and reuse
 
-Normal BUILD scripts/agent/buildNextProvenanceArtifacts.mjs corrects AC-08.1 by
-reusing Ajv8.17.1's original generic uniqueItems codegen for string-only items.
-src/next/provenance/pathQualificationV3.js changes only the corresponding BUILD
-source pin. tests/next/provenance/schemaBuild.cases.js adds two durable adversarial
-cases. No normal checker, schema, dependency/vendor, corpus, oracle, trace or
-limit was relaxed. The candidate reuses exact inherited code/dependency/license
-blobs and includes all nine current captured artifacts. Git inheritance is not
-semantic review; all pertinent bodies, interfaces and data uses remain in scope.
+Reuse normalizeHost, node:net, original tripwire installation and original test
+runner. Reject DNS127.* as loopback while preserving literal127/8,localhost,::1
+and existing empty/0.0.0.0 policy. Match ordinary HTTP URL/options host precedence
+and native fetch Request/string URL semantics. Delegate the same captured fetch
+input and original init; do not consume/clone the Request body to classify it.
+This is a selected JS API tripwire, not universal DNS/OS/UDP/custom-agent proof.
 
-## S01 review object
+The normal AC08 schema builder remains unchanged: pinned Ajv original generic
+equality codegen for string-only uniqueItems, compilation context restored in
+finally. It is not Object.create(null), a vendor patch or an upgraded schema.
+The nine captured artifacts, compiler and TCB roots stay byte-identical.
 
-The finite argument is published under path-v3-ac08-correction-20261015/
-s01-finite-argument.md. It derives L from the ratified same-branch/kind/nominal/
-unit/shape closed world, lists all16event anchors and all30alternatives, and
-explains the three previously incomplete normal schema/structure/type lemmas.
-The other nine read-frame contracts must be confronted with actual checker
-bodies and all participating predicates, not merely the changed predicate.
-Code and source-bound argument must be judged together; the executor cannot
-approve its own rule basis or turn a flag true by duplication or checksum.
+## Executed validation ladder
 
-The desired static conclusion is an implication under explicit normal baseline,
-byte binding, genuine single-site frame and primitive/dependency premises. It
-does not assert that an operational invocation or all six premises already
-exist. Missing fresh execution alone is not a defect in a purely static review;
-independent sufficiency of the conditional semantic argument is still required.
-The reviewer must distinguish APTO_STATIC_IN_SCOPE, causal NO_GO and INCOMPLETA,
-without manufacturing functional failures from absent review/access alone.
+1. Original127.hostname RED before classifier fix; then focal GREEN.
+2. Adversarial HTTP options and fetch Request REDs before adapter; then focal
+   GREEN. Generated finite address/name classes, not a domain allowlist.
+3. Syntax and affected21harness+2immutable-blob cases:23PASS/native0, no network
+   originals called. Normal execution profile was required for fixture junctions;
+   no ACL/UAC or global settings were changed.
+4. First integral B4 run:one existing witness timeout, otherwise2776PASS with
+   ten expectedSKIPs. Preserve this RED. No code/timeout/priority change to hide it.
+5. One directed diagnostic of that witness passed unchanged. One finite integral
+   confirmation then passed2787/2777/0FAIL/10SKIP, with895stable source bindings,
+   exact88PATHv3+2SCHEMA+1harness,752coverage JSON identities and native exits0.
+   No loop until green; all results and uncertainty remain visible to the auditor.
 
-All30members remain represented, including non-discriminating current fixture
-values. No equivalent-domain certificate is inferred from equal values or a
-list of consumers. If a W exists it takes precedence, with exact violations and
-the first candidate sealed before M; subsequent normal observations can only
-contradict the seal, not select or repair it. Unknown-path site controls are
-not semantic witnesses. Their M refusal never earns D/P credit.
+## Remaining gate
 
-## Evidence and transport
+Build the immutable sanitized candidate from the full parent tree, replacing
+only the two harness files and current metadata, adding corrective evidence.
+Independently review the complete object and causal invariants; do not treat
+the correction as an isolated helper subgate. Reuse unchanged bytes only under
+explicit applicability, never inherit unsupported semantic approval.
 
-The latest complete broad is locally valid/green:2786/2776PASS/10exactSKIP,
-88PATHv3+2newSCHEMA titles,895unchanged sources,751valid native coverage JSONs.
-Its sanitized result is separately published; old interrupted output is not
-merged. Do not run another green broad without a causal code change. If review
-finds a real correction, fix its cause, exercise focal/affected cases, then one
-new broad when stable. Do not change code merely to hide an unproven premise.
+S01 three lemmas,30locators/two sites,12rules/nine frames,14interfaces,
+authoring→IR→program/effects/receiver closure→capabilities/callbacks/quotas→
+trace/result/acceptance and INTERNAL TCB/basis/pin/ticket-before-handles remain
+the integrated obligations. Complete data, actual dependencies, four bundles
+and recipes cannot be omitted. No new universal-equivalence requirement.
 
-Whole-candidate review must use the manifest's current source/artifact bindings,
-not old snapshots or old review status. The large frozen authorship/inventory
-JSONs remain complete original data. Nineteen existing UTF8 chunks provide a
-lossless access representation: concatenate all listed parts without separators
-and match original bytes/SHA256/Gitblob before parsing as DATA. This is transport,
-not nineteen audit subgates, a reduced corpus, new proofs or executable JS.
-Data applicability and all relevant interfaces must still be reviewed. Historical
-2419rows do not become2419new proofs or qualified rows by being read or counted.
-
-One fresh immutable whole-candidate request, not helper-only or recursive
-fragmentation, follows the material correction/new evidence. A safety block
-ends automated sending and requires the normal manual fallback, not bypass.
-If the result is still INCOMPLETA, preserve the exact limit before a new decision;
-no automatic retry/new hash to fabricate APTO. Prior verdicts remain historical.
-
-## Operational separation
-
-BUILD constructor, commitment or hash is not human/caller/auditor authentication.
-One-use is local to the admitted trusted object, not a global ledger. JavaScript
-tripwire is not a universal OS/UDP isolation proof. Measured SES is an external
-runtime foundation, not a retroactive expansion of the captured73source root.
-The external reviewed pin/runtime/ticket and fresh admissible invocation remain
-separate gates before handles. Conditional findings, synthetic review pins and
-local construction tests do not authorize operational qualification, finance,
-receipts, validated parents, globalGO or NEXT03. Corpus, normative method and
-the rest of N02-G, including otherG11/G07/G08/G14/parents/charter, stay unchanged.
+Current independent result is pending; previous INCOMPLETAs remain historical.
+Actual A/W/firstW, operational trusted roots/ticket/runtime/fresh remain absent.
+No flag/credit/finance/GO is granted by source hashes, local tests or this plan.

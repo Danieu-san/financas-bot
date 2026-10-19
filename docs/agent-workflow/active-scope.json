@@ -3,7 +3,7 @@
   "stage_id": "PATH-V3-COMPOSITION-01",
   "base_head": "04eb9545516d100aa45e1ac6d8ebfda444fafbd7",
   "branch": "codex/n02g-month-profile-code-20261004",
-  "authorization": "Daniel confirmou os quinze paths anteriores e em2026-10-15 declarou: autorizo qualquer ampliacao necessaria para finalizar o gate. Autoridade contínua para recortes necessários ao N02-G, declarados causalmente antes de editar; não produção/deploy/dados reais ou redução de norma/qualidade. Primeiro recorte novo AC-08.1: BUILD normal e regressão schema, dezessete paths agora fixados. Registro operacional, não autenticação.",
+  "authorization": "Daniel confirmou os quinze paths anteriores e em2026-10-15 declarou: autorizo qualquer ampliacao necessaria para finalizar o gate. Autoridade contínua para recortes necessários ao N02-G, declarados causalmente antes de editar; não produção/deploy/dados reais ou redução de norma/qualidade. AC-08.1 fixou dezessete paths. Em2026-10-18, B4-01 exige somente classificador do tripwire e regressão já entre esses dezessete; sem novo path ou rebaseline. Registro operacional, não autenticação.",
   "objective": "Composição finita da referência normal de programas/efeitos/capacidades/consumers sob método72fc, sem motor geralJS ou promoção de provas parciais",
   "original_first": {
     "head": "e00f6ebcf97e6bfdb2b7791939c22e879917f3f0",
@@ -78,13 +78,13 @@
     {
       "id": "PATH-HARNESS-SCOPE-FIXTURE-01",
       "paths": ["tests/helpers/exhaustiveNetworkTripwire.js", "tests/exhaustiveLocalTestCoverageRunner.test.js"],
-      "cause": "Causal34 corrigiu27falhas ambientais;7fixtures da trava de escopo permanecem bloqueados porque o tripwire não reconhece seu diretório/gramática Git e elimina exclusões locais necessárias",
-      "control": "Git pinado, fixture físico filho direto da raiz temporária auditada, arrays de comandos fechados e configuração de exclusão exclusivamente fixture-local; rede/shell/escapes/global configs continuam bloqueados",
-      "reuse": "Adaptar o tripwire e seus testes existentes; nenhum helper, runner original ou produto alterado",
-      "evidence": "RED7 preservado; positivos reais, mutações de comandos/paths/roots/configs e teste de exclusões; afetados herméticos antes uma única ampla final inteira",
-      "exit": "Sete fixtures e adversariais passam com tripwire ativo, sem permitir operações na raiz real ou ampliar autoridades do produto",
-      "minimum_sufficient_delta": "Dois arquivos existentes e alinhamento TEMP do subprocesso no wrapper mecânico temporário",
-      "maintenance_cost": "Contrato finito declarado do fixture real, sem Git genérico; novo domínio exige decisão explícita"
+      "cause": "Causal34 corrigiu27falhas ambientais;7fixtures eram bloqueados por diretório/gramática Git/exclusões locais. B4-01 confirmouDNS127.*classificadoIPv4. Revisão adversarial antesampla confirmou duasformas normais adicionais:fetch(Request)extraihostvazio eHTTPURL+optionsignora hostnameoverride. Ambospreexistiam em056b; diagnósticossemDNS/conexão, não tráfegopassado demonstrado.",
+      "control": "Git pinado, fixture físico filho direto da raiz temporária auditada, arrays fechados e exclusão exclusivamente fixture-local. Rede:IPv4real127/8 vianet.isIP; HTTPrespeitaoptionsmescladas;fetchclassificaURLnativadoRequest oucapturaStringumavez,semconfundirRequestInitcomoverridehost,preservandoinputRequest/init. Casosexplícitosanteriores preservados. SemDNSresolver/SOuniversal/permissõesnovas.",
+      "reuse": "Tripwire, node:net e teste existentes; dois paths jáautorizados, sem helper/dep/parserIP/engine/schema/norma/permissão nova, runner original ou produto alterado.",
+      "evidence": "RED7 e controles Git/Tar preservados. B4-01:REDcanônico→focalGREEN;formasHTTPoptions/fetchRequestRED2FAIL→GREEN2PASS;afetada21harness+2Gitblob23PASS/native0 no perfilnormalaprovado(EPERMdesandboxdiagnosticados,semACL/UAC). Novasredesoriginaisfakeemfilhoisolado. AmplaB4RED1host_timeoutWITNESS007preservada;diagnósticoúnico007mesmasquotas1PASS;UMAconfirmaçãointegralcontrolada2787/2777PASS/0FAIL/10SKIPexatos/88PATHv3+2SCHEMA+1harness/895fontesestáveis/752coverageválidos/child0runner0. Causaexternadotimeoutnão comprovada,semalterar2500ms/critério. Não repetirGREENsemnovo delta;exporREDediagnósticoaoauditor.",
+      "exit": "Fixtures e adversariais passam com tripwire ativo; hostnames127.*nãoIPv4 recusados, loopback real/casos anteriores preservados, sem permitir operações na raiz real/ampliar autoridades. Índice/WIP intactos e novo candidato auditável material; não resolve por si S01/TCB/efeitos ou concedeGO.",
+      "minimum_sufficient_delta": "Dois arquivos existentes:predicadoIP,extraçãoHTTPURL/options eadapterfetchdeformasnativascomregressõesfinitas. Semnovohelperanalítico/modeloJS. Max17/listaallowed/baseline/indexforaescopo inalterados.",
+      "maintenance_cost": "Contrato finito do fixture e classificaçãoIP por builtin Node, sem Git genérico/DNSresolver/pretensãoSOuniversal. Novo domínio ou autoridade exige decisão explícita."
     },
     {
       "id": "AC-08.1-SCHEMA-UNIQUENESS",
@@ -105,7 +105,7 @@
   ],
   "non_scope": [
     "Novo helper, gramática geralJS, modelos nominativos sucessivos por unknowns, causal106 por inércia",
-    "Normas/engine/financialHost/guards/checkers/oracle/trace/IDs/quotas/perfis/contratos congelados; somente entrada INTERNAL e correção causal no BUILD schema declarada autorizadas",
+    "Normas/engine/financialHost/guards semânticos/checkers/oracle/trace/IDs/quotas/perfis/contratos congelados; somente entrada INTERNAL, correção BUILD schema e ajustes causais do harness explicitamente declarados nas changes autorizados",
     "Produção/dados reais/auth/UAC/ACL/subagentes/deploy/finance/receipt/validated_parent/GOglobal/NEXT03",
     "Expansão sem causa necessária ao N02-G, rebaseline para esconder drift ou requalificação de históricos"
   ],

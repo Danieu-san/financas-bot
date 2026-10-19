@@ -45,19 +45,25 @@ function normalizeHost(value) {
 
 function isLoopbackHost(value) {
     const host = normalizeHost(value);
+    // A DNS hostname can begin with 127.; only a literal IPv4 is loopback here.
     return !host || host === 'localhost' || host === '::1' || host === '0.0.0.0'
-        || host.startsWith('127.');
+        || (net.isIP(host) === 4 && host.startsWith('127.'));
 }
 
 function requestHost(input, options) {
     if (typeof input === 'string' || input instanceof URL) {
-        try {
-            return new URL(input).hostname;
-        } catch {
-            return '';
-        }
+        let url;
+        try { url = new URL(input); } catch { return ''; }
+        // HTTP converts a URL to options, then applies caller options.
+        // Only own enumerable overrides participate in that merge.
+        const candidate = {
+            hostname: url.hostname,
+            ...(options && typeof options === 'object' ? options : {})
+        };
+        return candidate.hostname || candidate.host || '';
     }
-    const candidate = input && typeof input === 'object' ? input : options;
+    const source = input && typeof input === 'object' ? input : options;
+    const candidate = source && typeof source === 'object' ? { ...source } : null;
     return candidate?.hostname || candidate?.host || '';
 }
 
@@ -482,10 +488,24 @@ function installTripwire() {
 
     if (typeof global.fetch === 'function') {
         const originalFetch = global.fetch.bind(global);
+        const requestUrl = typeof global.Request === 'function'
+            ? Object.getOwnPropertyDescriptor(global.Request.prototype, 'url')?.get
+            : null;
         global.fetch = function guardedFetch(input, init) {
-            const host = requestHost(input, init);
-            if (!isLoopbackHost(host)) return Promise.reject(blockedError(host));
-            return originalFetch(input, init);
+            let url;
+            if (requestUrl) {
+                try { url = requestUrl.call(input); } catch { /* Not a native Request. */ }
+            }
+            let capturedInput = input;
+            if (url === undefined) {
+                // Capture coercion once, just as fetch does for non-Request input.
+                try { url = capturedInput = String(input); }
+                catch (error) { return Promise.reject(error); }
+            }
+            // RequestInit is not HTTP options: hostname/host do not override URL.
+            const host = requestHost(url);
+            if (!host || !isLoopbackHost(host)) return Promise.reject(blockedError(host));
+            return originalFetch(capturedInput, init);
         };
     }
 
