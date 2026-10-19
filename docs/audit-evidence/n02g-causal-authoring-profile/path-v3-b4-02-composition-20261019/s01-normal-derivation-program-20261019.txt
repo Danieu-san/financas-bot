@@ -1,0 +1,21 @@
+'use strict';
+const { createScalarProofPrimitives } = require('./scalarProofCore');
+const { copyProgramData } = require('./proofProgramData');
+const { canonicalValue } = require('../kernel/canonicalJson');
+const { sha256Utf8 } = require('./proofSha256');
+const { createMaterialFingerprint } = require('./materialFingerprintCore');
+const { createCollectionProofPrimitives } = require('./collectionProofCore');
+const { validateLiteral } = require('./literalTypes');
+const { readObservedIdentity: identity, sequence, period } = require('./proofObservedValues');
+const primitives = createScalarProofPrimitives(copyProgramData, canonicalValue);
+const scalar=primitives.evaluateScalarProof; const collection=createCollectionProofPrimitives(primitives.compareTypedScalars);
+function validated(value,type) { primitives.compareTypedScalars(type,value,value);return value; }
+const fingerprint = createMaterialFingerprint(copyProgramData,value=>sha256Utf8(canonicalValue(value)));
+function checkedNode(handle,kind) { if (identity(handle).kind!==kind) throw new Error('proof_program_node_kind'); return handle; }
+function checkedPeriod(value) { scalar({id:"period_eq",args:["period","period"],semantics:"equal_period_kind_and_fields"},[{type:{form:"period"},value},{type:{form:"period"},value}]); return value; }
+function run(operands) { const rootOperands=operands;
+
+let all = true;
+
+return all; }
+module.exports = {run};

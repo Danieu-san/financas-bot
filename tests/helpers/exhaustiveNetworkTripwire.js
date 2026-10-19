@@ -3,6 +3,7 @@ const https = require('node:https');
 const fs = require('node:fs');
 const net = require('node:net');
 const path = require('node:path');
+const { urlToHttpOptions } = require('node:url');
 const childProcess = require('node:child_process');
 const { buildDescendantNodeOptions } = require('./exhaustiveNodeOptions');
 
@@ -50,21 +51,30 @@ function isLoopbackHost(value) {
         || (net.isIP(host) === 4 && host.startsWith('127.'));
 }
 
-function requestHost(input, options) {
+function captureHttpRequest(input, options, callback) {
+    let captured;
     if (typeof input === 'string' || input instanceof URL) {
-        let url;
-        try { url = new URL(input); } catch { return ''; }
-        // HTTP converts a URL to options, then applies caller options.
-        // Only own enumerable overrides participate in that merge.
-        const candidate = {
-            hostname: url.hostname,
-            ...(options && typeof options === 'object' ? options : {})
+        // Use Node's own URL conversion and own-enumerable option merge.
+        // Forward this snapshot too: never re-read caller getters after checking.
+        const url = typeof input === 'string' ? new URL(input) : input;
+        captured = {
+            options: { ...urlToHttpOptions(url),
+                ...(typeof options === 'function' ? {} : options) },
+            callback: typeof options === 'function' ? options : callback
         };
-        return candidate.hostname || candidate.host || '';
+    } else {
+        captured = { options: { ...(typeof input === 'function' ? {} : input) },
+            callback: typeof input === 'function' ? input : options };
     }
-    const source = input && typeof input === 'object' ? input : options;
-    const candidate = source && typeof source === 'object' ? { ...source } : null;
-    return candidate?.hostname || candidate?.host || '';
+    // ClientRequest's Object.assign could interpret this own key as a prototype
+    // setter on its next copy. It is not an HTTP option; fail before forwarding.
+    if (Object.hasOwn(captured.options, '__proto__')) throw blockedError('prototype_option');
+    return captured;
+}
+
+function requestHost(input, options) {
+    const captured = captureHttpRequest(input, options);
+    return captured.options.hostname || captured.options.host || '';
 }
 
 function blockedError(host) {
@@ -464,15 +474,17 @@ function installTripwire() {
     for (const module of [http, https]) {
         const originalRequest = module.request.bind(module);
         module.request = function guardedRequest(input, options, callback) {
-            const host = requestHost(input, options);
+            const captured = captureHttpRequest(input, options, callback);
+            const host = captured.options.hostname || captured.options.host || '';
             if (!isLoopbackHost(host)) throw blockedError(host);
-            return originalRequest(input, options, callback);
+            return originalRequest(captured.options, captured.callback);
         };
         const originalGet = module.get.bind(module);
         module.get = function guardedGet(input, options, callback) {
-            const host = requestHost(input, options);
+            const captured = captureHttpRequest(input, options, callback);
+            const host = captured.options.hostname || captured.options.host || '';
             if (!isLoopbackHost(host)) throw blockedError(host);
-            return originalGet(input, options, callback);
+            return originalGet(captured.options, captured.callback);
         };
     }
 

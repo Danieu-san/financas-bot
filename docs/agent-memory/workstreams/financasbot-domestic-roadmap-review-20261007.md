@@ -1,70 +1,41 @@
-# N02-G/PATHv3 — B4-01 candidate awaiting independent review
+# N02-G / PATHv3 — B4-02 whole candidate awaiting independent review
 
-Publication-only operational projection. It excludes private conversations,
-machine paths, account/session locators and private handoff history. The local
-workstream remains intact. This document is not a runtime input, normative
-amendment, independent verdict or qualification authority.
+This is a sanitized publication projection, not an operational authorization.
+As of 2026-10-19T18:30Z, the final local B4-02 wide is complete and confronted:
+2788 tests, 2778 PASS, 0 FAIL, 10 exact SKIP, cancelled/todo 0; native child and
+runner 0. Report SHA256:
+42e6126d4c3f321534d72b7584951d9d4aa6a6c794e889618d9934589f35a866.
+Duration 12760204ms is native execution, not the later observation window.
+All 895 measured current inputs, nine frozen proof inputs, output hashes,
+753 coverage JSON identities/parses and the local Git index were confronted.
+Raw TAP, coverage and the large mechanical reference readout remain local.
 
-Parent candidate:056b1cd43c057b90a4216d2af25c24e3d5391b2d,
-tree9a7ba1c14bc8455d5ff74d6f201bb51afccdce99. The inherited whole object is
-313original roles plus3connected-conformance evidence roles. All corpus,
-dependencies/licenses, nine captured artifacts and original method are retained.
-The current candidate changes only two test-harness sources plus publication
-metadata and adds corrective evidence. No product/schema/vendor/norm/pin change.
+Material changes relative to the published B4-01 candidate are limited to two
+existing test-harness sources: snapshot ordinary HTTP options once, guard and
+forward that same snapshot, and reject the unsafe top-level own __proto__ key
+before Node's next native copy. Both check/use counterexamples were reproduced
+with a synthetic native agent and zero socket attempts. No financial bypass,
+arbitrary Agent isolation or universal OS-network guarantee is claimed.
 
-The human authorized necessary N02-G corrections and sanitized publication.
-Both harness files already belong to the existing seventeen-path scope; no new
-path, rebaseline or global permission is needed. Original household accuracy,
-follow-ups, privacy and financial safety criteria are not reduced.
+New source-bound E1–E5 evidence addresses the prior integrated composition
+limits: exact normal S01 programs and residual source positions, actual local
+callbacks, returned genuine handles, closed imports, trace and acceptance.
+It is an executor argument PENDING INDEPENDENT REVIEW, not semantic approval.
+No new analyzer, engine, grammar, schema, vendor, norm, captured artifact or pin.
 
-## Causal correction
+The previous 9d021e1 fixed five-block-plus-final review is CLOSED INCOMPLETA;
+its 319 limited role observations are not approvals or a sum of partial GOs.
+This publication is a new material whole candidate, not a sixth reading block,
+cosmetic hash or corrective retry on the old immutable object. One integrated
+independent review of this whole candidate follows publication.
 
-B4-01: the tripwire accepted DNS names beginning127. as loopback IPv4. The
-bounded adversarial review also exposed normal HTTP URL/options host precedence
-and native fetch(Request) inputs not represented by the former shared extractor.
-The existing helper now requires literal IPv4 for127/8, applies own-enumerable
-HTTP options, and classifies fetch by its native Request URL or a once-captured
-string. RequestInit is not treated as HTTP host options. Request/body/init are
-preserved. No DNS resolver, dependency, agent framework or OS/UDP guarantee.
+The original normative §4 witness scope remains distinct from universal §6
+equivalence. Historical data are not requalified or multiplied into new proofs.
+The nine captures, compiler/TCB roots, corpus, dependencies and pins remain
+unchanged. Twelve discharged flags and six normal premises remain false;
+actual A/W/first-W and authentic operational TCB/pin/runtime/ticket/fresh
+prerequisites are not manufactured by these local results. No handles or
+financial execution are authorized by a static review alone.
 
-Canonical REDs preceded the fixes; the affected23cases passed. New regression
-uses synthetic network originals in an isolated child: no actual network call.
-It generates IPv4/DNS classes and covers string/URL/Request forms, host option
-precedence, shadowed Request.url, one-time coercion and body/init preservation.
-
-## Integral validation and retained failure
-
-First B4 broad:2787tests/2776PASS/1FAIL/10exactSKIP, child/runner1. The one
-failure was existing EVALUATOR-WITNESS-007 host_timeout with unchanged2500ms
-per invocation. The immediate failure mechanism is proven; an external
-scheduling/resource cause is not. No wrong financial value was reported.
-One diagnostic of that case passed under the same guard/coverage/limits.
-
-One finite integral confirmation, with identical sources and limits, completed
-2026-10-19T04:16:53.522Z:2787tests/2777PASS/0FAIL/10exactSKIP/cancel-todo0,
-child/runner0,validtrue,matrix_green=true,reasons[]. All88PATHv3 titles, two
-SCHEMA005/006 titles and the new harness case occurred exactly once.
-895sources before/after/CURRENT match;752retained coverage JSON byte/hash/parse
-checks match. Raw stdout/coverage remain local. The prior RED remains RED and
-is explicitly supplied to independent review; it is not combined into a fake
-single all-green execution. No subsequent broad run is warranted without delta.
-
-## Open independent and operational boundaries
-
-The parent five-block-plus-final review ended INCOMPLETA.316roles accessed or
-examined with limits were not316approvals. Besides B4, independent sufficiency
-of S01/admission/12rules and program/effect integration was not closed. The B4
-fix does not by itself close those gaps. Historical standalone APTOs are not
-summed. Missing fresh execution alone does not disprove a purely static claim.
-
-The current snapshot still has12discharged=false,six real required premises
-false,30unclassified entries,L15+15 and conditional W13+3. Actual A/W/firstW,
-operational TCB/pin/runtime/ticket and fresh qualification are not demonstrated.
-Qualified,credit,exec,finance,receipt,validated_parent,globalGO,NEXT03 remain
-false/zero. Static review is not permission for guest finance or deployment.
-Witness section4 is not universal-equivalence section6; section7 does not ask
-for45988new proofs or2419historical reruns. No historical/v2/narrow requalification.
-
-Next: independent review of the complete immutable candidate, prioritizing the
-real harness delta and the retained semantic integration gaps. Hashes, access,
-AST, reassembly, counts and executor-written arguments are not semantic approval.
+Qualified/credit/exec/finance/receipt/validated_parent/globalGO/NEXT03 false/0.
+N02-G is incomplete. No deployment, production access or real data are in scope.

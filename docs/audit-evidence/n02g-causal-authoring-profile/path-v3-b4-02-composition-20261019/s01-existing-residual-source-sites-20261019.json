@@ -1,0 +1,4444 @@
+{
+  "kind": "mechanical_existing_S01_residual_source_offsets_not_discharge",
+  "reference_readout_sha256": "f5e6c5c850f087d8250d5d6e04d668ad1fd833d099b68803259347106ddf4c85",
+  "wrapper_prefix": "(function(require,module,exports){\n",
+  "wrapper_prefix_characters": 35,
+  "combined_normal_C_program_sha256": "sha256:e1cea3373afea0ac67e44c71e5c1f889b35ccf0d99b6ff409be9a86bcf950dd4",
+  "bindings_match": true,
+  "sites": [
+    {
+      "surface": "derivation",
+      "module": "src/next/provenance/collectionProofCore.js",
+      "bound_source": "sha256:4cc88bf36458e46783dfbc1ae24c3f0fc2855e28f29663094ca48be0fe72a8ec",
+      "site": "92:124",
+      "source_start": 57,
+      "source_end": 89,
+      "code": "require('./proofObservedValues')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "derivation",
+      "module": "src/next/provenance/collectionProofCore.js",
+      "bound_source": "sha256:4cc88bf36458e46783dfbc1ae24c3f0fc2855e28f29663094ca48be0fe72a8ec",
+      "site": "2755:2817",
+      "source_start": 2720,
+      "source_end": 2782,
+      "code": "Object.freeze({ members, sameField, join, ordered, quantify })",
+      "reason": "shared_passive_constructor"
+    },
+    {
+      "surface": "derivation",
+      "module": "src/next/provenance/literalTypes.js",
+      "bound_source": "sha256:c99b3a919c995638702325dcb7c2cb1f8e338388700429b3bc9f1cce7a00b4ec",
+      "site": "83:109",
+      "source_start": 48,
+      "source_end": 74,
+      "code": "require('./civilCalendar')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "derivation",
+      "module": "src/next/provenance/materialFingerprintCore.js",
+      "bound_source": "sha256:7f0b50ffb0f0a6762f60f2c0b5101e5a9606e44f6241d7d40260e21e051c3d37",
+      "site": "67:98",
+      "source_start": 32,
+      "source_end": 63,
+      "code": "require('./observationScalars')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "derivation",
+      "module": "src/next/provenance/materialFingerprintCore.js",
+      "bound_source": "sha256:7f0b50ffb0f0a6762f60f2c0b5101e5a9606e44f6241d7d40260e21e051c3d37",
+      "site": "162:194",
+      "source_start": 127,
+      "source_end": 159,
+      "code": "require('./proofObservedValues')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "derivation",
+      "module": "src/next/provenance/operatorTypes.js",
+      "bound_source": "sha256:573db750922769a1626fe11c938458271b7cd09fdc5571df5c7b6786fa8d493c",
+      "site": "296:492",
+      "source_start": 261,
+      "source_end": 457,
+      "code": "new Set(['id', 'text', 'date', 'month', 'datetime', 'integer',\n    'positive_integer', 'nonnegative_integer', 'money_minor', 'boolean', 'enum',\n    'digest', 'timezone', 'calendar', 'civil_unit'])",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "derivation",
+      "module": "src/next/provenance/operatorTypes.js",
+      "bound_source": "sha256:573db750922769a1626fe11c938458271b7cd09fdc5571df5c7b6786fa8d493c",
+      "site": "510:588",
+      "source_start": 475,
+      "source_end": 553,
+      "code": "new Set(['integer', 'positive_integer', 'nonnegative_integer', 'money_minor'])",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "derivation",
+      "module": "src/next/provenance/operatorTypes.js",
+      "bound_source": "sha256:573db750922769a1626fe11c938458271b7cd09fdc5571df5c7b6786fa8d493c",
+      "site": "610:623",
+      "source_start": 575,
+      "source_end": 588,
+      "code": "new WeakMap()",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "derivation",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "77:102",
+      "source_start": 42,
+      "source_end": 67,
+      "code": "require('./literalTypes')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "derivation",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "122:153",
+      "source_start": 87,
+      "source_end": 118,
+      "code": "require('./observationScalars')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "derivation",
+      "module": "src/next/provenance/proofProgramData.js",
+      "bound_source": "sha256:368761e082fbe51d5ec150875af47ffb0f19cdca48f974223a6674f60ff7bea9",
+      "site": "75:106",
+      "source_start": 40,
+      "source_end": 71,
+      "code": "require('./observationScalars')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "derivation",
+      "module": "src/next/provenance/proofSha256.js",
+      "bound_source": "sha256:5e911bfa787507bdba6beafc5bc84160492dbcd0b10f838d80924827775dfe2f",
+      "site": "286:1103",
+      "source_start": 251,
+      "source_end": 1068,
+      "code": "Object.freeze([\n    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,\n    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,\n    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,\n    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,\n    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,\n    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,\n    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,\n    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2\n])",
+      "reason": "shared_passive_constructor"
+    },
+    {
+      "surface": "derivation",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "80:106",
+      "source_start": 45,
+      "source_end": 71,
+      "code": "require('./operatorTypes')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "derivation",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "136:161",
+      "source_start": 101,
+      "source_end": 126,
+      "code": "require('./literalTypes')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "derivation",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "253:279",
+      "source_start": 218,
+      "source_end": 244,
+      "code": "require('./civilCalendar')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "derivation",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "773:2651",
+      "source_start": 738,
+      "source_end": 2616,
+      "code": "Object.freeze({\n        eq: ['typed_equal', ['scalar:T', 'scalar:T']],\n        not_eq: ['typed_unequal', ['scalar:T', 'scalar:T']],\n        same_identity: ['same_kind_ref_version', ['node:K', 'node:K']],\n        kind_is: ['exact_kind', ['node:K', 'kind_literal']],\n        ref_targets_node: ['edge_resolves_exact_target', ['edge_ref:K', 'node:K']],\n        edge_target_in_set: ['resolved_target_member', ['edge_ref:K', 'set:node:K']],\n        field_eq: ['typed_field_equal', ['field_path:T', 'field_path:T']],\n        state_is: ['exact_state', ['state_path', 'state_literal']],\n        date_in_period: ['contains_civil_date', ['date', 'period']],\n        period_eq: ['equal_period_kind_and_fields', ['period', 'period']],\n        same_month: ['equal_year_and_month', ['date', 'date']],\n        range_contains: ['contains_range_with_boundaries', ['range', 'range']],\n        opposite_sign: ['strict_nonzero_opposite_signs', ['number:U', 'number:U']],\n        abs_eq: ['absolute_values_equal', ['number:U', 'number:U']],\n        sum_eq: ['checked_same_unit_sum_equal', ['sequence:number:U', 'number:U']],\n        count_eq: ['sequence_length_equal', ['sequence:T', 'nonnegative_integer']],\n        set_eq: ['exact_typed_members', ['set:T', 'set:T']],\n        cardinality_eq: ['exact_set_cardinality', ['set:T', 'nonnegative_integer']],\n        all_dates_in_period: ['every_date_contained', ['sequence:date', 'period']],\n        civil_offset_matches: ['exact_civil_offset_without_clamp', ['date', 'integer', 'civil_unit', 'date', 'calendar']],\n        month_bounds_match: ['exact_first_and_last_civil_date_of_month', ['month', 'date', 'date', 'calendar']],\n        day_of_month_matches: ['exact_civil_day_of_month', ['date', 'positive_integer', 'calendar']],\n        inclusive_day_count_matches: ['inclusive_civil_date_cardinality', ['range', 'positive_integer', 'calendar']]\n    })",
+      "reason": "shared_passive_constructor"
+    },
+    {
+      "surface": "derivation",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "13598:13675",
+      "source_start": 13563,
+      "source_end": 13640,
+      "code": "Object.freeze({ evaluateScalarProof, compareTypedScalars, supportsOperator })",
+      "reason": "shared_passive_constructor"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/kernel/canonicalJson.js",
+      "bound_source": "sha256:f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "site": "243:252",
+      "source_start": 208,
+      "source_end": 217,
+      "code": "new Set()",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/kernel/canonicalJson.js",
+      "bound_source": "sha256:f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "site": "346:367",
+      "source_start": 311,
+      "source_end": 332,
+      "code": "JSON.stringify(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/kernel/canonicalJson.js",
+      "bound_source": "sha256:f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "site": "406:433",
+      "source_start": 371,
+      "source_end": 398,
+      "code": "Number.isSafeInteger(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/kernel/canonicalJson.js",
+      "bound_source": "sha256:f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "site": "438:458",
+      "source_start": 403,
+      "source_end": 423,
+      "code": "Object.is(value, -0)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/kernel/canonicalJson.js",
+      "bound_source": "sha256:f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "site": "467:480",
+      "source_start": 432,
+      "source_end": 445,
+      "code": "String(value)",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/kernel/canonicalJson.js",
+      "bound_source": "sha256:f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "site": "529:549",
+      "source_start": 494,
+      "source_end": 514,
+      "code": "ancestors.has(value)",
+      "reason": "unbound_formal"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/kernel/canonicalJson.js",
+      "bound_source": "sha256:f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "site": "557:592",
+      "source_start": 522,
+      "source_end": 557,
+      "code": "new Error('canonical_json_invalid')",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/kernel/canonicalJson.js",
+      "bound_source": "sha256:f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "site": "612:632",
+      "source_start": 577,
+      "source_end": 597,
+      "code": "Array.isArray(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/kernel/canonicalJson.js",
+      "bound_source": "sha256:f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "site": "652:680",
+      "source_start": 617,
+      "source_end": 645,
+      "code": "Object.getPrototypeOf(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/kernel/canonicalJson.js",
+      "bound_source": "sha256:f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "site": "709:744",
+      "source_start": 674,
+      "source_end": 709,
+      "code": "new Error('canonical_json_invalid')",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/kernel/canonicalJson.js",
+      "bound_source": "sha256:f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "site": "754:789",
+      "source_start": 719,
+      "source_end": 754,
+      "code": "Object.getOwnPropertySymbols(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/kernel/canonicalJson.js",
+      "bound_source": "sha256:f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "site": "804:839",
+      "source_start": 769,
+      "source_end": 804,
+      "code": "new Error('canonical_json_invalid')",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/kernel/canonicalJson.js",
+      "bound_source": "sha256:f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "site": "865:904",
+      "source_start": 830,
+      "source_end": 869,
+      "code": "Object.getOwnPropertyDescriptors(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/kernel/canonicalJson.js",
+      "bound_source": "sha256:f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "site": "942:969",
+      "source_start": 907,
+      "source_end": 934,
+      "code": "Object.entries(descriptors)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/kernel/canonicalJson.js",
+      "bound_source": "sha256:f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "site": "1061:1095",
+      "source_start": 1026,
+      "source_end": 1060,
+      "code": "Object.hasOwn(descriptor, 'value')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/kernel/canonicalJson.js",
+      "bound_source": "sha256:f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "site": "1111:1166",
+      "source_start": 1076,
+      "source_end": 1131,
+      "code": "['__proto__', 'constructor', 'prototype'].includes(key)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/kernel/canonicalJson.js",
+      "bound_source": "sha256:f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "site": "1174:1209",
+      "source_start": 1139,
+      "source_end": 1174,
+      "code": "new Error('canonical_json_invalid')",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/kernel/canonicalJson.js",
+      "bound_source": "sha256:f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "site": "1221:1241",
+      "source_start": 1186,
+      "source_end": 1206,
+      "code": "ancestors.add(value)",
+      "reason": "unbound_formal"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/kernel/canonicalJson.js",
+      "bound_source": "sha256:f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "site": "1288:1306",
+      "source_start": 1253,
+      "source_end": 1271,
+      "code": "Object.keys(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/kernel/canonicalJson.js",
+      "bound_source": "sha256:f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "site": "1346:1408",
+      "source_start": 1311,
+      "source_end": 1373,
+      "code": "Object.keys(value).some((key, index) => key !== String(index))",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/kernel/canonicalJson.js",
+      "bound_source": "sha256:f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "site": "1346:1364",
+      "source_start": 1311,
+      "source_end": 1329,
+      "code": "Object.keys(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/kernel/canonicalJson.js",
+      "bound_source": "sha256:f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "site": "1416:1451",
+      "source_start": 1381,
+      "source_end": 1416,
+      "code": "new Error('canonical_json_invalid')",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/kernel/canonicalJson.js",
+      "bound_source": "sha256:f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "site": "1476:1536",
+      "source_start": 1441,
+      "source_end": 1501,
+      "code": "value.map(item => canonicalValue(item, ancestors)).join(',')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/kernel/canonicalJson.js",
+      "bound_source": "sha256:f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "site": "1476:1526",
+      "source_start": 1441,
+      "source_end": 1491,
+      "code": "value.map(item => canonicalValue(item, ancestors))",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/kernel/canonicalJson.js",
+      "bound_source": "sha256:f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "site": "1580:1705",
+      "source_start": 1545,
+      "source_end": 1670,
+      "code": "Object.keys(value).sort().map(key =>\n            JSON.stringify(key) + ':' + canonicalValue(value[key], ancestors)).join(',')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/kernel/canonicalJson.js",
+      "bound_source": "sha256:f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "site": "1580:1695",
+      "source_start": 1545,
+      "source_end": 1660,
+      "code": "Object.keys(value).sort().map(key =>\n            JSON.stringify(key) + ':' + canonicalValue(value[key], ancestors))",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/kernel/canonicalJson.js",
+      "bound_source": "sha256:f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "site": "1580:1605",
+      "source_start": 1545,
+      "source_end": 1570,
+      "code": "Object.keys(value).sort()",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/kernel/canonicalJson.js",
+      "bound_source": "sha256:f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "site": "1580:1598",
+      "source_start": 1545,
+      "source_end": 1563,
+      "code": "Object.keys(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/kernel/canonicalJson.js",
+      "bound_source": "sha256:f350630d0e50d0ae5695cfd2b11f107ecfd0f1d23514f14233a2c1afbc58b592",
+      "site": "1723:1746",
+      "source_start": 1688,
+      "source_end": 1711,
+      "code": "ancestors.delete(value)",
+      "reason": "unbound_formal"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "239:265",
+      "source_start": 204,
+      "source_end": 230,
+      "code": "new Error(`civil_${code}`)",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "306:333",
+      "source_start": 271,
+      "source_end": 298,
+      "code": "Number.isSafeInteger(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "337:357",
+      "source_start": 302,
+      "source_end": 322,
+      "code": "Object.is(value, -0)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "526:552",
+      "source_start": 491,
+      "source_end": 517,
+      "code": "Math.floor((year - 1) / 4)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "559:587",
+      "source_start": 524,
+      "source_end": 552,
+      "code": "Math.floor((year - 1) / 100)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "590:618",
+      "source_start": 555,
+      "source_end": 583,
+      "code": "Math.floor((year - 1) / 400)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "717:746",
+      "source_start": 682,
+      "source_end": 711,
+      "code": "[4, 6, 9, 11].includes(month)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "827:854",
+      "source_start": 792,
+      "source_end": 819,
+      "code": "/^\\d{4}-\\d{2}$/.test(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "897:925",
+      "source_start": 862,
+      "source_end": 890,
+      "code": "value.split('-').map(Number)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "897:913",
+      "source_start": 862,
+      "source_end": 878,
+      "code": "value.split('-')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "1098:1131",
+      "source_start": 1063,
+      "source_end": 1096,
+      "code": "/^\\d{4}-\\d{2}-\\d{2}$/.test(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "1186:1203",
+      "source_start": 1151,
+      "source_end": 1168,
+      "code": "value.slice(0, 7)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "1222:1244",
+      "source_start": 1187,
+      "source_end": 1209,
+      "code": "Number(value.slice(8))",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "1229:1243",
+      "source_start": 1194,
+      "source_end": 1208,
+      "code": "value.slice(8)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "1396:1425",
+      "source_start": 1361,
+      "source_end": 1390,
+      "code": "String(year).padStart(4, '0')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "1396:1408",
+      "source_start": 1361,
+      "source_end": 1373,
+      "code": "String(year)",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "1429:1459",
+      "source_start": 1394,
+      "source_end": 1424,
+      "code": "String(month).padStart(2, '0')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "1429:1442",
+      "source_start": 1394,
+      "source_end": 1407,
+      "code": "String(month)",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "1463:1491",
+      "source_start": 1428,
+      "source_end": 1456,
+      "code": "String(day).padStart(2, '0')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "1463:1474",
+      "source_start": 1428,
+      "source_end": 1439,
+      "code": "String(day)",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "1924:1951",
+      "source_start": 1889,
+      "source_end": 1916,
+      "code": "Math.ceil((low + high) / 2)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "2612:2634",
+      "source_start": 2577,
+      "source_end": 2599,
+      "code": "Math.floor(index / 12)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/collectionProofCore.js",
+      "bound_source": "sha256:4cc88bf36458e46783dfbc1ae24c3f0fc2855e28f29663094ca48be0fe72a8ec",
+      "site": "92:124",
+      "source_start": 57,
+      "source_end": 89,
+      "code": "require('./proofObservedValues')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/collectionProofCore.js",
+      "bound_source": "sha256:4cc88bf36458e46783dfbc1ae24c3f0fc2855e28f29663094ca48be0fe72a8ec",
+      "site": "2755:2817",
+      "source_start": 2720,
+      "source_end": 2782,
+      "code": "Object.freeze({ members, sameField, join, ordered, quantify })",
+      "reason": "shared_passive_constructor"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/literalTypes.js",
+      "bound_source": "sha256:c99b3a919c995638702325dcb7c2cb1f8e338388700429b3bc9f1cce7a00b4ec",
+      "site": "83:109",
+      "source_start": 48,
+      "source_end": 74,
+      "code": "require('./civilCalendar')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/literalTypes.js",
+      "bound_source": "sha256:c99b3a919c995638702325dcb7c2cb1f8e338388700429b3bc9f1cce7a00b4ec",
+      "site": "138:169",
+      "source_start": 103,
+      "source_end": 134,
+      "code": "new Error('literal_type_value')",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/literalTypes.js",
+      "bound_source": "sha256:c99b3a919c995638702325dcb7c2cb1f8e338388700429b3bc9f1cce7a00b4ec",
+      "site": "261:283",
+      "source_start": 226,
+      "source_end": 248,
+      "code": "Array.isArray(literal)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/literalTypes.js",
+      "bound_source": "sha256:c99b3a919c995638702325dcb7c2cb1f8e338388700429b3bc9f1cce7a00b4ec",
+      "site": "295:315",
+      "source_start": 260,
+      "source_end": 280,
+      "code": "Object.keys(literal)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/literalTypes.js",
+      "bound_source": "sha256:c99b3a919c995638702325dcb7c2cb1f8e338388700429b3bc9f1cce7a00b4ec",
+      "site": "333:363",
+      "source_start": 298,
+      "source_end": 328,
+      "code": "Object.hasOwn(literal, 'type')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/literalTypes.js",
+      "bound_source": "sha256:c99b3a919c995638702325dcb7c2cb1f8e338388700429b3bc9f1cce7a00b4ec",
+      "site": "368:399",
+      "source_start": 333,
+      "source_end": 364,
+      "code": "Object.hasOwn(literal, 'value')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/literalTypes.js",
+      "bound_source": "sha256:c99b3a919c995638702325dcb7c2cb1f8e338388700429b3bc9f1cce7a00b4ec",
+      "site": "515:542",
+      "source_start": 480,
+      "source_end": 507,
+      "code": "Number.isSafeInteger(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/literalTypes.js",
+      "bound_source": "sha256:c99b3a919c995638702325dcb7c2cb1f8e338388700429b3bc9f1cce7a00b4ec",
+      "site": "546:566",
+      "source_start": 511,
+      "source_end": 531,
+      "code": "Object.is(value, -0)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/literalTypes.js",
+      "bound_source": "sha256:c99b3a919c995638702325dcb7c2cb1f8e338388700429b3bc9f1cce7a00b4ec",
+      "site": "888:982",
+      "source_start": 853,
+      "source_end": 947,
+      "code": "/^(\\d{4}-\\d{2}-\\d{2})T(\\d{2}):(\\d{2}):(\\d{2})(?:\\.\\d+)?(?:Z|[+-](\\d{2}):(\\d{2}))$/.exec(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/literalTypes.js",
+      "bound_source": "sha256:c99b3a919c995638702325dcb7c2cb1f8e338388700429b3bc9f1cce7a00b4ec",
+      "site": "1264:1299",
+      "source_start": 1229,
+      "source_end": 1264,
+      "code": "/^sha256:[a-f0-9]{64}$/.test(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/literalTypes.js",
+      "bound_source": "sha256:c99b3a919c995638702325dcb7c2cb1f8e338388700429b3bc9f1cce7a00b4ec",
+      "site": "1362:1414",
+      "source_start": 1327,
+      "source_end": 1379,
+      "code": "/^[A-Za-z0-9][A-Za-z0-9._:/#@-]{0,159}$/.test(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/literalTypes.js",
+      "bound_source": "sha256:c99b3a919c995638702325dcb7c2cb1f8e338388700429b3bc9f1cce7a00b4ec",
+      "site": "1479:1510",
+      "source_start": 1444,
+      "source_end": 1475,
+      "code": "/^[a-z][a-z0-9_]*$/.test(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/materialFingerprintCore.js",
+      "bound_source": "sha256:7f0b50ffb0f0a6762f60f2c0b5101e5a9606e44f6241d7d40260e21e051c3d37",
+      "site": "67:98",
+      "source_start": 32,
+      "source_end": 63,
+      "code": "require('./observationScalars')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/materialFingerprintCore.js",
+      "bound_source": "sha256:7f0b50ffb0f0a6762f60f2c0b5101e5a9606e44f6241d7d40260e21e051c3d37",
+      "site": "162:194",
+      "source_start": 127,
+      "source_end": 159,
+      "code": "require('./proofObservedValues')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/materialFingerprintCore.js",
+      "bound_source": "sha256:7f0b50ffb0f0a6762f60f2c0b5101e5a9606e44f6241d7d40260e21e051c3d37",
+      "site": "490:525",
+      "source_start": 455,
+      "source_end": 490,
+      "code": "new Error('proof_material_invalid')",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/materialFingerprintCore.js",
+      "bound_source": "sha256:7f0b50ffb0f0a6762f60f2c0b5101e5a9606e44f6241d7d40260e21e051c3d37",
+      "site": "651:718",
+      "source_start": 616,
+      "source_end": 683,
+      "code": "['explicit_presence', 'enumerated_presence'].includes(presenceMode)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/materialFingerprintCore.js",
+      "bound_source": "sha256:7f0b50ffb0f0a6762f60f2c0b5101e5a9606e44f6241d7d40260e21e051c3d37",
+      "site": "807:847",
+      "source_start": 772,
+      "source_end": 812,
+      "code": "Object.keys(descriptor).sort().join(',')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/materialFingerprintCore.js",
+      "bound_source": "sha256:7f0b50ffb0f0a6762f60f2c0b5101e5a9606e44f6241d7d40260e21e051c3d37",
+      "site": "807:837",
+      "source_start": 772,
+      "source_end": 802,
+      "code": "Object.keys(descriptor).sort()",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/materialFingerprintCore.js",
+      "bound_source": "sha256:7f0b50ffb0f0a6762f60f2c0b5101e5a9606e44f6241d7d40260e21e051c3d37",
+      "site": "807:830",
+      "source_start": 772,
+      "source_end": 795,
+      "code": "Object.keys(descriptor)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/materialFingerprintCore.js",
+      "bound_source": "sha256:7f0b50ffb0f0a6762f60f2c0b5101e5a9606e44f6241d7d40260e21e051c3d37",
+      "site": "899:948",
+      "source_start": 864,
+      "source_end": 913,
+      "code": "Number.isSafeInteger(descriptor.registry_version)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/materialFingerprintCore.js",
+      "bound_source": "sha256:7f0b50ffb0f0a6762f60f2c0b5101e5a9606e44f6241d7d40260e21e051c3d37",
+      "site": "1021:1053",
+      "source_start": 986,
+      "source_end": 1018,
+      "code": "Array.isArray(descriptor.fields)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/materialFingerprintCore.js",
+      "bound_source": "sha256:7f0b50ffb0f0a6762f60f2c0b5101e5a9606e44f6241d7d40260e21e051c3d37",
+      "site": "1315:1353",
+      "source_start": 1280,
+      "source_end": 1318,
+      "code": "Object.hasOwn(descriptor.fields, name)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/materialFingerprintCore.js",
+      "bound_source": "sha256:7f0b50ffb0f0a6762f60f2c0b5101e5a9606e44f6241d7d40260e21e051c3d37",
+      "site": "1486:1519",
+      "source_start": 1451,
+      "source_end": 1484,
+      "code": "Object.entries(descriptor.fields)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/materialFingerprintCore.js",
+      "bound_source": "sha256:7f0b50ffb0f0a6762f60f2c0b5101e5a9606e44f6241d7d40260e21e051c3d37",
+      "site": "1565:1635",
+      "source_start": 1530,
+      "source_end": 1600,
+      "code": "['identity', 'dimension', 'edge', 'non_material'].includes(spec.class)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/materialFingerprintCore.js",
+      "bound_source": "sha256:7f0b50ffb0f0a6762f60f2c0b5101e5a9606e44f6241d7d40260e21e051c3d37",
+      "site": "2051:2067",
+      "source_start": 2016,
+      "source_end": 2032,
+      "code": "handle.has(name)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/materialFingerprintCore.js",
+      "bound_source": "sha256:7f0b50ffb0f0a6762f60f2c0b5101e5a9606e44f6241d7d40260e21e051c3d37",
+      "site": "2070:2092",
+      "source_start": 2035,
+      "source_end": 2057,
+      "code": "present.includes(name)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/materialFingerprintCore.js",
+      "bound_source": "sha256:7f0b50ffb0f0a6762f60f2c0b5101e5a9606e44f6241d7d40260e21e051c3d37",
+      "site": "2121:2143",
+      "source_start": 2086,
+      "source_end": 2108,
+      "code": "present.includes(name)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/materialFingerprintCore.js",
+      "bound_source": "sha256:7f0b50ffb0f0a6762f60f2c0b5101e5a9606e44f6241d7d40260e21e051c3d37",
+      "site": "2205:2262",
+      "source_start": 2170,
+      "source_end": 2227,
+      "code": "pairs.push([name, materialValue(handle.get(name), spec)])",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/materialFingerprintCore.js",
+      "bound_source": "sha256:7f0b50ffb0f0a6762f60f2c0b5101e5a9606e44f6241d7d40260e21e051c3d37",
+      "site": "2237:2253",
+      "source_start": 2202,
+      "source_end": 2218,
+      "code": "handle.get(name)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/materialFingerprintCore.js",
+      "bound_source": "sha256:7f0b50ffb0f0a6762f60f2c0b5101e5a9606e44f6241d7d40260e21e051c3d37",
+      "site": "2298:2323",
+      "source_start": 2263,
+      "source_end": 2288,
+      "code": "Object.fromEntries(pairs)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/observationScalars.js",
+      "bound_source": "sha256:cf344f72a703e7be55fc165322860d84792fae82822f3daad1f557834faa4f09",
+      "site": "261:301",
+      "source_start": 226,
+      "source_end": 266,
+      "code": "/^[A-Za-z_][A-Za-z0-9_]{0,127}$/.test(v)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/observationScalars.js",
+      "bound_source": "sha256:cf344f72a703e7be55fc165322860d84792fae82822f3daad1f557834faa4f09",
+      "site": "310:363",
+      "source_start": 275,
+      "source_end": 328,
+      "code": "['__proto__', 'constructor', 'prototype'].includes(v)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/observationScalars.js",
+      "bound_source": "sha256:cf344f72a703e7be55fc165322860d84792fae82822f3daad1f557834faa4f09",
+      "site": "500:523",
+      "source_start": 465,
+      "source_end": 488,
+      "code": "Number.isSafeInteger(v)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/observationScalars.js",
+      "bound_source": "sha256:cf344f72a703e7be55fc165322860d84792fae82822f3daad1f557834faa4f09",
+      "site": "528:544",
+      "source_start": 493,
+      "source_end": 509,
+      "code": "Object.is(v, -0)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/operatorTypes.js",
+      "bound_source": "sha256:573db750922769a1626fe11c938458271b7cd09fdc5571df5c7b6786fa8d493c",
+      "site": "296:492",
+      "source_start": 261,
+      "source_end": 457,
+      "code": "new Set(['id', 'text', 'date', 'month', 'datetime', 'integer',\n    'positive_integer', 'nonnegative_integer', 'money_minor', 'boolean', 'enum',\n    'digest', 'timezone', 'calendar', 'civil_unit'])",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/operatorTypes.js",
+      "bound_source": "sha256:573db750922769a1626fe11c938458271b7cd09fdc5571df5c7b6786fa8d493c",
+      "site": "510:588",
+      "source_start": 475,
+      "source_end": 553,
+      "code": "new Set(['integer', 'positive_integer', 'nonnegative_integer', 'money_minor'])",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/operatorTypes.js",
+      "bound_source": "sha256:573db750922769a1626fe11c938458271b7cd09fdc5571df5c7b6786fa8d493c",
+      "site": "610:623",
+      "source_start": 575,
+      "source_end": 588,
+      "code": "new WeakMap()",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/operatorTypes.js",
+      "bound_source": "sha256:573db750922769a1626fe11c938458271b7cd09fdc5571df5c7b6786fa8d493c",
+      "site": "815:850",
+      "source_start": 780,
+      "source_end": 815,
+      "code": "new Error(`operator_types_${code}`)",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/operatorTypes.js",
+      "bound_source": "sha256:573db750922769a1626fe11c938458271b7cd09fdc5571df5c7b6786fa8d493c",
+      "site": "856:930",
+      "source_start": 821,
+      "source_end": 895,
+      "code": "diagnostics.set(error, Object.freeze({ checker: 'operator_types', code }))",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/operatorTypes.js",
+      "bound_source": "sha256:573db750922769a1626fe11c938458271b7cd09fdc5571df5c7b6786fa8d493c",
+      "site": "879:929",
+      "source_start": 844,
+      "source_end": 894,
+      "code": "Object.freeze({ checker: 'operator_types', code })",
+      "reason": "shared_passive_constructor"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/operatorTypes.js",
+      "bound_source": "sha256:573db750922769a1626fe11c938458271b7cd09fdc5571df5c7b6786fa8d493c",
+      "site": "2117:2146",
+      "source_start": 2082,
+      "source_end": 2111,
+      "code": "Array.isArray(operator?.args)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/operatorTypes.js",
+      "bound_source": "sha256:573db750922769a1626fe11c938458271b7cd09fdc5571df5c7b6786fa8d493c",
+      "site": "2151:2170",
+      "source_start": 2116,
+      "source_end": 2135,
+      "code": "Array.isArray(args)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/operatorTypes.js",
+      "bound_source": "sha256:573db750922769a1626fe11c938458271b7cd09fdc5571df5c7b6786fa8d493c",
+      "site": "2248:2257",
+      "source_start": 2213,
+      "source_end": 2222,
+      "code": "new Map()",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/operatorTypes.js",
+      "bound_source": "sha256:573db750922769a1626fe11c938458271b7cd09fdc5571df5c7b6786fa8d493c",
+      "site": "5504:5578",
+      "source_start": 5469,
+      "source_end": 5543,
+      "code": "operator.args.forEach((signature, index) => match(signature, args[index]))",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/operatorTypes.js",
+      "bound_source": "sha256:573db750922769a1626fe11c938458271b7cd09fdc5571df5c7b6786fa8d493c",
+      "site": "5588:5664",
+      "source_start": 5553,
+      "source_end": 5629,
+      "code": "['contains_civil_date', 'every_date_contained'].includes(operator.semantics)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/operatorTypes.js",
+      "bound_source": "sha256:573db750922769a1626fe11c938458271b7cd09fdc5571df5c7b6786fa8d493c",
+      "site": "5745:5875",
+      "source_start": 5710,
+      "source_end": 5840,
+      "code": "['date', 'as_of', 'through', 'statement_due',\n            'month', 'statement_competence', 'budget_cycle', 'range'].includes(kind)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/operatorTypes.js",
+      "bound_source": "sha256:573db750922769a1626fe11c938458271b7cd09fdc5571df5c7b6786fa8d493c",
+      "site": "5920:6025",
+      "source_start": 5885,
+      "source_end": 5990,
+      "code": "Object.freeze({ stage: 'signature_checked_only', bindings: Object.freeze(Object.fromEntries(bindings)) })",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/operatorTypes.js",
+      "bound_source": "sha256:573db750922769a1626fe11c938458271b7cd09fdc5571df5c7b6786fa8d493c",
+      "site": "5979:6022",
+      "source_start": 5944,
+      "source_end": 5987,
+      "code": "Object.freeze(Object.fromEntries(bindings))",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/operatorTypes.js",
+      "bound_source": "sha256:573db750922769a1626fe11c938458271b7cd09fdc5571df5c7b6786fa8d493c",
+      "site": "5993:6021",
+      "source_start": 5958,
+      "source_end": 5986,
+      "code": "Object.fromEntries(bindings)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "77:102",
+      "source_start": 42,
+      "source_end": 67,
+      "code": "require('./literalTypes')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "122:153",
+      "source_start": 87,
+      "source_end": 118,
+      "code": "require('./observationScalars')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "182:217",
+      "source_start": 147,
+      "source_end": 182,
+      "code": "new Error('proof_material_invalid')",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "433:456",
+      "source_start": 398,
+      "source_end": 421,
+      "code": "handle.identity('kind')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "477:502",
+      "source_start": 442,
+      "source_end": 467,
+      "code": "handle.identity('ref_id')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "524:550",
+      "source_start": 489,
+      "source_end": 515,
+      "code": "handle.identity('version')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "830:843",
+      "source_start": 795,
+      "source_end": 808,
+      "code": "handle.keys()",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "866:886",
+      "source_start": 831,
+      "source_end": 851,
+      "code": "result.includes(key)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "896:912",
+      "source_start": 861,
+      "source_end": 877,
+      "code": "result.push(key)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "1235:1259",
+      "source_start": 1200,
+      "source_end": 1224,
+      "code": "values.push(item(value))",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "1247:1258",
+      "source_start": 1212,
+      "source_end": 1223,
+      "code": "item(value)",
+      "reason": "conflicting_incoming_origins"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "1402:1460",
+      "source_start": 1367,
+      "source_end": 1425,
+      "code": "['positive_integer', 'nonnegative_integer'].includes(type)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "1477:1504",
+      "source_start": 1442,
+      "source_end": 1469,
+      "code": "Number.isSafeInteger(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "1742:1774",
+      "source_start": 1707,
+      "source_end": 1739,
+      "code": "Array.isArray(descriptor.values)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "1779:1812",
+      "source_start": 1744,
+      "source_end": 1777,
+      "code": "descriptor.values.includes(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "1989:2008",
+      "source_start": 1954,
+      "source_end": 1973,
+      "code": "Object.keys(fields)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "2019:2067",
+      "source_start": 1984,
+      "source_end": 2032,
+      "code": "names.some(name => !Object.hasOwn(fields, name))",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "2094:2202",
+      "source_start": 2059,
+      "source_end": 2167,
+      "code": "Object.fromEntries(Object.entries(fields).map(([name, type]) => [name, scalar(handle.get(name), { type })]))",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "2113:2201",
+      "source_start": 2078,
+      "source_end": 2166,
+      "code": "Object.entries(fields).map(([name, type]) => [name, scalar(handle.get(name), { type })])",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "2113:2135",
+      "source_start": 2078,
+      "source_end": 2100,
+      "code": "Object.entries(fields)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "2267:2285",
+      "source_start": 2232,
+      "source_end": 2250,
+      "code": "handle.get('kind')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "2295:2355",
+      "source_start": 2260,
+      "source_end": 2320,
+      "code": "['date', 'as_of', 'through', 'statement_due'].includes(kind)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "2432:2496",
+      "source_start": 2397,
+      "source_end": 2461,
+      "code": "['month', 'statement_competence', 'budget_cycle'].includes(kind)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "3120:3142",
+      "source_start": 3085,
+      "source_end": 3107,
+      "code": "names.sort().join(',')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "3120:3132",
+      "source_start": 3085,
+      "source_end": 3097,
+      "code": "names.sort()",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "3191:3209",
+      "source_start": 3156,
+      "source_end": 3174,
+      "code": "handle.get('unit')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "3224:3242",
+      "source_start": 3189,
+      "source_end": 3207,
+      "code": "handle.get('kind')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "3256:3275",
+      "source_start": 3221,
+      "source_end": 3240,
+      "code": "handle.get('value')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "3743:3757",
+      "source_start": 3708,
+      "source_end": 3722,
+      "code": "new Set(value)",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "4302:4317",
+      "source_start": 4267,
+      "source_end": 4282,
+      "code": "new Set(result)",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "4585:4599",
+      "source_start": 4550,
+      "source_end": 4564,
+      "code": "value.length()",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "4729:4770",
+      "source_start": 4694,
+      "source_end": 4735,
+      "code": "new Set(result.map(item => item.role_id))",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofObservedValues.js",
+      "bound_source": "sha256:e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced",
+      "site": "4737:4769",
+      "source_start": 4702,
+      "source_end": 4734,
+      "code": "result.map(item => item.role_id)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofProgramData.js",
+      "bound_source": "sha256:368761e082fbe51d5ec150875af47ffb0f19cdca48f974223a6674f60ff7bea9",
+      "site": "75:106",
+      "source_start": 40,
+      "source_end": 71,
+      "code": "require('./observationScalars')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofProgramData.js",
+      "bound_source": "sha256:368761e082fbe51d5ec150875af47ffb0f19cdca48f974223a6674f60ff7bea9",
+      "site": "504:513",
+      "source_start": 469,
+      "source_end": 478,
+      "code": "new Set()",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofProgramData.js",
+      "bound_source": "sha256:368761e082fbe51d5ec150875af47ffb0f19cdca48f974223a6674f60ff7bea9",
+      "site": "546:585",
+      "source_start": 511,
+      "source_end": 550,
+      "code": "new Error('proof_program_data_invalid')",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofProgramData.js",
+      "bound_source": "sha256:368761e082fbe51d5ec150875af47ffb0f19cdca48f974223a6674f60ff7bea9",
+      "site": "884:904",
+      "source_start": 849,
+      "source_end": 869,
+      "code": "ancestors.has(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofProgramData.js",
+      "bound_source": "sha256:368761e082fbe51d5ec150875af47ffb0f19cdca48f974223a6674f60ff7bea9",
+      "site": "936:956",
+      "source_start": 901,
+      "source_end": 921,
+      "code": "Array.isArray(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofProgramData.js",
+      "bound_source": "sha256:368761e082fbe51d5ec150875af47ffb0f19cdca48f974223a6674f60ff7bea9",
+      "site": "978:1006",
+      "source_start": 943,
+      "source_end": 971,
+      "code": "Object.getPrototypeOf(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofProgramData.js",
+      "bound_source": "sha256:368761e082fbe51d5ec150875af47ffb0f19cdca48f974223a6674f60ff7bea9",
+      "site": "1042:1105",
+      "source_start": 1007,
+      "source_end": 1070,
+      "code": "[Object.prototype, null].includes(Object.getPrototypeOf(value))",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofProgramData.js",
+      "bound_source": "sha256:368761e082fbe51d5ec150875af47ffb0f19cdca48f974223a6674f60ff7bea9",
+      "site": "1076:1104",
+      "source_start": 1041,
+      "source_end": 1069,
+      "code": "Object.getPrototypeOf(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofProgramData.js",
+      "bound_source": "sha256:368761e082fbe51d5ec150875af47ffb0f19cdca48f974223a6674f60ff7bea9",
+      "site": "1143:1182",
+      "source_start": 1108,
+      "source_end": 1147,
+      "code": "Object.getOwnPropertyDescriptors(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofProgramData.js",
+      "bound_source": "sha256:368761e082fbe51d5ec150875af47ffb0f19cdca48f974223a6674f60ff7bea9",
+      "site": "1205:1233",
+      "source_start": 1170,
+      "source_end": 1198,
+      "code": "Reflect.ownKeys(descriptors)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofProgramData.js",
+      "bound_source": "sha256:368761e082fbe51d5ec150875af47ffb0f19cdca48f974223a6674f60ff7bea9",
+      "site": "1247:1288",
+      "source_start": 1212,
+      "source_end": 1253,
+      "code": "keys.some(key => typeof key !== 'string')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofProgramData.js",
+      "bound_source": "sha256:368761e082fbe51d5ec150875af47ffb0f19cdca48f974223a6674f60ff7bea9",
+      "site": "1329:1349",
+      "source_start": 1294,
+      "source_end": 1314,
+      "code": "ancestors.add(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofProgramData.js",
+      "bound_source": "sha256:368761e082fbe51d5ec150875af47ffb0f19cdca48f974223a6674f60ff7bea9",
+      "site": "1680:1708",
+      "source_start": 1645,
+      "source_end": 1673,
+      "code": "Object.hasOwn(item, 'value')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofProgramData.js",
+      "bound_source": "sha256:368761e082fbe51d5ec150875af47ffb0f19cdca48f974223a6674f60ff7bea9",
+      "site": "1734:1774",
+      "source_start": 1699,
+      "source_end": 1739,
+      "code": "result.push(copy(item.value, depth + 1))",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofProgramData.js",
+      "bound_source": "sha256:368761e082fbe51d5ec150875af47ffb0f19cdca48f974223a6674f60ff7bea9",
+      "site": "1828:1847",
+      "source_start": 1793,
+      "source_end": 1812,
+      "code": "Object.create(null)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofProgramData.js",
+      "bound_source": "sha256:368761e082fbe51d5ec150875af47ffb0f19cdca48f974223a6674f60ff7bea9",
+      "site": "2010:2038",
+      "source_start": 1975,
+      "source_end": 2003,
+      "code": "Object.hasOwn(item, 'value')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofProgramData.js",
+      "bound_source": "sha256:368761e082fbe51d5ec150875af47ffb0f19cdca48f974223a6674f60ff7bea9",
+      "site": "2139:2162",
+      "source_start": 2104,
+      "source_end": 2127,
+      "code": "ancestors.delete(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofProgramData.js",
+      "bound_source": "sha256:368761e082fbe51d5ec150875af47ffb0f19cdca48f974223a6674f60ff7bea9",
+      "site": "2171:2192",
+      "source_start": 2136,
+      "source_end": 2157,
+      "code": "Object.freeze(result)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofSha256.js",
+      "bound_source": "sha256:5e911bfa787507bdba6beafc5bc84160492dbcd0b10f838d80924827775dfe2f",
+      "site": "286:1103",
+      "source_start": 251,
+      "source_end": 1068,
+      "code": "Object.freeze([\n    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,\n    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,\n    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,\n    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,\n    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,\n    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,\n    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,\n    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2\n])",
+      "reason": "shared_passive_constructor"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofSha256.js",
+      "bound_source": "sha256:5e911bfa787507bdba6beafc5bc84160492dbcd0b10f838d80924827775dfe2f",
+      "site": "1275:1306",
+      "source_start": 1240,
+      "source_end": 1271,
+      "code": "new Error('proof_sha256_input')",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofSha256.js",
+      "bound_source": "sha256:5e911bfa787507bdba6beafc5bc84160492dbcd0b10f838d80924827775dfe2f",
+      "site": "1326:1362",
+      "source_start": 1291,
+      "source_end": 1327,
+      "code": "new Uint8Array(text.length * 3 + 72)",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofSha256.js",
+      "bound_source": "sha256:5e911bfa787507bdba6beafc5bc84160492dbcd0b10f838d80924827775dfe2f",
+      "site": "1459:1481",
+      "source_start": 1424,
+      "source_end": 1446,
+      "code": "text.charCodeAt(index)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofSha256.js",
+      "bound_source": "sha256:5e911bfa787507bdba6beafc5bc84160492dbcd0b10f838d80924827775dfe2f",
+      "site": "1555:1581",
+      "source_start": 1520,
+      "source_end": 1546,
+      "code": "text.charCodeAt(index + 1)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofSha256.js",
+      "bound_source": "sha256:5e911bfa787507bdba6beafc5bc84160492dbcd0b10f838d80924827775dfe2f",
+      "site": "2355:2383",
+      "source_start": 2320,
+      "source_end": 2348,
+      "code": "Math.ceil((length + 9) / 64)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofSha256.js",
+      "bound_source": "sha256:5e911bfa787507bdba6beafc5bc84160492dbcd0b10f838d80924827775dfe2f",
+      "site": "2835:2854",
+      "source_start": 2800,
+      "source_end": 2819,
+      "code": "new Uint32Array(64)",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofSha256.js",
+      "bound_source": "sha256:5e911bfa787507bdba6beafc5bc84160492dbcd0b10f838d80924827775dfe2f",
+      "site": "3943:3977",
+      "source_start": 3908,
+      "source_end": 3942,
+      "code": "[a, b, c, d, e, f, g, h].entries()",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofSha256.js",
+      "bound_source": "sha256:5e911bfa787507bdba6beafc5bc84160492dbcd0b10f838d80924827775dfe2f",
+      "site": "4039:4103",
+      "source_start": 4004,
+      "source_end": 4068,
+      "code": "state.map(value => value.toString(16).padStart(8, '0')).join('')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/proofSha256.js",
+      "bound_source": "sha256:5e911bfa787507bdba6beafc5bc84160492dbcd0b10f838d80924827775dfe2f",
+      "site": "4039:4094",
+      "source_start": 4004,
+      "source_end": 4059,
+      "code": "state.map(value => value.toString(16).padStart(8, '0'))",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "80:106",
+      "source_start": 45,
+      "source_end": 71,
+      "code": "require('./operatorTypes')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "136:161",
+      "source_start": 101,
+      "source_end": 126,
+      "code": "require('./literalTypes')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "253:279",
+      "source_start": 218,
+      "source_end": 244,
+      "code": "require('./civilCalendar')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "773:2651",
+      "source_start": 738,
+      "source_end": 2616,
+      "code": "Object.freeze({\n        eq: ['typed_equal', ['scalar:T', 'scalar:T']],\n        not_eq: ['typed_unequal', ['scalar:T', 'scalar:T']],\n        same_identity: ['same_kind_ref_version', ['node:K', 'node:K']],\n        kind_is: ['exact_kind', ['node:K', 'kind_literal']],\n        ref_targets_node: ['edge_resolves_exact_target', ['edge_ref:K', 'node:K']],\n        edge_target_in_set: ['resolved_target_member', ['edge_ref:K', 'set:node:K']],\n        field_eq: ['typed_field_equal', ['field_path:T', 'field_path:T']],\n        state_is: ['exact_state', ['state_path', 'state_literal']],\n        date_in_period: ['contains_civil_date', ['date', 'period']],\n        period_eq: ['equal_period_kind_and_fields', ['period', 'period']],\n        same_month: ['equal_year_and_month', ['date', 'date']],\n        range_contains: ['contains_range_with_boundaries', ['range', 'range']],\n        opposite_sign: ['strict_nonzero_opposite_signs', ['number:U', 'number:U']],\n        abs_eq: ['absolute_values_equal', ['number:U', 'number:U']],\n        sum_eq: ['checked_same_unit_sum_equal', ['sequence:number:U', 'number:U']],\n        count_eq: ['sequence_length_equal', ['sequence:T', 'nonnegative_integer']],\n        set_eq: ['exact_typed_members', ['set:T', 'set:T']],\n        cardinality_eq: ['exact_set_cardinality', ['set:T', 'nonnegative_integer']],\n        all_dates_in_period: ['every_date_contained', ['sequence:date', 'period']],\n        civil_offset_matches: ['exact_civil_offset_without_clamp', ['date', 'integer', 'civil_unit', 'date', 'calendar']],\n        month_bounds_match: ['exact_first_and_last_civil_date_of_month', ['month', 'date', 'date', 'calendar']],\n        day_of_month_matches: ['exact_civil_day_of_month', ['date', 'positive_integer', 'calendar']],\n        inclusive_day_count_matches: ['inclusive_civil_date_cardinality', ['range', 'positive_integer', 'calendar']]\n    })",
+      "reason": "shared_passive_constructor"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "2686:2719",
+      "source_start": 2651,
+      "source_end": 2684,
+      "code": "new Error(`scalar_proof_${code}`)",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "2812:2832",
+      "source_start": 2777,
+      "source_end": 2797,
+      "code": "Array.isArray(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "2848:2883",
+      "source_start": 2813,
+      "source_end": 2848,
+      "code": "Object.keys(value).sort().join(',')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "2848:2873",
+      "source_start": 2813,
+      "source_end": 2838,
+      "code": "Object.keys(value).sort()",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "2848:2866",
+      "source_start": 2813,
+      "source_end": 2831,
+      "code": "Object.keys(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "2888:2918",
+      "source_start": 2853,
+      "source_end": 2883,
+      "code": "[...expected].sort().join(',')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "2888:2908",
+      "source_start": 2853,
+      "source_end": 2873,
+      "code": "[...expected].sort()",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "7162:7219",
+      "source_start": 7127,
+      "source_end": 7184,
+      "code": "JSON.stringify([value.kind, value.ref_id, value.version])",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "7508:7604",
+      "source_start": 7473,
+      "source_end": 7569,
+      "code": "/^(\\d{4}-\\d{2}-\\d{2})T(\\d{2}):(\\d{2}):(\\d{2})(?:\\.(\\d+))?(Z|([+-])(\\d{2}):(\\d{2}))$/.exec(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "7709:7721",
+      "source_start": 7674,
+      "source_end": 7686,
+      "code": "Number(m[8])",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "7729:7741",
+      "source_start": 7694,
+      "source_end": 7706,
+      "code": "Number(m[9])",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "7789:7801",
+      "source_start": 7754,
+      "source_end": 7766,
+      "code": "Number(m[2])",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "7811:7823",
+      "source_start": 7776,
+      "source_end": 7788,
+      "code": "Number(m[3])",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "7831:7843",
+      "source_start": 7796,
+      "source_end": 7808,
+      "code": "Number(m[4])",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "7861:7892",
+      "source_start": 7826,
+      "source_end": 7857,
+      "code": "(m[5] || '').replace(/0+$/, '')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "8339:8410",
+      "source_start": 8304,
+      "source_end": 8375,
+      "code": "['month', 'statement_competence', 'budget_cycle'].includes(period.kind)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "8419:8435",
+      "source_start": 8384,
+      "source_end": 8400,
+      "code": "date.slice(0, 7)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "9247:9286",
+      "source_start": 9212,
+      "source_end": 9251,
+      "code": "Object.hasOwn(definitions, operator.id)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "9501:9524",
+      "source_start": 9466,
+      "source_end": 9489,
+      "code": "Array.isArray(operands)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "9581:9606",
+      "source_start": 9546,
+      "source_end": 9571,
+      "code": "operands.map(o => o.type)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "9617:9647",
+      "source_start": 9582,
+      "source_end": 9612,
+      "code": "operands.forEach(operandValue)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "9667:9693",
+      "source_start": 9632,
+      "source_end": 9658,
+      "code": "operands.map(o => o.value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "9825:9888",
+      "source_start": 9790,
+      "source_end": 9853,
+      "code": "['date_in_period', 'all_dates_in_period'].includes(operator.id)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "9905:10016",
+      "source_start": 9870,
+      "source_end": 9981,
+      "code": "['date', 'through', 'statement_due', 'month', 'statement_competence', 'budget_cycle', 'range'].includes(b.kind)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "10097:10132",
+      "source_start": 10062,
+      "source_end": 10097,
+      "code": "JSON.parse(type.domain).includes(b)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "10097:10120",
+      "source_start": 10062,
+      "source_end": 10085,
+      "code": "JSON.parse(type.domain)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "10391:10470",
+      "source_start": 10356,
+      "source_end": 10435,
+      "code": "b.some(value => scalarKey(operands[1].type.item, value) === scalarKey(type, a))",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "10791:10805",
+      "source_start": 10756,
+      "source_end": 10770,
+      "code": "Object.keys(a)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "10817:10831",
+      "source_start": 10782,
+      "source_end": 10796,
+      "code": "Object.keys(b)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "10854:10925",
+      "source_start": 10819,
+      "source_end": 10890,
+      "code": "Object.keys(a).every(key => Object.hasOwn(b, key) && a[key] === b[key])",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "10854:10868",
+      "source_start": 10819,
+      "source_end": 10833,
+      "code": "Object.keys(a)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "10961:10974",
+      "source_start": 10926,
+      "source_end": 10939,
+      "code": "a.slice(0, 7)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "10979:10992",
+      "source_start": 10944,
+      "source_end": 10957,
+      "code": "b.slice(0, 7)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "11313:11324",
+      "source_start": 11278,
+      "source_end": 11289,
+      "code": "Math.abs(a)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "11329:11340",
+      "source_start": 11294,
+      "source_end": 11305,
+      "code": "Math.abs(b)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "11450:11477",
+      "source_start": 11415,
+      "source_end": 11442,
+      "code": "Number.isSafeInteger(total)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "11481:11501",
+      "source_start": 11446,
+      "source_end": 11466,
+      "code": "Object.is(total, -0)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "11687:11751",
+      "source_start": 11652,
+      "source_end": 11716,
+      "code": "new Set(b.map(value => scalarKey(operands[1].type.item, value)))",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "11695:11750",
+      "source_start": 11660,
+      "source_end": 11715,
+      "code": "b.map(value => scalarKey(operands[1].type.item, value))",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "11797:11853",
+      "source_start": 11762,
+      "source_end": 11818,
+      "code": "a.every(value => right.has(scalarKey(type.item, value)))",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "src/next/provenance/scalarProofCore.js",
+      "bound_source": "sha256:82aec84284d74525fe6f0b18a27c58b373f4becb93acdcb4a241f5070b7a73bf",
+      "site": "13598:13675",
+      "source_start": 13563,
+      "source_end": 13640,
+      "code": "Object.freeze({ evaluateScalarProof, compareTypedScalars, supportsOperator })",
+      "reason": "shared_passive_constructor"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "239:265",
+      "source_start": 204,
+      "source_end": 230,
+      "code": "new Error(`civil_${code}`)",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "306:333",
+      "source_start": 271,
+      "source_end": 298,
+      "code": "Number.isSafeInteger(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "337:357",
+      "source_start": 302,
+      "source_end": 322,
+      "code": "Object.is(value, -0)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "526:552",
+      "source_start": 491,
+      "source_end": 517,
+      "code": "Math.floor((year - 1) / 4)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "559:587",
+      "source_start": 524,
+      "source_end": 552,
+      "code": "Math.floor((year - 1) / 100)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "590:618",
+      "source_start": 555,
+      "source_end": 583,
+      "code": "Math.floor((year - 1) / 400)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "717:746",
+      "source_start": 682,
+      "source_end": 711,
+      "code": "[4, 6, 9, 11].includes(month)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "827:854",
+      "source_start": 792,
+      "source_end": 819,
+      "code": "/^\\d{4}-\\d{2}$/.test(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "897:925",
+      "source_start": 862,
+      "source_end": 890,
+      "code": "value.split('-').map(Number)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "897:913",
+      "source_start": 862,
+      "source_end": 878,
+      "code": "value.split('-')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "1098:1131",
+      "source_start": 1063,
+      "source_end": 1096,
+      "code": "/^\\d{4}-\\d{2}-\\d{2}$/.test(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "1186:1203",
+      "source_start": 1151,
+      "source_end": 1168,
+      "code": "value.slice(0, 7)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "1222:1244",
+      "source_start": 1187,
+      "source_end": 1209,
+      "code": "Number(value.slice(8))",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "1229:1243",
+      "source_start": 1194,
+      "source_end": 1208,
+      "code": "value.slice(8)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "1396:1425",
+      "source_start": 1361,
+      "source_end": 1390,
+      "code": "String(year).padStart(4, '0')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "1396:1408",
+      "source_start": 1361,
+      "source_end": 1373,
+      "code": "String(year)",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "1429:1459",
+      "source_start": 1394,
+      "source_end": 1424,
+      "code": "String(month).padStart(2, '0')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "1429:1442",
+      "source_start": 1394,
+      "source_end": 1407,
+      "code": "String(month)",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "1463:1491",
+      "source_start": 1428,
+      "source_end": 1456,
+      "code": "String(day).padStart(2, '0')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "1463:1474",
+      "source_start": 1428,
+      "source_end": 1439,
+      "code": "String(day)",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "1924:1951",
+      "source_start": 1889,
+      "source_end": 1916,
+      "code": "Math.ceil((low + high) / 2)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/civilCalendar.js",
+      "bound_source": "sha256:b67c689a7dc7f4227336ffbeeda81793c6202ac62cda557db236022903fce899",
+      "site": "2612:2634",
+      "source_start": 2577,
+      "source_end": 2599,
+      "code": "Math.floor(index / 12)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/literalTypes.js",
+      "bound_source": "sha256:c99b3a919c995638702325dcb7c2cb1f8e338388700429b3bc9f1cce7a00b4ec",
+      "site": "83:109",
+      "source_start": 48,
+      "source_end": 74,
+      "code": "require('./civilCalendar')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/literalTypes.js",
+      "bound_source": "sha256:c99b3a919c995638702325dcb7c2cb1f8e338388700429b3bc9f1cce7a00b4ec",
+      "site": "138:169",
+      "source_start": 103,
+      "source_end": 134,
+      "code": "new Error('literal_type_value')",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/literalTypes.js",
+      "bound_source": "sha256:c99b3a919c995638702325dcb7c2cb1f8e338388700429b3bc9f1cce7a00b4ec",
+      "site": "261:283",
+      "source_start": 226,
+      "source_end": 248,
+      "code": "Array.isArray(literal)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/literalTypes.js",
+      "bound_source": "sha256:c99b3a919c995638702325dcb7c2cb1f8e338388700429b3bc9f1cce7a00b4ec",
+      "site": "295:315",
+      "source_start": 260,
+      "source_end": 280,
+      "code": "Object.keys(literal)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/literalTypes.js",
+      "bound_source": "sha256:c99b3a919c995638702325dcb7c2cb1f8e338388700429b3bc9f1cce7a00b4ec",
+      "site": "333:363",
+      "source_start": 298,
+      "source_end": 328,
+      "code": "Object.hasOwn(literal, 'type')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/literalTypes.js",
+      "bound_source": "sha256:c99b3a919c995638702325dcb7c2cb1f8e338388700429b3bc9f1cce7a00b4ec",
+      "site": "368:399",
+      "source_start": 333,
+      "source_end": 364,
+      "code": "Object.hasOwn(literal, 'value')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/literalTypes.js",
+      "bound_source": "sha256:c99b3a919c995638702325dcb7c2cb1f8e338388700429b3bc9f1cce7a00b4ec",
+      "site": "515:542",
+      "source_start": 480,
+      "source_end": 507,
+      "code": "Number.isSafeInteger(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/literalTypes.js",
+      "bound_source": "sha256:c99b3a919c995638702325dcb7c2cb1f8e338388700429b3bc9f1cce7a00b4ec",
+      "site": "546:566",
+      "source_start": 511,
+      "source_end": 531,
+      "code": "Object.is(value, -0)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/literalTypes.js",
+      "bound_source": "sha256:c99b3a919c995638702325dcb7c2cb1f8e338388700429b3bc9f1cce7a00b4ec",
+      "site": "888:982",
+      "source_start": 853,
+      "source_end": 947,
+      "code": "/^(\\d{4}-\\d{2}-\\d{2})T(\\d{2}):(\\d{2}):(\\d{2})(?:\\.\\d+)?(?:Z|[+-](\\d{2}):(\\d{2}))$/.exec(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/literalTypes.js",
+      "bound_source": "sha256:c99b3a919c995638702325dcb7c2cb1f8e338388700429b3bc9f1cce7a00b4ec",
+      "site": "1264:1299",
+      "source_start": 1229,
+      "source_end": 1264,
+      "code": "/^sha256:[a-f0-9]{64}$/.test(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/literalTypes.js",
+      "bound_source": "sha256:c99b3a919c995638702325dcb7c2cb1f8e338388700429b3bc9f1cce7a00b4ec",
+      "site": "1362:1414",
+      "source_start": 1327,
+      "source_end": 1379,
+      "code": "/^[A-Za-z0-9][A-Za-z0-9._:/#@-]{0,159}$/.test(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/literalTypes.js",
+      "bound_source": "sha256:c99b3a919c995638702325dcb7c2cb1f8e338388700429b3bc9f1cce7a00b4ec",
+      "site": "1479:1510",
+      "source_start": 1444,
+      "source_end": 1475,
+      "code": "/^[a-z][a-z0-9_]*$/.test(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricReferences.js",
+      "bound_source": "sha256:0a96471a46324599c92c8c2f604e5761749902c6b9393eb738b09aad868d5e7b",
+      "site": "78:103",
+      "source_start": 43,
+      "source_end": 68,
+      "code": "require('./literalTypes')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricReferences.js",
+      "bound_source": "sha256:0a96471a46324599c92c8c2f604e5761749902c6b9393eb738b09aad868d5e7b",
+      "site": "134:171",
+      "source_start": 99,
+      "source_end": 136,
+      "code": "new Error(`metric_reference_${code}`)",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricReferences.js",
+      "bound_source": "sha256:0a96471a46324599c92c8c2f604e5761749902c6b9393eb738b09aad868d5e7b",
+      "site": "304:325",
+      "source_start": 269,
+      "source_end": 290,
+      "code": "node.identity('kind')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricReferences.js",
+      "bound_source": "sha256:0a96471a46324599c92c8c2f604e5761749902c6b9393eb738b09aad868d5e7b",
+      "site": "369:383",
+      "source_start": 334,
+      "source_end": 348,
+      "code": "node.get('id')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricReferences.js",
+      "bound_source": "sha256:0a96471a46324599c92c8c2f604e5761749902c6b9393eb738b09aad868d5e7b",
+      "site": "406:430",
+      "source_start": 371,
+      "source_end": 395,
+      "code": "node.identity('version')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricReferences.js",
+      "bound_source": "sha256:0a96471a46324599c92c8c2f604e5761749902c6b9393eb738b09aad868d5e7b",
+      "site": "500:531",
+      "source_start": 465,
+      "source_end": 496,
+      "code": "Object.freeze({ ref, version })",
+      "reason": "shared_passive_constructor"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricReferences.js",
+      "bound_source": "sha256:0a96471a46324599c92c8c2f604e5761749902c6b9393eb738b09aad868d5e7b",
+      "site": "749:758",
+      "source_start": 714,
+      "source_end": 723,
+      "code": "new Set()",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricReferences.js",
+      "bound_source": "sha256:0a96471a46324599c92c8c2f604e5761749902c6b9393eb738b09aad868d5e7b",
+      "site": "771:1042",
+      "source_start": 736,
+      "source_end": 1007,
+      "code": "Object.freeze({\n        read(node) {\n            const identity = readNodeIdentity(node, kind);\n            if (seen.has(identity.ref)) fail('duplicate');\n            seen.add(identity.ref);\n            return identity;\n        },\n        has: ref => seen.has(ref)\n    })",
+      "reason": "shared_passive_constructor"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricReferences.js",
+      "bound_source": "sha256:0a96471a46324599c92c8c2f604e5761749902c6b9393eb738b09aad868d5e7b",
+      "site": "1348:1365",
+      "source_start": 1313,
+      "source_end": 1330,
+      "code": "source.get(field)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricReferences.js",
+      "bound_source": "sha256:0a96471a46324599c92c8c2f604e5761749902c6b9393eb738b09aad868d5e7b",
+      "site": "1385:1405",
+      "source_start": 1350,
+      "source_end": 1370,
+      "code": "source.follow(field)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricReferences.js",
+      "bound_source": "sha256:0a96471a46324599c92c8c2f604e5761749902c6b9393eb738b09aad868d5e7b",
+      "site": "2003:2040",
+      "source_start": 1968,
+      "source_end": 2005,
+      "code": "Object.freeze({ node, ref, version })",
+      "reason": "shared_passive_constructor"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricReferences.js",
+      "bound_source": "sha256:0a96471a46324599c92c8c2f604e5761749902c6b9393eb738b09aad868d5e7b",
+      "site": "2412:2429",
+      "source_start": 2377,
+      "source_end": 2394,
+      "code": "source.get(field)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricReferences.js",
+      "bound_source": "sha256:0a96471a46324599c92c8c2f604e5761749902c6b9393eb738b09aad868d5e7b",
+      "site": "2445:2460",
+      "source_start": 2410,
+      "source_end": 2425,
+      "code": "values.length()",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricReferences.js",
+      "bound_source": "sha256:0a96471a46324599c92c8c2f604e5761749902c6b9393eb738b09aad868d5e7b",
+      "site": "2471:2498",
+      "source_start": 2436,
+      "source_end": 2463,
+      "code": "Number.isSafeInteger(count)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricReferences.js",
+      "bound_source": "sha256:0a96471a46324599c92c8c2f604e5761749902c6b9393eb738b09aad868d5e7b",
+      "site": "2515:2535",
+      "source_start": 2480,
+      "source_end": 2500,
+      "code": "Object.is(count, -0)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricReferences.js",
+      "bound_source": "sha256:0a96471a46324599c92c8c2f604e5761749902c6b9393eb738b09aad868d5e7b",
+      "site": "2578:2587",
+      "source_start": 2543,
+      "source_end": 2552,
+      "code": "new Set()",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricReferences.js",
+      "bound_source": "sha256:0a96471a46324599c92c8c2f604e5761749902c6b9393eb738b09aad868d5e7b",
+      "site": "2666:2682",
+      "source_start": 2631,
+      "source_end": 2647,
+      "code": "members.has(ref)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricReferences.js",
+      "bound_source": "sha256:0a96471a46324599c92c8c2f604e5761749902c6b9393eb738b09aad868d5e7b",
+      "site": "2711:2742",
+      "source_start": 2676,
+      "source_end": 2707,
+      "code": "source.followMember(field, ref)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricReferences.js",
+      "bound_source": "sha256:0a96471a46324599c92c8c2f604e5761749902c6b9393eb738b09aad868d5e7b",
+      "site": "2752:2768",
+      "source_start": 2717,
+      "source_end": 2733,
+      "code": "members.add(ref)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricReferences.js",
+      "bound_source": "sha256:0a96471a46324599c92c8c2f604e5761749902c6b9393eb738b09aad868d5e7b",
+      "site": "2840:2912",
+      "source_start": 2805,
+      "source_end": 2877,
+      "code": "Object.freeze({ size: members.size, includes: ref => members.has(ref) })",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "128:154",
+      "source_start": 93,
+      "source_end": 119,
+      "code": "require('./civilCalendar')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "184:209",
+      "source_start": 149,
+      "source_end": 174,
+      "code": "require('./literalTypes')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "314:343",
+      "source_start": 279,
+      "source_end": 308,
+      "code": "require('./metricReferences')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "374:411",
+      "source_start": 339,
+      "source_end": 376,
+      "code": "new Error(`metric_selection_${code}`)",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "529:556",
+      "source_start": 494,
+      "source_end": 521,
+      "code": "Number.isSafeInteger(value)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "560:580",
+      "source_start": 525,
+      "source_end": 545,
+      "code": "Object.is(value, -0)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "838:847",
+      "source_start": 803,
+      "source_end": 812,
+      "code": "new Map()",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "909:923",
+      "source_start": 874,
+      "source_end": 888,
+      "code": "node.get('id')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "938:959",
+      "source_start": 903,
+      "source_end": 924,
+      "code": "node.identity('kind')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "978:992",
+      "source_start": 943,
+      "source_end": 957,
+      "code": "index.has(key)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "1041:1057",
+      "source_start": 1006,
+      "source_end": 1022,
+      "code": "node.get('kind')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "1072:1143",
+      "source_start": 1037,
+      "source_end": 1108,
+      "code": "['expense', 'compensation', 'income', 'neutral'].includes(economicKind)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "1171:1238",
+      "source_start": 1136,
+      "source_end": 1203,
+      "code": "index.set(key, { version: node.identity('version'), economicKind })",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "1197:1221",
+      "source_start": 1162,
+      "source_end": 1186,
+      "code": "node.identity('version')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "2019:2150",
+      "source_start": 1984,
+      "source_end": 2115,
+      "code": "['total', 'category', 'spent', 'income', 'instrument', 'budget_class', 'budget_remaining', 'statement', 'safe_pace'].includes(mode)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "2525:2587",
+      "source_start": 2490,
+      "source_end": 2552,
+      "code": "['statement_due_date', 'statement_competence'].includes(basis)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "2674:2720",
+      "source_start": 2639,
+      "source_end": 2685,
+      "code": "['event_date', 'budget_cycle'].includes(basis)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "3038:3125",
+      "source_start": 3003,
+      "source_end": 3090,
+      "code": "operands.clock.civilDate('fixed_clock', policy.get('timezone'), policy.get('calendar'))",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "3078:3100",
+      "source_start": 3043,
+      "source_end": 3065,
+      "code": "policy.get('timezone')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "3102:3124",
+      "source_start": 3067,
+      "source_end": 3089,
+      "code": "policy.get('calendar')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "3143:3172",
+      "source_start": 3108,
+      "source_end": 3137,
+      "code": "operands.budget.get('period')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "3485:3517",
+      "source_start": 3450,
+      "source_end": 3482,
+      "code": "policy.get('daily_pace_divisor')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "3533:3566",
+      "source_start": 3498,
+      "source_end": 3531,
+      "code": "policy.get('daily_pace_rounding')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "3594:3624",
+      "source_start": 3559,
+      "source_end": 3589,
+      "code": "policy.get('daily_pace_as_of')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "3639:3669",
+      "source_start": 3604,
+      "source_end": 3634,
+      "code": "policy.get('daily_pace_start')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "3683:3711",
+      "source_start": 3648,
+      "source_end": 3676,
+      "code": "policy.get('daily_pace_end')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "4164:4195",
+      "source_start": 4129,
+      "source_end": 4160,
+      "code": "operands.policy.get('calendar')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "4339:4371",
+      "source_start": 4304,
+      "source_end": 4336,
+      "code": "operands.card.get('closing_day')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "4388:4416",
+      "source_start": 4353,
+      "source_end": 4381,
+      "code": "operands.card.get('due_day')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "4431:4459",
+      "source_start": 4396,
+      "source_end": 4424,
+      "code": "Number.isInteger(closingDay)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "4513:4537",
+      "source_start": 4478,
+      "source_end": 4502,
+      "code": "Number.isInteger(dueDay)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "4633:4648",
+      "source_start": 4598,
+      "source_end": 4613,
+      "code": "due.slice(0, 7)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "4652:4687",
+      "source_start": 4617,
+      "source_end": 4652,
+      "code": "String(closingDay).padStart(2, '0')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "4652:4670",
+      "source_start": 4617,
+      "source_end": 4635,
+      "code": "String(closingDay)",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "5245:5261",
+      "source_start": 5210,
+      "source_end": 5226,
+      "code": "family.get('id')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "5521:5553",
+      "source_start": 5486,
+      "source_end": 5518,
+      "code": "operands.budget.identity('kind')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "5612:5637",
+      "source_start": 5577,
+      "source_end": 5602,
+      "code": "operands.budget.get('id')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "5918:5948",
+      "source_start": 5883,
+      "source_end": 5913,
+      "code": "familyMembers.includes(person)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "6165:6194",
+      "source_start": 6130,
+      "source_end": 6159,
+      "code": "operands.budget.get('period')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "6351:6385",
+      "source_start": 6316,
+      "source_end": 6350,
+      "code": "['account', 'card'].includes(kind)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "6432:6455",
+      "source_start": 6397,
+      "source_end": 6420,
+      "code": "target.identity('kind')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "6505:6521",
+      "source_start": 6470,
+      "source_end": 6486,
+      "code": "target.get('id')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "6544:6570",
+      "source_start": 6509,
+      "source_end": 6535,
+      "code": "target.identity('version')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "6727:6777",
+      "source_start": 6692,
+      "source_end": 6742,
+      "code": "['total', 'income', 'budget_class'].includes(mode)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "7132:7179",
+      "source_start": 7097,
+      "source_end": 7144,
+      "code": "['essential', 'flexible'].includes(budgetClass)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "7975:8003",
+      "source_start": 7940,
+      "source_end": 7968,
+      "code": "categoryReader.has(category)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "8055:8081",
+      "source_start": 8020,
+      "source_end": 8046,
+      "code": "categoryReader.read(event)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "8228:8250",
+      "source_start": 8193,
+      "source_end": 8215,
+      "code": "candidates.read(event)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "8307:8349",
+      "source_start": 8272,
+      "source_end": 8314,
+      "code": "['confirmed', 'projected'].includes(state)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "8660:8722",
+      "source_start": 8625,
+      "source_end": 8687,
+      "code": "['expense', 'compensation'].includes(ownCategory.economicKind)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "9370:9400",
+      "source_start": 9335,
+      "source_end": 9365,
+      "code": "compensated.has('compensates')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "10007:10036",
+      "source_start": 9972,
+      "source_end": 10001,
+      "code": "familyMembers.includes(owner)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "10228:10270",
+      "source_start": 10193,
+      "source_end": 10235,
+      "code": "effectiveCategory.node.get('budget_class')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "10289:10331",
+      "source_start": 10254,
+      "source_end": 10296,
+      "code": "['essential', 'flexible'].includes(actual)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "10449:10463",
+      "source_start": 10414,
+      "source_end": 10428,
+      "code": "contains(date)",
+      "reason": "mutated_origin"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "10947:10972",
+      "source_start": 10912,
+      "source_end": 10937,
+      "code": "event.get('amount_minor')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "11152:11186",
+      "source_start": 11117,
+      "source_end": 11151,
+      "code": "operands.budget.get('limit_minor')",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "functional",
+      "module": "src/next/provenance/metricSelection.js",
+      "bound_source": "sha256:8e4f66e1e10f8fa70c4729b56c937688cbd33107bb93d94c6e7a86b7f5736b1f",
+      "site": "11243:11271",
+      "source_start": 11208,
+      "source_end": 11236,
+      "code": "Math.floor(result / divisor)",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "derivation",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:6043e5c52a699b4bd81edc204af7c845d3156176e678d2d68e3db15e6c878626",
+      "site": "89:117",
+      "source_start": 54,
+      "source_end": 82,
+      "code": "require('./scalarProofCore')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "derivation",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:6043e5c52a699b4bd81edc204af7c845d3156176e678d2d68e3db15e6c878626",
+      "site": "147:176",
+      "source_start": 112,
+      "source_end": 141,
+      "code": "require('./proofProgramData')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "derivation",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:6043e5c52a699b4bd81edc204af7c845d3156176e678d2d68e3db15e6c878626",
+      "site": "205:239",
+      "source_start": 170,
+      "source_end": 204,
+      "code": "require('../kernel/canonicalJson')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "derivation",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:6043e5c52a699b4bd81edc204af7c845d3156176e678d2d68e3db15e6c878626",
+      "site": "264:288",
+      "source_start": 229,
+      "source_end": 253,
+      "code": "require('./proofSha256')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "derivation",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:6043e5c52a699b4bd81edc204af7c845d3156176e678d2d68e3db15e6c878626",
+      "site": "328:364",
+      "source_start": 293,
+      "source_end": 329,
+      "code": "require('./materialFingerprintCore')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "derivation",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:6043e5c52a699b4bd81edc204af7c845d3156176e678d2d68e3db15e6c878626",
+      "site": "410:442",
+      "source_start": 375,
+      "source_end": 407,
+      "code": "require('./collectionProofCore')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "derivation",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:6043e5c52a699b4bd81edc204af7c845d3156176e678d2d68e3db15e6c878626",
+      "site": "472:497",
+      "source_start": 437,
+      "source_end": 462,
+      "code": "require('./literalTypes')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "derivation",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:6043e5c52a699b4bd81edc204af7c845d3156176e678d2d68e3db15e6c878626",
+      "site": "560:592",
+      "source_start": 525,
+      "source_end": 557,
+      "code": "require('./proofObservedValues')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "89:117",
+      "source_start": 54,
+      "source_end": 82,
+      "code": "require('./scalarProofCore')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "147:176",
+      "source_start": 112,
+      "source_end": 141,
+      "code": "require('./proofProgramData')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "205:239",
+      "source_start": 170,
+      "source_end": 204,
+      "code": "require('../kernel/canonicalJson')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "264:288",
+      "source_start": 229,
+      "source_end": 253,
+      "code": "require('./proofSha256')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "328:364",
+      "source_start": 293,
+      "source_end": 329,
+      "code": "require('./materialFingerprintCore')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "410:442",
+      "source_start": 375,
+      "source_end": 407,
+      "code": "require('./collectionProofCore')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "472:497",
+      "source_start": 437,
+      "source_end": 462,
+      "code": "require('./literalTypes')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "560:592",
+      "source_start": 525,
+      "source_end": 557,
+      "code": "require('./proofObservedValues')",
+      "reason": "unsupported_origin_expression:factory_parameter"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "1081:1117",
+      "source_start": 1046,
+      "source_end": 1082,
+      "code": "new Error('proof_program_node_kind')",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "1681:1726",
+      "source_start": 1646,
+      "source_end": 1691,
+      "code": "new Error('proof_program_selection_identity')",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "1742:2064",
+      "source_start": 1707,
+      "source_end": 2029,
+      "code": "Object.freeze({node:alias=>alias===\"evt_salary_a\"?member:rootOperands.node(alias),claim:()=>rootOperands.claim(),set:name=>rootOperands.set(name),edge:id=>rootOperands.edge(id),resolveReference:(alias,field,ref)=>rootOperands.resolveReference(alias,field,ref),memberEdge:(node,field)=>rootOperands.memberEdge(node,field)})",
+      "reason": "shared_passive_constructor"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "2333:2375",
+      "source_start": 2298,
+      "source_end": 2340,
+      "code": "operands.node(\"income_salary\").get(\"kind\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "2769:2811",
+      "source_start": 2734,
+      "source_end": 2776,
+      "code": "operands.node(\"income_salary\").get(\"kind\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "3169:3214",
+      "source_start": 3134,
+      "source_end": 3179,
+      "code": "new Error('proof_program_selection_identity')",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "3230:3552",
+      "source_start": 3195,
+      "source_end": 3517,
+      "code": "Object.freeze({node:alias=>alias===\"evt_market_a\"?member:rootOperands.node(alias),claim:()=>rootOperands.claim(),set:name=>rootOperands.set(name),edge:id=>rootOperands.edge(id),resolveReference:(alias,field,ref)=>rootOperands.resolveReference(alias,field,ref),memberEdge:(node,field)=>rootOperands.memberEdge(node,field)})",
+      "reason": "shared_passive_constructor"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "3770:3811",
+      "source_start": 3735,
+      "source_end": 3776,
+      "code": "operands.node(\"evt_market_a\").get(\"date\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "3871:3901",
+      "source_start": 3836,
+      "source_end": 3866,
+      "code": "operands.claim().get(\"period\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "4193:4235",
+      "source_start": 4158,
+      "source_end": 4200,
+      "code": "operands.node(\"evt_market_a\").get(\"state\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "4553:4593",
+      "source_start": 4518,
+      "source_end": 4558,
+      "code": "operands.node(\"food_market\").get(\"kind\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "8490:8535",
+      "source_start": 8455,
+      "source_end": 8500,
+      "code": "new Error('proof_program_selection_identity')",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "8551:8872",
+      "source_start": 8516,
+      "source_end": 8837,
+      "code": "Object.freeze({node:alias=>alias===\"evt_snack_a\"?member:rootOperands.node(alias),claim:()=>rootOperands.claim(),set:name=>rootOperands.set(name),edge:id=>rootOperands.edge(id),resolveReference:(alias,field,ref)=>rootOperands.resolveReference(alias,field,ref),memberEdge:(node,field)=>rootOperands.memberEdge(node,field)})",
+      "reason": "shared_passive_constructor"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "9090:9130",
+      "source_start": 9055,
+      "source_end": 9095,
+      "code": "operands.node(\"evt_snack_a\").get(\"date\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "9190:9220",
+      "source_start": 9155,
+      "source_end": 9185,
+      "code": "operands.claim().get(\"period\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "9512:9553",
+      "source_start": 9477,
+      "source_end": 9518,
+      "code": "operands.node(\"evt_snack_a\").get(\"state\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "10265:10304",
+      "source_start": 10230,
+      "source_end": 10269,
+      "code": "operands.node(\"food_snack\").get(\"kind\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "13806:13851",
+      "source_start": 13771,
+      "source_end": 13816,
+      "code": "new Error('proof_program_selection_identity')",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "13867:14187",
+      "source_start": 13832,
+      "source_end": 14152,
+      "code": "Object.freeze({node:alias=>alias===\"evt_fuel_a\"?member:rootOperands.node(alias),claim:()=>rootOperands.claim(),set:name=>rootOperands.set(name),edge:id=>rootOperands.edge(id),resolveReference:(alias,field,ref)=>rootOperands.resolveReference(alias,field,ref),memberEdge:(node,field)=>rootOperands.memberEdge(node,field)})",
+      "reason": "shared_passive_constructor"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "14405:14444",
+      "source_start": 14370,
+      "source_end": 14409,
+      "code": "operands.node(\"evt_fuel_a\").get(\"date\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "14504:14534",
+      "source_start": 14469,
+      "source_end": 14499,
+      "code": "operands.claim().get(\"period\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "14826:14866",
+      "source_start": 14791,
+      "source_end": 14831,
+      "code": "operands.node(\"evt_fuel_a\").get(\"state\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "15972:16015",
+      "source_start": 15937,
+      "source_end": 15980,
+      "code": "operands.node(\"transport_fuel\").get(\"kind\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "19129:19174",
+      "source_start": 19094,
+      "source_end": 19139,
+      "code": "new Error('proof_program_selection_identity')",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "19190:19516",
+      "source_start": 19155,
+      "source_end": 19481,
+      "code": "Object.freeze({node:alias=>alias===\"evt_restaurant_b\"?member:rootOperands.node(alias),claim:()=>rootOperands.claim(),set:name=>rootOperands.set(name),edge:id=>rootOperands.edge(id),resolveReference:(alias,field,ref)=>rootOperands.resolveReference(alias,field,ref),memberEdge:(node,field)=>rootOperands.memberEdge(node,field)})",
+      "reason": "shared_passive_constructor"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "19734:19779",
+      "source_start": 19699,
+      "source_end": 19744,
+      "code": "operands.node(\"evt_restaurant_b\").get(\"date\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "19839:19869",
+      "source_start": 19804,
+      "source_end": 19834,
+      "code": "operands.claim().get(\"period\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "20161:20207",
+      "source_start": 20126,
+      "source_end": 20172,
+      "code": "operands.node(\"evt_restaurant_b\").get(\"state\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "21707:21751",
+      "source_start": 21672,
+      "source_end": 21716,
+      "code": "operands.node(\"food_restaurant\").get(\"kind\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "24467:24512",
+      "source_start": 24432,
+      "source_end": 24477,
+      "code": "new Error('proof_program_selection_identity')",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "24528:24850",
+      "source_start": 24493,
+      "source_end": 24815,
+      "code": "Object.freeze({node:alias=>alias===\"evt_refund_b\"?member:rootOperands.node(alias),claim:()=>rootOperands.claim(),set:name=>rootOperands.set(name),edge:id=>rootOperands.edge(id),resolveReference:(alias,field,ref)=>rootOperands.resolveReference(alias,field,ref),memberEdge:(node,field)=>rootOperands.memberEdge(node,field)})",
+      "reason": "shared_passive_constructor"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "25068:25113",
+      "source_start": 25033,
+      "source_end": 25078,
+      "code": "operands.node(\"evt_restaurant_b\").get(\"date\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "25173:25203",
+      "source_start": 25138,
+      "source_end": 25168,
+      "code": "operands.claim().get(\"period\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "25495:25541",
+      "source_start": 25460,
+      "source_end": 25506,
+      "code": "operands.node(\"evt_restaurant_b\").get(\"state\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "25814:25855",
+      "source_start": 25779,
+      "source_end": 25820,
+      "code": "operands.node(\"evt_refund_b\").get(\"date\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "25915:25945",
+      "source_start": 25880,
+      "source_end": 25910,
+      "code": "operands.claim().get(\"period\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "26237:26279",
+      "source_start": 26202,
+      "source_end": 26244,
+      "code": "operands.node(\"evt_refund_b\").get(\"state\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "27779:27823",
+      "source_start": 27744,
+      "source_end": 27788,
+      "code": "operands.node(\"food_restaurant\").get(\"kind\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "28605:28648",
+      "source_start": 28570,
+      "source_end": 28613,
+      "code": "operands.node(\"neutral_refund\").get(\"kind\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "30975:31020",
+      "source_start": 30940,
+      "source_end": 30985,
+      "code": "new Error('proof_program_selection_identity')",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "31036:31358",
+      "source_start": 31001,
+      "source_end": 31323,
+      "code": "Object.freeze({node:alias=>alias===\"evt_cinema_b\"?member:rootOperands.node(alias),claim:()=>rootOperands.claim(),set:name=>rootOperands.set(name),edge:id=>rootOperands.edge(id),resolveReference:(alias,field,ref)=>rootOperands.resolveReference(alias,field,ref),memberEdge:(node,field)=>rootOperands.memberEdge(node,field)})",
+      "reason": "shared_passive_constructor"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "31576:31617",
+      "source_start": 31541,
+      "source_end": 31582,
+      "code": "operands.node(\"evt_cinema_b\").get(\"date\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "31677:31707",
+      "source_start": 31642,
+      "source_end": 31672,
+      "code": "operands.claim().get(\"period\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "31999:32041",
+      "source_start": 31964,
+      "source_end": 32006,
+      "code": "operands.node(\"evt_cinema_b\").get(\"state\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "34329:34372",
+      "source_start": 34294,
+      "source_end": 34337,
+      "code": "operands.node(\"leisure_cinema\").get(\"kind\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "36298:36343",
+      "source_start": 36263,
+      "source_end": 36308,
+      "code": "new Error('proof_program_selection_identity')",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "36359:36679",
+      "source_start": 36324,
+      "source_end": 36644,
+      "code": "Object.freeze({node:alias=>alias===\"evt_gift_b\"?member:rootOperands.node(alias),claim:()=>rootOperands.claim(),set:name=>rootOperands.set(name),edge:id=>rootOperands.edge(id),resolveReference:(alias,field,ref)=>rootOperands.resolveReference(alias,field,ref),memberEdge:(node,field)=>rootOperands.memberEdge(node,field)})",
+      "reason": "shared_passive_constructor"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "36897:36936",
+      "source_start": 36862,
+      "source_end": 36901,
+      "code": "operands.node(\"evt_gift_b\").get(\"date\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "36996:37026",
+      "source_start": 36961,
+      "source_end": 36991,
+      "code": "operands.claim().get(\"period\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "37318:37358",
+      "source_start": 37283,
+      "source_end": 37323,
+      "code": "operands.node(\"evt_gift_b\").get(\"state\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "40040:40074",
+      "source_start": 40005,
+      "source_end": 40039,
+      "code": "operands.node(\"gifts\").get(\"kind\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "41250:41284",
+      "source_start": 41215,
+      "source_end": 41249,
+      "code": "operands.node(\"gifts\").get(\"kind\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "42034:42079",
+      "source_start": 41999,
+      "source_end": 42044,
+      "code": "new Error('proof_program_selection_identity')",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "42095:42421",
+      "source_start": 42060,
+      "source_end": 42386,
+      "code": "Object.freeze({node:alias=>alias===\"evt_transfer_out\"?member:rootOperands.node(alias),claim:()=>rootOperands.claim(),set:name=>rootOperands.set(name),edge:id=>rootOperands.edge(id),resolveReference:(alias,field,ref)=>rootOperands.resolveReference(alias,field,ref),memberEdge:(node,field)=>rootOperands.memberEdge(node,field)})",
+      "reason": "shared_passive_constructor"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "42690:42735",
+      "source_start": 42655,
+      "source_end": 42700,
+      "code": "operands.node(\"neutral_transfer\").get(\"kind\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "43129:43174",
+      "source_start": 43094,
+      "source_end": 43139,
+      "code": "operands.node(\"neutral_transfer\").get(\"kind\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "43535:43580",
+      "source_start": 43500,
+      "source_end": 43545,
+      "code": "new Error('proof_program_selection_identity')",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "43596:43921",
+      "source_start": 43561,
+      "source_end": 43886,
+      "code": "Object.freeze({node:alias=>alias===\"evt_transfer_in\"?member:rootOperands.node(alias),claim:()=>rootOperands.claim(),set:name=>rootOperands.set(name),edge:id=>rootOperands.edge(id),resolveReference:(alias,field,ref)=>rootOperands.resolveReference(alias,field,ref),memberEdge:(node,field)=>rootOperands.memberEdge(node,field)})",
+      "reason": "shared_passive_constructor"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "44190:44235",
+      "source_start": 44155,
+      "source_end": 44200,
+      "code": "operands.node(\"neutral_transfer\").get(\"kind\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "44629:44674",
+      "source_start": 44594,
+      "source_end": 44639,
+      "code": "operands.node(\"neutral_transfer\").get(\"kind\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "45040:45085",
+      "source_start": 45005,
+      "source_end": 45050,
+      "code": "new Error('proof_program_selection_identity')",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "45101:45430",
+      "source_start": 45066,
+      "source_end": 45395,
+      "code": "Object.freeze({node:alias=>alias===\"evt_invoice_payment\"?member:rootOperands.node(alias),claim:()=>rootOperands.claim(),set:name=>rootOperands.set(name),edge:id=>rootOperands.edge(id),resolveReference:(alias,field,ref)=>rootOperands.resolveReference(alias,field,ref),memberEdge:(node,field)=>rootOperands.memberEdge(node,field)})",
+      "reason": "shared_passive_constructor"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "45700:45752",
+      "source_start": 45665,
+      "source_end": 45717,
+      "code": "operands.node(\"neutral_invoice_payment\").get(\"kind\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "46147:46199",
+      "source_start": 46112,
+      "source_end": 46164,
+      "code": "operands.node(\"neutral_invoice_payment\").get(\"kind\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "46556:46601",
+      "source_start": 46521,
+      "source_end": 46566,
+      "code": "new Error('proof_program_selection_identity')",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "46617:46937",
+      "source_start": 46582,
+      "source_end": 46902,
+      "code": "Object.freeze({node:alias=>alias===\"evt_rent_a\"?member:rootOperands.node(alias),claim:()=>rootOperands.claim(),set:name=>rootOperands.set(name),edge:id=>rootOperands.edge(id),resolveReference:(alias,field,ref)=>rootOperands.resolveReference(alias,field,ref),memberEdge:(node,field)=>rootOperands.memberEdge(node,field)})",
+      "reason": "shared_passive_constructor"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "47156:47195",
+      "source_start": 47121,
+      "source_end": 47160,
+      "code": "operands.node(\"evt_rent_a\").get(\"date\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "47255:47285",
+      "source_start": 47220,
+      "source_end": 47250,
+      "code": "operands.claim().get(\"period\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "47578:47618",
+      "source_start": 47543,
+      "source_end": 47583,
+      "code": "operands.node(\"evt_rent_a\").get(\"state\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "50702:50743",
+      "source_start": 50667,
+      "source_end": 50708,
+      "code": "operands.node(\"housing_rent\").get(\"kind\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "51891:51936",
+      "source_start": 51856,
+      "source_end": 51901,
+      "code": "new Error('proof_program_selection_identity')",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "51952:52279",
+      "source_start": 51917,
+      "source_end": 52244,
+      "code": "Object.freeze({node:alias=>alias===\"evt_installment_1\"?member:rootOperands.node(alias),claim:()=>rootOperands.claim(),set:name=>rootOperands.set(name),edge:id=>rootOperands.edge(id),resolveReference:(alias,field,ref)=>rootOperands.resolveReference(alias,field,ref),memberEdge:(node,field)=>rootOperands.memberEdge(node,field)})",
+      "reason": "shared_passive_constructor"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "52498:52544",
+      "source_start": 52463,
+      "source_end": 52509,
+      "code": "operands.node(\"evt_installment_1\").get(\"date\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "52604:52634",
+      "source_start": 52569,
+      "source_end": 52599,
+      "code": "operands.claim().get(\"period\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "52927:52974",
+      "source_start": 52892,
+      "source_end": 52939,
+      "code": "operands.node(\"evt_installment_1\").get(\"state\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "55663:55697",
+      "source_start": 55628,
+      "source_end": 55662,
+      "code": "operands.node(\"gifts\").get(\"kind\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "56876:56910",
+      "source_start": 56841,
+      "source_end": 56875,
+      "code": "operands.node(\"gifts\").get(\"kind\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "57663:57708",
+      "source_start": 57628,
+      "source_end": 57673,
+      "code": "new Error('proof_program_selection_identity')",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "57724:58051",
+      "source_start": 57689,
+      "source_end": 58016,
+      "code": "Object.freeze({node:alias=>alias===\"evt_installment_2\"?member:rootOperands.node(alias),claim:()=>rootOperands.claim(),set:name=>rootOperands.set(name),edge:id=>rootOperands.edge(id),resolveReference:(alias,field,ref)=>rootOperands.resolveReference(alias,field,ref),memberEdge:(node,field)=>rootOperands.memberEdge(node,field)})",
+      "reason": "shared_passive_constructor"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "58299:58346",
+      "source_start": 58264,
+      "source_end": 58311,
+      "code": "operands.node(\"evt_installment_2\").get(\"state\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "58683:58728",
+      "source_start": 58648,
+      "source_end": 58693,
+      "code": "new Error('proof_program_selection_identity')",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "58744:59071",
+      "source_start": 58709,
+      "source_end": 59036,
+      "code": "Object.freeze({node:alias=>alias===\"evt_installment_3\"?member:rootOperands.node(alias),claim:()=>rootOperands.claim(),set:name=>rootOperands.set(name),edge:id=>rootOperands.edge(id),resolveReference:(alias,field,ref)=>rootOperands.resolveReference(alias,field,ref),memberEdge:(node,field)=>rootOperands.memberEdge(node,field)})",
+      "reason": "shared_passive_constructor"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "59319:59366",
+      "source_start": 59284,
+      "source_end": 59331,
+      "code": "operands.node(\"evt_installment_3\").get(\"state\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "59704:59749",
+      "source_start": 59669,
+      "source_end": 59714,
+      "code": "new Error('proof_program_selection_identity')",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "59765:60093",
+      "source_start": 59730,
+      "source_end": 60058,
+      "code": "Object.freeze({node:alias=>alias===\"evt_bill_projected\"?member:rootOperands.node(alias),claim:()=>rootOperands.claim(),set:name=>rootOperands.set(name),edge:id=>rootOperands.edge(id),resolveReference:(alias,field,ref)=>rootOperands.resolveReference(alias,field,ref),memberEdge:(node,field)=>rootOperands.memberEdge(node,field)})",
+      "reason": "shared_passive_constructor"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "60341:60389",
+      "source_start": 60306,
+      "source_end": 60354,
+      "code": "operands.node(\"evt_bill_projected\").get(\"state\")",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "60532:60578",
+      "source_start": 60497,
+      "source_end": 60543,
+      "code": "new Error('proof_program_selection_candidate')",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "60602:60645",
+      "source_start": 60567,
+      "source_end": 60610,
+      "code": "new Error('proof_program_selection_roster')",
+      "reason": "ambiguous_origin"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "164657:164762",
+      "source_start": 164622,
+      "source_end": 164727,
+      "code": "collection.members(operands.set(\"pair_transfer_01\"),{\"form\":\"set\",\"item\":{\"form\":\"node\",\"kind\":\"event\"}})",
+      "reason": "receiver_not_bound_capability"
+    },
+    {
+      "surface": "proof",
+      "module": "provenance/program.js",
+      "bound_source": "sha256:aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e",
+      "site": "171345:171526",
+      "source_start": 171310,
+      "source_end": 171491,
+      "code": "refs.map(ref=>{const target=identity(operands.resolveReference(\"collection_events\",\"members\",ref));if(target.ref_id!==ref)throw new Error('proof_program_reference');return target;})",
+      "reason": "receiver_not_bound_capability"
+    }
+  ],
+  "semantic_discharge": false,
+  "independent_review": false,
+  "qualified": false,
+  "credit": 0
+}

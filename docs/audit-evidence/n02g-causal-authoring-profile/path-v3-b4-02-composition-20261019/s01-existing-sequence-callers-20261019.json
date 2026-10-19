@@ -1,0 +1,908 @@
+{
+  "kind": "source_slices_of_existing_direct_sequence_calls_not_flow_analyzer",
+  "calls": [
+    {
+      "source": "src/next/provenance/proofObservedValues.js",
+      "site": "4606:4680",
+      "arguments": [
+        "value",
+        "item => record(item, { role_id: 'id', parent_ref: 'id' })"
+      ],
+      "source_sha256": "e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced"
+    },
+    {
+      "source": "src/next/provenance/proofObservedValues.js",
+      "site": "4200:4253",
+      "arguments": [
+        "value",
+        "item => scalar(item, { type: 'id' })"
+      ],
+      "source_sha256": "e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced"
+    },
+    {
+      "source": "src/next/provenance/proofObservedValues.js",
+      "site": "3643:3694",
+      "arguments": [
+        "raw",
+        "item => scalar(item, { type: 'id' })"
+      ],
+      "source_sha256": "e9615d26b5f783ca7ed6b04a6f478aaa88531becde9b95224b48d2692f051ced"
+    },
+    {
+      "source": "src/next/provenance/collectionProofCore.js",
+      "site": "507:831",
+      "arguments": [
+        "handle",
+        "member => {\n            const id = readObservedIdentity(member); const key = JSON.stringify([id.kind, id.ref_id, id.version]);\n            if (id.kind !== type.item.kind || type.form === 'set' && seen.has(key)) throw new Error('proof_expression_member');\n            seen.add(key); return member;\n        }"
+      ],
+      "source_sha256": "4cc88bf36458e46783dfbc1ae24c3f0fc2855e28f29663094ca48be0fe72a8ec"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "171563:171608",
+      "arguments": [
+        "operands.set(\"candidates\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "171185:171302",
+      "arguments": [
+        "operands.node(\"collection_events\").get(\"members\")",
+        "ref=>{validateLiteral({type:\"id\",value:ref});return ref;}"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "162748:162796",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "161940:161988",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "161125:161173",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "160317:160365",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "159500:159548",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "158678:158726",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "157860:157908",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "157043:157091",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "156230:156278",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "57342:57390",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "56524:56572",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "56129:56177",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "55311:55359",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "54916:54964",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "54521:54569",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "54126:54174",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "53731:53779",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "53336:53384",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "51570:51618",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "51175:51223",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "50350:50398",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "49955:50003",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "49560:49608",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "49165:49213",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "48770:48818",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "48375:48423",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "47980:48028",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "41715:41763",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "40899:40947",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "40505:40553",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "39689:39737",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "39295:39343",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "38901:38949",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "38507:38555",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "38113:38161",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "37719:37767",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "35985:36033",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "35591:35639",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "35197:35245",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "34803:34851",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "33978:34026",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "33584:33632",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "33190:33238",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "32796:32844",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "32402:32450",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "30660:30708",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "30266:30314",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "29872:29920",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "29478:29526",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "29084:29132",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "28254:28302",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "27428:27476",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "27034:27082",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "26640:26688",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "24152:24200",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "23758:23806",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "23364:23412",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "22970:23018",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "22576:22624",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "22182:22230",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "21356:21404",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "20962:21010",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "20568:20616",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "18810:18858",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "18416:18464",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "18022:18070",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "17628:17676",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "17234:17282",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "16840:16888",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "16446:16494",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "15621:15669",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "15227:15275",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "13493:13541",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "13099:13147",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "12705:12753",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "12311:12359",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "11917:11965",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "11523:11571",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "11129:11177",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "10735:10783",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "9914:9962",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "8176:8224",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "7782:7830",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "7388:7436",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "6994:7042",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "6600:6648",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "6206:6254",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "5812:5860",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "5418:5466",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    },
+    {
+      "source": ".codex-temp/s01-normal-proof-program-20261019.txt",
+      "site": "5024:5072",
+      "arguments": [
+        "operands.set(\"family_people\")",
+        "identity"
+      ],
+      "source_sha256": "aded0305741a3661531cff2eca48bc7bcbdaa7d506874384df18c7a4379b302e"
+    }
+  ],
+  "forms": [
+    {
+      "callback": "item => record(item, { role_id: 'id', parent_ref: 'id' })",
+      "count": 1,
+      "sources": [
+        "src/next/provenance/proofObservedValues.js"
+      ]
+    },
+    {
+      "callback": "item => scalar(item, { type: 'id' })",
+      "count": 2,
+      "sources": [
+        "src/next/provenance/proofObservedValues.js"
+      ]
+    },
+    {
+      "callback": "member => {\n            const id = readObservedIdentity(member); const key = JSON.stringify([id.kind, id.ref_id, id.version]);\n            if (id.kind !== type.item.kind || type.form === 'set' && seen.has(key)) throw new Error('proof_expression_member');\n            seen.add(key); return member;\n        }",
+      "count": 1,
+      "sources": [
+        "src/next/provenance/collectionProofCore.js"
+      ]
+    },
+    {
+      "callback": "identity",
+      "count": 91,
+      "sources": [
+        ".codex-temp/s01-normal-proof-program-20261019.txt"
+      ]
+    },
+    {
+      "callback": "ref=>{validateLiteral({type:\"id\",value:ref});return ref;}",
+      "count": 1,
+      "sources": [
+        ".codex-temp/s01-normal-proof-program-20261019.txt"
+      ]
+    }
+  ],
+  "semantic_discharge": false,
+  "independent_review": false
+}

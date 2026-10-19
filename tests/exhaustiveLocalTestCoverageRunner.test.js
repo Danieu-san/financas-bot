@@ -744,3 +744,100 @@ test('coverage tripwire checks effective HTTP hosts and fetch Request inputs wit
     assert.strictEqual(child.status, 0, child.stderr);
     assert.strictEqual(child.stdout.trim(), 'guard-inputs-ok');
 });
+
+test('coverage tripwire forwards the same HTTP hostname snapshot it checked without network', () => {
+    const tripwirePath = path.join(__dirname, 'helpers', 'exhaustiveNetworkTripwire.js');
+    const environment = buildHermeticTestEnvironment(process.env);
+    const child = spawnSync(process.execPath, ['-e', `
+        const assert = require('node:assert/strict');
+        const http = require('node:http');
+        const https = require('node:https');
+        const net = require('node:net');
+        let socketAttempts = 0;
+        // Native HTTP normalization is real; an injected agent stops before
+        // any socket/DNS. A mistaken fallback is a hard failure, not traffic.
+        net.Socket.prototype.connect = () => {
+            socketAttempts++; throw new Error('FIXTURE_SOCKET_FORBIDDEN');
+        };
+        const guardedCases = [];
+        const expectedCases = [];
+        function captureStaticArguments(target) {
+            for (const [module, protocol, defaultPort] of [[http, 'http:', 80], [https, 'https:', 443]]) {
+                for (const method of ['request', 'get']) {
+                    for (const shape of ['options', 'string+options', 'url+options']) {
+                        const headers = { 'x-synthetic-fixture': 'preserved' };
+                        const agent = { protocol, defaultPort, addRequest(request, options) {
+                            target.push({ protocol: options.protocol, host: options.host,
+                                port: options.port, method: options.method, path: options.path,
+                                auth: options.auth, sameHeaders: options.headers === headers });
+                            request.on('error', () => {});
+                            request.destroy();
+                        } };
+                        const options = { agent, hostname: '127.0.0.1', method: 'POST', headers };
+                        if (shape === 'options') Object.assign(options, { port: 12345, path: '/fixture?q=1', auth: 'u:p' });
+                        expectedCases.push({ protocol: shape === 'options' ? undefined : protocol,
+                            host: '127.0.0.1', port: 12345, method: 'POST',
+                            path: '/fixture?q=1', auth: 'u:p', sameHeaders: true });
+                        const callback = () => {};
+                        const url = protocol + '//u:p@127.0.0.1:12345/fixture?q=1#fragment';
+                        const request = shape === 'options' ? module[method](options, callback)
+                            : module[method](shape === 'url+options' ? new URL(url) : url, options, callback);
+                        request.on('error', () => {});
+                        assert.equal(request.listeners('response').includes(callback), true);
+                        request.destroy();
+                    }
+                }
+            }
+        }
+        require(${JSON.stringify(tripwirePath)}).installTripwire();
+        captureStaticArguments(guardedCases);
+        assert.deepEqual(guardedCases, expectedCases, 'normal native HTTP options and callbacks preserved');
+        for (const [module, protocol, defaultPort] of [[http, 'http:', 80], [https, 'https:', 443]]) {
+            for (const method of ['request', 'get']) {
+                for (const shape of ['options', 'string+options', 'url+options']) {
+                    let reads = 0;
+                    let consumed;
+                    const agent = { protocol, defaultPort, addRequest(request, options) {
+                        consumed = options.host;
+                        request.on('error', () => {});
+                        request.destroy();
+                    } };
+                    const options = { agent, get hostname() {
+                        reads++; return reads === 1 ? '127.0.0.1' : 'changed.example.invalid';
+                    } };
+                    const callback = () => {};
+                    const url = protocol + '//127.0.0.1/';
+                    const request = shape === 'options' ? module[method](options, callback)
+                        : module[method](shape === 'url+options' ? new URL(url) : url, options, callback);
+                    request.on('error', () => {});
+                    assert.equal(consumed, '127.0.0.1', protocol + method + shape);
+                    assert.equal(reads, 1, 'caller hostname getter captured only once');
+                    assert.equal(request.listeners('response').includes(callback), true);
+                    request.destroy();
+                }
+                let blockedReads = 0;
+                assert.throws(() => module[method]({ get hostname() {
+                    blockedReads++; return blockedReads === 1 ? 'blocked.example.invalid' : '127.0.0.1';
+                } }), { code: 'EXHAUSTIVE_AUDIT_NETWORK_BLOCKED' });
+                assert.equal(blockedReads, 1);
+                for (const shape of ['options', 'string+options', 'url+options']) {
+                    const prototypeOptions = JSON.parse('{"__proto__":{"hostname":"changed.example.invalid"}}');
+                    let prototypeHost;
+                    prototypeOptions.agent = { protocol, defaultPort, addRequest(request, options) {
+                        prototypeHost = options.host;
+                        request.on('error', () => {}); request.destroy();
+                    } };
+                    const url = protocol + '//127.0.0.1/';
+                    assert.throws(() => shape === 'options' ? module[method](prototypeOptions)
+                        : module[method](shape === 'url+options' ? new URL(url) : url, prototypeOptions),
+                    { code: 'EXHAUSTIVE_AUDIT_NETWORK_BLOCKED' });
+                    assert.equal(prototypeHost, undefined, 'unsafe prototype option blocked before original');
+                }
+            }
+        }
+        assert.equal(socketAttempts, 0);
+        console.log('guard-http-snapshot-ok');
+    `], { env: environment, encoding: 'utf8', timeout: 30000 });
+    assert.strictEqual(child.status, 0, child.stderr);
+    assert.strictEqual(child.stdout.trim(), 'guard-http-snapshot-ok');
+});
