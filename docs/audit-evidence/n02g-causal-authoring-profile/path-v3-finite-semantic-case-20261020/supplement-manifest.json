@@ -1,0 +1,98 @@
+{
+  "format": "financasbot.path-v3-finite-semantic-case-supplement",
+  "version": 1,
+  "status": "candidate_evidence_pending_one_independent_integrated_judgment",
+  "candidate_commit_intentionally_external": true,
+  "parent": {
+    "commit": "fbfa2531770cb16ca4c501386b0acc26bf9bf776",
+    "tree": "6a8fb5469864ab42308cc99225934815a43b585b",
+    "blobs": 1861
+  },
+  "whole_inherited_object": {
+    "manifest": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-b4-02-composition-20261019/review-manifest.json",
+    "sha256": "487f29904a22432e725ace333b88381b57291a1fbe9a76c7daccd302ea43a065",
+    "roles": 328,
+    "all_parent_blobs_must_remain_exact": true
+  },
+  "new_evidence_roles": 2,
+  "total_roles": 330,
+  "semantic_delta": {
+    "claim1": "Total finite S01 applicability to the actual twelve ordinary pass branches, 16 event anchors / 15+15 locators, real selection participation, distinct byte-admission premise",
+    "claim2": "Closed handle/callback origin induction and actual source-to-observation relation; all 16 fingerprint reads, duplicate read-key coverage versus individual event ownership, typed result and acceptance order",
+    "claim3": "Complete original data applicability and migration without requalification; actual six-schema formats/if-then-not/reference use, dependency configuration and four bundle consumer roles",
+    "no_new_engine_norm_schema_or_implementation": true,
+    "no_integrated_approval_inherited": true
+  },
+  "review_contract": {
+    "whole_integrated_object": true,
+    "review_new_reasoning_and_affected_existing_invariants": true,
+    "reuse_only_exact_unchanged_bodies_with_explicit_applicability_justification": true,
+    "no_APTO_by_count_or_sum": true,
+    "no_fixed_reading_ranges_or_subgates": true,
+    "no_automatic_corrective_loop": true,
+    "required_outcome": "APTO_STATICO_NO_ALCANCE_or_causal_NO_GO_or_INCOMPLETA_with_exact_gap",
+    "pending_independent_judgment": true
+  },
+  "local_validation_reused": {
+    "code_or_runtime_delta": false,
+    "new_suite_justified": false,
+    "wide_report_sha256": "42e6126d4c3f321534d72b7584951d9d4aa6a6c794e889618d9934589f35a866",
+    "tests": 2788,
+    "pass": 2778,
+    "fail": 0,
+    "exact_skip": 10,
+    "cancel": 0,
+    "todo": 0,
+    "current_sources": 895,
+    "current_sources_sha256": "183ba87724616c2226e7b1893fb8c3b5fa978631b116d99d23307ec9e782a6d7",
+    "proof_inputs": 9,
+    "coverage_jsons": 753,
+    "independent_rerun": false
+  },
+  "original_data_complete_reads": {
+    "graphs_bytes": 4954513,
+    "graphs": 76,
+    "claims": 76,
+    "evaluators": 39,
+    "frozen_inventory_bytes": 10931712,
+    "frozen_requirements": 45988,
+    "frozen_distinct_ids": 45988,
+    "historical_report_bytes": 3472204,
+    "historical_rows": 2419,
+    "history_not_new_runtime_proofs": true
+  },
+  "identity_checks_in_preparation": {
+    "normal_source_bindings": 36,
+    "source_mismatches": [],
+    "dependency_and_artifact_bodies": 94,
+    "dependency_artifact_mismatches": [],
+    "recipe_sources": 7,
+    "schema_commitments": 6,
+    "recipe_mismatches": [],
+    "identity_not_semantic_approval": true
+  },
+  "evidence": [
+    {
+      "published": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-finite-semantic-case-20261020/finite-semantic-case.md",
+      "role": "new_source_bound_semantic_argument_pending_independent_judgment",
+      "bytes": 36696,
+      "sha256": "3a0b2097b11e518397450517f3c08df1ba5aafd04f5c6fb14d6efdf968e1e1a1",
+      "git_blob_sha1": "d634305bf4cefe974c31b87597fa8022a679b0a8"
+    },
+    {
+      "published": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-finite-semantic-case-20261020/prior-integrated-review-confronted.md",
+      "role": "prior_final_INCOMPLETA_source_bound_summary_not_private_transcript",
+      "bytes": 7107,
+      "sha256": "09fe7416ca039c88b5f0294748b3f67b7cc54633e2ff9c805bedada54740434e",
+      "git_blob_sha1": "0e68bb0e8a8bb42825552a3d871755dde7cfa74d"
+    }
+  ],
+  "limits": [
+    "Executor evidence is not independent approval.",
+    "Prior final INCOMPLETA and all historical results remain unchanged.",
+    "Static favorability is not operational TCB/pin/runtime/ticket authentication or fresh qualification.",
+    "Qualified/credit/exec/finance/receipt/validated_parent/globalGO/NEXT03 remain false/0.",
+    "No code, capture, norm, corpus, dependency, pin, branch or index modification is part of this supplement.",
+    "Privacy heuristic is not a certificate; no private conversation transcript or locator is included."
+  ]
+}
