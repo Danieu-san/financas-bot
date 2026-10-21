@@ -1,0 +1,138 @@
+{
+  "format": "financasbot.path-v3-real-internal-observations-supplement",
+  "version": 1,
+  "stage": "actual_normal_INTERNAL_and_existing_full_trace_comparison_pending_integrated_qualification_judgment",
+  "parent": {
+    "commit": "e4af6912c83d04c1d827c03b24aa90ab80043f39",
+    "tree": "9d281942f6519269a3ef1fb5e51abb1b712ec683",
+    "all_1873_blobs_preserved": true
+  },
+  "whole_inherited_object": {
+    "provisioning_manifest": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-operational-provisioning-20261021/supplement-manifest.json",
+    "provisioning_manifest_sha256": "4bba0af48134a86df2e63d35bf2702fe29e48489293fdc17ec962017e05f30f4",
+    "finite_semantic_case_manifest": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-finite-semantic-case-20261020/supplement-manifest.json",
+    "whole_code_manifest": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-b4-02-composition-20261019/review-manifest.json",
+    "whole_code_manifest_sha256": "487f29904a22432e725ace333b88381b57291a1fbe9a76c7daccd302ea43a065",
+    "includes": "Whole code, ratified norm, complete authored data and applicability, dependencies/licenses, nine captured artifacts and all material evidence; not an isolated trace/helper/predicate audit."
+  },
+  "material_delta": {
+    "product_runtime_norm_schema_corpus_dependency_capture_change": false,
+    "actual_internal_invocation": "1c665af2-7982-4b14-b49f-1afeb85ac1f2",
+    "actual_native_exit": 0,
+    "actual_proof_satisfied_C_M_S": [
+      true,
+      false,
+      true
+    ],
+    "actual_oracle_BRL_minor": 169400,
+    "all_six_normal_phase_comparisons_matched": true,
+    "complete_original_events_per_world": {
+      "derivation": 355,
+      "proof": 3426
+    },
+    "all_895_current_sources_unchanged": true,
+    "local_one_use_is_not_global_replay_prevention": true,
+    "false_predicate_array_not_emitted": true,
+    "target_attribution_is_explicit_causal_inference_not_fabricated_site_telemetry": true
+  },
+  "review_contract": {
+    "request": "One integrated judgment of the whole inherited implementation plus actual normal execution, exact required violations, applicable qualification and remaining gate obligations.",
+    "not_provisioning_reaudited_by_hash_alone": true,
+    "not_automatic_credit_or_GO": true,
+    "no_new_9_plus_1_or_per_predicate_subgate": true,
+    "no_rerun_of_completed_invocation_or_new_M": true,
+    "distinguish": [
+      "APTO_STATICO_NO_ALCANCE",
+      "NO_GO_WITH_CAUSAL_FINDING",
+      "INCOMPLETA_WITH_CONCRETE_REMAINDER"
+    ],
+    "source_reuse": "Only unchanged bodies with prior applicable semantic review explicitly justified; new actual observations and uses must be examined."
+  },
+  "validation": {
+    "wide_report_sha256": "42e6126d4c3f321534d72b7584951d9d4aa6a6c794e889618d9934589f35a866",
+    "wide_tests": 2788,
+    "wide_pass": 2778,
+    "wide_skip_exact": 10,
+    "current_895_sources_sha256": "183ba87724616c2226e7b1893fb8c3b5fa978631b116d99d23307ec9e782a6d7",
+    "normal_rule_snapshot_sha256": "ada954eb15be38339401ec99ee552b46532ae21d7290b25bde31765c3072e4a6",
+    "runtime_publisher_binary_sha256": "39d45b5933f339d3ebdebd76474893dab5d7da1038920f65cf5bbcf0f20f3636",
+    "qualified": false,
+    "semantic_mutation_credit": 0,
+    "financial_acceptance": false,
+    "globalGO": false,
+    "NEXT03": false,
+    "remaining": "Full v3 inventory/dispositions/history migration, all other applicable rows/families, 76 graphs/39 evaluators and parent/DAG obligations are not closed by this one invocation."
+  },
+  "new_material": [
+    {
+      "local": ".codex-temp/b4-02-internal-observations-20261021.json",
+      "published": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-real-internal-observations-20261021/actual-normal-internal-observations.json",
+      "role": "actual_single_normal_INTERNAL_invocation_complete",
+      "bytes": 6024184,
+      "sha256": "762d1859a4702a584ae068ca59a7cf07f8f9173dc80d830b04054b9d10b18119",
+      "git_blob_sha1": "d052e2184404dce2ee8d8c871162b5013ce3cbed"
+    },
+    {
+      "local": ".codex-temp/b4-02-internal-coverage-normal-20261021.json",
+      "published": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-real-internal-observations-20261021/actual-normal-phase-coverage.json",
+      "role": "existing_normal_full_trace_comparison_six_phases",
+      "bytes": 2527322,
+      "sha256": "cf592594bf3ae789f17ba8a3e6f330931490fa1975305191d2eb9db1ce508592",
+      "git_blob_sha1": "666e586d3b9d14957aa645e8717696e0fc645ab2"
+    },
+    {
+      "local": ".codex-temp/run-b4-02-internal-once-20261021.cjs",
+      "published": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-real-internal-observations-20261021/normal-internal-once-driver.cjs",
+      "role": "mechanical_native_operator_driver_already_completed_do_not_rerun",
+      "bytes": 11514,
+      "sha256": "bd5c10d5306b33d5c312975574e7189ff98035d8894cece02eab18400a8a172e",
+      "git_blob_sha1": "4c25d6be8d70d572c2af6d40e16d6e88634ef31d"
+    },
+    {
+      "local": ".codex-temp/compare-b4-02-internal-observations-20261021.cjs",
+      "published": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-real-internal-observations-20261021/normal-trace-comparison-driver.cjs",
+      "role": "mechanical_existing_APIs_only_no_new_qualifier",
+      "bytes": 10293,
+      "sha256": "0a2c1a33e61198097678ff4dbd60937e2916c094b4773b74b8eda9c3dabfaef9",
+      "git_blob_sha1": "ef9216d2ba98289a06ea3b0efc1b12f87e82c6be"
+    },
+    {
+      "local": ".codex-temp/b4-02-e4-final-audit-receipt-confronted-20261021.md",
+      "published": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-real-internal-observations-20261021/provisioning-review-confronted.md",
+      "role": "independent_review_summary_and_prior_external_fixed_pin_adoption",
+      "bytes": 8037,
+      "sha256": "a447095591b8abf4bd5d663fef413b19fe3fe2358dddf0f5c5eb47befe21a06f",
+      "git_blob_sha1": "db916fda96e512657043c02537eb67815a0c70e8"
+    },
+    {
+      "local": ".codex-temp/b4-02-internal-execution-confronted-20261021.md",
+      "published": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-real-internal-observations-20261021/actual-execution-confronted.md",
+      "role": "source_bound_actual_execution_causality_and_limits",
+      "bytes": 7615,
+      "sha256": "3c78e19226b4be9180e094e65063be8b277f37b12049dcc364bcf1b79cdade8e",
+      "git_blob_sha1": "ef4bf555910032c05ad3836ef712fcd001c7b42b"
+    },
+    {
+      "local": ".codex-temp/b4-02-internal-coverage-20261021.json",
+      "published": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-real-internal-observations-20261021/first-reader-rejection.json",
+      "role": "reader_error_before_any_phase_comparison_not_product_RED",
+      "bytes": 2254,
+      "sha256": "2ca625096520796f7de4707ccc00482350cb2bd13168944dc180298bc810f777",
+      "git_blob_sha1": "cfc21fc122935e13c45e91eaafef865f2dbdbbaa"
+    },
+    {
+      "local": ".codex-temp/b4-02-internal-once-20261021.started.json",
+      "published": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-real-internal-observations-20261021/local-one-use-marker.json",
+      "role": "local_wrapper_marker_not_global_replay_prevention",
+      "bytes": 261,
+      "sha256": "07c657cbd6ed4c6d303fe5507f57f487dbd8a78f662b2f394c30b721c3a7177d",
+      "git_blob_sha1": "de5a87796f061c60f8cb78f1ff2e34a0391ecac8"
+    }
+  ],
+  "privacy": {
+    "only_published_synthetic_inputs_and_public_source_derived_evidence": true,
+    "no_private_transcript_session_browser_locator_credentials_or_real_financial_data": true,
+    "heuristic_scan_findings": [],
+    "heuristic_not_certificate": true
+  }
+}

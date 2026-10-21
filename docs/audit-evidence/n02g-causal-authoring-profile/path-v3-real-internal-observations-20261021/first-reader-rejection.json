@@ -1,0 +1,59 @@
+{
+  "format": "financasbot.path-v3.existing-normal-coverage-local",
+  "version": 1,
+  "started_at": "2026-10-21T17:55:55.929Z",
+  "candidate": "e4af6912c83d04c1d827c03b24aa90ab80043f39",
+  "guest_reexecuted": false,
+  "qualified": false,
+  "semantic_mutation_credit": 0,
+  "financial_acceptance": false,
+  "globalGO": false,
+  "NEXT03": false,
+  "phases": [],
+  "sources_before": {
+    "count": 895,
+    "sha256": "183ba87724616c2226e7b1893fb8c3b5fa978631b116d99d23307ec9e782a6d7",
+    "mismatches": []
+  },
+  "oracle_source_sha256": "0e68ed70b10fdde5c90dc14aa3caf2ef72a4842bbbc6db8779287900567994d8",
+  "expected": {
+    "origin": "unchanged_preexecution_authored_package_and_reviewed_freeze_payload",
+    "graph": "S-01#1#1",
+    "reference": {
+      "stage": "path_semantic_reference_sealed_before_dp",
+      "mutation_id": "sha256:45b51ce7fb14418eb9727b08b0e37019a8a464db308fe738c8ff3b7f58a25f92",
+      "candidate_id": "sha256:af435a0276d323543f62708e29d47bc923deaca8bdfb2b4f5912f55434b79f74",
+      "predicate_id": "link_2_refund_sign",
+      "operator": "opposite_sign",
+      "available": true,
+      "baseline_satisfied": true,
+      "mutant_satisfied": false,
+      "expected_violations": [
+        "edge"
+      ],
+      "financial_receipt": false,
+      "source": "admitted_frozen_claim_and_primary_snapshot_only",
+      "world_sha256": "sha256:13e8a2b3ff0603df966178108a060dd0d5de60cafe6526652947577bb67afb95",
+      "operands_sha256": "sha256:fbeacef3f3064789286e67cd15406110f712b8b587f6b8cd8548a606aa33ec55",
+      "method_version": 3,
+      "invocation_id": "1c665af2-7982-4b14-b49f-1afeb85ac1f2",
+      "discriminating": true,
+      "semantic_mutation_credit": 0,
+      "qualified": false
+    },
+    "phase_contract_sha256": "4f76c5318e4de80f0e0d4ec2f8a90388aad4ebdba52d41ec460a80040248d2cc",
+    "package_authority_sha256": "13e8a2b3ff0603df966178108a060dd0d5de60cafe6526652947577bb67afb95"
+  },
+  "worlds": [],
+  "stage": "comparison_failed_without_guest_retry",
+  "error": {
+    "name": "Error",
+    "message": "canonical_json_invalid"
+  },
+  "sources_after": {
+    "count": 895,
+    "sha256": "183ba87724616c2226e7b1893fb8c3b5fa978631b116d99d23307ec9e782a6d7",
+    "mismatches": []
+  },
+  "completed_at": "2026-10-21T17:55:59.405Z"
+}
