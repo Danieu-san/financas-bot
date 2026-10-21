@@ -1,0 +1,58 @@
+{
+  "format": "financasbot.path-qualification.v3.confronted-witness-evidence-link",
+  "version": 3,
+  "stage": "independently_accepted_fresh_evidence_linked_pending_formal_inventory_row_transition",
+  "qualification_id": "sha256:2f8b1c1ff6c63f5f4be224d94f074a3c1e21848834bdd53bf62722e6ae47d317",
+  "target_id": "sha256:45b51ce7fb14418eb9727b08b0e37019a8a464db308fe738c8ff3b7f58a25f92",
+  "original_row_index": 646,
+  "target": { "fact_key": "S-01#1#1", "predicate_id": "link_2_refund_sign", "strategy": "same_type_wrong_path" },
+  "applicable_disposition": "semantic_witness",
+  "method_authority": { "commit": "72fc5a5b707909687da9b5cec892be2dcc892a62", "blob": "82112f0c4d6eeed21d4823c8b1dd3d3ca8ce1bf2" },
+  "reviewed_whole_candidate": "e050ad07ef1b877d38e81acea98d827d1eb59ffb",
+  "independent_review": {
+    "verdict": "APTO_NO_ALCANCE",
+    "report_sha256": "29ef2d1add922f7325239cd1c9d3c08ed36481152ffad4641585b35d2fbec604",
+    "whole_report_chars_read": 15717,
+    "confronted_receipt": ".codex-temp/b4-02-e050-final-audit-receipt-confronted-20261021.md",
+    "accepted_finite_actual_witness_not_global_GO": true
+  },
+  "preexecution_identity": {
+    "candidate_id": "sha256:af435a0276d323543f62708e29d47bc923deaca8bdfb2b4f5912f55434b79f74",
+    "invocation_id": "1c665af2-7982-4b14-b49f-1afeb85ac1f2",
+    "entry_index": 0, "site_index": 0, "locator_index": 0,
+    "reference_sha256": "sha256:20b0b6a394a2030e4214d28f13589438d374456c8a742ac62fafcef582831a48",
+    "domain_sha256": "sha256:0741b052d5b021833bfb0c4954f345d7a7886e99c68b4ab6a66ad905e9e83a08",
+    "entries_sha256": "sha256:6a939ebcf5a5e1bd70f66e92a9c6e55e2621b795e31714f181b4857369adfa8f",
+    "ticket_commitment": "sha256:b538120d92a96fa21ada2bedd1d155f5a588dab3fef4a808e1ddec499bf18cdc"
+  },
+  "actual_evidence": {
+    "observations_sha256": "762d1859a4702a584ae068ca59a7cf07f8f9173dc80d830b04054b9d10b18119",
+    "coverage_sha256": "cf592594bf3ae789f17ba8a3e6f330931490fa1975305191d2eb9db1ce508592",
+    "normal_execution_native_exit": 0,
+    "proof_satisfied_C_M_S": [true, false, true],
+    "oracle_minor_C_M_S": [169400, 169400, 169400],
+    "six_full_phase_coverage_matches": true,
+    "all_events_owned_once": true,
+    "roots_match_preexecution_expectations": true,
+    "expected_violations": ["edge"],
+    "causal_exact_violation_accepted_after_source_trace_confrontation": true,
+    "site_telemetry_array_emitted": false,
+    "sources_895_unchanged": true,
+    "invocation_reexecuted_for_review": false
+  },
+  "historical_membership": {
+    "expected_predicates": 2419,
+    "target_ids_sha256": "sha256:518018b2d8cee7aa054153c7afef9da3280405f0f912e0b78a605c48aa8a6acf",
+    "historical_report_sha256": "sha256:3187e36259bc11fcd2c9063a6a4ba25987f1e1acca18a81a96aee87834b007d0",
+    "old_ledger_changed_or_requalified": false
+  },
+  "formal_inventory_row_transition_applied": false,
+  "qualified": false,
+  "semantic_mutation_credit": 0,
+  "financial_acceptance": false,
+  "validated_parent": false,
+  "globalGO": false,
+  "NEXT03": false,
+  "not_a_new_engine_analyzer_or_norm": true,
+  "not_a_replacement_for_complete_2419_row_inventory": true
+}

@@ -1,0 +1,87 @@
+{
+  "stage": "read_only_primary_parent_and_case_source_bindings_before_publication",
+  "repository": "Danieu-san/financas-bot",
+  "parent": "e050ad07ef1b877d38e81acea98d827d1eb59ffb",
+  "parent_parent": "e4af6912c83d04c1d827c03b24aa90ab80043f39",
+  "parent_tree": "d9b183f328c17e3eacf5bc24b9268660d81c897d",
+  "inherited_blobs": 1882,
+  "recursive_primary_tree_truncated": false,
+  "case_source_bindings": [
+    {
+      "path": "src/next/provenance/pathQualificationV3.js",
+      "bytes": 100438,
+      "sha256": "d69103c207aa25e53e2ad471617fd8c33e58499b1d7228a988dd75de11af1978",
+      "git_blob_sha1": "3e41187cc1516e79e92e9d04668caa5f4f1592a2"
+    },
+    {
+      "path": "src/next/provenance/pathLocatorDomainV3.js",
+      "bytes": 11793,
+      "sha256": "5e63d13db01a652d38c1888ac652435eb20e8b3b7c371f5d85c121141f36500f",
+      "git_blob_sha1": "ba1f2a371a52dde29dc3b2c5d51e132acc429ba6"
+    },
+    {
+      "path": "src/next/provenance/pathMutationInventory.js",
+      "bytes": 42026,
+      "sha256": "095d9e6daec7c73ffd8ae940e00a401e899915c4f35477b50c8595e909d72275",
+      "git_blob_sha1": "4bff604d73db4794ff52c814bb5408c7950597ba"
+    },
+    {
+      "path": "src/next/provenance/graphStructure.js",
+      "bytes": 17159,
+      "sha256": "927a4e76b6a7c9f8ad8656e21a44766a745c2edd3113b82ff7231a1c2bc79e50",
+      "git_blob_sha1": "549473a5b632c3a8544552d1ac88e7dd85047304"
+    },
+    {
+      "path": "scripts/agent/capturePathQualificationCompiler.mjs",
+      "bytes": 52261,
+      "sha256": "486f0154003e71c0284887a3c9735c1f2896fd84134a3667d99edc8586085611",
+      "git_blob_sha1": "37f8bbfef08ed5f960b5c61b4e21d489401bd418"
+    },
+    {
+      "path": "scripts/agent/pathProofProgramContract.mjs",
+      "bytes": 58942,
+      "sha256": "e8fe3ed84368ee154383748879e4b70490b7114fd764efed8db9a586343c956d",
+      "git_blob_sha1": "d6e972b855898ca4ae1708725744acce9b1c3724"
+    },
+    {
+      "path": "tests/next/provenance/pathQualificationV3.cases.js",
+      "bytes": 329476,
+      "sha256": "94e7d6da406e7cc26cd817fe7bdd1276bad0498e9fca2f72dbb3b43e4d81988e",
+      "git_blob_sha1": "c548adcafc652023498bbc958570fba5bfffb606"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claim-contract.schema.json",
+      "bytes": 6124,
+      "sha256": "b69ef61b562061f057a9bf08f47623ae432c723f565e8775f3dbe6eb942ea998",
+      "git_blob_sha1": "40f4a97483a359d77ddf649a167ebc67b9b6286e"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/material-field-registry-v1.json",
+      "bytes": 10998,
+      "sha256": "ee7ef3eff146bc2e9cea2cc986c398371acbff3cf35d858ced8386a9758a4d62",
+      "git_blob_sha1": "03d53deb88eae3317dc1c0f58f7af552bd8b12bf"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/graphs-v2.json",
+      "bytes": 4954513,
+      "sha256": "e9c852034d8cc887e1d8645a61d9597176409f72a28eaf0de4c95f17c0c8358d",
+      "git_blob_sha1": "a3baa82049ef927095458199a71ef0f377870c3c"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/claims-v2.json",
+      "bytes": 64240,
+      "sha256": "4810612761ea7f232e4445c0d192ae53ebf0761f0ba8752da758efb826b30494",
+      "git_blob_sha1": "0f0ade4e0f174966ae9f2660df97cc0b29d2d775"
+    },
+    {
+      "path": "docs/contracts/next/provenance-v2/snapshot-manifest-v1.json",
+      "bytes": 52403,
+      "sha256": "2547229db3c07f2dd0941601ab5164bf89981ce966e4e23a2e3058124edba8c4",
+      "git_blob_sha1": "f83ff603add9d90b2850a2f05ad87e36923e88ed"
+    }
+  ],
+  "all_case_sources_match_primary_git_blobs": true,
+  "remote_write_performed": false,
+  "semantic_approval": false,
+  "observed_at": "2026-10-21T20:00:50.470Z"
+}

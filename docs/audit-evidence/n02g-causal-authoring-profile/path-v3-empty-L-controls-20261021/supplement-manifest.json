@@ -1,0 +1,231 @@
+{
+  "format": "financasbot.path-v3.empty-L-material-evidence-supplement",
+  "version": 1,
+  "stage": "whole_candidate_with819_native_controls_and11_static_proposals_pending_integrated_review",
+  "parent": {
+    "commit": "e050ad07ef1b877d38e81acea98d827d1eb59ffb",
+    "tree": "d9b183f328c17e3eacf5bc24b9268660d81c897d",
+    "all_1882_blobs_preserved": true
+  },
+  "whole_inherited_object": {
+    "actual_internal_manifest": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-real-internal-observations-20261021/supplement-manifest.json",
+    "actual_internal_manifest_sha256": "fba3529bef66c85dbf484ccecdbb89fc42e0bee48c73787a468d27de42a9cc3f",
+    "provisioning_manifest": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-operational-provisioning-20261021/supplement-manifest.json",
+    "finite_semantic_case_manifest": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-finite-semantic-case-20261020/supplement-manifest.json",
+    "whole_code_manifest": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-b4-02-composition-20261019/review-manifest.json",
+    "whole_code_manifest_sha256": "487f29904a22432e725ace333b88381b57291a1fbe9a76c7daccd302ea43a065",
+    "includes": "whole code/norm/corpus/applicability/dependencies/licenses/nine captures and unchanged inherited evidence, not an isolated helper or per-part approval"
+  },
+  "material_delta": {
+    "product_code_norm_schema_corpus_dependency_capture_change": false,
+    "actual_BUILD_controls": 819,
+    "original_rows": 736,
+    "native_exit": 0,
+    "roster_fixed_before_first_negative": true,
+    "every_original_record_confronted": true,
+    "normal_native_codes": {
+      "path_missing": 271,
+      "claim_path": 548
+    },
+    "native_control_guest_execution": false,
+    "native_control_credit": 0,
+    "four_claim_body_faults_in_memory_native_exit": 0,
+    "physical_source_edit": false,
+    "source895_unchanged": true,
+    "semantic_witness_formally_recorded_after_actual_integrated_review": 1,
+    "current_ledger_site_projection_correction_only_no_credit_change": true,
+    "original_history_rows_unchanged": 2419,
+    "blocked_rows": 2418,
+    "proposed_static_dispositions": 11,
+    "proposed_static_sites": 13,
+    "static_rows_already_qualified": 0,
+    "positive_guest_scope": "S-01#1#1 only; earlier C/S reused subject to independent judgment",
+    "post_unknown_M_restoration": "normal compiler S, not a new guest S",
+    "other725_all_empty_L_rows_not_qualified_by_these_positives": true
+  },
+  "review_contract": {
+    "request": "one integrated judgment of the whole inherited object plus actual controls, complete data and pending section5 application; no count-based approval",
+    "require": [
+      "causal native rule and every applicable authored site",
+      "complete L and normal control linkage",
+      "fidelity of the claim fault detections",
+      "actual positive program/oracle/trace/identity scope and temporal reuse",
+      "whole program/closures/dependencies/TCB-basis-pins-ticket before handles",
+      "exact ledger/history membership and preserved remaining obligations"
+    ],
+    "unchanged_source_reuse": "only explicit pertinent prior semantic scope with bodies and uses justified, not hash/AST/count alone",
+    "not_new_9_plus_1_or_per_row_subgate": true,
+    "no_completed_guest_invocation_rerun_or_new_M_for_approval": true,
+    "distinguish": [
+      "APTO_NO_ALCANCE_WITH_EXACT_APPLICABILITY",
+      "NO_GO_WITH_CAUSAL_FINDING",
+      "INCOMPLETA_WITH_CONCRETE_REMAINDER"
+    ],
+    "pending_static_rows_must_not_be_self_approved": true
+  },
+  "validation": {
+    "wide_report_sha256": "42e6126d4c3f321534d72b7584951d9d4aa6a6c794e889618d9934589f35a866",
+    "wide_tests": 2788,
+    "wide_pass": 2778,
+    "wide_skip_exact": 10,
+    "wide_not_repeated": true,
+    "current_895_sources_sha256": "183ba87724616c2226e7b1893fb8c3b5fa978631b116d99d23307ec9e782a6d7",
+    "normal_rule_snapshot_sha256": "ada954eb15be38339401ec99ee552b46532ae21d7290b25bde31765c3072e4a6",
+    "current_ledger_verified": 1,
+    "current_ledger_blocked": 2418,
+    "new_v3_semantic_credit_total": 1,
+    "no_historical_credit_summed": true,
+    "global_qualified": false,
+    "financial_acceptance": false,
+    "receipt": false,
+    "validated_parent": false,
+    "globalGO": false,
+    "NEXT03": false,
+    "remaining": "all other v3 dispositions, compatible positives for other graphs, original historical migration, other families/parents and full N02-G remain required"
+  },
+  "new_material": [
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-empty-L-native-controls-20261021.roster.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-empty-L-controls-20261021/pre-M-control-roster.json",
+      "role": "all819_precommitted_control_identities_and_coordinates",
+      "bytes": 720092,
+      "sha256": "ee040698d6517b5ba4200d1df0c4cfbcb4aaf05beb6074e9b601a48a363e4f36",
+      "git_blob_sha1": "676abf08b074ecfd2d3a70df0a67ed51857bb187"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-empty-L-native-controls-20261021.rows.jsonl",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-empty-L-controls-20261021/actual-normal-BUILD-controls.jsonl",
+      "role": "all819_complete_original_normal_BUILD_records_not_guest",
+      "bytes": 27600402,
+      "sha256": "b3bf56352146c06798cd103290669f0523e45dc9882311cf0f2bf1577e0c7099",
+      "git_blob_sha1": "d14f0fd581523c27ff5e41d7fa9f5b501d5ab0b3"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-empty-L-native-controls-20261021.confronted.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-empty-L-controls-20261021/complete-control-readback.json",
+      "role": "mechanical_all819_readback_not_semantic_approval",
+      "bytes": 1117396,
+      "sha256": "64f8e6a8204c81bda4af8c3468eb2e1f5109540939bb83d828b8eb76c1462d03",
+      "git_blob_sha1": "60fe5dd4029bec2d381b1414ffa34a971deeae6d"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-empty-L-native-controls-20261021.S01-full.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-empty-L-controls-20261021/S01-thirteen-original-control-records.json",
+      "role": "lossless_transport_projection_of13_complete_S01_records",
+      "bytes": 438414,
+      "sha256": "b5734f1230b9dba4f087ad085220cd8b5585555c88b7f8d934dc2de38a1a4c9d",
+      "git_blob_sha1": "f5479f00192bee15bec116b2a875c6302aef9566"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-claim-barrier-adversarial-20261021.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-empty-L-controls-20261021/claim-barrier-adversarial-observations.json",
+      "role": "four_fixed_in_memory_checker_faults_not_product_defects",
+      "bytes": 103878,
+      "sha256": "3e03000c1f1d1b0c18b6014bbd309c7777c06a4ca31ff4e23e5c8248e4f3ec3e",
+      "git_blob_sha1": "bff5acf6e83791bf26f6431bfd9626e92ac1efc7"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-empty-L-static-case-20261021.md",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-empty-L-controls-20261021/S01-static-domain-case-pending-review.md",
+      "role": "source_bound_application_of_ratified_section5_pending_review",
+      "bytes": 14559,
+      "sha256": "eb8da1903fdafe96a0cf53f8f33b597c44c8026f7bf2f93a712971907372564d",
+      "git_blob_sha1": "cae55481c0f99e337a12ac6ffe0e509d66bcc621"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-pathv3-partial-qualified-ledger-20261021.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-empty-L-controls-20261021/partial-v3-ledger-original.json",
+      "role": "exact_original2419_row_ledger_one_post_review_witness",
+      "bytes": 10344665,
+      "sha256": "2921db7c0faa557a7d9c1a5e2b73adc6f596c4db395583cb3bdce4bba12147d4",
+      "git_blob_sha1": "e9659180118dacbfb85832ffa8e868fba2004aba"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-pathv3-partial-qualified-ledger-r2-20261021.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-empty-L-controls-20261021/partial-v3-ledger-current-site-projection.json",
+      "role": "same_credit_and_history_with_initial_vs_current_site_evidence_separated",
+      "bytes": 10357828,
+      "sha256": "3796929d291f64b01df528d9ba788ebf3cde3c469aae24ac4ac91d6ddc0890ed",
+      "git_blob_sha1": "d67942520ef2a2b54a23f075f95bd6c061392682"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-pathv3-witness-evidence-link-20261021.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-empty-L-controls-20261021/accepted-witness-original-evidence-link.json",
+      "role": "historical_first_link_before_formal_recording_preserved",
+      "bytes": 3129,
+      "sha256": "d3b8bea9f5abbca04b8d78abe920979c532e55732593349d7a7f783b9dc72c88",
+      "git_blob_sha1": "5a73f5bf1ca1edae40fbddeeccbdc171d135d8d5"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-e050-final-audit-receipt-confronted-20261021.md",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-empty-L-controls-20261021/prior-integrated-review-confronted.md",
+      "role": "source_bound_summary_not_private_review_transcript",
+      "bytes": 5855,
+      "sha256": "e4332083195072217d098dd7164dee01c39b702fa423c2c11b64b3523f9c0a13",
+      "git_blob_sha1": "777a5dd0d144c5868e3bdd7a69cb59f66e6c3a40"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-empty-L-native-controls-receipt-confronted-20261021.md",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-empty-L-controls-20261021/actual-control-evidence-confronted.md",
+      "role": "native_exits_and_causal_findings_confronted_not_independent_verdict",
+      "bytes": 5360,
+      "sha256": "bce42e308ecb494474509d2341e5259c7a33b81f5f82e4dc23325886dcd8304b",
+      "git_blob_sha1": "48f81b63d76931edbdf3d86e0be6c407fbba7408"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-empty-L-parent-source-bindings-20261021.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-empty-L-controls-20261021/immutable-parent-source-bindings.json",
+      "role": "primary_parent_and12_source_body_bindings_not_semantics",
+      "bytes": 3601,
+      "sha256": "a39a45e9eedc1379e3850adce81e86b16b1444a8f01dfa294ecc357aa4888e61",
+      "git_blob_sha1": "0fe162ed85c3215f9ece5565455e1aaa359fe4e1"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/run-b4-02-empty-L-native-controls-20261021.cjs",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-empty-L-controls-20261021/normal-BUILD-control-driver.cjs",
+      "role": "mechanical_existing_API_driver_originally_executed_in_dot_codex_temp",
+      "bytes": 8846,
+      "sha256": "3a6ad7f074fa13380bc439cecc85d69f11a6fc865115498afdc99c2a7c04d7d2",
+      "git_blob_sha1": "1665f501e17a1e3963ff2a88bdc8bb456449c06e"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/confront-b4-02-empty-L-native-controls-20261021.cjs",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-empty-L-controls-20261021/complete-control-readback-driver.cjs",
+      "role": "mechanical_complete_readback_no_new_classification_engine",
+      "bytes": 13888,
+      "sha256": "b926d61aa3e9fd1d012d5ec004f2d3cfc6f189423449eed925847b53737a4403",
+      "git_blob_sha1": "73ee1da62521e267859e94d70f904164198e34c9"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/run-b4-02-claim-barrier-adversarial-20261021.cjs",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-empty-L-controls-20261021/claim-barrier-adversarial-driver.cjs",
+      "role": "fixed_existing018_pattern_BUILD_only_test_driver",
+      "bytes": 10960,
+      "sha256": "3902e870ed6a676d333cc26c356ffd24a7fa86829b864accfad0ac74eb49e0f8",
+      "git_blob_sha1": "2eaa6e5bf435b0bb140c33108964d732fc8c41d2"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/record-b4-02-pathv3-ledger-20261021.cjs",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-empty-L-controls-20261021/original-ledger-recording-driver.cjs",
+      "role": "trusted_operator_post_review_recording_not_constructor_authority",
+      "bytes": 12658,
+      "sha256": "766d979fddb8cb8e6261220f3a0388b48c1217b73fc59ec50d6a9609a0a6804c",
+      "git_blob_sha1": "ec51032624b4ca5c3517b8d609cb1a2ea6aad656"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/project-b4-02-reviewed-site-ledger-20261021.cjs",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-empty-L-controls-20261021/reviewed-site-ledger-projection-driver.cjs",
+      "role": "mechanical_successor_projection_no_new_credit_or_execution",
+      "bytes": 8336,
+      "sha256": "d02a3078a7a0e1a71f35ce891931a25a6663c0781fd34fa485d7fb6de99f4629",
+      "git_blob_sha1": "56aa19bc63dbf117ddaf1edb60b6e364d1860b1c"
+    }
+  ],
+  "privacy": {
+    "only_public_synthetic_or_public_source_derived_evidence": true,
+    "no_private_transcript_session_browser_locator_credentials_WIP_or_real_financial_data": true,
+    "heuristic_scan_findings": [],
+    "heuristic_not_certificate": true
+  },
+  "original_driver_location_note": "drivers are immutable records of code executed in the original .codex-temp path; published aliases are for audit, not an instruction to execute them"
+}
