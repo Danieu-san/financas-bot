@@ -1,0 +1,110 @@
+{
+  "format": "financasbot.path-v3-operational-provisioning-supplement",
+  "version": 1,
+  "stage": "PROPOSED_PENDING_ONE_INDEPENDENT_INTEGRATED_REVIEW_NO_EXECUTION_AUTHORITY",
+  "parent": {
+    "commit": "737ed6c0a49b357097acc263938c239744bc6412",
+    "tree": "07b8400533bbc97788940fb153d490e6fcb93af2",
+    "blobs": 1864
+  },
+  "whole_inherited_object": {
+    "manifest": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-b4-02-composition-20261019/review-manifest.json",
+    "sha256": "487f29904a22432e725ace333b88381b57291a1fbe9a76c7daccd302ea43a065",
+    "semantic_supplement": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-finite-semantic-case-20261020/supplement-manifest.json",
+    "sha256_supplement": "028ba832be7113bba5d4b72be0bdfc8c183e132e4a3191b2e6e35f5227e11ba4",
+    "all_parent_blobs_must_remain_exact": true,
+    "roles": 330
+  },
+  "material_delta": "Completed genuine reviewed-snapshot normal BUILD; fixed real ticket/payload, proposed execution freeze/pins, official runtime comparison and existing measured-launch sequence. No new product/runtime implementation, norm or criterion.",
+  "review_contract": {
+    "whole_integrated_object": true,
+    "reuse_requires_explicit_applicability": true,
+    "no_APTO_by_count_or_flags": true,
+    "review_freeze_ticket_payload_and_basis_before_handles": true,
+    "review_first_leaf_external_platform_assumption": true,
+    "no_retry_or_recursive_ranges": true,
+    "static_737_not_operational_authority": true
+  },
+  "local_validation": {
+    "normal_build_native_exit": 0,
+    "duration_ms": 351784,
+    "handles": 0,
+    "sources_count": 895,
+    "sources_sha256": "183ba87724616c2226e7b1893fb8c3b5fa978631b116d99d23307ec9e782a6d7",
+    "before_after_exact": true,
+    "snapshot_sha256": "ada954eb15be38339401ec99ee552b46532ae21d7290b25bde31765c3072e4a6",
+    "wide_reused_tests": 2788,
+    "wide_reused_pass": 2778,
+    "wide_reused_exact_skip": 10,
+    "wide_repeated": false,
+    "freeze_format_admission_only": true,
+    "launcher_evaluated": false,
+    "runtime_guest_run": false,
+    "qualified": false,
+    "semantic_mutation_credit": 0,
+    "financial_acceptance": false
+  },
+  "new_material": [
+    {
+      "name": "normal-build-result.json",
+      "bytes": 2926202,
+      "sha256": "4b118acd391cf9407ef8510d29cdd113a43ec64eaa964b36a2d2f7650559db8e",
+      "git_blob_sha1": "28f6fdb5ed97d5847a3c68609597bbbb9868f8bf",
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-operational-provisioning-20261021/normal-build-result.json"
+    },
+    {
+      "name": "execution-ticket.json",
+      "bytes": 2341,
+      "sha256": "25fcc83bd2324f1b744df268164f619883a550bce0b43e3b92ec52d0ea590f8b",
+      "git_blob_sha1": "e85733bde173520847b43dcdba3e8ced669eec71",
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-operational-provisioning-20261021/execution-ticket.json"
+    },
+    {
+      "name": "execution-payload.json",
+      "bytes": 3108456,
+      "sha256": "b9132fb2bd1099194a1e3b8827c9c804075d92e2b280af7fceca5ba11f7022b3",
+      "git_blob_sha1": "d695bdecadf21c868e7095d5c1ff98d4e32c80e8",
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-operational-provisioning-20261021/execution-payload.json"
+    },
+    {
+      "name": "proposed-execution-freeze.json",
+      "bytes": 10710,
+      "sha256": "5c6647ba3d13403790ff19aacf006549bf1dc742987bee87b2420d7710ccaec6",
+      "git_blob_sha1": "3f3c0b5f8813211fa37ef47da6b85278e9379f9d",
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-operational-provisioning-20261021/proposed-execution-freeze.json"
+    },
+    {
+      "name": "proposed-provisioning-pins.json",
+      "bytes": 2165,
+      "sha256": "309e61d5872356fb1f78be36fdf4a2303ed4e693fc5dd4539e2de976b1e9637c",
+      "git_blob_sha1": "91644092cdbcf262fc38336a6624e9f16479ad4c",
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-operational-provisioning-20261021/proposed-provisioning-pins.json"
+    },
+    {
+      "name": "prior-static-review-confronted.md",
+      "bytes": 8725,
+      "sha256": "a1e2d12280869d6150004eb5a1a3073f7040addf64cbd01ab3ed0dd472eafce9",
+      "git_blob_sha1": "87128f4e4f253b92746e4e1626e15b5eb36f00db",
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-operational-provisioning-20261021/prior-static-review-confronted.md"
+    },
+    {
+      "name": "normal-build-driver.cjs",
+      "bytes": 9032,
+      "sha256": "4c32f10030dddd8c80dbfb1b621e13d91d944f85072edd9db9260bee91fd8231",
+      "git_blob_sha1": "f3dd99530bbe7afa06c3167b4de660d95684432f",
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-operational-provisioning-20261021/normal-build-driver.cjs"
+    },
+    {
+      "name": "provisioning-case.md",
+      "bytes": 10516,
+      "sha256": "5b12076ff7d461f5bebe29a70a45c64bf83ab3cf6aa2e91bcca85a9d55d18242",
+      "git_blob_sha1": "2b9e3388fbe1ffcae6742ca2f51f2419318fd172",
+      "path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-operational-provisioning-20261021/provisioning-case.md"
+    }
+  ],
+  "privacy": {
+    "heuristic_findings": [],
+    "not_privacy_certificate": true,
+    "no_raw_TAP_coverage_or_private_transcript": true
+  }
+}
