@@ -1,0 +1,58 @@
+{
+  "stage": "two_actual_normal_INTERNAL_invocations_completed_pending_qualification",
+  "started_at": "2026-10-22T12:47:54.407Z",
+  "candidate": "b312af728603972acf60daa72406342c2e43240e",
+  "independent_review_sha256": "ed3c4511c61afae59e7c06742f9bf951beec4dc8fe1535d548cab69a347074bd",
+  "confronted_receipt_sha256": "bc0bcc7e61a84c7103682f6dc27771aede1771f4ee7dd10f06679013e0bc95bc",
+  "fixed_target_roster": [
+    {
+      "row": 140,
+      "invocation_id": "d9265afc-32d8-4bda-8d86-025de326d09c",
+      "candidate_id": "sha256:da807ac2dd3aee6e659d1cd2c2738ebb4c6435c9fe619e307e5d851e34769140"
+    },
+    {
+      "row": 1952,
+      "invocation_id": "16913c85-bc39-4579-88af-0c7065dc5425",
+      "candidate_id": "sha256:bd4c55473e0c5edb39c722625fb4a0e3d4849621d254891788fb3a820ba348b0"
+    }
+  ],
+  "completed": [
+    {
+      "file": "b4-02-two-internal-once-20261022-0140.observations.json",
+      "bytes": 6024206,
+      "sha256": "baf04b67a6da43bfa512b36ae0f91b126e5e6fc4926902a91ae47b1839ad4767",
+      "row": 140,
+      "invocation_id": "d9265afc-32d8-4bda-8d86-025de326d09c",
+      "candidate_id": "sha256:da807ac2dd3aee6e659d1cd2c2738ebb4c6435c9fe619e307e5d851e34769140",
+      "duration_ms": 3855,
+      "runtime_guest_run": true
+    },
+    {
+      "file": "b4-02-two-internal-once-20261022-1952.observations.json",
+      "bytes": 6024199,
+      "sha256": "337588616b0b6a28f7a354b555964f287d192eea93df27ca08d95bf90bb0573e",
+      "row": 1952,
+      "invocation_id": "16913c85-bc39-4579-88af-0c7065dc5425",
+      "candidate_id": "sha256:bd4c55473e0c5edb39c722625fb4a0e3d4849621d254891788fb3a820ba348b0",
+      "duration_ms": 6136,
+      "runtime_guest_run": true
+    }
+  ],
+  "qualified": false,
+  "semantic_mutation_credit": 0,
+  "financial_acceptance": false,
+  "globalGO": false,
+  "NEXT03": false,
+  "sources_before": {
+    "count": 895,
+    "sha256": "183ba87724616c2226e7b1893fb8c3b5fa978631b116d99d23307ec9e782a6d7",
+    "mismatches": []
+  },
+  "completed_at": "2026-10-22T12:48:06.721Z",
+  "duration_ms": 12314,
+  "sources_after": {
+    "count": 895,
+    "sha256": "183ba87724616c2226e7b1893fb8c3b5fa978631b116d99d23307ec9e782a6d7",
+    "mismatches": []
+  }
+}

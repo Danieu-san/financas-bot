@@ -1,0 +1,193 @@
+{
+  "format": "financasbot.path-v3.two-real-witnesses-material-supplement",
+  "version": 1,
+  "stage": "whole_candidate_with_two_actual_normal_INTERNAL_runs_pending_integrated_operational_review",
+  "parent": {
+    "commit": "b312af728603972acf60daa72406342c2e43240e",
+    "tree": "c12b796a55507710152d862a5714d0310e8d763e",
+    "inherited_blobs": 1988,
+    "all_inherited_exact_required": true
+  },
+  "whole_inherited_object": {
+    "provisioning": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-two-witness-provisioning-20261022/supplement-manifest.json",
+    "static_scopes": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/supplement-manifest.json",
+    "prior_witness": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-real-internal-observations-20261021/supplement-manifest.json",
+    "whole_code": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-b4-02-composition-20261019/review-manifest.json",
+    "includes": "entire code/norm/corpus/data/uses/dependencies/licenses/nine captures/four bundles/normal BUILDs and exact reviewed transport pins"
+  },
+  "material": {
+    "new_actual_INTERNAL_invocations": 2,
+    "original_rows": [
+      140,
+      1952
+    ],
+    "native_exit_observed": 0,
+    "native_batch_started": "2026-10-22T12:47:54.407Z",
+    "native_batch_completed": "2026-10-22T12:48:06.721Z",
+    "native_duration_ms": 12314,
+    "proofs": [
+      true,
+      false,
+      true
+    ],
+    "functional_result_all_worlds": {
+      "unit": "BRL_minor",
+      "value": 169400
+    },
+    "phase_comparisons": 12,
+    "events_each_world": {
+      "D": 355,
+      "P": 3426
+    },
+    "all_events_one_owner": true,
+    "uncovered": 0,
+    "native_driver_is_mechanical_existing_interface": true,
+    "no_new_engine_helper_model_or_norm": true,
+    "same_invocations_not_retried": true,
+    "markers_preserved_local_only": true,
+    "current_ledger": {
+      "verified": 23,
+      "static_domain_proof": 22,
+      "semantic_witness": 1,
+      "blocked": 2396,
+      "semantic_credit": 1
+    },
+    "two_new_rows_still_blocked": true,
+    "new_qualification_or_credit": 0
+  },
+  "causal_scope": {
+    "first_entries": [
+      0,
+      9
+    ],
+    "changed_P_read_sequences": [
+      3601,
+      3599
+    ],
+    "violation": "edge",
+    "attribution": "explicit causal inference from one authored alteration and one changed operand read, not emitted false_predicates array",
+    "C_S_full_trace_arrays_equal": true,
+    "M_other_trace_differences_only_expected_proof_root_measurements": true,
+    "graph_accepted_false": "normal executionHost observation-only interface, not financial authority",
+    "isolated_read_edges_false": "mismatches0; composed phase coverage matched every event with unique owner"
+  },
+  "review_contract": {
+    "one_integrated_whole_object_judgment": true,
+    "required": "operational sufficiency of own CMS and exact violation§4; AC08B4S01threelemmas/12rules9frames14interfaces; wholeprogram, data/deps/fourbundles, oracle roots trace ownership acceptance; adopted TCB-basis-pins-runtime-ticket before first handles",
+    "honest_external_premises": true,
+    "no_count_hash_AST_reassembly_summary_only_approval": true,
+    "scope": "only these two witnesses if independently sufficient, not global GO or historical credit",
+    "history": "§4not§6universal;§7not45988newproofs2419reruns",
+    "outcomes": [
+      "APTO_NO_ALCANCE_OPERACIONAL_EXATO",
+      "NO_GO_WITH_CAUSAL_FINDING",
+      "INCOMPLETA_WITH_REAL_REMAINDER"
+    ]
+  },
+  "validation": {
+    "source_count": 895,
+    "source_rows_sha256": "183ba87724616c2226e7b1893fb8c3b5fa978631b116d99d23307ec9e782a6d7",
+    "mismatches": [],
+    "wide_report_sha256": "42e6126d4c3f321534d72b7584951d9d4aa6a6c794e889618d9934589f35a866",
+    "tests": 2788,
+    "pass": 2778,
+    "skip_exact": 10,
+    "fail": 0,
+    "no_causal_code_change_no_wide_repeat": true
+  },
+  "files": [
+    {
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-two-real-witnesses-20261022/native-terminal-report.json",
+      "role": "single_native_batch_two_genuine_original_runs_not_credit",
+      "bytes": 2178,
+      "sha256": "7aa335d2fc460a47109cf85bd2acbb91081cf6a141d4c1244adbb55788f73782",
+      "git_blob_sha1": "60180e17b3e7d9267c84207c367c2934ce965db6"
+    },
+    {
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-two-real-witnesses-20261022/normal-coverage-terminal-report.json",
+      "role": "existing_comparator_results_not_qualification",
+      "bytes": 6278,
+      "sha256": "c21f6c01caeafd08efb6293ce8223ddecc706a33a4ee657e4e8b1b669cba6e48",
+      "git_blob_sha1": "f1e96301a272169c8bb9caadeecb6ce33507d55c"
+    },
+    {
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-two-real-witnesses-20261022/normal-native-operation-driver.cjs",
+      "role": "measured_original_launcher_initializer_host_run_serial_no_retry",
+      "bytes": 13233,
+      "sha256": "3da373dd508873a885d3350831ae2f6253bd590eac13c61847a525fe4c6afc63",
+      "git_blob_sha1": "39514861aad6262a811f38230923d59ccb43b814"
+    },
+    {
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-two-real-witnesses-20261022/normal-coverage-driver.cjs",
+      "role": "mechanical_existing_APIs_no_new_analyzer_or_guest",
+      "bytes": 12626,
+      "sha256": "45a7a7537e86ee7d4e29579eb465b0424e8c723bb85097712441bd06012993f3",
+      "git_blob_sha1": "a013a7b56f201d44d8fd026332b26572f69e6407"
+    },
+    {
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-two-real-witnesses-20261022/prior-b312-provisioning-review-confronted.md",
+      "role": "source_bound_summary_and_external_pin_adoption_not_private_transcript",
+      "bytes": 8166,
+      "sha256": "bc0bcc7e61a84c7103682f6dc27771aede1771f4ee7dd10f06679013e0bc95bc",
+      "git_blob_sha1": "4a4cac96a75b2317c79a273c233fa07925cf672e"
+    },
+    {
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-two-real-witnesses-20261022/two-real-witnesses-case-pending-review.md",
+      "role": "source_bound_operational_application_not_independent_qualification",
+      "bytes": 9310,
+      "sha256": "d25177cb0f0d49467ed2eba0bee8943d25b07cc702db62f106f26237485e84d6",
+      "git_blob_sha1": "1b6d9f6d7cd2dca825ced04b5d84faf1c5f8d6b5"
+    },
+    {
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-two-real-witnesses-20261022/0140-observations.json",
+      "role": "complete_own_CMS_native_observations_and_pre_evaluation_measurements",
+      "bytes": 6024206,
+      "sha256": "baf04b67a6da43bfa512b36ae0f91b126e5e6fc4926902a91ae47b1839ad4767",
+      "git_blob_sha1": "9cf74a4f40dc21646576a4bc3b66179374055c48"
+    },
+    {
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-two-real-witnesses-20261022/0140-normal-coverage.json",
+      "role": "complete_existing_composition_every_event_owner_and_causal_differences",
+      "bytes": 2530577,
+      "sha256": "cd64cd6cf9bb35f42c4f75b84ef4c96dfe847a3f0a790d342a1e7dd65e8f6531",
+      "git_blob_sha1": "d48c79ba9cbffd9b43f7ce2b02f520cabd8c8c9a"
+    },
+    {
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-two-real-witnesses-20261022/0140-once-started-marker.json",
+      "role": "preserved_local_once_marker_not_global_ledger",
+      "bytes": 324,
+      "sha256": "d2a9b84616fe2763b61e9ad20bda6286699c84422f0a75f5a0ac36bc56c21f77",
+      "git_blob_sha1": "57e29e8d25e6775ff4eabe1885108a6bbdabe6bf"
+    },
+    {
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-two-real-witnesses-20261022/1952-observations.json",
+      "role": "complete_own_CMS_native_observations_and_pre_evaluation_measurements",
+      "bytes": 6024199,
+      "sha256": "337588616b0b6a28f7a354b555964f287d192eea93df27ca08d95bf90bb0573e",
+      "git_blob_sha1": "90a3a22316f9dc5c10526ae40aaec54a66d8a49c"
+    },
+    {
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-two-real-witnesses-20261022/1952-normal-coverage.json",
+      "role": "complete_existing_composition_every_event_owner_and_causal_differences",
+      "bytes": 2530570,
+      "sha256": "7a2e2dbe743207cde0009ebf41c62f994a11d8fe6a3525bd15e920ecc19c8b4f",
+      "git_blob_sha1": "e323604d45916ad4e0a0750997b386ce117914b5"
+    },
+    {
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-two-real-witnesses-20261022/1952-once-started-marker.json",
+      "role": "preserved_local_once_marker_not_global_ledger",
+      "bytes": 325,
+      "sha256": "e7654e5aba5263e1e54e4e2d2163cf6f25c31aa56d726ec8c756f28b2631e921",
+      "git_blob_sha1": "4c10ea6a6087b421f7dbf3ad5d6ecd45e9c54a1a"
+    }
+  ],
+  "heuristic_scan_findings": [],
+  "heuristic_scan_is_not_security_certificate": true,
+  "runtime_guest_run": true,
+  "qualified": false,
+  "semantic_mutation_credit": 0,
+  "financial_acceptance": false,
+  "validated_parent": false,
+  "globalGO": false,
+  "NEXT03": false
+}

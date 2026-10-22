@@ -1,0 +1,208 @@
+{
+  "stage": "both_existing_normal_phase_comparisons_complete_not_qualification",
+  "started_at": "2026-10-22T12:51:06.867Z",
+  "candidate": "b312af728603972acf60daa72406342c2e43240e",
+  "targets": [
+    {
+      "row": 140,
+      "file": "b4-02-two-internal-coverage-normal-20261022-0140.json",
+      "bytes": 2530577,
+      "sha256": "cd64cd6cf9bb35f42c4f75b84ef4c96dfe847a3f0a790d342a1e7dd65e8f6531",
+      "stage": "existing_phase_comparison_complete_not_qualification",
+      "worlds": [
+        {
+          "variant": "C",
+          "execution_id": "path-v3/d9265afc-32d8-4bda-8d86-025de326d09c/C",
+          "proof_satisfied": true,
+          "independent_reference_boolean_matched": true,
+          "oracle_matched": true,
+          "functional_result": {
+            "unit": "BRL_minor",
+            "kind": "money_minor",
+            "value": 169400
+          },
+          "roots_matched": true,
+          "graph_accepted": false,
+          "graph_accepted_scope": "normal_observation_only_host_does_not_issue_financial_acceptance"
+        },
+        {
+          "variant": "M",
+          "execution_id": "path-v3/d9265afc-32d8-4bda-8d86-025de326d09c/M",
+          "proof_satisfied": false,
+          "independent_reference_boolean_matched": true,
+          "oracle_matched": true,
+          "functional_result": {
+            "unit": "BRL_minor",
+            "kind": "money_minor",
+            "value": 169400
+          },
+          "roots_matched": true,
+          "graph_accepted": false,
+          "graph_accepted_scope": "normal_observation_only_host_does_not_issue_financial_acceptance"
+        },
+        {
+          "variant": "S",
+          "execution_id": "path-v3/d9265afc-32d8-4bda-8d86-025de326d09c/S",
+          "proof_satisfied": true,
+          "independent_reference_boolean_matched": true,
+          "oracle_matched": true,
+          "functional_result": {
+            "unit": "BRL_minor",
+            "kind": "money_minor",
+            "value": 169400
+          },
+          "roots_matched": true,
+          "graph_accepted": false,
+          "graph_accepted_scope": "normal_observation_only_host_does_not_issue_financial_acceptance"
+        }
+      ],
+      "phases": [
+        {
+          "variant": "C",
+          "phase": "derivation",
+          "events": 355,
+          "matched": true
+        },
+        {
+          "variant": "C",
+          "phase": "proof",
+          "events": 3426,
+          "matched": true
+        },
+        {
+          "variant": "M",
+          "phase": "derivation",
+          "events": 355,
+          "matched": true
+        },
+        {
+          "variant": "M",
+          "phase": "proof",
+          "events": 3426,
+          "matched": true
+        },
+        {
+          "variant": "S",
+          "phase": "derivation",
+          "events": 355,
+          "matched": true
+        },
+        {
+          "variant": "S",
+          "phase": "proof",
+          "events": 3426,
+          "matched": true
+        }
+      ]
+    },
+    {
+      "row": 1952,
+      "file": "b4-02-two-internal-coverage-normal-20261022-1952.json",
+      "bytes": 2530570,
+      "sha256": "7a2e2dbe743207cde0009ebf41c62f994a11d8fe6a3525bd15e920ecc19c8b4f",
+      "stage": "existing_phase_comparison_complete_not_qualification",
+      "worlds": [
+        {
+          "variant": "C",
+          "execution_id": "path-v3/16913c85-bc39-4579-88af-0c7065dc5425/C",
+          "proof_satisfied": true,
+          "independent_reference_boolean_matched": true,
+          "oracle_matched": true,
+          "functional_result": {
+            "unit": "BRL_minor",
+            "kind": "money_minor",
+            "value": 169400
+          },
+          "roots_matched": true,
+          "graph_accepted": false,
+          "graph_accepted_scope": "normal_observation_only_host_does_not_issue_financial_acceptance"
+        },
+        {
+          "variant": "M",
+          "execution_id": "path-v3/16913c85-bc39-4579-88af-0c7065dc5425/M",
+          "proof_satisfied": false,
+          "independent_reference_boolean_matched": true,
+          "oracle_matched": true,
+          "functional_result": {
+            "unit": "BRL_minor",
+            "kind": "money_minor",
+            "value": 169400
+          },
+          "roots_matched": true,
+          "graph_accepted": false,
+          "graph_accepted_scope": "normal_observation_only_host_does_not_issue_financial_acceptance"
+        },
+        {
+          "variant": "S",
+          "execution_id": "path-v3/16913c85-bc39-4579-88af-0c7065dc5425/S",
+          "proof_satisfied": true,
+          "independent_reference_boolean_matched": true,
+          "oracle_matched": true,
+          "functional_result": {
+            "unit": "BRL_minor",
+            "kind": "money_minor",
+            "value": 169400
+          },
+          "roots_matched": true,
+          "graph_accepted": false,
+          "graph_accepted_scope": "normal_observation_only_host_does_not_issue_financial_acceptance"
+        }
+      ],
+      "phases": [
+        {
+          "variant": "C",
+          "phase": "derivation",
+          "events": 355,
+          "matched": true
+        },
+        {
+          "variant": "C",
+          "phase": "proof",
+          "events": 3426,
+          "matched": true
+        },
+        {
+          "variant": "M",
+          "phase": "derivation",
+          "events": 355,
+          "matched": true
+        },
+        {
+          "variant": "M",
+          "phase": "proof",
+          "events": 3426,
+          "matched": true
+        },
+        {
+          "variant": "S",
+          "phase": "derivation",
+          "events": 355,
+          "matched": true
+        },
+        {
+          "variant": "S",
+          "phase": "proof",
+          "events": 3426,
+          "matched": true
+        }
+      ]
+    }
+  ],
+  "guest_reexecuted": false,
+  "qualified": false,
+  "semantic_mutation_credit": 0,
+  "financial_acceptance": false,
+  "globalGO": false,
+  "NEXT03": false,
+  "sources_before": {
+    "count": 895,
+    "sha256": "183ba87724616c2226e7b1893fb8c3b5fa978631b116d99d23307ec9e782a6d7",
+    "mismatches": []
+  },
+  "sources_after": {
+    "count": 895,
+    "sha256": "183ba87724616c2226e7b1893fb8c3b5fa978631b116d99d23307ec9e782a6d7",
+    "mismatches": []
+  },
+  "completed_at": "2026-10-22T12:51:14.756Z"
+}
