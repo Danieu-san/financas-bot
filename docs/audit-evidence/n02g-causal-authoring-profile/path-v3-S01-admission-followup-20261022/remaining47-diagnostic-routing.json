@@ -1,0 +1,921 @@
+{
+  "groups": {
+    "claim_requirements+selection_bindings": 38,
+    "no_missing_pass": 2,
+    "predicate_types": 5,
+    "claim_requirements+collection_requirements": 2
+  },
+  "rows": [
+    {
+      "index": 12,
+      "predicate": "p0317_selected_period",
+      "status": "blocked_no_known_discriminating_reference_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 15,
+      "classes": {
+        "necessary_exclusion_pending_native_barrier": 7,
+        "blocked_normal_rule_coverage": 8
+      },
+      "firstLocator": {
+        "node": "evt_bill_projected",
+        "segments": [
+          "date"
+        ]
+      }
+    },
+    {
+      "index": 64,
+      "predicate": "r0006_exclude_kind",
+      "status": "blocked_no_known_discriminating_reference_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 11,
+      "classes": {
+        "necessary_exclusion_pending_native_barrier": 11
+      },
+      "firstLocator": {
+        "node": "food_market",
+        "segments": [
+          "kind"
+        ]
+      }
+    },
+    {
+      "index": 140,
+      "predicate": "link_7_equal_magnitude",
+      "status": "preselected_discriminating_reference_not_qualified",
+      "missing": [],
+      "entries": 30,
+      "classes": {
+        "conditional_witness": 28,
+        "conditional_non_witness": 2
+      },
+      "firstLocator": {
+        "node": "evt_bill_projected",
+        "segments": [
+          "amount_minor"
+        ]
+      }
+    },
+    {
+      "index": 143,
+      "predicate": "p0319_selected_period",
+      "status": "blocked_no_known_discriminating_reference_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 15,
+      "classes": {
+        "necessary_exclusion_pending_native_barrier": 7,
+        "blocked_normal_rule_coverage": 8
+      },
+      "firstLocator": {
+        "node": "evt_bill_projected",
+        "segments": [
+          "date"
+        ]
+      }
+    },
+    {
+      "index": 204,
+      "predicate": "link_1_payment_owner",
+      "status": "blocked_known_discriminant_without_normal_rule_coverage_not_equivalence",
+      "missing": [
+        "predicate_types"
+      ],
+      "entries": 16,
+      "classes": {
+        "blocked_normal_rule_coverage": 16
+      },
+      "firstLocator": {
+        "node": "evt_bill_projected",
+        "segments": [
+          "person_id"
+        ]
+      }
+    },
+    {
+      "index": 271,
+      "predicate": "r0028_include_kind",
+      "status": "blocked_known_discriminant_without_normal_rule_coverage_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 11,
+      "classes": {
+        "blocked_normal_rule_coverage": 7,
+        "necessary_exclusion_pending_native_barrier": 4
+      },
+      "firstLocator": {
+        "node": "food_market",
+        "segments": [
+          "kind"
+        ]
+      }
+    },
+    {
+      "index": 295,
+      "predicate": "p0331_selected_period",
+      "status": "blocked_no_known_discriminating_reference_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 15,
+      "classes": {
+        "necessary_exclusion_pending_native_barrier": 7,
+        "blocked_normal_rule_coverage": 8
+      },
+      "firstLocator": {
+        "node": "evt_bill_projected",
+        "segments": [
+          "date"
+        ]
+      }
+    },
+    {
+      "index": 421,
+      "predicate": "p0330_selected_state",
+      "status": "blocked_no_known_discriminating_reference_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 15,
+      "classes": {
+        "necessary_exclusion_pending_native_barrier": 7,
+        "blocked_normal_rule_coverage": 8
+      },
+      "firstLocator": {
+        "node": "evt_bill_projected",
+        "segments": [
+          "state"
+        ]
+      }
+    },
+    {
+      "index": 462,
+      "predicate": "r0020_include_kind",
+      "status": "blocked_known_discriminant_without_normal_rule_coverage_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 11,
+      "classes": {
+        "blocked_normal_rule_coverage": 7,
+        "necessary_exclusion_pending_native_barrier": 4
+      },
+      "firstLocator": {
+        "node": "food_market",
+        "segments": [
+          "kind"
+        ]
+      }
+    },
+    {
+      "index": 533,
+      "predicate": "r0001_exclude_kind",
+      "status": "blocked_no_known_discriminating_reference_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 11,
+      "classes": {
+        "necessary_exclusion_pending_native_barrier": 11
+      },
+      "firstLocator": {
+        "node": "food_market",
+        "segments": [
+          "kind"
+        ]
+      }
+    },
+    {
+      "index": 668,
+      "predicate": "r0010_exclude_state",
+      "status": "blocked_no_known_discriminating_reference_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 15,
+      "classes": {
+        "necessary_exclusion_pending_native_barrier": 15
+      },
+      "firstLocator": {
+        "node": "evt_bill_projected",
+        "segments": [
+          "state"
+        ]
+      }
+    },
+    {
+      "index": 737,
+      "predicate": "p0327_selected_period",
+      "status": "blocked_no_known_discriminating_reference_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 15,
+      "classes": {
+        "necessary_exclusion_pending_native_barrier": 7,
+        "blocked_normal_rule_coverage": 8
+      },
+      "firstLocator": {
+        "node": "evt_bill_projected",
+        "segments": [
+          "date"
+        ]
+      }
+    },
+    {
+      "index": 833,
+      "predicate": "p0318_selected_state",
+      "status": "blocked_no_known_discriminating_reference_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 15,
+      "classes": {
+        "necessary_exclusion_pending_native_barrier": 7,
+        "blocked_normal_rule_coverage": 8
+      },
+      "firstLocator": {
+        "node": "evt_bill_projected",
+        "segments": [
+          "state"
+        ]
+      }
+    },
+    {
+      "index": 836,
+      "predicate": "r0005_exclude_kind",
+      "status": "blocked_no_known_discriminating_reference_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 11,
+      "classes": {
+        "necessary_exclusion_pending_native_barrier": 11
+      },
+      "firstLocator": {
+        "node": "food_market",
+        "segments": [
+          "kind"
+        ]
+      }
+    },
+    {
+      "index": 883,
+      "predicate": "r0011_exclude_state",
+      "status": "blocked_no_known_discriminating_reference_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 15,
+      "classes": {
+        "necessary_exclusion_pending_native_barrier": 15
+      },
+      "firstLocator": {
+        "node": "evt_cinema_b",
+        "segments": [
+          "state"
+        ]
+      }
+    },
+    {
+      "index": 950,
+      "predicate": "link_9_different_accounts",
+      "status": "blocked_known_discriminant_without_normal_rule_coverage_not_equivalence",
+      "missing": [
+        "predicate_types"
+      ],
+      "entries": 30,
+      "classes": {
+        "blocked_normal_rule_coverage": 30
+      },
+      "firstLocator": {
+        "node": "evt_bill_projected",
+        "segments": [
+          "account_id"
+        ]
+      }
+    },
+    {
+      "index": 1028,
+      "predicate": "r0018_include_kind",
+      "status": "blocked_known_discriminant_without_normal_rule_coverage_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 11,
+      "classes": {
+        "blocked_normal_rule_coverage": 7,
+        "necessary_exclusion_pending_native_barrier": 4
+      },
+      "firstLocator": {
+        "node": "food_market",
+        "segments": [
+          "kind"
+        ]
+      }
+    },
+    {
+      "index": 1054,
+      "predicate": "binding_9",
+      "status": "blocked_no_known_discriminating_reference_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "collection_requirements"
+      ],
+      "entries": 1,
+      "classes": {
+        "blocked_normal_rule_coverage": 1
+      },
+      "firstLocator": {
+        "node": "next_golden_financial_v1",
+        "segments": [
+          "closed_world"
+        ]
+      }
+    },
+    {
+      "index": 1089,
+      "predicate": "r0016_include_kind",
+      "status": "blocked_known_discriminant_without_normal_rule_coverage_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 11,
+      "classes": {
+        "blocked_normal_rule_coverage": 7,
+        "necessary_exclusion_pending_native_barrier": 4
+      },
+      "firstLocator": {
+        "node": "food_market",
+        "segments": [
+          "kind"
+        ]
+      }
+    },
+    {
+      "index": 1206,
+      "predicate": "binding_8",
+      "status": "blocked_no_known_discriminating_reference_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "collection_requirements"
+      ],
+      "entries": 1,
+      "classes": {
+        "blocked_normal_rule_coverage": 1
+      },
+      "firstLocator": {
+        "node": "next_golden_financial_v1",
+        "segments": [
+          "synthetic"
+        ]
+      }
+    },
+    {
+      "index": 1223,
+      "predicate": "p0316_selected_state",
+      "status": "blocked_no_known_discriminating_reference_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 15,
+      "classes": {
+        "necessary_exclusion_pending_native_barrier": 7,
+        "blocked_normal_rule_coverage": 8
+      },
+      "firstLocator": {
+        "node": "evt_bill_projected",
+        "segments": [
+          "state"
+        ]
+      }
+    },
+    {
+      "index": 1250,
+      "predicate": "r0012_include_kind",
+      "status": "blocked_known_discriminant_without_normal_rule_coverage_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 11,
+      "classes": {
+        "blocked_normal_rule_coverage": 7,
+        "necessary_exclusion_pending_native_barrier": 4
+      },
+      "firstLocator": {
+        "node": "food_restaurant",
+        "segments": [
+          "kind"
+        ]
+      }
+    },
+    {
+      "index": 1300,
+      "predicate": "p0324_selected_state",
+      "status": "blocked_no_known_discriminating_reference_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 15,
+      "classes": {
+        "necessary_exclusion_pending_native_barrier": 7,
+        "blocked_normal_rule_coverage": 8
+      },
+      "firstLocator": {
+        "node": "evt_bill_projected",
+        "segments": [
+          "state"
+        ]
+      }
+    },
+    {
+      "index": 1301,
+      "predicate": "p0325_selected_period",
+      "status": "blocked_no_known_discriminating_reference_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 15,
+      "classes": {
+        "necessary_exclusion_pending_native_barrier": 7,
+        "blocked_normal_rule_coverage": 8
+      },
+      "firstLocator": {
+        "node": "evt_bill_projected",
+        "segments": [
+          "date"
+        ]
+      }
+    },
+    {
+      "index": 1309,
+      "predicate": "r0024_include_kind",
+      "status": "blocked_known_discriminant_without_normal_rule_coverage_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 11,
+      "classes": {
+        "blocked_normal_rule_coverage": 7,
+        "necessary_exclusion_pending_native_barrier": 4
+      },
+      "firstLocator": {
+        "node": "food_market",
+        "segments": [
+          "kind"
+        ]
+      }
+    },
+    {
+      "index": 1324,
+      "predicate": "r0014_include_kind",
+      "status": "blocked_known_discriminant_without_normal_rule_coverage_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 11,
+      "classes": {
+        "blocked_normal_rule_coverage": 7,
+        "necessary_exclusion_pending_native_barrier": 4
+      },
+      "firstLocator": {
+        "node": "food_market",
+        "segments": [
+          "kind"
+        ]
+      }
+    },
+    {
+      "index": 1351,
+      "predicate": "p0329_selected_period",
+      "status": "blocked_no_known_discriminating_reference_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 15,
+      "classes": {
+        "necessary_exclusion_pending_native_barrier": 7,
+        "blocked_normal_rule_coverage": 8
+      },
+      "firstLocator": {
+        "node": "evt_bill_projected",
+        "segments": [
+          "date"
+        ]
+      }
+    },
+    {
+      "index": 1358,
+      "predicate": "r0022_include_kind",
+      "status": "blocked_known_discriminant_without_normal_rule_coverage_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 11,
+      "classes": {
+        "blocked_normal_rule_coverage": 7,
+        "necessary_exclusion_pending_native_barrier": 4
+      },
+      "firstLocator": {
+        "node": "food_market",
+        "segments": [
+          "kind"
+        ]
+      }
+    },
+    {
+      "index": 1421,
+      "predicate": "p0326_selected_state",
+      "status": "blocked_no_known_discriminating_reference_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 15,
+      "classes": {
+        "necessary_exclusion_pending_native_barrier": 7,
+        "blocked_normal_rule_coverage": 8
+      },
+      "firstLocator": {
+        "node": "evt_bill_projected",
+        "segments": [
+          "state"
+        ]
+      }
+    },
+    {
+      "index": 1617,
+      "predicate": "r0002_exclude_kind",
+      "status": "blocked_no_known_discriminating_reference_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 11,
+      "classes": {
+        "necessary_exclusion_pending_native_barrier": 11
+      },
+      "firstLocator": {
+        "node": "food_market",
+        "segments": [
+          "kind"
+        ]
+      }
+    },
+    {
+      "index": 1645,
+      "predicate": "p0322_selected_state",
+      "status": "blocked_no_known_discriminating_reference_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 15,
+      "classes": {
+        "necessary_exclusion_pending_native_barrier": 7,
+        "blocked_normal_rule_coverage": 8
+      },
+      "firstLocator": {
+        "node": "evt_bill_projected",
+        "segments": [
+          "state"
+        ]
+      }
+    },
+    {
+      "index": 1695,
+      "predicate": "link_3_refund_person",
+      "status": "blocked_known_discriminant_without_normal_rule_coverage_not_equivalence",
+      "missing": [
+        "predicate_types"
+      ],
+      "entries": 30,
+      "classes": {
+        "blocked_normal_rule_coverage": 30
+      },
+      "firstLocator": {
+        "node": "evt_bill_projected",
+        "segments": [
+          "person_id"
+        ]
+      }
+    },
+    {
+      "index": 1830,
+      "predicate": "link_8_same_person",
+      "status": "blocked_known_discriminant_without_normal_rule_coverage_not_equivalence",
+      "missing": [
+        "predicate_types"
+      ],
+      "entries": 30,
+      "classes": {
+        "blocked_normal_rule_coverage": 30
+      },
+      "firstLocator": {
+        "node": "evt_bill_projected",
+        "segments": [
+          "person_id"
+        ]
+      }
+    },
+    {
+      "index": 1831,
+      "predicate": "p0321_selected_period",
+      "status": "blocked_no_known_discriminating_reference_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 15,
+      "classes": {
+        "necessary_exclusion_pending_native_barrier": 7,
+        "blocked_normal_rule_coverage": 8
+      },
+      "firstLocator": {
+        "node": "evt_bill_projected",
+        "segments": [
+          "date"
+        ]
+      }
+    },
+    {
+      "index": 1950,
+      "predicate": "r0007_exclude_kind",
+      "status": "blocked_no_known_discriminating_reference_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 11,
+      "classes": {
+        "necessary_exclusion_pending_native_barrier": 11
+      },
+      "firstLocator": {
+        "node": "food_market",
+        "segments": [
+          "kind"
+        ]
+      }
+    },
+    {
+      "index": 1952,
+      "predicate": "link_6_opposite",
+      "status": "preselected_discriminating_reference_not_qualified",
+      "missing": [],
+      "entries": 30,
+      "classes": {
+        "conditional_non_witness": 14,
+        "conditional_witness": 16
+      },
+      "firstLocator": {
+        "node": "evt_bill_projected",
+        "segments": [
+          "amount_minor"
+        ]
+      }
+    },
+    {
+      "index": 1996,
+      "predicate": "p0328_selected_state",
+      "status": "blocked_no_known_discriminating_reference_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 15,
+      "classes": {
+        "necessary_exclusion_pending_native_barrier": 7,
+        "blocked_normal_rule_coverage": 8
+      },
+      "firstLocator": {
+        "node": "evt_bill_projected",
+        "segments": [
+          "state"
+        ]
+      }
+    },
+    {
+      "index": 2038,
+      "predicate": "p0332_selected_state",
+      "status": "blocked_no_known_discriminating_reference_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 15,
+      "classes": {
+        "necessary_exclusion_pending_native_barrier": 7,
+        "blocked_normal_rule_coverage": 8
+      },
+      "firstLocator": {
+        "node": "evt_bill_projected",
+        "segments": [
+          "state"
+        ]
+      }
+    },
+    {
+      "index": 2116,
+      "predicate": "r0009_exclude_state",
+      "status": "blocked_no_known_discriminating_reference_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 15,
+      "classes": {
+        "necessary_exclusion_pending_native_barrier": 15
+      },
+      "firstLocator": {
+        "node": "evt_bill_projected",
+        "segments": [
+          "state"
+        ]
+      }
+    },
+    {
+      "index": 2181,
+      "predicate": "p0323_selected_period",
+      "status": "blocked_no_known_discriminating_reference_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 15,
+      "classes": {
+        "necessary_exclusion_pending_native_barrier": 7,
+        "blocked_normal_rule_coverage": 8
+      },
+      "firstLocator": {
+        "node": "evt_bill_projected",
+        "segments": [
+          "date"
+        ]
+      }
+    },
+    {
+      "index": 2194,
+      "predicate": "r0026_include_kind",
+      "status": "blocked_known_discriminant_without_normal_rule_coverage_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 11,
+      "classes": {
+        "blocked_normal_rule_coverage": 7,
+        "necessary_exclusion_pending_native_barrier": 4
+      },
+      "firstLocator": {
+        "node": "food_market",
+        "segments": [
+          "kind"
+        ]
+      }
+    },
+    {
+      "index": 2211,
+      "predicate": "r0008_exclude_kind",
+      "status": "blocked_no_known_discriminating_reference_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 11,
+      "classes": {
+        "necessary_exclusion_pending_native_barrier": 11
+      },
+      "firstLocator": {
+        "node": "food_market",
+        "segments": [
+          "kind"
+        ]
+      }
+    },
+    {
+      "index": 2303,
+      "predicate": "p0320_selected_state",
+      "status": "blocked_no_known_discriminating_reference_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 15,
+      "classes": {
+        "necessary_exclusion_pending_native_barrier": 7,
+        "blocked_normal_rule_coverage": 8
+      },
+      "firstLocator": {
+        "node": "evt_bill_projected",
+        "segments": [
+          "state"
+        ]
+      }
+    },
+    {
+      "index": 2304,
+      "predicate": "r0003_exclude_kind",
+      "status": "blocked_no_known_discriminating_reference_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 11,
+      "classes": {
+        "necessary_exclusion_pending_native_barrier": 11
+      },
+      "firstLocator": {
+        "node": "food_market",
+        "segments": [
+          "kind"
+        ]
+      }
+    },
+    {
+      "index": 2308,
+      "predicate": "link_4_refund_card",
+      "status": "blocked_known_discriminant_without_normal_rule_coverage_not_equivalence",
+      "missing": [
+        "predicate_types"
+      ],
+      "entries": 62,
+      "classes": {
+        "blocked_normal_rule_coverage": 62
+      },
+      "firstLocator": {
+        "node": "evt_bill_projected",
+        "segments": [
+          "card_id"
+        ]
+      }
+    },
+    {
+      "index": 2357,
+      "predicate": "r0004_exclude_kind",
+      "status": "blocked_no_known_discriminating_reference_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 11,
+      "classes": {
+        "necessary_exclusion_pending_native_barrier": 11
+      },
+      "firstLocator": {
+        "node": "food_market",
+        "segments": [
+          "kind"
+        ]
+      }
+    },
+    {
+      "index": 2368,
+      "predicate": "p0315_selected_period",
+      "status": "blocked_no_known_discriminating_reference_not_equivalence",
+      "missing": [
+        "claim_requirements",
+        "selection_bindings"
+      ],
+      "entries": 15,
+      "classes": {
+        "necessary_exclusion_pending_native_barrier": 7,
+        "blocked_normal_rule_coverage": 8
+      },
+      "firstLocator": {
+        "node": "evt_bill_projected",
+        "segments": [
+          "date"
+        ]
+      }
+    }
+  ]
+}

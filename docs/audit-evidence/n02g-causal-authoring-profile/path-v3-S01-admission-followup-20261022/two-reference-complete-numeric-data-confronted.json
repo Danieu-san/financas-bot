@@ -1,0 +1,719 @@
+{
+  "rows": [
+    {
+      "row": 140,
+      "index": 0,
+      "site": 0,
+      "locator": 0,
+      "node": "evt_bill_projected",
+      "left": -80000,
+      "right": 15000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 140,
+      "index": 1,
+      "site": 0,
+      "locator": 1,
+      "node": "evt_cinema_b",
+      "left": -3200,
+      "right": 15000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 140,
+      "index": 2,
+      "site": 0,
+      "locator": 2,
+      "node": "evt_fuel_a",
+      "left": -20000,
+      "right": 15000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 140,
+      "index": 3,
+      "site": 0,
+      "locator": 3,
+      "node": "evt_gift_b",
+      "left": -5000,
+      "right": 15000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 140,
+      "index": 4,
+      "site": 0,
+      "locator": 4,
+      "node": "evt_installment_1",
+      "left": -10000,
+      "right": 15000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 140,
+      "index": 5,
+      "site": 0,
+      "locator": 5,
+      "node": "evt_installment_2",
+      "left": -10000,
+      "right": 15000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 140,
+      "index": 6,
+      "site": 0,
+      "locator": 6,
+      "node": "evt_installment_3",
+      "left": -10000,
+      "right": 15000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 140,
+      "index": 7,
+      "site": 0,
+      "locator": 7,
+      "node": "evt_invoice_payment",
+      "left": -60000,
+      "right": 15000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 140,
+      "index": 8,
+      "site": 0,
+      "locator": 8,
+      "node": "evt_market_a",
+      "left": -30000,
+      "right": 15000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 140,
+      "index": 9,
+      "site": 0,
+      "locator": 9,
+      "node": "evt_refund_b",
+      "left": 4500,
+      "right": 15000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 140,
+      "index": 10,
+      "site": 0,
+      "locator": 10,
+      "node": "evt_rent_a",
+      "left": -100000,
+      "right": 15000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 140,
+      "index": 11,
+      "site": 0,
+      "locator": 11,
+      "node": "evt_restaurant_b",
+      "left": -4500,
+      "right": 15000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 140,
+      "index": 12,
+      "site": 0,
+      "locator": 12,
+      "node": "evt_salary_a",
+      "left": 500000,
+      "right": 15000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 140,
+      "index": 13,
+      "site": 0,
+      "locator": 13,
+      "node": "evt_snack_a",
+      "left": -1200,
+      "right": 15000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 140,
+      "index": 14,
+      "site": 0,
+      "locator": 14,
+      "node": "evt_transfer_in",
+      "left": 15000,
+      "right": 15000,
+      "holds": true,
+      "reference_holds": true
+    },
+    {
+      "row": 140,
+      "index": 15,
+      "site": 1,
+      "locator": 0,
+      "node": "evt_bill_projected",
+      "left": -15000,
+      "right": -80000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 140,
+      "index": 16,
+      "site": 1,
+      "locator": 1,
+      "node": "evt_cinema_b",
+      "left": -15000,
+      "right": -3200,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 140,
+      "index": 17,
+      "site": 1,
+      "locator": 2,
+      "node": "evt_fuel_a",
+      "left": -15000,
+      "right": -20000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 140,
+      "index": 18,
+      "site": 1,
+      "locator": 3,
+      "node": "evt_gift_b",
+      "left": -15000,
+      "right": -5000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 140,
+      "index": 19,
+      "site": 1,
+      "locator": 4,
+      "node": "evt_installment_1",
+      "left": -15000,
+      "right": -10000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 140,
+      "index": 20,
+      "site": 1,
+      "locator": 5,
+      "node": "evt_installment_2",
+      "left": -15000,
+      "right": -10000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 140,
+      "index": 21,
+      "site": 1,
+      "locator": 6,
+      "node": "evt_installment_3",
+      "left": -15000,
+      "right": -10000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 140,
+      "index": 22,
+      "site": 1,
+      "locator": 7,
+      "node": "evt_invoice_payment",
+      "left": -15000,
+      "right": -60000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 140,
+      "index": 23,
+      "site": 1,
+      "locator": 8,
+      "node": "evt_market_a",
+      "left": -15000,
+      "right": -30000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 140,
+      "index": 24,
+      "site": 1,
+      "locator": 9,
+      "node": "evt_refund_b",
+      "left": -15000,
+      "right": 4500,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 140,
+      "index": 25,
+      "site": 1,
+      "locator": 10,
+      "node": "evt_rent_a",
+      "left": -15000,
+      "right": -100000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 140,
+      "index": 26,
+      "site": 1,
+      "locator": 11,
+      "node": "evt_restaurant_b",
+      "left": -15000,
+      "right": -4500,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 140,
+      "index": 27,
+      "site": 1,
+      "locator": 12,
+      "node": "evt_salary_a",
+      "left": -15000,
+      "right": 500000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 140,
+      "index": 28,
+      "site": 1,
+      "locator": 13,
+      "node": "evt_snack_a",
+      "left": -15000,
+      "right": -1200,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 140,
+      "index": 29,
+      "site": 1,
+      "locator": 14,
+      "node": "evt_transfer_out",
+      "left": -15000,
+      "right": -15000,
+      "holds": true,
+      "reference_holds": true
+    },
+    {
+      "row": 1952,
+      "index": 0,
+      "site": 0,
+      "locator": 0,
+      "node": "evt_bill_projected",
+      "left": -80000,
+      "right": 15000,
+      "holds": true,
+      "reference_holds": true
+    },
+    {
+      "row": 1952,
+      "index": 1,
+      "site": 0,
+      "locator": 1,
+      "node": "evt_cinema_b",
+      "left": -3200,
+      "right": 15000,
+      "holds": true,
+      "reference_holds": true
+    },
+    {
+      "row": 1952,
+      "index": 2,
+      "site": 0,
+      "locator": 2,
+      "node": "evt_fuel_a",
+      "left": -20000,
+      "right": 15000,
+      "holds": true,
+      "reference_holds": true
+    },
+    {
+      "row": 1952,
+      "index": 3,
+      "site": 0,
+      "locator": 3,
+      "node": "evt_gift_b",
+      "left": -5000,
+      "right": 15000,
+      "holds": true,
+      "reference_holds": true
+    },
+    {
+      "row": 1952,
+      "index": 4,
+      "site": 0,
+      "locator": 4,
+      "node": "evt_installment_1",
+      "left": -10000,
+      "right": 15000,
+      "holds": true,
+      "reference_holds": true
+    },
+    {
+      "row": 1952,
+      "index": 5,
+      "site": 0,
+      "locator": 5,
+      "node": "evt_installment_2",
+      "left": -10000,
+      "right": 15000,
+      "holds": true,
+      "reference_holds": true
+    },
+    {
+      "row": 1952,
+      "index": 6,
+      "site": 0,
+      "locator": 6,
+      "node": "evt_installment_3",
+      "left": -10000,
+      "right": 15000,
+      "holds": true,
+      "reference_holds": true
+    },
+    {
+      "row": 1952,
+      "index": 7,
+      "site": 0,
+      "locator": 7,
+      "node": "evt_invoice_payment",
+      "left": -60000,
+      "right": 15000,
+      "holds": true,
+      "reference_holds": true
+    },
+    {
+      "row": 1952,
+      "index": 8,
+      "site": 0,
+      "locator": 8,
+      "node": "evt_market_a",
+      "left": -30000,
+      "right": 15000,
+      "holds": true,
+      "reference_holds": true
+    },
+    {
+      "row": 1952,
+      "index": 9,
+      "site": 0,
+      "locator": 9,
+      "node": "evt_refund_b",
+      "left": 4500,
+      "right": 15000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 1952,
+      "index": 10,
+      "site": 0,
+      "locator": 10,
+      "node": "evt_rent_a",
+      "left": -100000,
+      "right": 15000,
+      "holds": true,
+      "reference_holds": true
+    },
+    {
+      "row": 1952,
+      "index": 11,
+      "site": 0,
+      "locator": 11,
+      "node": "evt_restaurant_b",
+      "left": -4500,
+      "right": 15000,
+      "holds": true,
+      "reference_holds": true
+    },
+    {
+      "row": 1952,
+      "index": 12,
+      "site": 0,
+      "locator": 12,
+      "node": "evt_salary_a",
+      "left": 500000,
+      "right": 15000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 1952,
+      "index": 13,
+      "site": 0,
+      "locator": 13,
+      "node": "evt_snack_a",
+      "left": -1200,
+      "right": 15000,
+      "holds": true,
+      "reference_holds": true
+    },
+    {
+      "row": 1952,
+      "index": 14,
+      "site": 0,
+      "locator": 14,
+      "node": "evt_transfer_in",
+      "left": 15000,
+      "right": 15000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 1952,
+      "index": 15,
+      "site": 1,
+      "locator": 0,
+      "node": "evt_bill_projected",
+      "left": -15000,
+      "right": -80000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 1952,
+      "index": 16,
+      "site": 1,
+      "locator": 1,
+      "node": "evt_cinema_b",
+      "left": -15000,
+      "right": -3200,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 1952,
+      "index": 17,
+      "site": 1,
+      "locator": 2,
+      "node": "evt_fuel_a",
+      "left": -15000,
+      "right": -20000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 1952,
+      "index": 18,
+      "site": 1,
+      "locator": 3,
+      "node": "evt_gift_b",
+      "left": -15000,
+      "right": -5000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 1952,
+      "index": 19,
+      "site": 1,
+      "locator": 4,
+      "node": "evt_installment_1",
+      "left": -15000,
+      "right": -10000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 1952,
+      "index": 20,
+      "site": 1,
+      "locator": 5,
+      "node": "evt_installment_2",
+      "left": -15000,
+      "right": -10000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 1952,
+      "index": 21,
+      "site": 1,
+      "locator": 6,
+      "node": "evt_installment_3",
+      "left": -15000,
+      "right": -10000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 1952,
+      "index": 22,
+      "site": 1,
+      "locator": 7,
+      "node": "evt_invoice_payment",
+      "left": -15000,
+      "right": -60000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 1952,
+      "index": 23,
+      "site": 1,
+      "locator": 8,
+      "node": "evt_market_a",
+      "left": -15000,
+      "right": -30000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 1952,
+      "index": 24,
+      "site": 1,
+      "locator": 9,
+      "node": "evt_refund_b",
+      "left": -15000,
+      "right": 4500,
+      "holds": true,
+      "reference_holds": true
+    },
+    {
+      "row": 1952,
+      "index": 25,
+      "site": 1,
+      "locator": 10,
+      "node": "evt_rent_a",
+      "left": -15000,
+      "right": -100000,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 1952,
+      "index": 26,
+      "site": 1,
+      "locator": 11,
+      "node": "evt_restaurant_b",
+      "left": -15000,
+      "right": -4500,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 1952,
+      "index": 27,
+      "site": 1,
+      "locator": 12,
+      "node": "evt_salary_a",
+      "left": -15000,
+      "right": 500000,
+      "holds": true,
+      "reference_holds": true
+    },
+    {
+      "row": 1952,
+      "index": 28,
+      "site": 1,
+      "locator": 13,
+      "node": "evt_snack_a",
+      "left": -15000,
+      "right": -1200,
+      "holds": false,
+      "reference_holds": false
+    },
+    {
+      "row": 1952,
+      "index": 29,
+      "site": 1,
+      "locator": 14,
+      "node": "evt_transfer_out",
+      "left": -15000,
+      "right": -15000,
+      "holds": false,
+      "reference_holds": false
+    }
+  ],
+  "mismatches": [],
+  "originals": [
+    {
+      "row": 140,
+      "operator": "abs_eq",
+      "args": [
+        {
+          "field": {
+            "node": "evt_transfer_out",
+            "segments": [
+              "amount_minor"
+            ]
+          }
+        },
+        {
+          "field": {
+            "node": "evt_transfer_in",
+            "segments": [
+              "amount_minor"
+            ]
+          }
+        }
+      ],
+      "values": [
+        -15000,
+        15000
+      ]
+    },
+    {
+      "row": 1952,
+      "operator": "opposite_sign",
+      "args": [
+        {
+          "field": {
+            "node": "evt_transfer_out",
+            "segments": [
+              "amount_minor"
+            ]
+          }
+        },
+        {
+          "field": {
+            "node": "evt_transfer_in",
+            "segments": [
+              "amount_minor"
+            ]
+          }
+        }
+      ],
+      "values": [
+        -15000,
+        15000
+      ]
+    }
+  ]
+}

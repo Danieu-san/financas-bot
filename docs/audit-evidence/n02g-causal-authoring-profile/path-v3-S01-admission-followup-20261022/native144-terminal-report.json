@@ -1,0 +1,28 @@
+{
+  "stage": "all144_native_controls_completed_not_static_qualification",
+  "started_at": "2026-10-22T00:10:41.286Z",
+  "completed_at": "2026-10-22T00:31:11.288Z",
+  "duration_ms": 1230004,
+  "controls": 144,
+  "rows": 11,
+  "typed_exclusions": 133,
+  "unknown_namespace_controls": 11,
+  "roster_sha256": "ee1a882a9716b277f1aa53649a80af86e9ff2a50c052931b96c2c613580ca178",
+  "raw_bytes": 5125053,
+  "raw_sha256": "12d8db86724a91ea0070b4fabf87c7721244a5633ce3d594d5c86c6ee5192017",
+  "source_before": {
+    "count": 895,
+    "sha256": "183ba87724616c2226e7b1893fb8c3b5fa978631b116d99d23307ec9e782a6d7",
+    "mismatches": []
+  },
+  "source_after": {
+    "count": 895,
+    "sha256": "183ba87724616c2226e7b1893fb8c3b5fa978631b116d99d23307ec9e782a6d7",
+    "mismatches": []
+  },
+  "runtime_guest_run": false,
+  "qualified": false,
+  "semantic_mutation_credit": 0,
+  "globalGO": false,
+  "NEXT03": false
+}

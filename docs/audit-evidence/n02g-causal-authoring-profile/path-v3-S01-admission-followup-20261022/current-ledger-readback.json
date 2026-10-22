@@ -1,0 +1,74 @@
+{
+  "sha256": "2b9f20c906cad0a9a098de34e194d0369304d74dfe5f2d1fe74692eb36e10ba8",
+  "bytes": 17435575,
+  "changedIndices": [
+    79,
+    689,
+    1267,
+    1480,
+    1520,
+    1565,
+    1635,
+    1798,
+    1875,
+    1992,
+    2417
+  ],
+  "historicalMismatches": [],
+  "verified": 12,
+  "blocked": 2407,
+  "dispositions": {
+    "semantic_witness": 1,
+    "static_domain_proof": 11,
+    "semantic_equivalence_proof": 0,
+    "blocked": 2407
+  },
+  "credit": 1,
+  "dpExecutionRows": 1,
+  "S01Remaining": 47,
+  "S01RemainingClasses": {
+    "mixed": 9,
+    "all_L_nonempty": 38
+  },
+  "S01RemainingFirst5": [
+    {
+      "index": 12,
+      "predicate": "p0317_selected_period",
+      "siteSizes": [
+        15,
+        0
+      ]
+    },
+    {
+      "index": 64,
+      "predicate": "r0006_exclude_kind",
+      "siteSizes": [
+        11
+      ]
+    },
+    {
+      "index": 140,
+      "predicate": "link_7_equal_magnitude",
+      "siteSizes": [
+        15,
+        15
+      ]
+    },
+    {
+      "index": 143,
+      "predicate": "p0319_selected_period",
+      "siteSizes": [
+        15,
+        0
+      ]
+    },
+    {
+      "index": 204,
+      "predicate": "link_1_payment_owner",
+      "siteSizes": [
+        15,
+        1
+      ]
+    }
+  ]
+}

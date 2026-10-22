@@ -1,0 +1,663 @@
+{
+  "format": "financasbot.path-v3.S01-admission-followup-material-supplement",
+  "version": 1,
+  "stage": "whole_candidate_with_complete144_controls_and_two_precompile_scopes_pending_integrated_review",
+  "parent": {
+    "commit": "b430d0af0307c55407f52d9b80c101a30c1fa2f4",
+    "tree": "57089dcb3312ab8133ee34e790d549f5a231d6be",
+    "inherited_blobs": 1900,
+    "all_inherited_exact": true
+  },
+  "whole_inherited_object": {
+    "prior_supplement": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-empty-L-controls-20261021/supplement-manifest.json",
+    "actual_internal": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-real-internal-observations-20261021/supplement-manifest.json",
+    "provisioning": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-operational-provisioning-20261021/supplement-manifest.json",
+    "finite_semantic_case": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-finite-semantic-case-20261020/supplement-manifest.json",
+    "whole_code": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-b4-02-composition-20261019/review-manifest.json",
+    "includes": "whole code/norm/corpus/data applicability/dependencies/licenses/nine captures/four bundles and their real uses; reuse must be explicitly pertinent, not hash-only"
+  },
+  "material": {
+    "product_source_norm_corpus_schema_dependency_capture_or_pin_change": false,
+    "new_guest_execution": false,
+    "new_execution_ticket": false,
+    "wide_rerun": false,
+    "original_S01_remaining_rows": 47,
+    "precompile_snapshots": 2,
+    "unselected_plans": 45,
+    "proposed_all_A_empty_static_rows": 11,
+    "typed_native_exclusions": 133,
+    "unknown_namespace_controls": 11,
+    "actual_native_controls": 144,
+    "all_native_records_confronted": true,
+    "source895_unchanged": true,
+    "original_2419_historical_records_preserved": true,
+    "current_ledger": {
+      "verified": 12,
+      "semantic_witness": 1,
+      "static_domain_proof": 11,
+      "blocked": 2407,
+      "semantic_credit": 1,
+      "globally_qualified": false
+    },
+    "new_static_proposals_already_qualified": 0,
+    "new_preselected_witnesses_already_qualified": 0
+  },
+  "scope": {
+    "static_proposal_indices": [
+      64,
+      533,
+      668,
+      836,
+      883,
+      1617,
+      1950,
+      2116,
+      2211,
+      2304,
+      2357
+    ],
+    "precompile_review_scope_indices": [
+      140,
+      1952
+    ],
+    "conditional_first_W": [
+      {
+        "row": 140,
+        "entry": 0,
+        "site": 0,
+        "locator": 0
+      },
+      {
+        "row": 1952,
+        "entry": 9,
+        "site": 0,
+        "locator": 9
+      }
+    ],
+    "other34_rows_not_approved_by_this_preparation": true,
+    "conditional_source_flags_not_synthesized_into_independent_review": true,
+    "counterfactual_typed_M_authorial_IR_is_not_actual_emitted_IR": true,
+    "positive_guest_C_S_precede_controls": true,
+    "post_control_S_is_compiler_only": true
+  },
+  "review_contract": {
+    "one_integrated_whole_object_judgment": true,
+    "static": "judge full L/A exclusions, authored concern aliases, exact native guards/coordinates and complete positives/conformance/TCB applicability for11targets",
+    "precompile": "judge two immutable normal reference scopes, all60members/12rules/firstW and actual producers/consumers; no new guest or reviewed ticket presumed",
+    "required": "AC08/B4/S01 three lemmas, all applicable data/deps/four bundles, nine frames/14interfaces, actual wholeprogram receivers callbacks quotas trace acceptance and trusted TCB basis pins runtime ticket before handles",
+    "preservation": "§4witness is not §6universal equivalence;§7preserves history, not45988new proofs or2419historical reruns",
+    "no_helper_subgate_count_based_approval": true,
+    "no_automatic_global_GO": true,
+    "outcomes": [
+      "APTO_NO_ALCANCE_EXATO",
+      "NO_GO_WITH_CAUSAL_FINDING",
+      "INCOMPLETA_WITH_REAL_REMAINDER"
+    ]
+  },
+  "validation": {
+    "wide_report_sha256": "42e6126d4c3f321534d72b7584951d9d4aa6a6c794e889618d9934589f35a866",
+    "tests": 2788,
+    "pass": 2778,
+    "skip_exact": 10,
+    "fail": 0,
+    "no_causal_code_delta_for_rerun": true,
+    "source_rows_sha256": "183ba87724616c2226e7b1893fb8c3b5fa978631b116d99d23307ec9e782a6d7",
+    "reference47_report_sha256": "c6a905bbb09b3d7c3eaff976bebf5ede2f8470914fdf06d39873c904e4440c0a",
+    "native144_raw_sha256": "12d8db86724a91ea0070b4fabf87c7721244a5633ce3d594d5c86c6ee5192017",
+    "native144_readback_sha256": "0c273a63e24e38792d92bcc6eb1e3bcabd6e43bf99f24c55d1aed7d97e44c77a",
+    "first_reader_error_preserved_and_corrected_only": true
+  },
+  "files": [
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-pathv3-static11-qualified-ledger-20261021.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/current-partial-v3-ledger.json",
+      "role": "post_b430_review_one_witness_eleven_static_records_not_global_GO",
+      "bytes": 17435575,
+      "sha256": "2b9f20c906cad0a9a098de34e194d0369304d74dfe5f2d1fe74692eb36e10ba8",
+      "git_blob_sha1": "4a9ecca83e901fb115e27e73196aec5145ced153"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/record-b4-02-static11-ledger-20261021.cjs",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/post-review-ledger-recording-driver.cjs",
+      "role": "mechanical_post_review_recording_no_compiler_or_guest",
+      "bytes": 12679,
+      "sha256": "848dc4c68f422a26124742dae6ebd975891560183915b56960ae2ca7be9c908d",
+      "git_blob_sha1": "9698bbe56b63e209ce681c9df9724451774ed792"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-static11-ledger-independent-readback-20261021.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/current-ledger-readback.json",
+      "role": "exact_membership_and_history_readback_not_new_qualification",
+      "bytes": 1233,
+      "sha256": "5bb2c62437ad487d72f82d62c3ac481726d58318ac7db500f326de9b25d54e46",
+      "git_blob_sha1": "06066ce9d8fcebef1035259f4a4e7be54784daea"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-empty-L-final-audit-receipt-confronted-20261021.md",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/prior-b430-integrated-review-confronted.md",
+      "role": "source_bound_summary_not_private_review_transcript",
+      "bytes": 5763,
+      "sha256": "c66d043982e2fdff61f1132b04ef7f05feb9b20e456240b690922121fa94df62",
+      "git_blob_sha1": "66fe54d8329dba02ed2f9b5d2e3f23e1031aa455"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/remaining47-reference-report.json",
+      "role": "all47_fixed_S01_precompile_reference_results_not_A_W_proof",
+      "bytes": 41574,
+      "sha256": "c6a905bbb09b3d7c3eaff976bebf5ede2f8470914fdf06d39873c904e4440c0a",
+      "git_blob_sha1": "62d2502236d6f8abc7567c7379e25155312cdfa0"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/roster.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/remaining47-precommitted-roster.json",
+      "role": "original47_ids_fixed_before_materialization",
+      "bytes": 207119,
+      "sha256": "a73190ead7e729c07ffec94e3f2a4e16d60581f1d4858d831c70e83d165499fa",
+      "git_blob_sha1": "6cb36885c94cda52d7f7f4a1de08a44852e2d6de"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-confronted-20261022.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/remaining47-reference-confronted.json",
+      "role": "all47_plan_and_two_snapshot_fidelity",
+      "bytes": 2839,
+      "sha256": "be1fe82c9d1853a55aac47c6940e17667f911aef8f682175355e98cb414b5071",
+      "git_blob_sha1": "18d05935812f7cf60fe9c80f052079918e32573b"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-diagnostic-routing-20261022.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/remaining47-diagnostic-routing.json",
+      "role": "complete_declared_limits_not_normal_admission_or_equivalence",
+      "bytes": 22937,
+      "sha256": "6c59c599c7475ead1791a2baaf31c53c244d9f50ddfa60ece3d9ff03beac263b",
+      "git_blob_sha1": "ca9792caad6927ef35884ec473cc26e57cc1a92e"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/prepare-b4-02-S01-remaining47-reference-20261021.cjs",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/remaining47-reference-driver.cjs",
+      "role": "existing088_producer_reuse_no_new_engine_or_guest",
+      "bytes": 11683,
+      "sha256": "de920e052dd4ae1f359ed6f9b7bcc8c0fc40925de35e2e76b9a987d7d36b3e71",
+      "git_blob_sha1": "fb453e45e95dffe34948eb890552eeff3e39c762"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-empty-A-static-case-20261022.md",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/eleven-empty-A-static-case-pending-review.md",
+      "role": "source_bound_section5_application_not_independent_approval",
+      "bytes": 10431,
+      "sha256": "21a0115628a89c42f3d3c60be217d53816033446347e3c0a09ce8761ebc335b3",
+      "git_blob_sha1": "bf04ad70b573adb9a39d4d495ae530e3e894579f"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-two-reference-scopes-case-20261022.md",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/two-normal-reference-scopes-pending-review.md",
+      "role": "all60_reference_applications_not_witness_execution_or_reviewed_pins",
+      "bytes": 11381,
+      "sha256": "2a8fdde17d23aa0d0917e25127fbb1c37eb9b95ae82c7c784a8e6b8729e43802",
+      "git_blob_sha1": "1e892eec40d3322b7afeb232f3cfd8586dde0b8f"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-two-reference-data-confronted-20261022.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/two-reference-complete-numeric-data-confronted.json",
+      "role": "all60_frozen_data_arithmetic_checks_not_DP",
+      "bytes": 13956,
+      "sha256": "9eb31456bca5c705a8beb5f6e5c6254e577855b0354042844653d3c5c98e67fd",
+      "git_blob_sha1": "de157448eeca8c59727a642d1feca210e0e4b8d2"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-empty-A-native-controls-20261022.roster.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/native144-precommitted-roster.json",
+      "role": "all133_typed_exclusions_and11_unknowns_fixed_before_M",
+      "bytes": 370713,
+      "sha256": "ee1a882a9716b277f1aa53649a80af86e9ff2a50c052931b96c2c613580ca178",
+      "git_blob_sha1": "8f0329f3b56763e47cf70d2e1c07267cb0121898"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-empty-A-native-controls-20261022.rows.jsonl",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/native144-complete-original-records.jsonl",
+      "role": "all144_complete_native_BUILD_records_not_guest",
+      "bytes": 5125053,
+      "sha256": "12d8db86724a91ea0070b4fabf87c7721244a5633ce3d594d5c86c6ee5192017",
+      "git_blob_sha1": "14d52a056dd0dd99517e318233481149444c953e"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-empty-A-native-controls-20261022.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/native144-terminal-report.json",
+      "role": "native_batch_exit_and_sources_not_semantic_credit",
+      "bytes": 900,
+      "sha256": "185bd20949b2ae5f73c72d0191014ae756bc065253f457c6b5e3069cfdc689eb",
+      "git_blob_sha1": "1e22492566987b8c13d3f6af74dc1bb18e5dd2ca"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-empty-A-native-controls-20261022.confronted.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/native144-complete-readback.json",
+      "role": "all144_ids_single_site_commitments_native_coordinates_and_restoration",
+      "bytes": 126814,
+      "sha256": "0c273a63e24e38792d92bcc6eb1e3bcabd6e43bf99f24c55d1aed7d97e44c77a",
+      "git_blob_sha1": "e6afcd91ad36d16c8997a5a890b9b217ed7dba77"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/run-b4-02-S01-empty-A-native-controls-20261022.cjs",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/native144-execution-driver.cjs",
+      "role": "mechanical_existing_API_driver_no_new_qualification_engine",
+      "bytes": 8325,
+      "sha256": "d409d75376cf4e6bdf16d9907a717f6c0e43805100208cef5b7f7e118b142ed3",
+      "git_blob_sha1": "35b2512cd8338f71c44eb06ff450a2029c1bf26e"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/confront-b4-02-S01-empty-A-native-controls-20261022.cjs",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/native144-readback-driver.cjs",
+      "role": "mechanical_identity_and_native_observation_comparison",
+      "bytes": 8002,
+      "sha256": "7a920d8f7589d374491a32a98f99920b9e347029b74f8c6aefaa0f3efff5d1fb",
+      "git_blob_sha1": "eaf23e28308059a8d226fb1f81cb3aec8aa650aa"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-empty-A-reader-correction-20261022.md",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/native144-first-reader-correction.md",
+      "role": "preserved_reader_error_not_product_RED_or_reexecution",
+      "bytes": 1297,
+      "sha256": "0c4ba24f8ce61ca82363ffbaa54355ff36deba6a3c80907a8496a32d46e9bd72",
+      "git_blob_sha1": "3359f1091680eefbec17406fcb40a23711a5c081"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/0012.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/0012.plan.json",
+      "role": "original_unqualified_precompile_plan_row_12",
+      "bytes": 429945,
+      "sha256": "b1dfb3de90c05d0188cb4abd2675c0e6112a46ddd260e4f74ebe2a21d583afc1",
+      "git_blob_sha1": "b89f938c5294b132b171631078bdaecfec9dcecf"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/0064.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/0064.plan.json",
+      "role": "original_unqualified_precompile_plan_row_64",
+      "bytes": 327384,
+      "sha256": "087c4b8a4aa59eebe8a32054585a91f394b5c9f59fff387384966252b9a91080",
+      "git_blob_sha1": "88c13363231f8994be11a0405305ae2402b2e8be"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/0140.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/0140.plan.json",
+      "role": "original_unqualified_precompile_plan_row_140",
+      "bytes": 678955,
+      "sha256": "41ebd1136423ec5203ea3cb52b56217753c58bc56288f87e5ad0543267e102fa",
+      "git_blob_sha1": "a17d8167c32677e72bd17e31be7c4c1c742b0836"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/0140.snapshot.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/snapshots/0140.snapshot.json",
+      "role": "existing088_immutable_normal_reference_scope_pending_independent_review",
+      "bytes": 580289,
+      "sha256": "e9f0c631ca3e5d81d2e7684fb78f5841cb52128cd9b69fae8e3d5498ba35a230",
+      "git_blob_sha1": "dca988292236f0ed00e061dfcd111c558039f3f0"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/0143.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/0143.plan.json",
+      "role": "original_unqualified_precompile_plan_row_143",
+      "bytes": 429936,
+      "sha256": "c3f9785c7cc61823b71024cc86f667f751528b0d491bb08284c783b525a1dd36",
+      "git_blob_sha1": "ca03a77416bfde4ae19c90b0120e691154ae3b21"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/0204.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/0204.plan.json",
+      "role": "original_unqualified_precompile_plan_row_204",
+      "bytes": 389450,
+      "sha256": "45fccac9488475039cef7b79c4e4bf1f16ecc61ca91191a863fad944b27c00f1",
+      "git_blob_sha1": "314c1c0441505052a8e5bf6861f1919daa89dc64"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/0271.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/0271.plan.json",
+      "role": "original_unqualified_precompile_plan_row_271",
+      "bytes": 323755,
+      "sha256": "3375d5f54df9f4500a846988ea12796c205b8c81e9c56346ce200e31a05f40d4",
+      "git_blob_sha1": "dd53ccbf9d94ba6a20ce6edc341f5fcf35970210"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/0295.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/0295.plan.json",
+      "role": "original_unqualified_precompile_plan_row_295",
+      "bytes": 430013,
+      "sha256": "aede38da8fa801f1a151e2cbd3f2f611b6858a9ef73761c0a6bba215ebba2358",
+      "git_blob_sha1": "93be9f684c73bfbf61551bfe35fc7f57160ff32b"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/0421.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/0421.plan.json",
+      "role": "original_unqualified_precompile_plan_row_421",
+      "bytes": 430061,
+      "sha256": "707e4c8eb1cb5a0766c286d671fa208b5e2eb16c935670c52ab5152b72daa149",
+      "git_blob_sha1": "9c20edb05a9c3850f937d9578fe2b93f460ef08b"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/0462.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/0462.plan.json",
+      "role": "original_unqualified_precompile_plan_row_462",
+      "bytes": 323914,
+      "sha256": "a265470328d5c72936efe11f3b8359ce1dd44237ddf3f423888ed68dadf7dc85",
+      "git_blob_sha1": "7179e3a4a495c0e5ecc0ec8acda5b542e353c1c5"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/0533.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/0533.plan.json",
+      "role": "original_unqualified_precompile_plan_row_533",
+      "bytes": 326097,
+      "sha256": "3e074649c11b130382ec77707b7d9bc94b226ac6e5fe84d93bc92a7c6c9fe789",
+      "git_blob_sha1": "786931b5cc5a514adebeea9fb62287c1ac2c85e9"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/0668.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/0668.plan.json",
+      "role": "original_unqualified_precompile_plan_row_668",
+      "bytes": 421185,
+      "sha256": "9cd0161bb241b94b92267753d696db33e5bbe4e654352696deaf407bbf582aeb",
+      "git_blob_sha1": "9502253129d813480428eac03ed0af088da206ac"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/0737.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/0737.plan.json",
+      "role": "original_unqualified_precompile_plan_row_737",
+      "bytes": 429936,
+      "sha256": "ff304174fec3983a4a87c680e6f8ff3c5b732302f8fdc6c91cf134ca48adf6df",
+      "git_blob_sha1": "a84663841b05a912f0c6a150c3bcbd15204b771d"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/0833.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/0833.plan.json",
+      "role": "original_unqualified_precompile_plan_row_833",
+      "bytes": 430072,
+      "sha256": "a4aea6c9e5cdf6b959e7a61fd0e53edfb7f14c06b30f25b486f465d8ea83c1c4",
+      "git_blob_sha1": "aeffc4784c7d96171c8845ebc682b5ce24e7fe95"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/0836.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/0836.plan.json",
+      "role": "original_unqualified_precompile_plan_row_836",
+      "bytes": 327326,
+      "sha256": "b304967a690ea23f486a3a9fd6e8cb707b45ea80d74f39d4098dce4cfc8b24b4",
+      "git_blob_sha1": "d81b6875a647530eca0faf49c2539744ae859eda"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/0883.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/0883.plan.json",
+      "role": "original_unqualified_precompile_plan_row_883",
+      "bytes": 420580,
+      "sha256": "0fd759a47f8ab3a77603395c8e65be36cfe99299a55f422b956d958dc492ec2b",
+      "git_blob_sha1": "31f067f0a7f15c2fd0576057b42364f891bc5d08"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/0950.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/0950.plan.json",
+      "role": "original_unqualified_precompile_plan_row_950",
+      "bytes": 668348,
+      "sha256": "bce17d1b673bd0518a6b21a69ec9042403aa740d3026dad9aaded752c2c8a7de",
+      "git_blob_sha1": "19319b22ee3ff4a0c072ba889873540f64e39e01"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/1028.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/1028.plan.json",
+      "role": "original_unqualified_precompile_plan_row_1028",
+      "bytes": 323867,
+      "sha256": "8b42f062284ce4d44a558f4ac4f12bf207b13bb30b6b98747b048cb5314335d2",
+      "git_blob_sha1": "775414bd6f8dac03b39fb606c7ef15f83981995c"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/1054.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/1054.plan.json",
+      "role": "original_unqualified_precompile_plan_row_1054",
+      "bytes": 86943,
+      "sha256": "d9ede5f1f9f0ffc8eed1b2b643bee9d81365e5d3e9f1551ed44ac1a734cace39",
+      "git_blob_sha1": "3f8d8208cb76c3638442b684048abd3bcbf4a07c"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/1089.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/1089.plan.json",
+      "role": "original_unqualified_precompile_plan_row_1089",
+      "bytes": 323857,
+      "sha256": "3d3fbf370236571f6d5e6c19e5b51ada599b17360604813088544b5a23ba92a4",
+      "git_blob_sha1": "d69e85268460d2ebb5361820f7f96f322e381d37"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/1206.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/1206.plan.json",
+      "role": "original_unqualified_precompile_plan_row_1206",
+      "bytes": 86976,
+      "sha256": "84c0b982f93ff0313a92f1fe01404cc1e34e39d8f3106746cfb938596f6db67f",
+      "git_blob_sha1": "46784bd074ca4590f80a42c987f5c396c319af7d"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/1223.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/1223.plan.json",
+      "role": "original_unqualified_precompile_plan_row_1223",
+      "bytes": 430085,
+      "sha256": "77c13a44d2986922756b18c83d10072082d91350b9935e00ab44b8715afab69c",
+      "git_blob_sha1": "df3806a14a67fb89e991839d4000aaeff1aa1210"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/1250.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/1250.plan.json",
+      "role": "original_unqualified_precompile_plan_row_1250",
+      "bytes": 323823,
+      "sha256": "61e5669501c717aa7e6dc1c5dc794606f579def9a09d1c621469fea70b38f126",
+      "git_blob_sha1": "2d77886e8825123d7372b7a66a51d924e74146e8"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/1300.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/1300.plan.json",
+      "role": "original_unqualified_precompile_plan_row_1300",
+      "bytes": 430085,
+      "sha256": "4a6d69feac96d1e256b8f5ab71862a5b43cdec89b3dfdef1c9ec568a33df7424",
+      "git_blob_sha1": "ed75724fe5d34816d19fdbd40fa4add4d3330ad3"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/1301.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/1301.plan.json",
+      "role": "original_unqualified_precompile_plan_row_1301",
+      "bytes": 429960,
+      "sha256": "63c8dcb64c7c080a688eefd1d6278832aaa8170ffe47dde59de4e8856400cfcd",
+      "git_blob_sha1": "994af6488126d7551cd8340565522f5912fea987"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/1309.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/1309.plan.json",
+      "role": "original_unqualified_precompile_plan_row_1309",
+      "bytes": 323757,
+      "sha256": "343d5bd7891f11cdb9b10a96725522dcee513dc8d3ede5e51cd75fb041801fa9",
+      "git_blob_sha1": "8d10be93267ca0b1b67bb06a83b03b038c06d389"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/1324.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/1324.plan.json",
+      "role": "original_unqualified_precompile_plan_row_1324",
+      "bytes": 323812,
+      "sha256": "f798759ded4d1bcb7641a7eb8737dea009d56f95a5ff3ea89b78a5c1282a2deb",
+      "git_blob_sha1": "29a75cb820810c49c06ae2011dd7bfe716ea6829"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/1351.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/1351.plan.json",
+      "role": "original_unqualified_precompile_plan_row_1351",
+      "bytes": 429938,
+      "sha256": "c1d2b8f456f69dc3d43c8ad9ef32e43cf24a5ee2cc7a31491093431509526807",
+      "git_blob_sha1": "d9d22cddbb1a9606c23a428ff28b4b501cb714f7"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/1358.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/1358.plan.json",
+      "role": "original_unqualified_precompile_plan_row_1358",
+      "bytes": 323856,
+      "sha256": "e69d82fdcd980ee5b2a16f90ea3f5f4f2134b56815b6e9a070277e80a1fe70cf",
+      "git_blob_sha1": "aa3985c1c24837352c07ea9131f5d1018d699be9"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/1421.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/1421.plan.json",
+      "role": "original_unqualified_precompile_plan_row_1421",
+      "bytes": 430085,
+      "sha256": "dd192d8d43bd9cb9c52b994fb4a624f4df47b337fd72c3934851cc06eda131d2",
+      "git_blob_sha1": "699d6ee74872904e398b04da10f6be3dbe643109"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/1617.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/1617.plan.json",
+      "role": "original_unqualified_precompile_plan_row_1617",
+      "bytes": 326159,
+      "sha256": "1c3e17ca2cac622b805b11906b68bc40f345fe5a1797cfa713b8b220f7ba198e",
+      "git_blob_sha1": "32e56e3349103bf27ca3a6a59e3d68f5de69a4d1"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/1645.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/1645.plan.json",
+      "role": "original_unqualified_precompile_plan_row_1645",
+      "bytes": 430129,
+      "sha256": "c0c21b986c6e10707fe65ac9e6bf373a4bcb09df2570fc6206961d67496f2c39",
+      "git_blob_sha1": "c6182b0470c810e9275abb5cc41883bb8c49a06c"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/1695.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/1695.plan.json",
+      "role": "original_unqualified_precompile_plan_row_1695",
+      "bytes": 669415,
+      "sha256": "b5b4fb031892f151b240cbfadb8fec19044faec9643ab057560f8963569c2cb4",
+      "git_blob_sha1": "ce2c2d328bdd57f6c87d9e519da577a22accd4bb"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/1830.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/1830.plan.json",
+      "role": "original_unqualified_precompile_plan_row_1830",
+      "bytes": 669272,
+      "sha256": "d49c7e4c8329a8e74295cfce28c6ff6411a9eaf9609bb3967b733d8f29415f67",
+      "git_blob_sha1": "63483ab8ece6185c2b95bbb3da548966f6462c54"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/1831.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/1831.plan.json",
+      "role": "original_unqualified_precompile_plan_row_1831",
+      "bytes": 430004,
+      "sha256": "2cd1b1fcc1c0c3b6fd1d31db395141717422b86354f24be938ca9afff5efdca4",
+      "git_blob_sha1": "b6da7a36511629dee11eeea21783440fb107918a"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/1950.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/1950.plan.json",
+      "role": "original_unqualified_precompile_plan_row_1950",
+      "bytes": 327684,
+      "sha256": "66e248512f77b7ea4635e522bf2f8f5949c84448a56828d7c74826d990350286",
+      "git_blob_sha1": "adbd12e1edbb8580bf03b833a2f5c7afc269d1f4"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/1952.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/1952.plan.json",
+      "role": "original_unqualified_precompile_plan_row_1952",
+      "bytes": 679133,
+      "sha256": "614a7320b02d0c87adc87bf70441af68fca0a276c4bee9fa82f2f46b53a05ef1",
+      "git_blob_sha1": "52c84a507ca6d0ae0e7766671ccfb758ad82f050"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/1952.snapshot.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/snapshots/1952.snapshot.json",
+      "role": "existing088_immutable_normal_reference_scope_pending_independent_review",
+      "bytes": 580067,
+      "sha256": "159761e1b317bf95da0440a0c38681937763e1805db908eaaa46fb556eeeeedc",
+      "git_blob_sha1": "c596d2d24037d7393b591fb977f101d23878a93f"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/1996.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/1996.plan.json",
+      "role": "original_unqualified_precompile_plan_row_1996",
+      "bytes": 430063,
+      "sha256": "2482a06a01d3464cfe111e1182e1d9460d1c3385eb45ecc005bf121503ecc103",
+      "git_blob_sha1": "78529949162a4b95f91cc7179e2a9d30cef2a16c"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/2038.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/2038.plan.json",
+      "role": "original_unqualified_precompile_plan_row_2038",
+      "bytes": 430140,
+      "sha256": "a335bffc4f5826c5136d566ccaa7235881a3dfe4be30340d295035a653062e24",
+      "git_blob_sha1": "da8b5dcef1718f67b97fa0f56c79c6e45cfcc0c6"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/2116.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/2116.plan.json",
+      "role": "original_unqualified_precompile_plan_row_2116",
+      "bytes": 421187,
+      "sha256": "c95de6e4e6f2b238a55e7de771642eae7bd93ffaa73675ae66c257ca354dab44",
+      "git_blob_sha1": "6296473c9707d3dd7a201399c24d890efca4aac3"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/2181.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/2181.plan.json",
+      "role": "original_unqualified_precompile_plan_row_2181",
+      "bytes": 429960,
+      "sha256": "a8191393e6f07e2f4f001582e863eab7d1930774255b0ee82f4c7ff18fa47213",
+      "git_blob_sha1": "a692e5666dabe1dadd19eb1d8fb8769e931c6d95"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/2194.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/2194.plan.json",
+      "role": "original_unqualified_precompile_plan_row_2194",
+      "bytes": 323834,
+      "sha256": "570dd04c7d999b460f405f38c711177842a0919d4281fa0b243c2a0f109c5fc8",
+      "git_blob_sha1": "51ca0634fceb23c1471d57cc7f35edfa03c85d83"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/2211.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/2211.plan.json",
+      "role": "original_unqualified_precompile_plan_row_2211",
+      "bytes": 327744,
+      "sha256": "c1616f359a3d0a21844c173037bd432e913f957d35e31511575d9f2514df2c0d",
+      "git_blob_sha1": "189b60272694f5ce7098472d6135e5f874c7b231"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/2303.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/2303.plan.json",
+      "role": "original_unqualified_precompile_plan_row_2303",
+      "bytes": 430063,
+      "sha256": "6b0c217b72a620e135081361ce70cec73a390de5979193670bded821a87aa641",
+      "git_blob_sha1": "33e4bd85b7b74690311b948e6929a639a3f2ab78"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/2304.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/2304.plan.json",
+      "role": "original_unqualified_precompile_plan_row_2304",
+      "bytes": 327273,
+      "sha256": "4094ae9fbc63d18316ac8bdc07dcee2d33e7f93f09a03a8a60782df257557001",
+      "git_blob_sha1": "746893d26c70bc66ee3c1d88ec0b70c5a812dffa"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/2308.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/2308.plan.json",
+      "role": "original_unqualified_precompile_plan_row_2308",
+      "bytes": 1306035,
+      "sha256": "04821cb03494d19e733c5db7d729cc5973fd1f5c7073a3866dac555a719f2b3c",
+      "git_blob_sha1": "c6e88f22b6a1f3e557f84f32229bb22619e0305c"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/2357.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/2357.plan.json",
+      "role": "original_unqualified_precompile_plan_row_2357",
+      "bytes": 327333,
+      "sha256": "aebcda5f457c3062ef8a26a63739cb814765fbd09cad87129635f6adc23c3b4a",
+      "git_blob_sha1": "43010aae18564235b3217cb76e8cdc3c1aee0838"
+    },
+    {
+      "original_execution_or_record_path": ".codex-temp/b4-02-S01-remaining47-reference-20261021/2368.plan.json",
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/plans/2368.plan.json",
+      "role": "original_unqualified_precompile_plan_row_2368",
+      "bytes": 429960,
+      "sha256": "b1347c7287ba04906e83de25fc98ac795fea2ef7032c807a70ce0212f41a3005",
+      "git_blob_sha1": "46157b049388dbfca99166c20e73fa92cd2a54a9"
+    }
+  ],
+  "heuristic_scan_findings": [],
+  "heuristic_scan_is_not_a_security_certificate": true,
+  "qualified": false,
+  "financial_acceptance": false,
+  "validated_parent": false,
+  "globalGO": false,
+  "NEXT03": false
+}

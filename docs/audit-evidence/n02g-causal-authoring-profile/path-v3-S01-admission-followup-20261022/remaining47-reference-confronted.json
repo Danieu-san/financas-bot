@@ -1,0 +1,106 @@
+{
+  "started": "2026-10-21T23:42:28.106Z",
+  "completed": "2026-10-22T00:04:34.173Z",
+  "duration_ms": 1326070,
+  "reportBytes": 41574,
+  "reportSha256": "c6a905bbb09b3d7c3eaff976bebf5ede2f8470914fdf06d39873c904e4440c0a",
+  "rosterSha256": "a73190ead7e729c07ffec94e3f2a4e16d60581f1d4858d831c70e83d165499fa",
+  "rows": 47,
+  "statuses": {
+    "blocked_no_known_discriminating_reference_not_equivalence": 31,
+    "preselected_discriminating_reference_not_qualified": 2,
+    "blocked_known_discriminant_without_normal_rule_coverage_not_equivalence": 14
+  },
+  "snapshots": [
+    {
+      "index": 140,
+      "predicate": "link_7_equal_magnitude",
+      "snapshot": {
+        "path": "0140.snapshot.json",
+        "bytes": 580289,
+        "sha256": "e9f0c631ca3e5d81d2e7684fb78f5841cb52128cd9b69fae8e3d5498ba35a230",
+        "conditional_site_sizes": [
+          {
+            "site": 0,
+            "L": 15,
+            "A": 15,
+            "W": 14,
+            "excluded": 0
+          },
+          {
+            "site": 1,
+            "L": 15,
+            "A": 15,
+            "W": 14,
+            "excluded": 0
+          }
+        ],
+        "pending_independent_review": true
+      },
+      "classes": {
+        "conditional_witness": 28,
+        "conditional_non_witness": 2
+      }
+    },
+    {
+      "index": 1952,
+      "predicate": "link_6_opposite",
+      "snapshot": {
+        "path": "1952.snapshot.json",
+        "bytes": 580067,
+        "sha256": "159761e1b317bf95da0440a0c38681937763e1805db908eaaa46fb556eeeeedc",
+        "conditional_site_sizes": [
+          {
+            "site": 0,
+            "L": 15,
+            "A": 15,
+            "W": 3,
+            "excluded": 0
+          },
+          {
+            "site": 1,
+            "L": 15,
+            "A": 15,
+            "W": 13,
+            "excluded": 0
+          }
+        ],
+        "pending_independent_review": true
+      },
+      "classes": {
+        "conditional_non_witness": 14,
+        "conditional_witness": 16
+      }
+    }
+  ],
+  "planMismatches": [],
+  "snapshotMismatches": [],
+  "sourceBefore": {
+    "count": 895,
+    "sha256": "183ba87724616c2226e7b1893fb8c3b5fa978631b116d99d23307ec9e782a6d7",
+    "mismatches": []
+  },
+  "sourceAfter": {
+    "count": 895,
+    "sha256": "183ba87724616c2226e7b1893fb8c3b5fa978631b116d99d23307ec9e782a6d7",
+    "mismatches": []
+  },
+  "old646Unchanged": true,
+  "noGuest": true,
+  "noTicket": true,
+  "noSelectedCompile": true,
+  "missingPassesByRow": {
+    "predicate_types": 5,
+    "claim_requirements": 9,
+    "selection_bindings": 9
+  },
+  "totalPlanBytes": 19769389,
+  "diagnostic_groups": {
+    "claim_requirements+selection_bindings": 38,
+    "no_missing_pass": 2,
+    "predicate_types": 5,
+    "claim_requirements+collection_requirements": 2
+  },
+  "no_new_qualifications": true,
+  "not_independent_review": true
+}
