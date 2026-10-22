@@ -1,0 +1,227 @@
+{
+  "format": "financasbot.path-v3.two-witness-provisioning-material-supplement",
+  "version": 1,
+  "stage": "whole_immutable_candidate_two_real_normal_builds_proposed_pins_pending_integrated_review",
+  "parent": {
+    "commit": "cd51f1bc05130306722c918f236c2d8a4a16ad7f",
+    "tree": "8b78034d3c2f68e7468fd5d1fecfa23ca21910f3",
+    "inherited_blobs": 1969,
+    "all_inherited_exact_required": true
+  },
+  "whole_inherited_object": {
+    "latest_static_followup": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-S01-admission-followup-20261022/supplement-manifest.json",
+    "actual_internal": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-real-internal-observations-20261021/supplement-manifest.json",
+    "prior_provisioning": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-operational-provisioning-20261021/supplement-manifest.json",
+    "finite_case": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-finite-semantic-case-20261020/supplement-manifest.json",
+    "whole_code": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-b4-02-composition-20261019/review-manifest.json",
+    "includes": "complete code/norm/corpus/data/uses/dependencies/licenses/nine captures/four bundles, not helpers or metadata only"
+  },
+  "material": {
+    "code_norm_schema_dependency_or_capture_changed": false,
+    "normal_BUILD_invocations": 2,
+    "native_batch_exit": 0,
+    "selected_rows": [
+      140,
+      1952
+    ],
+    "first_entries": [
+      0,
+      9
+    ],
+    "new_genuine_tickets": 2,
+    "external_reviewed_new_pins": false,
+    "new_guest_executions": 0,
+    "broad_suite_repeated": false,
+    "formal_post_review_static_A_rows": 11,
+    "current_partial_ledger": {
+      "verified": 23,
+      "static_domain_proof": 22,
+      "semantic_witness": 1,
+      "blocked": 2396,
+      "semantic_credit": 1
+    }
+  },
+  "proposals": [
+    {
+      "row": 140,
+      "target_id": "sha256:0d382e53bf0beec08dec3c5caaf18b4f39117c8f2f4b066e64c53f241726aff0",
+      "predicate": "link_7_equal_magnitude",
+      "first_entry": 0,
+      "invocation_id": "d9265afc-32d8-4bda-8d86-025de326d09c",
+      "candidate_id": "sha256:da807ac2dd3aee6e659d1cd2c2738ebb4c6435c9fe619e307e5d851e34769140",
+      "reviewed_snapshot_sha256": "e9f0c631ca3e5d81d2e7684fb78f5841cb52128cd9b69fae8e3d5498ba35a230",
+      "proposed_freeze_hash": "sha256:97657f66b47299567d209b027dbed9c055544c00334db6b650b49236edcdcf90",
+      "proposed_ticket_commitment": "sha256:2d8dbcf186c1d85508cbff1744463c53e05636a654dd24c7a9017c038e7dc1af",
+      "build_report_sha256": "e7e71360cdc56197dba34cbaf11226ffd404b2753752dd5ccca4d5e222ea9b4d",
+      "ticket_sha256": "5ff428af9b5b7c92bc45b329118b259b10d9583e83340a81ca4d1ccbe4eb7ecd",
+      "payload_sha256": "fcba5de1ad051713d2fd66d18fca282d819455d89edd596dc25731d9c846a74f",
+      "payload_bytes": 3108534,
+      "native_duration_ms": 332215,
+      "proof_program_count": 2,
+      "guest_executed": false
+    },
+    {
+      "row": 1952,
+      "target_id": "sha256:ce8ad03ca4cd47e80abf6f062882f0946f2eefe7d001ce33eeffa35c4153c64a",
+      "predicate": "link_6_opposite",
+      "first_entry": 9,
+      "invocation_id": "16913c85-bc39-4579-88af-0c7065dc5425",
+      "candidate_id": "sha256:bd4c55473e0c5edb39c722625fb4a0e3d4849621d254891788fb3a820ba348b0",
+      "reviewed_snapshot_sha256": "159761e1b317bf95da0440a0c38681937763e1805db908eaaa46fb556eeeeedc",
+      "proposed_freeze_hash": "sha256:b38abc7fdebb12857a22732fd20fc5aea72ee2aef485c5b133afe046629c28ed",
+      "proposed_ticket_commitment": "sha256:964c6ffa0949ad1b934f6388177c2595561b5d5596cc29d220350eee5db8efe9",
+      "build_report_sha256": "c1ca3f5150d739378295f72a4bd1e366d0ac2a58f09c255c9c5142f8e70d1e8d",
+      "ticket_sha256": "ecc5004ac01f1c5245191671bd2f5cbbeeec2900837d75ff5faa0006cb5a77f2",
+      "payload_sha256": "e06cd915fd2ae53681599ea5e2e39e04fb21de91272c144f2be72f70cf8c9ac5",
+      "payload_bytes": 3107855,
+      "native_duration_ms": 199432,
+      "proof_program_count": 2,
+      "guest_executed": false
+    }
+  ],
+  "validation": {
+    "sources": {
+      "count": 895,
+      "sha256": "183ba87724616c2226e7b1893fb8c3b5fa978631b116d99d23307ec9e782a6d7",
+      "mismatches": []
+    },
+    "wide_report_sha256": "42e6126d4c3f321534d72b7584951d9d4aa6a6c794e889618d9934589f35a866",
+    "wide_tests": 2788,
+    "wide_pass": 2778,
+    "wide_skip_exact": 10,
+    "wide_fail": 0,
+    "wide_not_repeated_without_code_delta": true
+  },
+  "review_contract": {
+    "one_integrated_whole_object_judgment": true,
+    "scope": "sufficiency of proposed provisioning for these two genuine review-bound BUILD identities before handles, not witness qualification",
+    "require": "code/data/uses/deps/four bundles/AC08B4S01threelemmas/12rules9frames14interfaces/wholeprogram trace acceptance; exact freeze/ticket/payload codec/pins/runtime/first TCB leaf/basis beforehandles",
+    "no_false_prerequisite": "absence of future execution alone does not fail static provisioning; no future guest/credit presumed",
+    "honest_limits": "trusted native platform/operator external; no constructor/hash authentication, localoneuse not globalledger, no universal OS/network certification",
+    "history": "§4witness not§6universal equivalence;§7preserves histories not45988newproofs2419reruns",
+    "outcomes": [
+      "APTO_NO_ALCANCE_DE_PROVISIONAMENTO",
+      "NO_GO_WITH_CAUSAL_FINDING",
+      "INCOMPLETA_WITH_REAL_REMAINDER"
+    ]
+  },
+  "files": [
+    {
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-two-witness-provisioning-20261022/0140/normal-build-result.json",
+      "bytes": 2927141,
+      "sha256": "e7e71360cdc56197dba34cbaf11226ffd404b2753752dd5ccca4d5e222ea9b4d",
+      "git_blob_sha1": "f0231df747c4ccd4faae5ea82559ec6b6a4dcf8a"
+    },
+    {
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-two-witness-provisioning-20261022/0140/execution-ticket.json",
+      "bytes": 2338,
+      "sha256": "5ff428af9b5b7c92bc45b329118b259b10d9583e83340a81ca4d1ccbe4eb7ecd",
+      "git_blob_sha1": "bf9007f86e9c10bd862784cf33776f50f188802e"
+    },
+    {
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-two-witness-provisioning-20261022/0140/execution-payload.json",
+      "bytes": 3108534,
+      "sha256": "fcba5de1ad051713d2fd66d18fca282d819455d89edd596dc25731d9c846a74f",
+      "git_blob_sha1": "42dae270cf0917064b73311f857ed6bc18f81e15"
+    },
+    {
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-two-witness-provisioning-20261022/0140/proposed-execution-freeze.json",
+      "bytes": 10710,
+      "sha256": "97657f66b47299567d209b027dbed9c055544c00334db6b650b49236edcdcf90",
+      "git_blob_sha1": "3de8b2fc9922690d7987003ac3c25170e227fbd5"
+    },
+    {
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-two-witness-provisioning-20261022/0140/proposed-provisioning-pins.json",
+      "bytes": 2607,
+      "sha256": "be672a6be040befa225a1cef6df1b984651717c9641b50792f324151956875aa",
+      "git_blob_sha1": "9d44d9f26158ea0eb00ef0d38177cd8e3de6de94"
+    },
+    {
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-two-witness-provisioning-20261022/1952/normal-build-result.json",
+      "bytes": 2925243,
+      "sha256": "c1ca3f5150d739378295f72a4bd1e366d0ac2a58f09c255c9c5142f8e70d1e8d",
+      "git_blob_sha1": "2ba55b01527d59b1e5d525b6c639061a09f10791"
+    },
+    {
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-two-witness-provisioning-20261022/1952/execution-ticket.json",
+      "bytes": 2338,
+      "sha256": "ecc5004ac01f1c5245191671bd2f5cbbeeec2900837d75ff5faa0006cb5a77f2",
+      "git_blob_sha1": "15a869be5716d4cfa2198aa9334be023ecba4929"
+    },
+    {
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-two-witness-provisioning-20261022/1952/execution-payload.json",
+      "bytes": 3107855,
+      "sha256": "e06cd915fd2ae53681599ea5e2e39e04fb21de91272c144f2be72f70cf8c9ac5",
+      "git_blob_sha1": "0d1a5b0c4ebc08eaa339e4b72471276ae2b0ddc3"
+    },
+    {
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-two-witness-provisioning-20261022/1952/proposed-execution-freeze.json",
+      "bytes": 10710,
+      "sha256": "b38abc7fdebb12857a22732fd20fc5aea72ee2aef485c5b133afe046629c28ed",
+      "git_blob_sha1": "63b7c9707009134b4a79e064cbf0dd46f7b749e3"
+    },
+    {
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-two-witness-provisioning-20261022/1952/proposed-provisioning-pins.json",
+      "bytes": 2608,
+      "sha256": "9f568696da49a625beeb8eb1227522291383e3eb3cfd835d55493fb78441b233",
+      "git_blob_sha1": "0ddc2e46684a5b0327a611180386240589ddb369"
+    },
+    {
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-two-witness-provisioning-20261022/current-partial-v3-ledger.json",
+      "bytes": 18398915,
+      "sha256": "810385e906ca7386002e7f9c5691c170ed59826a710d7250c68a1ce219460ead",
+      "git_blob_sha1": "c70f5e8b7010df81a16dff9c5736dfdcd8bc29b6"
+    },
+    {
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-two-witness-provisioning-20261022/prior-cd51-review-confronted.md",
+      "bytes": 7114,
+      "sha256": "9e1849666d63533827e200bec48efe7bbbc2a2fa8617e46f1cb64d2d7ae9f2f3",
+      "git_blob_sha1": "03c2d7c303047e7dc3ac6d37553d6f971ba82b24"
+    },
+    {
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-two-witness-provisioning-20261022/two-normal-builds-terminal.json",
+      "bytes": 4483,
+      "sha256": "d25a714befb7f8a76a14a68cb05815a4fed580b315d86b888f4c8420fb780261",
+      "git_blob_sha1": "bd8414915fb87e62d3ba258752e8abc5ede6503c"
+    },
+    {
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-two-witness-provisioning-20261022/normal-build-driver.cjs",
+      "bytes": 11172,
+      "sha256": "f1e0733dcaae5b058892315a06266cd1d74cf19e90ef7f6fd38f6500a5cf26dc",
+      "git_blob_sha1": "90dd6aa0af0ca2c84cf69ddc369675f413941b3c"
+    },
+    {
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-two-witness-provisioning-20261022/post-review-static-A11-recording-driver.cjs",
+      "bytes": 14156,
+      "sha256": "54f2ce102eca0905e4b9acdfed6d11e0d6160be9faf6fcd26e279f466998b9e4",
+      "git_blob_sha1": "6149b4663363c55b4f33f40eb121b762379a1117"
+    },
+    {
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-two-witness-provisioning-20261022/post-review-static-A11-readback-driver.cjs",
+      "bytes": 3039,
+      "sha256": "cf01a8d809dcd50f53833213a9bde3651bca2c20b8eff82f22079f20c7cdc73b",
+      "git_blob_sha1": "23cd66ef7228e42c6fbae11cf72f7aafdc3da993"
+    },
+    {
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-two-witness-provisioning-20261022/current-ledger-readback.json",
+      "bytes": 707,
+      "sha256": "04f9a114057b4f597c935a3f7f6474d98a52111c45e3041ffa6b5cf3648aa798",
+      "git_blob_sha1": "e5aae3d24d2ef418817cc281154c1f29f246933d"
+    },
+    {
+      "published_path": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-two-witness-provisioning-20261022/provisioning-case.md",
+      "bytes": 11306,
+      "sha256": "09cf2e931299b991749c9ab0554d16f97392e0d37294aa9612cfc2dcab1e5c7a",
+      "git_blob_sha1": "4e18ec3d96838590b06bb81abef759b44e601a0d"
+    }
+  ],
+  "heuristic_scan_findings": [],
+  "heuristic_scan_is_not_security_certificate": true,
+  "runtime_guest_run": false,
+  "qualified": false,
+  "semantic_mutation_credit": 0,
+  "financial_acceptance": false,
+  "validated_parent": false,
+  "globalGO": false,
+  "NEXT03": false
+}

@@ -1,0 +1,34 @@
+{
+  "stage": "independent_mechanical_readback_of_formal_static_A11_recording",
+  "sha256": "810385e906ca7386002e7f9c5691c170ed59826a710d7250c68a1ce219460ead",
+  "bytes": 18398915,
+  "rows": 2419,
+  "changed_original_indices": [
+    64,
+    533,
+    668,
+    836,
+    883,
+    1617,
+    1950,
+    2116,
+    2211,
+    2304,
+    2357
+  ],
+  "historical_records_unchanged": 2419,
+  "other_rows_unchanged": 2408,
+  "verified": 23,
+  "static_domain_proof": 22,
+  "semantic_witness": 1,
+  "blocked": 2396,
+  "dp_execution_rows": 1,
+  "semantic_mutation_credit": 1,
+  "two_precompile_scopes_still_blocked": [
+    140,
+    1952
+  ],
+  "no_compiler_or_guest_execution": true,
+  "globalGO": false,
+  "NEXT03": false
+}

@@ -1,0 +1,107 @@
+{
+  "stage": "two_reviewed_normal_builds_terminal_no_guest_no_external_pins",
+  "started_at": "2026-10-22T08:54:31.502Z",
+  "node": "v22.17.0",
+  "candidate": "cd51f1bc05130306722c918f236c2d8a4a16ad7f",
+  "review_sha256": "166d3e10cd2dca7a69fc59f07bab551694b5b5287b26b9f11b87b08eca1952b1",
+  "review_receipt_sha256": "9e1849666d63533827e200bec48efe7bbbc2a2fa8617e46f1cb64d2d7ae9f2f3",
+  "target_roster_fixed_before_first_native_M": [
+    {
+      "row": 140,
+      "predicate": "link_7_equal_magnitude",
+      "entry": 0,
+      "site": 0,
+      "locator": 0,
+      "snapshot": "0140",
+      "sha": "e9f0c631ca3e5d81d2e7684fb78f5841cb52128cd9b69fae8e3d5498ba35a230",
+      "target": "sha256:0d382e53bf0beec08dec3c5caaf18b4f39117c8f2f4b066e64c53f241726aff0"
+    },
+    {
+      "row": 1952,
+      "predicate": "link_6_opposite",
+      "entry": 9,
+      "site": 0,
+      "locator": 9,
+      "snapshot": "1952",
+      "sha": "159761e1b317bf95da0440a0c38681937763e1805db908eaaa46fb556eeeeedc",
+      "target": "sha256:ce8ad03ca4cd47e80abf6f062882f0946f2eefe7d001ce33eeffa35c4153c64a"
+    }
+  ],
+  "completed": [
+    {
+      "row": 140,
+      "report_file": "b4-02-two-reviewed-normal-builds-20261022-0140.json",
+      "report_bytes": 2927141,
+      "report_sha256": "e7e71360cdc56197dba34cbaf11226ffd404b2753752dd5ccca4d5e222ea9b4d",
+      "invocation_id": "d9265afc-32d8-4bda-8d86-025de326d09c",
+      "candidate_id": "sha256:da807ac2dd3aee6e659d1cd2c2738ebb4c6435c9fe619e307e5d851e34769140",
+      "first_entry": 0,
+      "duration_ms": 332215,
+      "transport": {
+        "stage": "path_v3_build_execution_transport_not_reviewed_pin",
+        "measured_ticket_commitment": "sha256:2d8dbcf186c1d85508cbff1744463c53e05636a654dd24c7a9017c038e7dc1af",
+        "ticket_sha256": "5ff428af9b5b7c92bc45b329118b259b10d9583e83340a81ca4d1ccbe4eb7ecd",
+        "payload_sha256": "fcba5de1ad051713d2fd66d18fca282d819455d89edd596dc25731d9c846a74f",
+        "ticket_bytes": 2338,
+        "payload_bytes": 3108534,
+        "prerequisites": {
+          "admitted_domain_complete": true,
+          "first_witness_proved": true,
+          "normal_admission_verified": true,
+          "normal_compilation_complete": true,
+          "reference_preselected": true,
+          "witness_domain_complete": true
+        },
+        "ticket_file": "b4-02-two-reviewed-normal-builds-20261022-0140.ticket.json",
+        "payload_file": "b4-02-two-reviewed-normal-builds-20261022-0140.payload.json",
+        "external_pin_or_authority_issued": false
+      }
+    },
+    {
+      "row": 1952,
+      "report_file": "b4-02-two-reviewed-normal-builds-20261022-1952.json",
+      "report_bytes": 2925243,
+      "report_sha256": "c1ca3f5150d739378295f72a4bd1e366d0ac2a58f09c255c9c5142f8e70d1e8d",
+      "invocation_id": "16913c85-bc39-4579-88af-0c7065dc5425",
+      "candidate_id": "sha256:bd4c55473e0c5edb39c722625fb4a0e3d4849621d254891788fb3a820ba348b0",
+      "first_entry": 9,
+      "duration_ms": 199432,
+      "transport": {
+        "stage": "path_v3_build_execution_transport_not_reviewed_pin",
+        "measured_ticket_commitment": "sha256:964c6ffa0949ad1b934f6388177c2595561b5d5596cc29d220350eee5db8efe9",
+        "ticket_sha256": "ecc5004ac01f1c5245191671bd2f5cbbeeec2900837d75ff5faa0006cb5a77f2",
+        "payload_sha256": "e06cd915fd2ae53681599ea5e2e39e04fb21de91272c144f2be72f70cf8c9ac5",
+        "ticket_bytes": 2338,
+        "payload_bytes": 3107855,
+        "prerequisites": {
+          "admitted_domain_complete": true,
+          "first_witness_proved": true,
+          "normal_admission_verified": true,
+          "normal_compilation_complete": true,
+          "reference_preselected": true,
+          "witness_domain_complete": true
+        },
+        "ticket_file": "b4-02-two-reviewed-normal-builds-20261022-1952.ticket.json",
+        "payload_file": "b4-02-two-reviewed-normal-builds-20261022-1952.payload.json",
+        "external_pin_or_authority_issued": false
+      }
+    }
+  ],
+  "runtime_guest_run": false,
+  "qualified": false,
+  "semantic_mutation_credit": 0,
+  "external_pin_or_authority_issued": false,
+  "sources_before": {
+    "count": 895,
+    "sha256": "183ba87724616c2226e7b1893fb8c3b5fa978631b116d99d23307ec9e782a6d7",
+    "mismatches": []
+  },
+  "current_target": 1952,
+  "sources_after": {
+    "count": 895,
+    "sha256": "183ba87724616c2226e7b1893fb8c3b5fa978631b116d99d23307ec9e782a6d7",
+    "mismatches": []
+  },
+  "completed_at": "2026-10-22T09:03:33.419Z",
+  "duration_ms": 541917
+}
