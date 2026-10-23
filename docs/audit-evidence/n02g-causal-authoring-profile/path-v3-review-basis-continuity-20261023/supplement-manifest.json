@@ -1,0 +1,110 @@
+{
+  "format": "financasbot.path-v3.review-basis-continuity.material-supplement",
+  "version": 1,
+  "stage": "whole_candidate_with_new_cross_invocation_causal_relations_pending_independent_integrated_review",
+  "parent": {
+    "commit": "2e978d5d443adabb4d0d524901d13282afb2f679",
+    "tree": "2c5076d212e52ddea6ae2d1bb49f0a1f499733f5",
+    "inherited_blobs": 2048,
+    "all_inherited_exact": true
+  },
+  "whole_object": {
+    "current_manifest": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-ref-id-type-basis-20261022/review-manifest.json",
+    "current_manifest_sha256": "ffc89209f66e39f8a3be1527885e35da0adec315c5f755574fc677f75ea1da65",
+    "all_original_roles_preserved": true,
+    "original_routing_roles": 363,
+    "not_approval_by_count": true
+  },
+  "material_novelty": "Entire real C/S payloads for140/1952 compared with the separately reviewed646 operational baseline, and every D/P event field compared with own identities explicitly bound; exact single-source substitutions and actual read differences retained for each newM. This is a causal applicability link, not merely another hash or repackaging.",
+  "prior_reviews": {
+    "e050": {
+      "commit": "e050ad07ef1b877d38e81acea98d827d1eb59ffb",
+      "scope": "one real S01 row646 invocation; no automatic140/1952 credit"
+    },
+    "b312": {
+      "commit": "b312af728603972acf60daa72406342c2e43240e",
+      "scope": "two specific INTERNAL provisionings before handles; not guest results"
+    },
+    "prior_2e978": {
+      "verdict": "INCOMPLETA",
+      "preserved": true,
+      "new_causal_bug_demonstrated": false
+    }
+  },
+  "files": [
+    {
+      "published": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-review-basis-continuity-20261023/bounded-plan.md",
+      "source_local": ".codex-temp/review-basis-continuity-plan-20261023.md",
+      "bytes": 2671,
+      "sha256": "cce7a01112197daaf0e558c602b456bbd9206977b4734a26dd20efb0d82ababc",
+      "git_blob_sha1": "6e5c5d6b11865fa2fa45fb845e9b373b599ff813"
+    },
+    {
+      "published": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-review-basis-continuity-20261023/compare-saved-bodies.cjs",
+      "source_local": ".codex-temp/compare-review-basis-continuity-20261023.cjs",
+      "bytes": 14303,
+      "sha256": "e32e8ffcdae05a2c61f8f1e8a09bed3e3f146855e704b1cd7c8d76c0cf379a69",
+      "git_blob_sha1": "134d72f5d77f6bc141fc242abe06212fa295303d"
+    },
+    {
+      "published": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-review-basis-continuity-20261023/cross-invocation-body-and-event-relations.json",
+      "source_local": ".codex-temp/review-basis-continuity-20261023.json",
+      "bytes": 45104,
+      "sha256": "78227570cce4d9427ceb5967f7ad54a854848cf87b95673f6644e2f8aa7dee0e",
+      "git_blob_sha1": "7ae32ab7eddcbedda53a6bfacb453f9aa3ba3537"
+    },
+    {
+      "published": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-review-basis-continuity-20261023/integrated-reuse-applicability-case.md",
+      "source_local": ".codex-temp/review-basis-continuity-case-20261023.md",
+      "bytes": 11069,
+      "sha256": "77b34f5e3f70f40fbf4d2be0bacc6d05818e9b226efcf360aa8b17ee37e2e3f8",
+      "git_blob_sha1": "59f2c12b34a7cc73d6914b950d83cd8d66a64906"
+    },
+    {
+      "published": "docs/audit-evidence/n02g-causal-authoring-profile/path-v3-review-basis-continuity-20261023/prior-2e978-integrated-incomplete-confronted.md",
+      "source_local": ".codex-temp/ref-id-integrated-audit-receipt-confronted-20261023.md",
+      "bytes": 6125,
+      "sha256": "386ac4b12b743979c601785aa5151b1692096e58f1a25235923d8662c14b2dfe",
+      "git_blob_sha1": "5809a5ae7686a7857d69a3364f1181f78c1e14d0"
+    }
+  ],
+  "validation": {
+    "comparison_native_exit": 0,
+    "comparison_sha256": "78227570cce4d9427ceb5967f7ad54a854848cf87b95673f6644e2f8aa7dee0e",
+    "product_source_modified": false,
+    "product_executed": false,
+    "guest_reexecuted": false,
+    "suite_reexecuted": false,
+    "wide_still_current": {
+      "tests": 2790,
+      "pass": 2780,
+      "fail": 0,
+      "skip": 10,
+      "report_sha256": "4c6860eb21a9cd35be6724ad7f5aeefaec086e996e8eaa94dfebac6c4b6720c6"
+    },
+    "privacy_heuristic": {
+      "files": 5,
+      "findings": [],
+      "not_certificate": true
+    }
+  },
+  "review_contract": {
+    "one_integrated_judgment_of_whole_object": true,
+    "not_helper_subgate": true,
+    "semantic_reuse_requires_scope_rule_instance_and_authority_compatibility": true,
+    "no_sum_of_verdicts_or_credit_transfer": true,
+    "raw_positive_traces_not_equal_own_invocation_ids_explicitly_differ": true,
+    "all_other_positive_fields_compared": true,
+    "new_ref_id_three_scopes_still_conditional": true,
+    "no_automatic_qualification_or_financial_GO": true
+  },
+  "formal_state": {
+    "verified": 23,
+    "blocked": 2396,
+    "semantic_witnesses": 1,
+    "static": 22,
+    "credit": 1,
+    "globalGO": false,
+    "NEXT03": false
+  }
+}
