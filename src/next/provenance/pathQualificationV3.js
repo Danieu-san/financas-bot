@@ -126,13 +126,14 @@ const NORMAL_PACKAGE_SCHEMA_CONTRACT = freezeDeep({
     shared_normal_draft07_validator_and_dependencies: true, independent_validator: false,
     normal_baseline_admission_verified: false, discharged: false, independent_code_audit: false
 });
-// Ordinary type preservation for material PRIMITIVES only. The NORMAL
-// fieldValue constructor has no reference-target/member lookup on this
-// branch. Its nonliteral known value is ignored by signature refinements;
+// Ordinary type preservation for material primitive constructors and the
+// NORMAL single-target ref -> id constructor of an anchored fieldPath.
+// targetKind returns that sole declared target before snapshot lookup.
+// Nonliteral known values are ignored by signature refinements;
 // windows, literals, set hints and all other operands stay in the frame.
 // Enum peer membership is preserved by the complete declared enum domain,
-// id nominal and money unit by their exact constructors. References, records
-// and claim-schema resolution require separate foundations, not this lemma.
+// id nominal and money unit by their exact constructors. Ambiguous refs,
+// selector refs, sequences, records and claim-schema remain outside this basis.
 const NORMAL_PRIMITIVE_TYPE_CONTRACT = freezeDeep({
     checker: 'predicate_types', entrypoint: 'compilePredicateTypes', variant: 'ordinary_only',
     source_bindings: [
@@ -142,9 +143,11 @@ const NORMAL_PRIMITIVE_TYPE_CONTRACT = freezeDeep({
             path: 'src/next/provenance/' + name + '.js', sha256: NORMAL_READ_SOURCE_PINS['src/next/provenance/' + name + '.js'] })),
         { path: 'src/next/kernel/canonicalValue.js', sha256: NORMAL_READ_SOURCE_PINS['src/next/kernel/canonicalValue.js'] }
     ],
-    scope: 'finite_material_primitive_constructors_and_unchanged_operator_peer_inputs',
+    scope: 'finite_material_primitive_and_anchored_single_target_ref_id_constructors_with_unchanged_operator_peers',
     primitive_types: ['id', 'text', 'date', 'month', 'datetime', 'integer', 'positive_integer',
         'nonnegative_integer', 'money_minor', 'boolean', 'enum', 'digest', 'timezone', 'calendar', 'civil_unit'],
+    single_target_reference_constructor: { definition: 'fieldPath', descriptor_type: 'ref', targets_length: 1,
+        result_form: 'scalar', result_type: 'id', kind_source: 'sole_declared_target', snapshot_member_lookup: false },
     baseline_admission_required: true, complete_single_site_family_required: true,
     plain_admitted_data_required: true, normal_primitives_required: true,
     checker_byte_binding_required: true, rule_discharge_complete: false,
@@ -681,19 +684,25 @@ function projectStructuralLocatorConstraint({ registry, claim, operatorRegistry 
     };
     if (!resolve(site.domain.original)) fail('structural_locator_baseline');
     const present = resolve(locator);
-    const primitiveNominal = path => {
+    const materialNominal = path => {
         if (definition === 'claimPath') return null;
         const kind = definition === 'fieldPath' ? graph.nodes[path.node]?.kind : path.kind;
         const name = path.segments[0], descriptor = registry.kinds[kind]?.fields?.[name];
-        if (!descriptor || descriptor.class === 'non_material'
-            || !NORMAL_PRIMITIVE_TYPE_CONTRACT.primitive_types.includes(descriptor.type)) return null;
+        if (!descriptor || descriptor.class === 'non_material') return null;
+        const reference = NORMAL_PRIMITIVE_TYPE_CONTRACT.single_target_reference_constructor;
+        if (definition === reference.definition && descriptor.type === reference.descriptor_type
+            && Array.isArray(descriptor.targets) && descriptor.targets.length === reference.targets_length)
+            return { nominal: { form: reference.result_form, type: reference.result_type, kind: descriptor.targets[0] },
+                constructor: 'single_target_reference_id' };
+        if (!NORMAL_PRIMITIVE_TYPE_CONTRACT.primitive_types.includes(descriptor.type)) return null;
         const type = { form: 'scalar', type: descriptor.type };
         if (descriptor.type === 'id') type.kind = name === 'id' ? kind : kind + '.' + name;
         if (descriptor.type === 'money_minor') type.unit = 'BRL_minor';
         if (descriptor.type === 'enum') type.domain = JSON.stringify([...descriptor.values].sort());
-        return type;
+        return { nominal: type, constructor: 'material_primitive' };
     };
-    const baselineNominal = primitiveNominal(site.domain.original), alternativeNominal = primitiveNominal(locator);
+    const baselineConstruction = materialNominal(site.domain.original), alternativeConstruction = materialNominal(locator);
+    const baselineNominal = baselineConstruction?.nominal ?? null, alternativeNominal = alternativeConstruction?.nominal ?? null;
     const operator = operatorRegistry.operators.find(operator => operator.id === predicate.op);
     if (!operator) fail('primitive_type_operator');
     const typePreserved = !!baselineNominal && !!alternativeNominal
@@ -702,8 +711,13 @@ function projectStructuralLocatorConstraint({ registry, claim, operatorRegistry 
         checker: 'predicate_types', contract_sha256: sha(canonicalValue(NORMAL_PRIMITIVE_TYPE_CONTRACT)),
         definition, locator_sha256: sha(canonicalValue(locator)),
         baseline_nominal: baselineNominal, alternative_nominal: alternativeNominal,
+        baseline_constructor: baselineConstruction?.constructor ?? null,
+        alternative_constructor: alternativeConstruction?.constructor ?? null,
         operator_instance: plain(operator),
-        status: typePreserved ? 'same_normal_material_primitive_type_under_explicit_premises'
+        status: typePreserved ? [baselineConstruction, alternativeConstruction]
+            .some(value => value.constructor === 'single_target_reference_id')
+                ? 'same_normal_single_target_reference_id_under_explicit_premises'
+                : 'same_normal_material_primitive_type_under_explicit_premises'
             : definition === 'claimPath' ? 'blocked_claim_type_basis' : 'blocked_reference_record_or_nominal_basis',
         conditional_preservation_verified: typePreserved,
         window_and_set_inference_unchanged: true,

@@ -1,0 +1,91 @@
+{
+  "started_at": "2026-10-22T14:15:59.993Z",
+  "completed_at": "2026-10-22T14:26:59.675Z",
+  "mode": "green",
+  "node": "v22.17.0",
+  "child_exit": 0,
+  "child_signal": null,
+  "error_code": null,
+  "expected": [
+    "N02G:PATH-V3-074 normal material type constructors preserve nominal peers but leave ambiguous reference record and claim bases blocked before C",
+    "N02G:PATH-V3-089 single target reference id constructor composes all genuine person domains without admission or execution credit",
+    "N02G:PATH-V3-090 reference constructor basis covers the declared class but excludes ambiguous nominal record selector and incomplete witness cases"
+  ],
+  "exact_authored_titles": true,
+  "counts": {
+    "tests": 3,
+    "suites": 0,
+    "pass": 3,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "sources_before": [
+    {
+      "path": "src/next/provenance/pathQualificationV3.js",
+      "sha256": "234892969200b0ef9862971852422e6e23bc796129893359f2b77d0e70de3755"
+    },
+    {
+      "path": "tests/next/provenance/pathQualificationV3.cases.js",
+      "sha256": "b4bf1e4a939c917bb3992e6fe0c2a8385f9102206e925b4610cc034516618820"
+    },
+    {
+      "path": "src/next/provenance/predicateTypes.js",
+      "sha256": "7ec5e1dc0348599bf42aa642a575233bb3642371fb2a48bea77b2558de6a25b8"
+    },
+    {
+      "path": "src/next/provenance/operatorTypes.js",
+      "sha256": "573db750922769a1626fe11c938458271b7cd09fdc5571df5c7b6786fa8d493c"
+    },
+    {
+      "path": "scripts/runExhaustiveLocalTestCoverage.js",
+      "sha256": "83c6c0729170dbb298cd4460eb471353625495c90fb6564e524eea443a7eb2bc"
+    },
+    {
+      "path": "tests/helpers/exhaustiveNetworkTripwire.js",
+      "sha256": "950df130f23b40e52ff8df32cb6885d82e1b4fc9d71a69e013c63bc46a3f26c7"
+    }
+  ],
+  "sources_after": [
+    {
+      "path": "src/next/provenance/pathQualificationV3.js",
+      "sha256": "234892969200b0ef9862971852422e6e23bc796129893359f2b77d0e70de3755"
+    },
+    {
+      "path": "tests/next/provenance/pathQualificationV3.cases.js",
+      "sha256": "b4bf1e4a939c917bb3992e6fe0c2a8385f9102206e925b4610cc034516618820"
+    },
+    {
+      "path": "src/next/provenance/predicateTypes.js",
+      "sha256": "7ec5e1dc0348599bf42aa642a575233bb3642371fb2a48bea77b2558de6a25b8"
+    },
+    {
+      "path": "src/next/provenance/operatorTypes.js",
+      "sha256": "573db750922769a1626fe11c938458271b7cd09fdc5571df5c7b6786fa8d493c"
+    },
+    {
+      "path": "scripts/runExhaustiveLocalTestCoverage.js",
+      "sha256": "83c6c0729170dbb298cd4460eb471353625495c90fb6564e524eea443a7eb2bc"
+    },
+    {
+      "path": "tests/helpers/exhaustiveNetworkTripwire.js",
+      "sha256": "950df130f23b40e52ff8df32cb6885d82e1b4fc9d71a69e013c63bc46a3f26c7"
+    }
+  ],
+  "sources_unchanged": true,
+  "stdout_sha256": "3ca85edd5086fd697c065a4d9b992e6df1d78f2784fee494aebda5a5f613bfa0",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "coverage": [
+    {
+      "name": "coverage-46624-1792679218955-0.json",
+      "bytes": 1214695,
+      "sha256": "536ee8a47c7f0ae9ed19fc8bb9b2f6a543615d35a48001deec1c1cfbef57bd8b"
+    }
+  ],
+  "expected_outcome_confirmed": true,
+  "red_is_product_failure_not_child_pass": false,
+  "qualified_rows": 0,
+  "semantic_mutation_credit": 0,
+  "independent_code_audit": "pending"
+}

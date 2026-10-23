@@ -1,0 +1,97 @@
+{
+  "started_at": "2026-10-22T14:28:03.364Z",
+  "completed_at": "2026-10-22T14:56:20.519Z",
+  "mode": "affected",
+  "node": "v22.17.0",
+  "child_exit": 0,
+  "child_signal": null,
+  "error_code": null,
+  "expected": [
+    "N02G:PATH-V3-067 admission foundation seals normal pass obligations and exact single site frames before M without claiming complete A",
+    "N02G:PATH-V3-068 relational rule dependency frames distinguish unchanged queries from argument sensitive bindings before M",
+    "N02G:PATH-V3-069 normal admission checker bytes bind the genuine family before C without discharging semantic rules",
+    "N02G:PATH-V3-070 pinned normal read frames prove only conditional preservation and reject a changed checker before family sealing",
+    "N02G:PATH-V3-075 obligation read frames bind all participating arguments roots and pinned normal body before C",
+    "N02G:PATH-V3-080 complete normal rule composition covers each genuine locator before M and blocks any missing premise",
+    "N02G:PATH-V3-086 finite conditional L A W partition binds every rule and independent reference before M and cannot select an uncovered discriminant",
+    "N02G:PATH-V3-087 trusted external rule review is a closed byte transport and never raw approval flags or active data",
+    "N02G:PATH-V3-088 reusable external rule scope seals complete A W before compile and retains fresh identity without audit or execution credit"
+  ],
+  "exact_authored_titles": true,
+  "counts": {
+    "tests": 9,
+    "suites": 0,
+    "pass": 9,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "sources_before": [
+    {
+      "path": "src/next/provenance/pathQualificationV3.js",
+      "sha256": "234892969200b0ef9862971852422e6e23bc796129893359f2b77d0e70de3755"
+    },
+    {
+      "path": "tests/next/provenance/pathQualificationV3.cases.js",
+      "sha256": "b4bf1e4a939c917bb3992e6fe0c2a8385f9102206e925b4610cc034516618820"
+    },
+    {
+      "path": "src/next/provenance/predicateTypes.js",
+      "sha256": "7ec5e1dc0348599bf42aa642a575233bb3642371fb2a48bea77b2558de6a25b8"
+    },
+    {
+      "path": "src/next/provenance/operatorTypes.js",
+      "sha256": "573db750922769a1626fe11c938458271b7cd09fdc5571df5c7b6786fa8d493c"
+    },
+    {
+      "path": "scripts/runExhaustiveLocalTestCoverage.js",
+      "sha256": "83c6c0729170dbb298cd4460eb471353625495c90fb6564e524eea443a7eb2bc"
+    },
+    {
+      "path": "tests/helpers/exhaustiveNetworkTripwire.js",
+      "sha256": "950df130f23b40e52ff8df32cb6885d82e1b4fc9d71a69e013c63bc46a3f26c7"
+    }
+  ],
+  "sources_after": [
+    {
+      "path": "src/next/provenance/pathQualificationV3.js",
+      "sha256": "234892969200b0ef9862971852422e6e23bc796129893359f2b77d0e70de3755"
+    },
+    {
+      "path": "tests/next/provenance/pathQualificationV3.cases.js",
+      "sha256": "b4bf1e4a939c917bb3992e6fe0c2a8385f9102206e925b4610cc034516618820"
+    },
+    {
+      "path": "src/next/provenance/predicateTypes.js",
+      "sha256": "7ec5e1dc0348599bf42aa642a575233bb3642371fb2a48bea77b2558de6a25b8"
+    },
+    {
+      "path": "src/next/provenance/operatorTypes.js",
+      "sha256": "573db750922769a1626fe11c938458271b7cd09fdc5571df5c7b6786fa8d493c"
+    },
+    {
+      "path": "scripts/runExhaustiveLocalTestCoverage.js",
+      "sha256": "83c6c0729170dbb298cd4460eb471353625495c90fb6564e524eea443a7eb2bc"
+    },
+    {
+      "path": "tests/helpers/exhaustiveNetworkTripwire.js",
+      "sha256": "950df130f23b40e52ff8df32cb6885d82e1b4fc9d71a69e013c63bc46a3f26c7"
+    }
+  ],
+  "sources_unchanged": true,
+  "stdout_sha256": "d64911b3f0ea7347eff6aa531a688b464e1901fd555bb799aaf199b228ff498e",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "coverage": [
+    {
+      "name": "coverage-42872-1792680975379-0.json",
+      "bytes": 2099471,
+      "sha256": "565b1db6f18dd478123d43b08955eeddc1665dc55cabf2f021154800eeff440e"
+    }
+  ],
+  "expected_outcome_confirmed": true,
+  "red_is_product_failure_not_child_pass": false,
+  "qualified_rows": 0,
+  "semantic_mutation_credit": 0,
+  "independent_code_audit": "pending"
+}

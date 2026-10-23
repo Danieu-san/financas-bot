@@ -2,6 +2,124 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
+test('N02G:PATH-V3-090 reference constructor basis covers the declared class but excludes ambiguous nominal record selector and incomplete witness cases', async () => {
+    const fs = require('node:fs'), path = require('node:path'), Module = require('node:module');
+    const file = path.resolve(__dirname, '../../../src/next/provenance/pathQualificationV3.js');
+    const isolated = new Module(file); isolated.filename = file;
+    isolated.paths = Module._nodeModulePaths(path.dirname(file));
+    isolated._compile(fs.readFileSync(file, 'utf8') + '\nmodule.exports.testStructuralProjection = projectStructuralLocatorConstraint;', file);
+    const { admittedDocuments } = require('../../../src/next/provenance/packageContract');
+    const input = await fixture();
+    const docs = new Map(admittedDocuments(input.packageReceipt).map(row => [row.path, row.value]));
+    const corpus = docs.get('docs/contracts/next/provenance-v2/graphs-v2.json');
+    const registry = docs.get(corpus.material_registry.path), operatorRegistry = docs.get(corpus.operator_registry.path);
+    const operator = operatorRegistry.operators.find(operator => operator.id === 'field_eq');
+    let constructors = 0;
+    for (const [kind, schema] of Object.entries(registry.kinds)) for (const [name, descriptor] of Object.entries(schema.fields)) {
+        if (descriptor.class === 'non_material' || descriptor.type !== 'ref' || descriptor.targets.length !== 1) continue;
+        // Test-only projector inputs exercise the descriptor class. They are
+        // not genuine L, schema admission, independent review or execution.
+        const graph = { nodes: { before: { kind }, after: { kind } }, predicates: [{ id: 'type_control', op: operator.id }] };
+        const predicate = graph.predicates[0];
+        const site = { authored_site: { definition: 'fieldPath', site_path: ['args', 0, 'field', 'segments'] },
+            domain: { original: { node: 'before', segments: [name] },
+                original_nominal: { form: 'scalar', type: 'id', kind: descriptor.targets[0] } } };
+        const locator = { node: 'after', segments: [name] };
+        const project = (changedRegistry = registry, changedSite = site, changedLocator = locator) => isolated.exports.testStructuralProjection(
+            { registry: changedRegistry, claim: {}, operatorRegistry }, graph, predicate, changedSite, changedLocator).primitive_type_constraint;
+        const positive = project(); constructors++;
+        assert.equal(positive.status, 'same_normal_single_target_reference_id_under_explicit_premises');
+        assert.equal(positive.conditional_preservation_verified, true);
+        assert.deepEqual(positive.alternative_nominal, site.domain.original_nominal);
+        for (const replacement of [
+            { ...descriptor, targets: [...descriptor.targets, 'another_kind'] },
+            { ...descriptor, targets: ['another_kind'] },
+            { ...descriptor, type: 'ref_list' }, { ...descriptor, type: 'typed_result' }
+        ]) {
+            const changed = structuredClone(registry); changed.kinds[kind].fields[name] = replacement;
+            const negative = project(changed);
+            assert.equal(negative.conditional_preservation_verified, false);
+            assert.equal(negative.status, 'blocked_reference_record_or_nominal_basis');
+            assert.equal(negative.discharged, false); assert.equal(negative.qualified, false);
+        }
+        const selectorSite = { ...site, authored_site: { ...site.authored_site, definition: 'selector' },
+            domain: { ...site.domain, original: { kind, segments: [name] } } };
+        assert.equal(project(registry, selectorSite, { kind, segments: [name] }).conditional_preservation_verified, false);
+    }
+    assert.ok(constructors > 3, 'descriptor class must not be reduced to three observed examples');
+    const api = require('../../../src/next/provenance/pathQualificationV3');
+    const preparation = api.preparePathQualificationInventory(input);
+    for (const [rowIndex, unavailable] of [[950, 16], [2308, 46]]) {
+        const plan = api.preparePathQualificationWitnessPreselection({ preparation, rowIndex });
+        assert.equal(plan.entries.filter(entry => entry.reference?.available !== true).length, unavailable);
+        assert.equal(plan.conditional_domain_partition.conditional_witness_partition_complete, false);
+        assert.ok(plan.conditional_domain_partition.entries.some(entry => entry.classification.startsWith('blocked_')));
+        for (const field of ['admitted_domain_complete', 'witness_domain_complete', 'first_witness_proved', 'qualified', 'dp_execution'])
+            assert.equal(plan[field], false);
+        assert.equal(plan.semantic_mutation_credit, 0);
+    }
+});
+
+test('N02G:PATH-V3-089 single target reference id constructor composes all genuine person domains without admission or execution credit', async () => {
+    const api = require('../../../src/next/provenance/pathQualificationV3');
+    const { admittedDocuments } = require('../../../src/next/provenance/packageContract');
+    const { compilePredicateTypes } = require('../../../src/next/provenance/predicateTypes');
+    const input = await fixture(), preparation = api.preparePathQualificationInventory(input);
+    const docs = new Map(admittedDocuments(input.packageReceipt).map(row => [row.path, row.value]));
+    const corpus = docs.get('docs/contracts/next/provenance-v2/graphs-v2.json');
+    const typeInput = { claims: docs.get(corpus.claim_contract.path).claims,
+        snapshots: docs.get(corpus.snapshot_manifest.path).snapshots,
+        materialRegistry: docs.get(corpus.material_registry.path), operatorRegistry: docs.get(corpus.operator_registry.path),
+        claimSchema: docs.get('docs/contracts/next/provenance-v2/claim-contract.schema.json') };
+    const projectedTypes = graph => compilePredicateTypes({ ...typeInput, graphs: [graph] })
+        .typedGraphs[0].predicates.map(predicate => predicate.operands.map(operand => operand.type));
+    let compared = 0;
+    for (const [rowIndex, predicate, count, witnesses] of [
+        [204, 'link_1_payment_owner', 16, [0, 1, 3, 8, 10, 15]],
+        [1695, 'link_3_refund_person', 30, [2, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 17, 19, 20, 21, 22, 23, 25, 26, 27, 28, 29]],
+        [1830, 'link_8_same_person', 30, [0, 1, 3, 9, 11, 15, 16, 18, 24, 26]]
+    ]) {
+        assert.equal(preparation.rows[rowIndex].target.predicate_id, predicate);
+        const plan = api.preparePathQualificationWitnessPreselection({ preparation, rowIndex });
+        const partition = plan.conditional_domain_partition;
+        assert.equal(plan.entries.length, count);
+        assert.ok(plan.entries.every(entry => entry.reference?.available === true));
+        assert.equal(partition.conditional_admission_partition_complete, true, 'missing single-target ref ordinary type basis');
+        assert.equal(partition.conditional_witness_partition_complete, true);
+        assert.deepEqual(partition.entries.filter(entry => entry.classification === 'conditional_witness')
+            .map(entry => entry.entry_index), witnesses);
+        assert.equal(plan.selected.entry_index, witnesses[0]);
+        const foundation = plan.admission_foundation.admission_foundation;
+        for (const site of foundation.sites) for (const frame of site.frames) {
+            const type = frame.structural_locator_constraint.primitive_type_constraint;
+            assert.equal(type.status, 'same_normal_single_target_reference_id_under_explicit_premises');
+            assert.deepEqual(type.baseline_nominal, { form: 'scalar', type: 'id', kind: 'person' });
+            assert.deepEqual(type.alternative_nominal, type.baseline_nominal);
+            assert.equal(type.compiler_result_used, false); assert.equal(type.discharged, false);
+        }
+        assert.equal(Object.values(partition.required_premises).length, 6);
+        assert.ok(Object.values(partition.required_premises).every(value => value === false));
+        for (const value of [plan, partition]) {
+            for (const field of ['admitted_domain_complete', 'witness_domain_complete', 'first_witness_proved', 'qualified', 'dp_execution'])
+                assert.equal(value[field], false);
+            assert.equal(value.semantic_mutation_credit, 0);
+        }
+        // Ordinary checker comparisons are regression controls only, never
+        // the authorial basis of A/W or an operational expected after M.
+        const graph = corpus.graphs.find(graph => graph.fact_key === preparation.rows[rowIndex].target.fact_key);
+        const baseline = projectedTypes(graph);
+        for (const entry of plan.entries) {
+            const mutant = structuredClone(graph); let parent = mutant;
+            const location = foundation.sites[entry.site_index].graph_location;
+            for (const token of location.slice(0, -1)) parent = parent[token];
+            parent[location.at(-1)] = structuredClone(entry.locator);
+            assert.deepEqual(projectedTypes(mutant), baseline); compared++;
+        }
+        assert.throws(() => api.preparePathQualificationWitnessPreselection({ preparation, rowIndex }), /witness_preselection_replay/);
+    }
+    assert.equal(compared, 76);
+});
+
 test('N02G:PATH-V3-088 reusable external rule scope seals complete A W before compile and retains fresh identity without audit or execution credit', async () => {
     const api = require('../../../src/next/provenance/pathQualificationV3');
     const compiler = await import('../../../scripts/agent/capturePathQualificationCompiler.mjs');
@@ -961,7 +1079,7 @@ test('N02G:PATH-V3-075 obligation read frames bind all participating arguments r
     assert.ok(altered > 0);
 });
 
-test('N02G:PATH-V3-074 primitive material type constraints preserve nominal peers but leave reference and claim bases blocked before C', async () => {
+test('N02G:PATH-V3-074 normal material type constructors preserve nominal peers but leave ambiguous reference record and claim bases blocked before C', async () => {
     const api = require('../../../src/next/provenance/pathQualificationV3');
     const { canonicalValue } = require('../../../src/next/kernel/canonicalValue');
     const { admittedDocuments } = require('../../../src/next/provenance/packageContract');
@@ -979,8 +1097,10 @@ test('N02G:PATH-V3-074 primitive material type constraints preserve nominal peer
             if (site.authored_site.definition !== 'claimPath') {
                 const locator = site.domain.original;
                 const owner = site.authored_site.definition === 'fieldPath' ? graph.nodes[locator.node].kind : locator.kind;
-                const type = registry.kinds[owner].fields[locator.segments[0]].type;
-                kind = ['ref', 'ref_list', 'typed_result', 'typed_period', 'role_ref_list'].includes(type) ? 'reference_or_record' : 'primitive:' + type;
+                const descriptor = registry.kinds[owner].fields[locator.segments[0]], type = descriptor.type;
+                kind = site.authored_site.definition === 'fieldPath' && type === 'ref' && descriptor.targets.length === 1
+                    ? 'single_target_reference'
+                    : ['ref', 'ref_list', 'typed_result', 'typed_period', 'role_ref_list'].includes(type) ? 'reference_or_record' : 'primitive:' + type;
             }
             if (!samples.has(kind)) samples.set(kind, rowIndex);
         }
@@ -1007,7 +1127,12 @@ test('N02G:PATH-V3-074 primitive material type constraints preserve nominal peer
             assert.equal(type.compiler_result_used, false);
             assert.equal(type.discharged, false);
             if (type.conditional_preservation_verified) {
-                preserved++; assert.equal(type.status, 'same_normal_material_primitive_type_under_explicit_premises');
+                preserved++;
+                const constructors = [type.baseline_constructor, type.alternative_constructor];
+                assert.ok(constructors.every(value => ['material_primitive', 'single_target_reference_id'].includes(value)));
+                assert.equal(type.status, constructors.includes('single_target_reference_id')
+                    ? 'same_normal_single_target_reference_id_under_explicit_premises'
+                    : 'same_normal_material_primitive_type_under_explicit_premises');
                 assert.deepEqual(type.baseline_nominal, type.alternative_nominal);
                 assert.ok(type.operator_instance.args.length > 0);
                 assert.equal(type.window_and_set_inference_unchanged, true);

@@ -1,0 +1,11 @@
+{
+  "stage": "mechanical_bootstrap_only",
+  "passed": true,
+  "no_real_tests_executed": true,
+  "invocations": 1,
+  "wrapper_sha256": "398ca91257c33488e5ae9a80f39c758cfbcf3c16e893673fd95b92db73106bf1",
+  "runner_sha256": "83c6c0729170dbb298cd4460eb471353625495c90fb6564e524eea443a7eb2bc",
+  "qualified": false,
+  "credit": 0,
+  "global_go": false
+}

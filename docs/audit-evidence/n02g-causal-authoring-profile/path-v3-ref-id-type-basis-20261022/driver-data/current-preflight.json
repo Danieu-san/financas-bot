@@ -1,0 +1,290 @@
+{
+  "stage": "preflight_only",
+  "created_at": "2026-10-22T20:12:05.505Z",
+  "node": "v22.17.0",
+  "measured_file_count": 895,
+  "measured_sources_sha256": "533d1d3a095dd3d71a72178965f9ed75968b009e889be9991808719472c1c652",
+  "changed_paths": [
+    "src/next/provenance/pathQualificationV3.js",
+    "tests/next/provenance/pathQualificationV3.cases.js"
+  ],
+  "original_test_file_count": 168,
+  "additional_test_files": [
+    "tests/next/provenance/pathQualificationV3.cases.js"
+  ],
+  "expected_total_tests": 2790,
+  "expected_path_v3_count": 90,
+  "new_harness_titles": [
+    "coverage tripwire checks effective HTTP hosts and fetch Request inputs without network",
+    "coverage tripwire forwards the same HTTP hostname snapshot it checked without network"
+  ],
+  "proof_bindings": [
+    {
+      "path": ".codex-temp/b4-02-ref-id-type-causal-case-20261022.md",
+      "bytes": 7866,
+      "sha256": "f13b7f5af4bb757f0b887f70c6ddaadce52030d7d0185397a3ca59790e883376"
+    },
+    {
+      "path": ".codex-temp/b4-02-ref-id-type-basis-plan-20261022.md",
+      "bytes": 3454,
+      "sha256": "c99ac7101916091d8b0e268dc77869882343c66844153c0522dfd076e607a419"
+    },
+    {
+      "path": ".codex-temp/b4-02-ref-id-type-red-20261022.json",
+      "bytes": 3014,
+      "sha256": "54cbe0e8e8395d6d0ebd1193536e546af763bf06878216872f88e324a57b321b"
+    },
+    {
+      "path": ".codex-temp/b4-02-ref-id-type-green-20261022.json",
+      "bytes": 3322,
+      "sha256": "e158e2fda1ee5aa0ff49a231053fb581d02607c66a98c749661761532257108b"
+    },
+    {
+      "path": ".codex-temp/b4-02-ref-id-type-affected-20261022.json",
+      "bytes": 4084,
+      "sha256": "3d22fdb7458a0fb691700fdabf5d85fdf47f2866acdaad45f739c5d1e92e4b85"
+    },
+    {
+      "path": ".codex-temp/path-v3-complete-capture-refid-20261022.json",
+      "bytes": 310471,
+      "sha256": "11b40b35a8dbeca5f32c3d0b4c8bd9c404450eee29a04b3f2cf261415ea79ebf"
+    },
+    {
+      "path": ".codex-temp/b4-02-ref-id-three-precompile-20261022.json",
+      "bytes": 6010,
+      "sha256": "6a99fd68c02b91bd18857cccc7fe7eee774c8b47c62984e4c2a8c050c01d5ca6"
+    },
+    {
+      "path": ".codex-temp/b4-02-ref-id-three-precompile-20261022/roster.json",
+      "bytes": 20493,
+      "sha256": "20404c45a65ae97098aba345295fed5c4fb9bfb2c90c3b9df8cc663d81486fa3"
+    },
+    {
+      "path": ".codex-temp/run-b4-02-ref-id-type-validation-20261022.cjs",
+      "bytes": 4831,
+      "sha256": "c28880a1b26f20bab2440b6e25b7e888efc96221959a542e7df3738807471b5c"
+    },
+    {
+      "path": ".codex-temp/prepare-path-v3-complete-capture-refid-20261022.cjs",
+      "bytes": 1511,
+      "sha256": "ca5272a877842f64f72038f3fdf531af12b1549148795667a7cfc872afcc2c22"
+    },
+    {
+      "path": ".codex-temp/prepare-path-v3-complete-capture-ac08-20261015.cjs",
+      "bytes": 9553,
+      "sha256": "b1d84b0aab9e7dc2058e78b643109eef8eb1706702aae5301b162337954b98b8"
+    },
+    {
+      "path": ".codex-temp/prepare-b4-02-ref-id-three-precompile-20261022.cjs",
+      "bytes": 4030,
+      "sha256": "f71e0829e1b098571951cd89bb995ceb074e63025a7ef495666f40b0ed52ab5c"
+    },
+    {
+      "path": ".codex-temp/prepare-b4-02-S01-remaining47-reference-20261021.cjs",
+      "bytes": 11683,
+      "sha256": "de920e052dd4ae1f359ed6f9b7bcc8c0fc40925de35e2e76b9a987d7d36b3e71"
+    },
+    {
+      "path": ".codex-temp/run-b4-02-path-v3-final-wide-20261019.cjs",
+      "bytes": 16909,
+      "sha256": "3c40ae222163b114323accd8d4fd7cce9d2d69d0863d642dde04fd3493c2330c"
+    },
+    {
+      "path": ".codex-temp/run-ref-id-path-v3-final-wide-20261022.cjs",
+      "bytes": 7720,
+      "sha256": "d84d0177b3cd9d2bc2cd4f8fb64c59d065d99e69a2eaf30511cdf89e72803380"
+    },
+    {
+      "path": ".codex-temp/confront-b4-02-ref-id-captures-20261022.cjs",
+      "bytes": 8394,
+      "sha256": "c038510a871a93f3641588eb98fcf925d90820227636c4d46d19897f95901b0b"
+    },
+    {
+      "path": ".codex-temp/b4-02-ref-id-capture-confronted-20261022.json",
+      "bytes": 6830,
+      "sha256": "8fddaf2e452824724719c48165555b721c7543dbe29732e13099723d3883a9b9"
+    },
+    {
+      "path": ".codex-temp/b4-02-ref-id-three-precompile-20261022/0204.plan.json",
+      "bytes": 397027,
+      "sha256": "f47b3d03a941aae78777f05121d2059a144b8389cfa3f1fc41adc8cabbf5eaff"
+    },
+    {
+      "path": ".codex-temp/b4-02-ref-id-three-precompile-20261022/0204.snapshot.json",
+      "bytes": 492391,
+      "sha256": "e97dc026d54063ed21bfccbc6aecda2d012e3b7aa054051bda7d78b992616476"
+    },
+    {
+      "path": ".codex-temp/b4-02-ref-id-three-precompile-20261022/1695.plan.json",
+      "bytes": 683004,
+      "sha256": "bf4f04bc442a3b598b291ae5943a72c32f528fdb800361d29a8c57a5e88a3581"
+    },
+    {
+      "path": ".codex-temp/b4-02-ref-id-three-precompile-20261022/1695.snapshot.json",
+      "bytes": 580393,
+      "sha256": "87cae24f9e21d7c75de4e115a79cca41c708b9205837732d4993d7932e2381a5"
+    },
+    {
+      "path": ".codex-temp/b4-02-ref-id-three-precompile-20261022/1830.plan.json",
+      "bytes": 682909,
+      "sha256": "18650152ac2b687622148e68cfc4b86579f22ef4395bb2c991c628d306c1f423"
+    },
+    {
+      "path": ".codex-temp/b4-02-ref-id-three-precompile-20261022/1830.snapshot.json",
+      "bytes": 580277,
+      "sha256": "28b535c3b86a2dfe7756a7d45aa188adb4a30dd3573f5594fab3290262583954"
+    },
+    {
+      "path": ".codex-temp/path-v3-complete-capture-refid-20261022-bytes/normal-rule-review-snapshot.json",
+      "bytes": 580510,
+      "sha256": "22a18c7bd60421928a162cc71219d2b00063e737178e6b4a9906d0f1e2844a6e"
+    },
+    {
+      "path": ".codex-temp/path-v3-complete-capture-refid-20261022-bytes/compiler-manifest.json",
+      "bytes": 442,
+      "sha256": "2281d7efd3b6627fe4679427b908b06ad29ea6e75cfea66aca3c387019bed151"
+    },
+    {
+      "path": ".codex-temp/path-v3-complete-capture-refid-20261022-bytes/path-qualification-compiler-recipe.json",
+      "bytes": 277817,
+      "sha256": "59b8281975ffa4fd9981d4e270aad0e4a9d4b2ca2ffce5b1f9660103d26bd401"
+    },
+    {
+      "path": ".codex-temp/path-v3-complete-capture-refid-20261022-bytes/path-qualification-compiler.js",
+      "bytes": 1445901,
+      "sha256": "0239d7ca8d9d503f3367af71fe3ac34005e53d9ae045bfb1bf82bc58548d0356"
+    },
+    {
+      "path": ".codex-temp/path-v3-complete-capture-refid-20261022-bytes/validation-tcb-manifest.json",
+      "bytes": 683,
+      "sha256": "34f059dfdaafc4b7d479109978c444e7bd9335d93dc95349ec4e5bb3e5f7ffff"
+    },
+    {
+      "path": ".codex-temp/path-v3-complete-capture-refid-20261022-bytes/child-bootstrap.js",
+      "bytes": 639971,
+      "sha256": "97413ddff2e9fd8a1c5368a96aed2a3000401476da2ce9b795631958dc8c0a92"
+    },
+    {
+      "path": ".codex-temp/path-v3-complete-capture-refid-20261022-bytes/host-bootstrap.js",
+      "bytes": 1445597,
+      "sha256": "3763ef424087217f14dfd7903d7f8b3bd6919448d4d51f682320fcdea1cddd35"
+    },
+    {
+      "path": ".codex-temp/path-v3-complete-capture-refid-20261022-bytes/launcher-bootstrap.js",
+      "bytes": 33890,
+      "sha256": "2f8a10d658d5748cdbcdbbad79abb4dd29c3364816d6f4504e219682429e4119"
+    },
+    {
+      "path": ".codex-temp/path-v3-complete-capture-refid-20261022-bytes/recipe.json",
+      "bytes": 277817,
+      "sha256": "59b8281975ffa4fd9981d4e270aad0e4a9d4b2ca2ffce5b1f9660103d26bd401"
+    },
+    {
+      "path": ".codex-temp/run-ref-id-path-v3-final-wide-resumed-20261022.cjs",
+      "bytes": 3495,
+      "sha256": "398ca91257c33488e5ae9a80f39c758cfbcf3c16e893673fd95b92db73106bf1"
+    },
+    {
+      "path": ".codex-temp/ref-id-path-v3-final-wide-20261022.interruption.json",
+      "bytes": 1615,
+      "sha256": "beba9f28ea606b2e3f932ab169feefc6baec8bf744575cbe316644d2f432f93d"
+    }
+  ],
+  "temporary_root": "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp",
+  "resolved_git": "C:\\Users\\Administrador\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\git\\cmd\\git.EXE",
+  "index_sha256": "9b8d706b67c0f5d804312ceb78060bbf53a0d71dc32860027eaa3e7bcbfc2ba0",
+  "runner_sha256": "83c6c0729170dbb298cd4460eb471353625495c90fb6564e524eea443a7eb2bc",
+  "wrapper_sha256": "398ca91257c33488e5ae9a80f39c758cfbcf3c16e893673fd95b92db73106bf1",
+  "development_inventory": {
+    "errors": [],
+    "reviewed_matches": 15,
+    "pending_paths": [
+      "kernel/canonicalJson.js",
+      "provenance/artifactLoader.js",
+      "provenance/authoringIR.js",
+      "provenance/capturedTcbLauncher.js",
+      "provenance/causalRecorder.js",
+      "provenance/civilCalendar.js",
+      "provenance/claimBinding.js",
+      "provenance/claimContext.js",
+      "provenance/claimMonthIsolatedProfile.js",
+      "provenance/claimMonthPathProfile.js",
+      "provenance/claimMonthProofConformance.js",
+      "provenance/claimMonthTraceContract.js",
+      "provenance/claimNominalTypes.js",
+      "provenance/claimRequirementCore.js",
+      "provenance/claimRequirements.js",
+      "provenance/collectionProofCore.js",
+      "provenance/collectionRequirements.js",
+      "provenance/executionHost.js",
+      "provenance/executionHostChild.cjs",
+      "provenance/executionProfile.js",
+      "provenance/executionRegistry.js",
+      "provenance/financialHost.js",
+      "provenance/freezeContract.js",
+      "provenance/graphCompiler.js",
+      "provenance/graphStructure.js",
+      "provenance/instrumentedAccess.js",
+      "provenance/literalTypes.js",
+      "provenance/materialFieldTypes.js",
+      "provenance/materialFingerprintCore.js",
+      "provenance/metricDirectReads.js",
+      "provenance/metricEffects.js",
+      "provenance/metricInstallments.js",
+      "provenance/metricParents.js",
+      "provenance/metricReferences.js",
+      "provenance/metricSelection.js",
+      "provenance/mutationWitnesses.js",
+      "provenance/nativeRuntime.js",
+      "provenance/obligationBindings.js",
+      "provenance/observationContract.js",
+      "provenance/observationScalars.js",
+      "provenance/operandBindings.js",
+      "provenance/operatorTypes.js",
+      "provenance/packageContract.js",
+      "provenance/pathLocatorDomainV3.js",
+      "provenance/pathMutationInventory.js",
+      "provenance/pathQualificationV3.js",
+      "provenance/pathSemanticReference.js",
+      "provenance/phaseCompositionProfile.js",
+      "provenance/phaseProgramIdentity.js",
+      "provenance/pinnedCivilTimezone.js",
+      "provenance/predicateTypes.js",
+      "provenance/proofAcceptance.js",
+      "provenance/proofContextBinding.js",
+      "provenance/proofObservedValues.js",
+      "provenance/proofOperatorContracts.js",
+      "provenance/proofOperators.js",
+      "provenance/proofParentBinding.js",
+      "provenance/proofProgramData.js",
+      "provenance/proofSha256.js",
+      "provenance/scalarProofCore.js",
+      "provenance/scalarProofOperators.js",
+      "provenance/schemaRegistryProjection.js",
+      "provenance/selectedEventDayAdjudicator.js",
+      "provenance/selectedEventDayCoreComparison.js",
+      "provenance/selectedEventDayCoverage.js",
+      "provenance/selectedEventDayDerivationOperands.js",
+      "provenance/selectedEventDayDispatchCore.js",
+      "provenance/selectedEventDayDispatcher.js",
+      "provenance/selectedEventDayExecutionTicket.js",
+      "provenance/selectedEventDayIrContract.js",
+      "provenance/selectedEventDayLauncher.js",
+      "provenance/selectedEventDayOracle.js",
+      "provenance/selectedEventDayPacket.js",
+      "provenance/selectedEventDayProfile.js",
+      "provenance/selectedEventDayProofChild.cjs",
+      "provenance/selectedEventDayProofHost.js",
+      "provenance/selectedEventDayProofOperands.js",
+      "provenance/selectedEventDayProofProtocol.js",
+      "provenance/selectionBindings.js",
+      "provenance/templateReferences.js",
+      "provenance/validationTcbEntry.js"
+    ],
+    "release_eligible": false
+  },
+  "wide_started": false,
+  "qualified": false,
+  "credit": 0,
+  "global_go": false
+}

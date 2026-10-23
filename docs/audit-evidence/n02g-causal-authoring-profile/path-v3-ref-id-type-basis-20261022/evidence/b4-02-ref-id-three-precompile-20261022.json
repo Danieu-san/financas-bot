@@ -1,0 +1,177 @@
+{
+  "stage": "all3_ref_id_precompile_references_prepared_not_reviewed_or_qualified",
+  "started_at": "2026-10-22T15:12:15.285Z",
+  "completed_at": "2026-10-22T15:19:27.480Z",
+  "duration_ms": 432197,
+  "source_before": {
+    "count": 895,
+    "sha256": "533d1d3a095dd3d71a72178965f9ed75968b009e889be9991808719472c1c652",
+    "mismatches": []
+  },
+  "source_after": {
+    "count": 895,
+    "sha256": "533d1d3a095dd3d71a72178965f9ed75968b009e889be9991808719472c1c652",
+    "mismatches": []
+  },
+  "roster_sha256": "20404c45a65ae97098aba345295fed5c4fb9bfb2c90c3b9df8cc663d81486fa3",
+  "rows": [
+    {
+      "row_index": 204,
+      "target_id": "sha256:165af73a62300366b0012a14ae39fe8d7a573cfc7804ea8da08a67d9414a0a66",
+      "qualification_id": "sha256:1f743c26c858dfa18e7ab88004bf6c81cc4d572f0ba5bb9ace7b439425a2413d",
+      "predicate_id": "link_1_payment_owner",
+      "status": "preselected_discriminating_reference_not_qualified",
+      "selected": {
+        "entry_index": 0,
+        "site_index": 0,
+        "locator_index": 0,
+        "candidate_id": "sha256:14a7390dd5402b68b68e5b500291d389c7fedee55aa4f58a51ff4dcc0101f43e",
+        "invocation_id": "b685c2ed-cac8-4a13-8e42-b8219a6465f2",
+        "reference_sha256": "sha256:2d58c04ea238143117258e10be579bcf705b6254758d256a789ed0b2bccb1531"
+      },
+      "conditional_partition_complete": true,
+      "entries": 16,
+      "classes": {
+        "conditional_witness": 6,
+        "conditional_non_witness": 10
+      },
+      "plan_path": "0204.plan.json",
+      "plan_bytes": 397027,
+      "plan_sha256": "f47b3d03a941aae78777f05121d2059a144b8389cfa3f1fc41adc8cabbf5eaff",
+      "snapshot": {
+        "path": "0204.snapshot.json",
+        "bytes": 492391,
+        "sha256": "e97dc026d54063ed21bfccbc6aecda2d012e3b7aa054051bda7d78b992616476",
+        "conditional_site_sizes": [
+          {
+            "site": 0,
+            "L": 15,
+            "A": 15,
+            "W": 5,
+            "excluded": 0
+          },
+          {
+            "site": 1,
+            "L": 1,
+            "A": 1,
+            "W": 1,
+            "excluded": 0
+          }
+        ],
+        "pending_independent_review": true
+      },
+      "qualified": false,
+      "semantic_mutation_credit": 0,
+      "dp_execution": false
+    },
+    {
+      "row_index": 1695,
+      "target_id": "sha256:b3b309c3c247bc84c031be24b117dd2828b4933b5f70f9df010358b50056285a",
+      "qualification_id": "sha256:d248a4b7ebad7994d3d99f27662176b03344cb1815325af9c035ca7e0ef2244d",
+      "predicate_id": "link_3_refund_person",
+      "status": "preselected_discriminating_reference_not_qualified",
+      "selected": {
+        "entry_index": 2,
+        "site_index": 0,
+        "locator_index": 2,
+        "candidate_id": "sha256:88bbe061a64aa9637b542f7145fa93b6803eff86c461180eafcf850f9ccaa122",
+        "invocation_id": "3578b2cf-add7-40f3-8bbd-abb60d02a31d",
+        "reference_sha256": "sha256:6c8aac5e8151e9c07cced24ae7fc2fcf68a521ffbdb45780eb205e4362551016"
+      },
+      "conditional_partition_complete": true,
+      "entries": 30,
+      "classes": {
+        "conditional_non_witness": 8,
+        "conditional_witness": 22
+      },
+      "plan_path": "1695.plan.json",
+      "plan_bytes": 683004,
+      "plan_sha256": "bf4f04bc442a3b598b291ae5943a72c32f528fdb800361d29a8c57a5e88a3581",
+      "snapshot": {
+        "path": "1695.snapshot.json",
+        "bytes": 580393,
+        "sha256": "87cae24f9e21d7c75de4e115a79cca41c708b9205837732d4993d7932e2381a5",
+        "conditional_site_sizes": [
+          {
+            "site": 0,
+            "L": 15,
+            "A": 15,
+            "W": 11,
+            "excluded": 0
+          },
+          {
+            "site": 1,
+            "L": 15,
+            "A": 15,
+            "W": 11,
+            "excluded": 0
+          }
+        ],
+        "pending_independent_review": true
+      },
+      "qualified": false,
+      "semantic_mutation_credit": 0,
+      "dp_execution": false
+    },
+    {
+      "row_index": 1830,
+      "target_id": "sha256:c1816ae926fc2e7ce1f5646d8ea1a11476c330094b858303a688daecdfbef71b",
+      "qualification_id": "sha256:8d25fe486d0c8d5903989f03081948d77803c5fa6ff96ed518ae7e4ae650cb79",
+      "predicate_id": "link_8_same_person",
+      "status": "preselected_discriminating_reference_not_qualified",
+      "selected": {
+        "entry_index": 0,
+        "site_index": 0,
+        "locator_index": 0,
+        "candidate_id": "sha256:dcbdd0d12749d788f70031878195221cf432fbc2adc95d7600974a7bd4892981",
+        "invocation_id": "0c1d6796-9983-4a45-9583-40dea546fd73",
+        "reference_sha256": "sha256:311de1030d964a22a318bcf43173a4166eebe945561359c2491aa76ac6cf9dfe"
+      },
+      "conditional_partition_complete": true,
+      "entries": 30,
+      "classes": {
+        "conditional_witness": 10,
+        "conditional_non_witness": 20
+      },
+      "plan_path": "1830.plan.json",
+      "plan_bytes": 682909,
+      "plan_sha256": "18650152ac2b687622148e68cfc4b86579f22ef4395bb2c991c628d306c1f423",
+      "snapshot": {
+        "path": "1830.snapshot.json",
+        "bytes": 580277,
+        "sha256": "28b535c3b86a2dfe7756a7d45aa188adb4a30dd3573f5594fab3290262583954",
+        "conditional_site_sizes": [
+          {
+            "site": 0,
+            "L": 15,
+            "A": 15,
+            "W": 5,
+            "excluded": 0
+          },
+          {
+            "site": 1,
+            "L": 15,
+            "A": 15,
+            "W": 5,
+            "excluded": 0
+          }
+        ],
+        "pending_independent_review": true
+      },
+      "qualified": false,
+      "semantic_mutation_credit": 0,
+      "dp_execution": false
+    }
+  ],
+  "snapshots": 3,
+  "blocked_without_selected": 0,
+  "no_selected_normal_compile": true,
+  "no_guest_execution": true,
+  "no_execution_ticket_issued": true,
+  "existing_compiler_root": "sha256:2281d7efd3b6627fe4679427b908b06ad29ea6e75cfea66aca3c387019bed151",
+  "old_snapshot_646_unchanged": true,
+  "qualified": false,
+  "semantic_mutation_credit": 0,
+  "globalGO": false,
+  "NEXT03": false
+}

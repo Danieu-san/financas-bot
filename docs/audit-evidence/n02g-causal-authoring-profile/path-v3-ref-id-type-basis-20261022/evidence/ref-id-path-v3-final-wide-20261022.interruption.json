@@ -1,0 +1,40 @@
+{
+  "state": "interrupted_computer_restart",
+  "checked_at": "2026-10-22T20:09:23.872Z",
+  "old_started_at": "2026-10-22T17:48:28.316Z",
+  "estimated_boot_utc_observed": "2026-10-22T18:47:52.779Z",
+  "old_job_sha256": "9dd2d2840932d4b700e35902fe82298dda7508e388073709514fe7f2a176c5a3",
+  "old_job_label": "running",
+  "label_is_stale": true,
+  "native_suite_exit_retained": null,
+  "final_report_absent": true,
+  "matching_suite_processes_observed": 0,
+  "sources": 895,
+  "sources_current_sha256": "533d1d3a095dd3d71a72178965f9ed75968b009e889be9991808719472c1c652",
+  "old_proof_bindings": 32,
+  "proof_mismatches": [],
+  "index_sha256": "9b8d706b67c0f5d804312ceb78060bbf53a0d71dc32860027eaa3e7bcbfc2ba0",
+  "partial_outputs": {
+    "stdout": {
+      "bytes": 433409,
+      "sha256": "59fb11fef7b69fc445e108031b169e84875cb1a186bc7df04ae87d64b5c7a0ab",
+      "final_tests_footer_present": false
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "final_tests_footer_present": false
+    }
+  },
+  "retained_partial_coverage_json_count": 0,
+  "other_temporary_coverage_not_claimed_absent": true,
+  "partial_coverage_rehashed": false,
+  "partial_outputs_preserved_not_merged": true,
+  "readonly_confront_native_exit": 0,
+  "no_suite_run_in_confront": true,
+  "no_pass_or_product_red_claim": true,
+  "human_resume": "Daniel informou que iniciou outra conversa para o projeto afetado pelo crash do app e pediu seguir com a suite. O bug nativo do app nao foi declarado corrigido.",
+  "qualified": false,
+  "credit": 0,
+  "global_go": false
+}

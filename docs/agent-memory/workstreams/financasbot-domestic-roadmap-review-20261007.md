@@ -1,41 +1,15 @@
-# N02-G / PATHv3 — B4-02 whole candidate awaiting independent review
+# N02-G/PATHv3 — candidato REF-ID-TYPE-BASIS-01
 
-This is a sanitized publication projection, not an operational authorization.
-As of 2026-10-19T18:30Z, the final local B4-02 wide is complete and confronted:
-2788 tests, 2778 PASS, 0 FAIL, 10 exact SKIP, cancelled/todo 0; native child and
-runner 0. Report SHA256:
-42e6126d4c3f321534d72b7584951d9d4aa6a6c794e889618d9934589f35a866.
-Duration 12760204ms is native execution, not the later observation window.
-All 895 measured current inputs, nine frozen proof inputs, output hashes,
-753 coverage JSON identities/parses and the local Git index were confronted.
-Raw TAP, coverage and the large mechanical reference readout remain local.
+Projecao publica de estado, nao autoridade de runtime, ledger ou aprovacao independente.
 
-Material changes relative to the published B4-01 candidate are limited to two
-existing test-harness sources: snapshot ordinary HTTP options once, guard and
-forward that same snapshot, and reject the unsafe top-level own __proto__ key
-before Node's next native copy. Both check/use counterexamples were reproduced
-with a synthetic native agent and zero socket attempts. No financial bypass,
-arbitrary Agent isolation or universal OS-network guarantee is claimed.
+O recorte causal corrige a omissao de um construtor normal ja existente: fieldPath material/ref com um unico destino produz scalar id/kind. Somente pathQualificationV3.js e seu casefile mudam comportamento/teste; checkers, operadores, registry, schemas, norma e dependencias permanecem iguais. A classe real tem29descritores/12destinos; nao e uma allowlist de tres casos. Ref ambiguo/selector/ref_list/record/claim e nove casos claim-selection ficam fora.
 
-New source-bound E1–E5 evidence addresses the prior integrated composition
-limits: exact normal S01 programs and residual source positions, actual local
-callbacks, returned genuine handles, closed imports, trace and acceptance.
-It is an executor argument PENDING INDEPENDENT REVIEW, not semantic approval.
-No new analyzer, engine, grammar, schema, vendor, norm, captured artifact or pin.
+RED089 confirmado antes do patch; focal074/089/0903PASS e afetada9PASS. Captura9 atual: oito corpos iguais aos anteriores, somente snapshot646 mudou para22a18c7bd60421928a162cc71219d2b00063e737178e6b4a9906d0f1e2844a6e. Roots compiler2281d7ef.../TCB34f059df... iguais. Tres planos/snapshots proprios precompile204/1695/1830,16/30/30membros e primeiros indices CONDICIONAIS0/2/0, sem BUILDselecionado/ticket/guest/credito.
 
-The previous 9d021e1 fixed five-block-plus-final review is CLOSED INCOMPLETA;
-its 319 limited role observations are not approvals or a sum of partial GOs.
-This publication is a new material whole candidate, not a sixth reading block,
-cosmetic hash or corrective retry on the old immutable object. One integrated
-independent review of this whole candidate follows publication.
+A primeira ampla foi interrompida por reinicio do computador e nao produziu veredito. Seus parciais nao foram mesclados. Nova ampla inteira concluiu22out23:53:17.765Z/nativechild0runner0:2790tests/2780PASS/0FAIL/10SKIPexatos/cancel-todo0/90PATHv3/2SCHEMA/2harnesscada1.895fontes533d1d3a095dd3d71a72178965f9ed75968b009e889be9991808719472c1c652+34proofs antes/depois/ATUAIS iguais;753coverageJSONs validos. Relatorio4c6860eb21a9cd35be6724ad7f5aeefaec086e996e8eaa94dfebac6c4b6720c6. BrutosTAPcoverage permanecem locais.
 
-The original normative §4 witness scope remains distinct from universal §6
-equivalence. Historical data are not requalified or multiplied into new proofs.
-The nine captures, compiler/TCB roots, corpus, dependencies and pins remain
-unchanged. Twelve discharged flags and six normal premises remain false;
-actual A/W/first-W and authentic operational TCB/pin/runtime/ticket/fresh
-prerequisites are not manufactured by these local results. No handles or
-financial execution are authorized by a static review alone.
+Objeto de revisao e INTEIRO: codigo/norma/corpus/dados/usos/dependencias/licencas/nove capturas/quatro bundles/argumentos AC08B4S01 e12regras9frames14interfaces. Nao apenas este documento ou o helper mecanico. Uma auditoria integrada pelo novo hash deve julgar o delta causal, as tres bases estaticas condicionais e a evidencia operacional herdada140/1952, sem reexecutar aquelas invocacoes.
 
-Qualified/credit/exec/finance/receipt/validated_parent/globalGO/NEXT03 false/0.
-N02-G is incomplete. No deployment, production access or real data are in scope.
+Formal preservado:23verified=1witness22static/2396blocked/credito1;3types e140/1952 ainda blocked. Ha3execucoes guest reais historicas; nao alegar zeroexecucao. Nenhum novo credito por esta publicacao. Os novos tres witnesses ainda exigem BUILDnormal/pins-tickets revisados antes handles/C-M-S proprio/violacao exata§4. Flags locais de BUILD e relatos antigos nao foram reescritos para apagar cronologia.
+
+Sem GOglobal/finance/receipt/validated_parent/NEXT03. Witness§4 nao e equivalencia universal§6;§7nao exige45988novasprovas2419reruns. Historicos/ledgers nao somados ou requalificados. Hash/AST/reassembly/contagens/testes nao substituem exame semantico independente. Norma72fc/blob82112 e corpus76graphs76claims39evaluators45988requirements preservados. Proximo: UMA auditoria integrada e confronto causal; nao nova ampla verde sem mudanca causal.

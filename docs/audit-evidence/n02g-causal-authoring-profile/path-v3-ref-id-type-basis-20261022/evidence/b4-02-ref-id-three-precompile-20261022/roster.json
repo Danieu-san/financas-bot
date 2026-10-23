@@ -1,0 +1,758 @@
+{
+  "stage": "fixed3_complete_ref_id_S01_rows_before_first_new_materialization",
+  "predecessor_sha256": "810385e906ca7386002e7f9c5691c170ed59826a710d7250c68a1ce219460ead",
+  "rows": [
+    {
+      "row_index": 204,
+      "target_id": "sha256:165af73a62300366b0012a14ae39fe8d7a573cfc7804ea8da08a67d9414a0a66",
+      "qualification_id": "sha256:1f743c26c858dfa18e7ab88004bf6c81cc4d572f0ba5bb9ace7b439425a2413d",
+      "target": {
+        "fact_key": "S-01#1#1",
+        "predicate_id": "link_1_payment_owner",
+        "strategy": "same_type_wrong_path"
+      },
+      "sites": [
+        {
+          "site_index": 0,
+          "authored_site": {
+            "class": "path",
+            "site_path": [
+              "args",
+              0,
+              "field",
+              "segments"
+            ],
+            "definition": "fieldPath",
+            "namespace": null,
+            "fact_key": "S-01#1#1",
+            "predicate_id": "link_1_payment_owner",
+            "mutation_id": "sha256:ad0be42b24cb98bd516be145997c3442b2e7c8306af8078c4ff1f81a7d008e41"
+          },
+          "domain": {
+            "namespace": "material",
+            "location": [
+              "args",
+              0,
+              "field"
+            ],
+            "original": {
+              "node": "evt_invoice_payment",
+              "segments": [
+                "person_id"
+              ]
+            },
+            "original_nominal": {
+              "form": "scalar",
+              "type": "id",
+              "kind": "person"
+            },
+            "locators": [
+              {
+                "node": "evt_bill_projected",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_cinema_b",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_fuel_a",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_gift_b",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_installment_1",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_installment_2",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_installment_3",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_market_a",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_refund_b",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_rent_a",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_restaurant_b",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_salary_a",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_snack_a",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_transfer_in",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_transfer_out",
+                "segments": [
+                  "person_id"
+                ]
+              }
+            ],
+            "complete": true,
+            "scope": "finite_authored_closed_world_L_only",
+            "admitted_domain_complete": false,
+            "discriminating_domain_complete": false
+          },
+          "domain_complete": true
+        },
+        {
+          "site_index": 1,
+          "authored_site": {
+            "class": "path",
+            "site_path": [
+              "args",
+              1,
+              "field",
+              "segments"
+            ],
+            "definition": "fieldPath",
+            "namespace": null,
+            "fact_key": "S-01#1#1",
+            "predicate_id": "link_1_payment_owner",
+            "mutation_id": "sha256:56e169017a6fdf71932f64c9ac845e61b62dea015ee539b476cd5e8ca5f375a8"
+          },
+          "domain": {
+            "namespace": "material",
+            "location": [
+              "args",
+              1,
+              "field"
+            ],
+            "original": {
+              "node": "card_blue",
+              "segments": [
+                "owner_id"
+              ]
+            },
+            "original_nominal": {
+              "form": "scalar",
+              "type": "id",
+              "kind": "person"
+            },
+            "locators": [
+              {
+                "node": "card_green",
+                "segments": [
+                  "owner_id"
+                ]
+              }
+            ],
+            "complete": true,
+            "scope": "finite_authored_closed_world_L_only",
+            "admitted_domain_complete": false,
+            "discriminating_domain_complete": false
+          },
+          "domain_complete": true
+        }
+      ]
+    },
+    {
+      "row_index": 1695,
+      "target_id": "sha256:b3b309c3c247bc84c031be24b117dd2828b4933b5f70f9df010358b50056285a",
+      "qualification_id": "sha256:d248a4b7ebad7994d3d99f27662176b03344cb1815325af9c035ca7e0ef2244d",
+      "target": {
+        "fact_key": "S-01#1#1",
+        "predicate_id": "link_3_refund_person",
+        "strategy": "same_type_wrong_path"
+      },
+      "sites": [
+        {
+          "site_index": 0,
+          "authored_site": {
+            "class": "path",
+            "site_path": [
+              "args",
+              0,
+              "field",
+              "segments"
+            ],
+            "definition": "fieldPath",
+            "namespace": null,
+            "fact_key": "S-01#1#1",
+            "predicate_id": "link_3_refund_person",
+            "mutation_id": "sha256:f9055e3a95b1e80b4d9c809f51e94858fbbbf7a665f25b46bb3cc381ad66bcd7"
+          },
+          "domain": {
+            "namespace": "material",
+            "location": [
+              "args",
+              0,
+              "field"
+            ],
+            "original": {
+              "node": "evt_refund_b",
+              "segments": [
+                "person_id"
+              ]
+            },
+            "original_nominal": {
+              "form": "scalar",
+              "type": "id",
+              "kind": "person"
+            },
+            "locators": [
+              {
+                "node": "evt_bill_projected",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_cinema_b",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_fuel_a",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_gift_b",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_installment_1",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_installment_2",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_installment_3",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_invoice_payment",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_market_a",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_rent_a",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_restaurant_b",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_salary_a",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_snack_a",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_transfer_in",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_transfer_out",
+                "segments": [
+                  "person_id"
+                ]
+              }
+            ],
+            "complete": true,
+            "scope": "finite_authored_closed_world_L_only",
+            "admitted_domain_complete": false,
+            "discriminating_domain_complete": false
+          },
+          "domain_complete": true
+        },
+        {
+          "site_index": 1,
+          "authored_site": {
+            "class": "path",
+            "site_path": [
+              "args",
+              1,
+              "field",
+              "segments"
+            ],
+            "definition": "fieldPath",
+            "namespace": null,
+            "fact_key": "S-01#1#1",
+            "predicate_id": "link_3_refund_person",
+            "mutation_id": "sha256:e43dfc26ef84aa148cc1240269d86ea8c660be201e10faebdb164f81c0d6913a"
+          },
+          "domain": {
+            "namespace": "material",
+            "location": [
+              "args",
+              1,
+              "field"
+            ],
+            "original": {
+              "node": "evt_restaurant_b",
+              "segments": [
+                "person_id"
+              ]
+            },
+            "original_nominal": {
+              "form": "scalar",
+              "type": "id",
+              "kind": "person"
+            },
+            "locators": [
+              {
+                "node": "evt_bill_projected",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_cinema_b",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_fuel_a",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_gift_b",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_installment_1",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_installment_2",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_installment_3",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_invoice_payment",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_market_a",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_refund_b",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_rent_a",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_salary_a",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_snack_a",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_transfer_in",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_transfer_out",
+                "segments": [
+                  "person_id"
+                ]
+              }
+            ],
+            "complete": true,
+            "scope": "finite_authored_closed_world_L_only",
+            "admitted_domain_complete": false,
+            "discriminating_domain_complete": false
+          },
+          "domain_complete": true
+        }
+      ]
+    },
+    {
+      "row_index": 1830,
+      "target_id": "sha256:c1816ae926fc2e7ce1f5646d8ea1a11476c330094b858303a688daecdfbef71b",
+      "qualification_id": "sha256:8d25fe486d0c8d5903989f03081948d77803c5fa6ff96ed518ae7e4ae650cb79",
+      "target": {
+        "fact_key": "S-01#1#1",
+        "predicate_id": "link_8_same_person",
+        "strategy": "same_type_wrong_path"
+      },
+      "sites": [
+        {
+          "site_index": 0,
+          "authored_site": {
+            "class": "path",
+            "site_path": [
+              "args",
+              0,
+              "field",
+              "segments"
+            ],
+            "definition": "fieldPath",
+            "namespace": null,
+            "fact_key": "S-01#1#1",
+            "predicate_id": "link_8_same_person",
+            "mutation_id": "sha256:11bc101c0ced3e3f85e1f37c10a48117406d34ae8e4ff496d26eff5ab4ff5ad2"
+          },
+          "domain": {
+            "namespace": "material",
+            "location": [
+              "args",
+              0,
+              "field"
+            ],
+            "original": {
+              "node": "evt_transfer_out",
+              "segments": [
+                "person_id"
+              ]
+            },
+            "original_nominal": {
+              "form": "scalar",
+              "type": "id",
+              "kind": "person"
+            },
+            "locators": [
+              {
+                "node": "evt_bill_projected",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_cinema_b",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_fuel_a",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_gift_b",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_installment_1",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_installment_2",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_installment_3",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_invoice_payment",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_market_a",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_refund_b",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_rent_a",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_restaurant_b",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_salary_a",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_snack_a",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_transfer_in",
+                "segments": [
+                  "person_id"
+                ]
+              }
+            ],
+            "complete": true,
+            "scope": "finite_authored_closed_world_L_only",
+            "admitted_domain_complete": false,
+            "discriminating_domain_complete": false
+          },
+          "domain_complete": true
+        },
+        {
+          "site_index": 1,
+          "authored_site": {
+            "class": "path",
+            "site_path": [
+              "args",
+              1,
+              "field",
+              "segments"
+            ],
+            "definition": "fieldPath",
+            "namespace": null,
+            "fact_key": "S-01#1#1",
+            "predicate_id": "link_8_same_person",
+            "mutation_id": "sha256:0a8f93f16e4b9cd4c639e6a4c14810b7aa1ee82de12342332a87283298f0fe6e"
+          },
+          "domain": {
+            "namespace": "material",
+            "location": [
+              "args",
+              1,
+              "field"
+            ],
+            "original": {
+              "node": "evt_transfer_in",
+              "segments": [
+                "person_id"
+              ]
+            },
+            "original_nominal": {
+              "form": "scalar",
+              "type": "id",
+              "kind": "person"
+            },
+            "locators": [
+              {
+                "node": "evt_bill_projected",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_cinema_b",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_fuel_a",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_gift_b",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_installment_1",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_installment_2",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_installment_3",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_invoice_payment",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_market_a",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_refund_b",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_rent_a",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_restaurant_b",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_salary_a",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_snack_a",
+                "segments": [
+                  "person_id"
+                ]
+              },
+              {
+                "node": "evt_transfer_out",
+                "segments": [
+                  "person_id"
+                ]
+              }
+            ],
+            "complete": true,
+            "scope": "finite_authored_closed_world_L_only",
+            "admitted_domain_complete": false,
+            "discriminating_domain_complete": false
+          },
+          "domain_complete": true
+        }
+      ]
+    }
+  ],
+  "qualified": false,
+  "new_semantic_credit": 0
+}
